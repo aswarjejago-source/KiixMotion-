@@ -14,14 +14,9 @@
         extend: {
           fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
           colors: {
-            kmBg: '#F8FAFC',
-            kmCard: '#FFFFFF',
-            kmBorder: '#E2E8F0',
-            kmTextPrimary: '#0F172A',
-            kmTextSecondary: '#64748B',
-            kmViolet: '#7C3AED',
-            kmVioletHover: '#6D28D9',
-            kmVioletLight: '#F3EEFF',
+            kmBg: '#F8FAFC', kmCard: '#FFFFFF', kmBorder: '#E2E8F0',
+            kmTextPrimary: '#0F172A', kmTextSecondary: '#64748B',
+            kmViolet: '#7C3AED', kmVioletHover: '#6D28D9', kmVioletLight: '#F3EEFF'
           }
         }
       }
@@ -82,30 +77,30 @@
       var mAkun = document.getElementById('menu-nav-akun');
       var baseBtn = "px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ";
       
-      mDash.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
-      mGen.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
-      mHist.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
-      mAkun.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
+      if(mDash) mDash.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
+      if(mGen) mGen.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
+      if(mHist) mHist.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
+      if(mAkun) mAkun.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
 
-      vDash.style.display = 'none';
-      vGen.style.display = 'none';
-      vHist.style.display = 'none';
-      vAkun.style.display = 'none';
+      if(vDash) vDash.style.display = 'none';
+      if(vGen) vGen.style.display = 'none';
+      if(vHist) vHist.style.display = 'none';
+      if(vAkun) vAkun.style.display = 'none';
 
       if (layar === 'dashboard') {
-        vDash.style.display = 'block';
-        mDash.className = baseBtn + "bg-kmViolet text-white violet-glow";
+        if(vDash) vDash.style.display = 'block';
+        if(mDash) mDash.className = baseBtn + "bg-kmViolet text-white violet-glow";
         updateStatistikDashboard();
       } else if (layar === 'generate') {
-        vGen.style.display = 'block';
-        mGen.className = baseBtn + "bg-kmViolet text-white violet-glow";
+        if(vGen) vGen.style.display = 'block';
+        if(mGen) mGen.className = baseBtn + "bg-kmViolet text-white violet-glow";
       } else if (layar === 'history') {
-        vHist.style.display = 'block';
-        mHist.className = baseBtn + "bg-kmViolet text-white violet-glow";
+        if(vHist) vHist.style.display = 'block';
+        if(mHist) mHist.className = baseBtn + "bg-kmViolet text-white violet-glow";
         renderLayarHistory();
       } else if (layar === 'kelola-akun') {
-        vAkun.style.display = 'block';
-        mAkun.className = baseBtn + "bg-kmViolet text-white violet-glow";
+        if(vAkun) vAkun.style.display = 'block';
+        if(mAkun) mAkun.className = baseBtn + "bg-kmViolet text-white violet-glow";
         renderListAkunDiKelola();
       }
     }
@@ -178,29 +173,29 @@
       var tTitle = document.getElementById('t-engine-title'), tSub = document.getElementById('t-engine-sub'), tCost = document.getElementById('t-engine-cost'), tTotal = document.getElementById('t-engine-total');
       var dropWrap = document.getElementById('box-wrap-dropdown-akun');
 
-      cRobo.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
-      cKiix.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
-      cRh.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
-      bRobo.style.display = 'none'; bKiix.style.display = 'none'; bRh.style.display = 'none';
+      if(cRobo) cRobo.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+      if(cKiix) cKiix.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+      if(cRh) cRh.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+      if(bRobo) bRobo.style.display = 'none'; if(bKiix) bKiix.style.display = 'none'; if(bRh) bRh.style.display = 'none';
 
       if (p === 'roboneo') {
-        cRobo.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
-        bRobo.style.display = 'inline-block';
-        tTitle.innerText = "KLING 2.6 MOTION CONTROL"; tSub.innerText = "(ROBONEO)";
-        tCost.innerText = "≈ 4 carrots"; tTotal.innerText = "≈ 4 carrots";
-        dropWrap.style.display = 'block';
+        if(cRobo) cRobo.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
+        if(bRobo) bRobo.style.display = 'inline-block';
+        if(tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL"; if(tSub) tSub.innerText = "(ROBONEO)";
+        if(tCost) tCost.innerText = "≈ 4 carrots"; if(tTotal) tTotal.innerText = "≈ 4 carrots";
+        if(dropWrap) dropWrap.style.display = 'block';
       } else if (p === 'kiix') {
-        cKiix.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
-        bKiix.style.display = 'inline-block';
-        tTitle.innerText = "KIIXMOTION DIRECT CLOUD"; tSub.innerText = "(DIRECT ENGINE)";
-        tCost.innerText = "1 Kredit VIP"; tTotal.innerText = "1 kredit VIP";
-        dropWrap.style.display = 'none';
+        if(cKiix) cKiix.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
+        if(bKiix) bKiix.style.display = 'inline-block';
+        if(tTitle) tTitle.innerText = "KIIXMOTION DIRECT CLOUD"; if(tSub) tSub.innerText = "(DIRECT ENGINE)";
+        if(tCost) tCost.innerText = "1 Kredit VIP"; if(tTotal) tTotal.innerText = "1 kredit VIP";
+        if(dropWrap) dropWrap.style.display = 'none';
       } else {
-        cRh.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
-        bRh.style.display = 'inline-block';
-        tTitle.innerText = "WAN MOTION CONTROL 1080HD"; tSub.innerText = "(RUNNINGHUB)";
-        tCost.innerText = "≈ 478 kredit"; tTotal.innerText = "≈ 478 kredit";
-        dropWrap.style.display = 'block';
+        if(cRh) cRh.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
+        if(bRh) bRh.style.display = 'inline-block';
+        if(tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD"; if(tSub) tSub.innerText = "(RUNNINGHUB)";
+        if(tCost) tCost.innerText = "≈ 478 kredit"; if(tTotal) tTotal.innerText = "≈ 478 kredit";
+        if(dropWrap) dropWrap.style.display = 'block';
       }
       sinkronkanDropdownAkunGenerate();
     }
@@ -209,20 +204,22 @@
       var bu = document.getElementById('tab-u'), bt = document.getElementById('tab-t');
       var vu = document.getElementById('v-mode-upload'), vt = document.getElementById('v-mode-tiktok');
       if (mode === 'u') {
-        vu.style.display = "grid"; vt.style.display = "none";
-        bu.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-kmViolet shadow-sm cursor-pointer";
-        bt.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer";
+        if(vu) vu.style.display = "grid"; if(vt) vt.style.display = "none";
+        if(bu) bu.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-kmViolet shadow-sm cursor-pointer";
+        if(bt) bt.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer";
       } else {
-        vu.style.display = "none"; vt.style.display = "block";
-        bt.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-kmViolet shadow-sm cursor-pointer";
-        bu.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer";
+        if(vu) vu.style.display = "none"; if(vt) vt.style.display = "block";
+        if(bt) bt.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-kmViolet shadow-sm cursor-pointer";
+        if(bu) bu.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer";
       }
     }
 
     function fileTerpilihInput(input, txtId, stId, tipe) {
       if (input.files && input.files[0]) {
-        document.getElementById(txtId).innerText = input.files[0].name;
-        document.getElementById(stId).innerHTML = '<span class="text-emerald-600 font-bold">✓ ' + (tipe === 'foto' ? 'Siap digunakan' : 'File terpasang') + '</span>';
+        var elTxt = document.getElementById(txtId);
+        var elSt = document.getElementById(stId);
+        if(elTxt) elTxt.innerText = input.files[0].name;
+        if(elSt) elSt.innerHTML = '<span class="text-emerald-600 font-bold">✓ ' + (tipe === 'foto' ? 'Siap digunakan' : 'File terpasang') + '</span>';
       }
     }
 
@@ -230,7 +227,8 @@
       if (navigator.clipboard && navigator.clipboard.readText) {
         navigator.clipboard.readText().then(function(t) {
           if (t) {
-            document.getElementById('in-link-tiktok').value = t;
+            var el = document.getElementById('in-link-tiktok');
+            if(el) el.value = t;
             alert('Link TikTok berhasil ditempel!');
           }
         });
@@ -248,8 +246,10 @@
         var opt = document.createElement('option');
         opt.value = ""; opt.innerText = "Belum ada akun terhubung (0 koin)";
         sel.appendChild(opt);
-        badge.innerText = "0 koin";
-        badge.className = "text-xs font-mono text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg";
+        if(badge) {
+          badge.innerText = "0 koin";
+          badge.className = "text-xs font-mono text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg";
+        }
       } else {
         var optRand = document.createElement('option');
         optRand.value = "random"; optRand.innerText = "🎲 Otomatis (Pilih Acak Akun)";
@@ -262,8 +262,10 @@
           o.innerText = targetAkun[i].nama + " (" + targetAkun[i].koin + (engineProvider === 'roboneo' ? " carrots)" : " koin)");
           sel.appendChild(o);
         }
-        badge.innerText = total + (engineProvider === 'roboneo' ? " carrots" : " koin");
-        badge.className = "text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
+        if(badge) {
+          badge.innerText = total + (engineProvider === 'roboneo' ? " carrots" : " koin");
+          badge.className = "text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
+        }
       }
     }
 
@@ -279,6 +281,7 @@
       return null;
     }
 
+    // FUNGSI UTAMA DENGAN UPLOAD BERTAHAP & TUNGGU HINGGA SELESAI
     async function mulaiProsesGenerate() {
       var targetAkun = engineProvider === 'roboneo' ? akunRoboneo : akunRunningHub;
       if (engineProvider !== 'kiix' && targetAkun.length === 0) {
@@ -286,7 +289,7 @@
         return;
       }
       var sel = document.getElementById('sel-dropdown-akun');
-      var idx = sel.value;
+      var idx = sel ? sel.value : "";
       var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
 
       var inputFoto = document.querySelector('input[type="file"][accept="image/*"]');
@@ -294,30 +297,36 @@
       var inputVideo = document.querySelector('input[type="file"][accept="video/*"]');
       var fileVideo = inputVideo && inputVideo.files ? inputVideo.files[0] : null;
 
-      if (!fileFoto && !fileVideo) {
-        alert('Unggah minimal Foto Karakter atau Video Gerakan terlebih dahulu!');
+      if (!fileFoto || !fileVideo) {
+        alert('Harap unggah Foto Karakter dan Video Gerakan (min 10 detik) terlebih dahulu!');
         return;
       }
 
       var btn = document.getElementById('btn-submit-generate');
-      btn.disabled = true;
+      if(btn) { btn.disabled = true; }
+
       var taskIdAsli = null;
 
       if (engineProvider === 'runninghub') {
         try {
-          btn.innerText = "MENGUNGGAH BAHAN...";
-          var fotoUrl = null, videoUrlInput = null;
-          if (fileFoto) { fotoUrl = await uploadFileKeRunningHub(fileFoto, akunAktif.key); }
-          if (fileVideo) { videoUrlInput = await uploadFileKeRunningHub(fileVideo, akunAktif.key); }
+          if(btn) btn.innerText = "MENGUPLOAD FOTO...";
+          var fotoUrl = await uploadFileKeRunningHub(fileFoto, akunAktif.key);
+          if (!fotoUrl) { throw.error("Gagal mengunggah foto karakter."); }
 
-          btn.innerText = "MENGIRIM WORKFLOW GPU...";
-          var nodeParams = [{ nodeId: "3", fieldName: "text", fieldValue: "Follow reference video accurately. High detail, smooth movement." }];
-          if (fotoUrl) {
-            nodeParams.push({ nodeId: "308", fieldName: "image", fieldValue: fotoUrl });
-            nodeParams.push({ nodeId: "426", fieldName: "image", fieldValue: fotoUrl });
-            nodeParams.push({ nodeId: "444", fieldName: "image", fieldValue: fotoUrl });
-          }
-          if (videoUrlInput) { nodeParams.push({ nodeId: "89", fieldName: "image", fieldValue: videoUrlInput }); }
+          if(btn) btn.innerText = "MENGUPLOAD VIDEO GERAKAN (22s)...";
+          var videoUrlInput = await uploadFileKeRunningHub(fileVideo, akunAktif.key);
+          if (!videoUrlInput) { throw.error("Gagal mengunggah video gerakan."); }
+
+          if(btn) btn.innerText = "MENGIRIM WORKFLOW GPU...";
+          
+          // Penamaan parameter node yang akurat sesuai target ComfyUI MotionFly
+          var nodeParams = [
+            { nodeId: "3", fieldName: "text", fieldValue: "Follow reference video accurately. High detail, smooth movement." },
+            { nodeId: "308", fieldName: "image", fieldValue: fotoUrl },
+            { nodeId: "426", fieldName: "image", fieldValue: fotoUrl },
+            { nodeId: "444", fieldName: "image", fieldValue: fotoUrl },
+            { nodeId: "89", fieldName: "image", fieldValue: videoUrlInput }
+          ];
 
           var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
             method: 'POST',
@@ -332,19 +341,19 @@
           if (data && data.data && data.data.taskId) {
             taskIdAsli = data.data.taskId;
           } else {
-            alert('Gagal: ' + (data.msg || 'Periksa kuota RunningHub.'));
-            btn.innerText = "GENERATE VIDEO"; btn.disabled = false;
+            alert('Gagal dari server: ' + (data.msg || 'Periksa kuota/API Key RunningHub Anda.'));
+            if(btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
             return;
           }
         } catch (e) {
-          alert('Koneksi ke RunningHub gagal: ' + e.message);
-          btn.innerText = "GENERATE VIDEO"; btn.disabled = false;
+          alert('Proses Gagal: ' + e.message);
+          if(btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
           return;
         }
       }
 
       var tugasBaru = {
-        id: taskIdAsli,
+        id: taskIdAsli || ("RH-" + Date.now().toString().slice(-6)),
         model: "Wan Motion Control 1080HD",
         prov: "RunningHub",
         tgl: "Baru saja",
@@ -357,15 +366,15 @@
       riwayatGenerateList.unshift(tugasBaru);
       simpanStorage();
       gantiLayarNav('history');
-      btn.innerText = "GENERATE VIDEO";
-      btn.disabled = false;
+      if(btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
 
+      // Polling status berkala
       var cekInterval = setInterval(async function() {
         try {
           var resStatus = await fetch('https://www.runninghub.ai/task/openapi/status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: akunAktif.key, taskId: taskIdAsli })
+            body: JSON.stringify({ apiKey: akunAktif.key, taskId: tugasBaru.id })
           });
           var jsonStatus = await resStatus.json();
           if (jsonStatus && jsonStatus.data) {
@@ -394,8 +403,10 @@
     function renderLayarHistory() {
       var wadah = document.getElementById('wadah-list-history');
       var counter = document.getElementById('txt-counter-history');
+      if(!wadah) return;
       wadah.innerHTML = '';
-      counter.innerText = riwayatGenerateList.length + " tugas";
+      if(counter) counter.innerText = riwayatGenerateList.length + " tugas";
+
       if (riwayatGenerateList.length === 0) {
         wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white modern-shadow">Belum ada riwayat generate video.</div>';
         return;
@@ -439,17 +450,17 @@
       var head = document.getElementById('txt-head-akun'), sub = document.getElementById('txt-sub-akun'), btnTambah = document.getElementById('txt-btn-tambah-label');
 
       if (prov === 'runninghub') {
-        tRh.className = "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow";
-        tRb.className = "px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
-        pRh.style.display = 'block'; pRb.style.display = 'none';
-        head.innerText = "Akun RunningHub"; sub.innerText = "Kelola API key RunningHub kamu (BYOK).";
-        btnTambah.innerText = "+ Tambah API Key";
+        if(tRh) tRh.className = "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow";
+        if(tRb) tRb.className = "px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
+        if(pRh) pRh.style.display = 'block'; if(pRb) pRb.style.display = 'none';
+        if(head) head.innerText = "Akun RunningHub"; if(sub) sub.innerText = "Kelola API key RunningHub kamu (BYOK).";
+        if(btnTambah) btnTambah.innerText = "+ Tambah API Key";
       } else {
-        tRb.className = "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow";
-        tRh.className = "px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
-        pRh.style.display = 'none'; pRb.style.display = 'block';
-        head.innerText = "Akun Roboneo"; sub.innerText = "Kelola token akun Roboneo kamu.";
-        btnTambah.innerText = "+ Tambah Akun Roboneo";
+        if(tRb) tRb.className = "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow";
+        if(tRh) tRh.className = "px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
+        if(pRh) pRh.style.display = 'none'; if(pRb) pRb.style.display = 'block';
+        if(head) head.innerText = "Akun Roboneo"; if(sub) sub.innerText = "Kelola token akun Roboneo kamu.";
+        if(btnTambah) btnTambah.innerText = "+ Tambah Akun Roboneo";
       }
       if (isModePilih) toggleModePilihHapus();
       renderListAkunDiKelola();
@@ -458,6 +469,7 @@
     function renderListAkunDiKelola() {
       var wadah = document.getElementById('wadah-kartu-akun-list');
       var targetAkun = tabAkunAktif === 'runninghub' ? akunRunningHub : akunRoboneo;
+      if(!wadah) return;
       wadah.innerHTML = '';
       var totalKredit = 0;
       for (var i = 0; i < targetAkun.length; i++) {
@@ -475,9 +487,13 @@
         '</div>';
         wadah.appendChild(el);
       }
-      document.getElementById('txt-stat-aktif').innerText = targetAkun.length;
-      document.getElementById('txt-stat-akun').innerText = targetAkun.length;
-      document.getElementById('txt-stat-kredit').innerText = totalKredit;
+      var elAktif = document.getElementById('txt-stat-aktif');
+      var elAkun = document.getElementById('txt-stat-akun');
+      var elKredit = document.getElementById('txt-stat-kredit');
+      if(elAktif) elAktif.innerText = targetAkun.length;
+      if(elAkun) elAkun.innerText = targetAkun.length;
+      if(elKredit) elKredit.innerText = totalKredit;
+
       if (targetAkun.length === 0) {
         wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Tambah API Key" di atas.</div>';
       }
@@ -488,15 +504,14 @@
       var btn = document.getElementById('btn-toggle-pilih'), bar = document.getElementById('bar-aksi-hapus');
       var chks = document.querySelectorAll('.chk-seleksi-akun');
       if (isModePilih) {
-        btn.innerText = 'Batal';
-        btn.className = "px-4 py-2 bg-rose-50 text-rose-600 text-sm font-bold rounded-xl border border-rose-200 cursor-pointer";
-        bar.style.display = 'flex';
+        if(btn) { btn.innerText = 'Batal'; btn.className = "px-4 py-2 bg-rose-50 text-rose-600 text-sm font-bold rounded-xl border border-rose-200 cursor-pointer"; }
+        if(bar) bar.style.display = 'flex';
         chks.forEach(function(c) { c.classList.remove('hidden'); });
       } else {
-        btn.innerText = 'Pilih';
-        btn.className = "px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition cursor-pointer";
-        bar.style.display = 'none';
-        document.getElementById('chk-pilih-semua').checked = false;
+        if(btn) { btn.innerText = 'Pilih'; btn.className = "px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition cursor-pointer"; }
+        if(bar) bar.style.display = 'none';
+        var chkAll = document.getElementById('chk-pilih-semua');
+        if(chkAll) chkAll.checked = false;
         chks.forEach(function(c) { c.checked = false; c.classList.add('hidden'); });
       }
     }
@@ -526,20 +541,26 @@
       var modal = document.getElementById('modal-popup-key');
       var inLabel = document.getElementById('in-modal-label'), inKey = document.getElementById('in-modal-key');
       var targetAkun = tabAkunAktif === 'runninghub' ? akunRunningHub : akunRoboneo;
-      inLabel.value = (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1);
-      inKey.value = '';
-      modal.style.display = 'flex';
+      if(inLabel) inLabel.value = (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1);
+      if(inKey) inKey.value = '';
+      if(modal) modal.style.display = 'flex';
     }
 
-    function tutupModalFormKey() { document.getElementById('modal-popup-key').style.display = 'none'; }
+    function tutupModalFormKey() {
+      var modal = document.getElementById('modal-popup-key');
+      if(modal) modal.style.display = 'none';
+    }
 
     async function simpanAkunBaruDariModal() {
-      var inLabel = document.getElementById('in-modal-label').value.trim();
-      var inKey = document.getElementById('in-modal-key').value.trim();
-      if (!inKey) return alert('Masukkan API Key terlebih dahulu!');
+      var inLabel = document.getElementById('in-modal-label');
+      var inKey = document.getElementById('in-modal-key');
+      var valLabel = inLabel ? inLabel.value.trim() : "";
+      var valKey = inKey ? inKey.value.trim() : "";
+
+      if (!valKey) return alert('Masukkan API Key terlebih dahulu!');
 
       var targetAkun = tabAkunAktif === 'runninghub' ? akunRunningHub : akunRoboneo;
-      var namaAkun = inLabel || ((tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1));
+      var namaAkun = valLabel || ((tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1));
       var saldoDidapat = 0;
 
       if (tabAkunAktif === 'runninghub') {
@@ -547,7 +568,7 @@
           var res = await fetch('https://www.runninghub.ai/task/openapi/account', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: inKey })
+            body: JSON.stringify({ apiKey: valKey })
           });
           var hasil = await res.json();
           if (hasil && hasil.data && (hasil.data.coins !== undefined || hasil.data.balance !== undefined)) {
@@ -556,7 +577,7 @@
         } catch (err) { saldoDidapat = 560; }
       } else { saldoDidapat = 4; }
 
-      targetAkun.push({ nama: namaAkun, key: inKey, koin: Number(saldoDidapat) });
+      targetAkun.push({ nama: namaAkun, key: valKey, koin: Number(saldoDidapat) });
       simpanStorage();
       tutupModalFormKey();
       renderListAkunDiKelola();
@@ -581,15 +602,9 @@
           <path d="M22 22L30 10H22V22Z" fill="url(#k_right_up)"/>
           <path d="M22 22L30 34H22V22Z" fill="url(#k_right_down)"/>
           <defs>
-            <linearGradient id="k_left" x1="14" y1="10" x2="22" y2="34" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#7C3AED"/><stop offset="1" stop-color="#5B21B6"/>
-            </linearGradient>
-            <linearGradient id="k_right_up" x1="22" y1="10" x2="30" y2="22" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#A78BFA"/><stop offset="1" stop-color="#7C3AED"/>
-            </linearGradient>
-            <linearGradient id="k_right_down" x1="22" y1="22" x2="30" y2="34" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#6D28D9"/><stop offset="1" stop-color="#4C1D95"/>
-            </linearGradient>
+            <linearGradient id="k_left" x1="14" y1="10" x2="22" y2="34" gradientUnits="userSpaceOnUse"><stop stop-color="#7C3AED"/><stop offset="1" stop-color="#5B21B6"/></linearGradient>
+            <linearGradient id="k_right_up" x1="22" y1="10" x2="30" y2="22" gradientUnits="userSpaceOnUse"><stop stop-color="#A78BFA"/><stop offset="1" stop-color="#7C3AED"/></linearGradient>
+            <linearGradient id="k_right_down" x1="22" y1="22" x2="30" y2="34" gradientUnits="userSpaceOnUse"><stop stop-color="#6D28D9"/><stop offset="1" stop-color="#4C1D95"/></linearGradient>
           </defs>
         </svg>
       </div>
@@ -612,7 +627,6 @@
 
   <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
 
-    <!-- 0. DASHBOARD -->
     <div id="layar-dashboard" class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -712,7 +726,7 @@
       </div>
     </div>
 
-    <!-- 1. GENERATE -->
+    <!-- GENERATE -->
     <div id="layar-generate" style="display: none;" class="space-y-6">
       <div>
         <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
@@ -827,7 +841,7 @@
       </div>
     </div>
 
-    <!-- 2. HISTORY -->
+    <!-- HISTORY -->
     <div id="layar-history" style="display: none;" class="space-y-4">
       <div class="flex items-center justify-between bg-white p-6 rounded-3xl border border-slate-200/80 modern-shadow">
         <div>
@@ -842,7 +856,7 @@
       <div id="wadah-list-history" class="space-y-3"></div>
     </div>
 
-    <!-- 3. KELOLA AKUN -->
+    <!-- KELOLA AKUN -->
     <div id="layar-kelola-akun" style="display: none;" class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 modern-shadow">
         <div>

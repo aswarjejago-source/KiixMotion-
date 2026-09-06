@@ -35,7 +35,6 @@
     var engineProvider = 'runninghub';
     var tabAkunAktif = 'runninghub';
     var isModePilih = false;
-    // WORKFLOW ID BARU SESUAI PILIHAN LU
     var RUNNINGHUB_WORKFLOW_ID = "2096634336232931330";
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var userReferralCode = "KIIX-VIP" + Math.floor(100 + Math.random() * 900);
@@ -282,7 +281,6 @@
       return null;
     }
 
-    // FUNGSI UTAMA DENGAN UPLOAD BERTAHAP & TUNGGU HINGGA SELESAI
     async function mulaiProsesGenerate() {
       var targetAkun = engineProvider === 'roboneo' ? akunRoboneo : akunRunningHub;
       if (engineProvider !== 'kiix' && targetAkun.length === 0) {
@@ -299,7 +297,7 @@
       var fileVideo = inputVideo && inputVideo.files ? inputVideo.files[0] : null;
 
       if (!fileFoto || !fileVideo) {
-        alert('Harap unggah Foto Karakter dan Video Gerakan (min 10 detik) terlebih dahulu!');
+        alert('Harap unggah Foto Karakter dan Video Gerakan terlebih dahulu!');
         return;
       }
 
@@ -316,11 +314,10 @@
 
           if(btn) btn.innerText = "MENGUPLOAD VIDEO GERAKAN...";
           var videoUrlInput = await uploadFileKeRunningHub(fileVideo, akunAktif.key);
-          if (!videoUrlInput) { throw.error("Gagal mengunggah video gerakan."); }
+          if (!videoUrlInput) { throw new Error("Gagal mengunggah video gerakan."); }
 
           if(btn) btn.innerText = "MENGIRIM WORKFLOW GPU...";
           
-          // PEMETAAN NODE AKURAT KE WORKFLOW 2096634336232931330 (NODE 128 UNTUK VIDEO POSE)
           var nodeParams = [
             { nodeId: "3", fieldName: "text", fieldValue: "Follow reference video accurately. High detail, smooth movement." },
             { nodeId: "308", fieldName: "image", fieldValue: fotoUrl },
@@ -368,7 +365,6 @@
       gantiLayarNav('history');
       if(btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
 
-      // Polling status berkala
       var cekInterval = setInterval(async function() {
         try {
           var resStatus = await fetch('https://www.runninghub.ai/task/openapi/status', {
@@ -408,4 +404,10 @@
       if(counter) counter.innerText = riwayatGenerateList.length + " tugas";
 
       if (riwayatGenerateList.length === 0) {
-        wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white m
+        wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white modern-shadow">Belum ada riwayat generate video.</div>';
+        return;
+      }
+      for (var i = 0; i < riwayatGenerateList.length; i++) {
+        var itm = riwayatGenerateList[i];
+        var isDone = itm.selesai === true && itm.videoUrl;
+    

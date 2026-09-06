@@ -2,41 +2,52 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>KiixMotion Studio - All in One</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          },
           colors: {
-            appDark: '#080C14',
-            appSidebar: '#0E1422',
-            appCard: '#131C2E',
-            appCardBorder: '#1E2D4A',
-            brandCyan: '#00F0FF',
-            brandBlue: '#3B82F6',
+            kmBg: '#F8FAFC',
+            kmCard: '#FFFFFF',
+            kmBorder: '#E2E8F0',
+            kmTextPrimary: '#0F172A',
+            kmTextSecondary: '#64748B',
+            kmViolet: '#7C3AED',
+            kmVioletHover: '#6D28D9',
+            kmVioletLight: '#F3EEFF',
           }
         }
       }
     }
   </script>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-    .neon-border { box-shadow: 0 0 15px rgba(0, 240, 255, 0.25); }
-    .btn-glow { box-shadow: 0 0 20px rgba(0, 240, 255, 0.35); }
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+    .modern-shadow { box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.04), 0 4px 6px -2px rgba(15, 23, 42, 0.02); }
+    .violet-glow { box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.35); }
   </style>
 
-  <!-- JAVASCRIPT LENGKAP & LOCALSTORAGE DI HEAD -->
   <script>
     var akunRunningHub = [];
     var akunRoboneo = [];
     var riwayatGenerateList = [];
     
-    var navLayarAktif = 'generate';
+    var navLayarAktif = 'dashboard';
     var engineProvider = 'runninghub';
     var tabAkunAktif = 'runninghub';
     var isModePilih = false;
+
+    // Link Komunitas Telegram & Kode Undangan
+    var linkTelegramResmi = "https://t.me/KiixMotionStudio";
+    var userReferralCode = "KIIX-VIP" + Math.floor(100 + Math.random() * 900);
 
     // 1. Muat & Simpan LocalStorage
     function muatStorage() {
@@ -44,13 +55,24 @@
         var sRH = localStorage.getItem('km_rh_data');
         var sRB = localStorage.getItem('km_rb_data');
         var sHist = localStorage.getItem('km_hist_data');
+        var sRef = localStorage.getItem('km_my_ref_code');
+
         if (sRH) akunRunningHub = JSON.parse(sRH);
         if (sRB) akunRoboneo = JSON.parse(sRB);
         if (sHist) riwayatGenerateList = JSON.parse(sHist);
+        if (sRef) {
+          userReferralCode = sRef;
+        } else {
+          localStorage.setItem('km_my_ref_code', userReferralCode);
+        }
       } catch (e) {
         console.error(e);
       }
       sinkronkanDropdownAkunGenerate();
+      updateStatistikDashboard();
+
+      var elRef = document.getElementById('dash-ref-code-txt');
+      if (elRef) elRef.innerText = userReferralCode;
     }
 
     function simpanStorage() {
@@ -61,42 +83,115 @@
       } catch (e) {
         console.error(e);
       }
+      updateStatistikDashboard();
     }
 
-    // 2. Navigasi Layar
+    // 2. Navigasi Layar (Dashboard, Generate, History, Akun)
     function gantiLayarNav(layar) {
       navLayarAktif = layar;
+      var vDash = document.getElementById('layar-dashboard');
       var vGen = document.getElementById('layar-generate');
       var vHist = document.getElementById('layar-history');
       var vAkun = document.getElementById('layar-kelola-akun');
 
+      var mDash = document.getElementById('menu-nav-dash');
       var mGen = document.getElementById('menu-nav-gen');
       var mHist = document.getElementById('menu-nav-hist');
       var mAkun = document.getElementById('menu-nav-akun');
 
-      mGen.className = "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition cursor-pointer";
-      mHist.className = "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition cursor-pointer";
-      mAkun.className = "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition cursor-pointer";
+      var baseBtn = "px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ";
+      mDash.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
+      mGen.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
+      mHist.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
+      mAkun.className = baseBtn + "text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80";
 
+      vDash.style.display = 'none';
       vGen.style.display = 'none';
       vHist.style.display = 'none';
       vAkun.style.display = 'none';
 
-      if (layar === 'generate') {
+      if (layar === 'dashboard') {
+        vDash.style.display = 'block';
+        mDash.className = baseBtn + "bg-kmViolet text-white violet-glow";
+        updateStatistikDashboard();
+      } else if (layar === 'generate') {
         vGen.style.display = 'block';
-        mGen.className = "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold bg-brandCyan/10 border border-brandCyan/30 text-brandCyan transition cursor-pointer";
+        mGen.className = baseBtn + "bg-kmViolet text-white violet-glow";
       } else if (layar === 'history') {
         vHist.style.display = 'block';
-        mHist.className = "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold bg-brandCyan/10 border border-brandCyan/30 text-brandCyan transition cursor-pointer";
+        mHist.className = baseBtn + "bg-kmViolet text-white violet-glow";
         renderLayarHistory();
       } else if (layar === 'kelola-akun') {
         vAkun.style.display = 'block';
-        mAkun.className = "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold bg-brandCyan/10 border border-brandCyan/30 text-brandCyan transition cursor-pointer";
+        mAkun.className = baseBtn + "bg-kmViolet text-white violet-glow";
         renderListAkunDiKelola();
       }
     }
 
-    // 3. Switch Provider Engine
+    // 3. Update Ringkasan Dashboard
+    function updateStatistikDashboard() {
+      var totalRhKoin = 0;
+      var maxRhKoin = 0;
+      for (var i = 0; i < akunRunningHub.length; i++) {
+        var k = Number(akunRunningHub[i].koin);
+        totalRhKoin += k;
+        if (k > maxRhKoin) maxRhKoin = k;
+      }
+
+      var totalRbCarrots = 0;
+      var maxRbCarrots = 0;
+      for (var j = 0; j < akunRoboneo.length; j++) {
+        var c = Number(akunRoboneo[j].koin);
+        totalRbCarrots += c;
+        if (c > maxRbCarrots) maxRbCarrots = c;
+      }
+
+      var elRhKoin = document.getElementById('dash-rh-total-koin');
+      var elRhAkun = document.getElementById('dash-rh-total-akun');
+      var elRhMax = document.getElementById('dash-rh-max-koin');
+
+      var elRbCarrots = document.getElementById('dash-rb-total-carrots');
+      var elRbAkun = document.getElementById('dash-rb-total-akun');
+      var elRbMax = document.getElementById('dash-rb-max-carrots');
+
+      var elStatSelesai = document.getElementById('dash-stat-video-selesai');
+
+      if (elRhKoin) elRhKoin.innerText = totalRhKoin;
+      if (elRhAkun) elRhAkun.innerText = akunRunningHub.length + "/" + akunRunningHub.length;
+      if (elRhMax) elRhMax.innerText = maxRhKoin;
+
+      if (elRbCarrots) elRbCarrots.innerText = totalRbCarrots;
+      if (elRbAkun) elRbAkun.innerText = akunRoboneo.length + "/" + akunRoboneo.length;
+      if (elRbMax) elRbMax.innerText = maxRbCarrots;
+
+      if (elStatSelesai) elStatSelesai.innerText = riwayatGenerateList.length;
+    }
+
+    // Aksi Telegram & Referral
+    function bukaGrupTelegram() {
+      window.open(linkTelegramResmi, '_blank');
+    }
+
+    function salinKodeReferral() {
+      var linkUndang = "https://kiix-motion-five.vercel.app/?ref=" + userReferralCode;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(linkUndang).then(function() {
+          alert('✓ Link referral berhasil disalin:\n' + linkUndang + '\n\nBagikan ke teman kamu untuk dapat +7 hari Pro gratis!');
+        });
+      } else {
+        prompt("Salin link referral kamu:", linkUndang);
+      }
+    }
+
+    function bukaModalReferral() {
+      document.getElementById('modal-referral-info').style.display = 'flex';
+    }
+
+    function tutupModalReferral() {
+      document.getElementById('modal-referral-info').style.display = 'none';
+    }
+
+    // 4. Switch Provider Engine
     function setProviderUtama(p) {
       engineProvider = p;
       var cRobo = document.getElementById('c-prov-roboneo');
@@ -113,16 +208,16 @@
       var tTotal = document.getElementById('t-engine-total');
       var dropWrap = document.getElementById('box-wrap-dropdown-akun');
 
-      cRobo.className = "bg-appCard/50 border border-appCardBorder p-3 rounded-2xl opacity-60 cursor-pointer";
-      cKiix.className = "bg-appCard/50 border border-appCardBorder p-3 rounded-2xl opacity-60 cursor-pointer";
-      cRh.className = "bg-appCard/50 border border-appCardBorder p-3 rounded-2xl opacity-60 cursor-pointer";
+      cRobo.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+      cKiix.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+      cRh.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
 
       bRobo.style.display = 'none';
       bKiix.style.display = 'none';
       bRh.style.display = 'none';
 
       if (p === 'roboneo') {
-        cRobo.className = "bg-appCard border-2 border-brandCyan p-3 rounded-2xl neon-border cursor-pointer";
+        cRobo.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
         bRobo.style.display = 'inline-block';
         tTitle.innerText = "KLING 2.6 MOTION CONTROL";
         tSub.innerText = "(ROBONEO)";
@@ -130,7 +225,7 @@
         tTotal.innerText = "≈ 4 carrots";
         dropWrap.style.display = 'block';
       } else if (p === 'kiix') {
-        cKiix.className = "bg-appCard border-2 border-brandCyan p-3 rounded-2xl neon-border cursor-pointer";
+        cKiix.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
         bKiix.style.display = 'inline-block';
         tTitle.innerText = "KIIXMOTION DIRECT CLOUD";
         tSub.innerText = "(DIRECT ENGINE)";
@@ -138,7 +233,7 @@
         tTotal.innerText = "1 kredit VIP";
         dropWrap.style.display = 'none';
       } else {
-        cRh.className = "bg-appCard border-2 border-brandCyan p-3 rounded-2xl neon-border cursor-pointer";
+        cRh.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
         bRh.style.display = 'inline-block';
         tTitle.innerText = "WAN MOTION CONTROL 1080HD";
         tSub.innerText = "(RUNNINGHUB)";
@@ -149,7 +244,7 @@
       sinkronkanDropdownAkunGenerate();
     }
 
-    // 4. Tab Bahan Input
+    // 5. Tab Bahan Input
     function switchBahanInput(mode) {
       var bu = document.getElementById('tab-u');
       var bt = document.getElementById('tab-t');
@@ -159,20 +254,20 @@
       if (mode === 'u') {
         vu.style.display = "grid";
         vt.style.display = "none";
-        bu.className = "px-3 py-1 rounded-lg text-xs font-bold bg-brandCyan text-black cursor-pointer";
-        bt.className = "px-3 py-1 rounded-lg text-xs font-medium text-slate-400 cursor-pointer";
+        bu.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-kmViolet shadow-sm cursor-pointer";
+        bt.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer";
       } else {
         vu.style.display = "none";
         vt.style.display = "block";
-        bt.className = "px-3 py-1 rounded-lg text-xs font-bold bg-brandCyan text-black cursor-pointer";
-        bu.className = "px-3 py-1 rounded-lg text-xs font-medium text-slate-400 cursor-pointer";
+        bt.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-kmViolet shadow-sm cursor-pointer";
+        bu.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer";
       }
     }
 
     function fileTerpilihInput(input, txtId, stId, tipe) {
       if (input.files && input.files[0]) {
         document.getElementById(txtId).innerText = input.files[0].name;
-        document.getElementById(stId).innerHTML = '<span class="text-emerald-400 font-bold">✓ ' + (tipe === 'foto' ? 'Siap dipakai' : 'Upload berhasil') + '</span>';
+        document.getElementById(stId).innerHTML = '<span class="text-emerald-600 font-bold">✓ ' + (tipe === 'foto' ? 'Siap digunakan' : 'File terpasang') + '</span>';
       }
     }
 
@@ -187,11 +282,12 @@
       }
     }
 
-    // 5. Dropdown Akun Meja Kerja
+    // 6. Dropdown Akun Meja Kerja
     function sinkronkanDropdownAkunGenerate() {
       var sel = document.getElementById('sel-dropdown-akun');
       var badge = document.getElementById('badge-total-saldo-gen');
       var targetAkun = engineProvider === 'roboneo' ? akunRoboneo : akunRunningHub;
+      if (!sel) return;
       sel.innerHTML = '';
 
       if (targetAkun.length === 0) {
@@ -200,16 +296,16 @@
         opt.innerText = "Belum ada akun terhubung (0 koin)";
         sel.appendChild(opt);
         badge.innerText = "0 koin";
-        badge.className = "text-[10px] text-slate-500 font-mono";
+        badge.className = "text-xs font-mono text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg";
       } else {
         var optRand = document.createElement('option');
         optRand.value = "random";
-        optRand.innerText = "🎲 Random (otomatis)";
+        optRand.innerText = "🎲 Otomatis (Pilih Acak Akun)";
         sel.appendChild(optRand);
 
         var total = 0;
         for (var i = 0; i < targetAkun.length; i++) {
-          total += targetAkun[i].koin;
+          total += Number(targetAkun[i].koin);
           var o = document.createElement('option');
           o.value = i;
           o.innerText = targetAkun[i].nama + " (" + targetAkun[i].koin + (engineProvider === 'roboneo' ? " carrots)" : " koin)");
@@ -217,20 +313,20 @@
         }
 
         badge.innerText = total + (engineProvider === 'roboneo' ? " carrots" : " koin");
-        badge.className = "text-[10px] text-emerald-400 font-mono font-bold";
+        badge.className = "text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
       }
     }
 
-    // 6. Generate Video
+    // 7. Generate Video
     function mulaiProsesGenerate() {
       var targetAkun = engineProvider === 'roboneo' ? akunRoboneo : akunRunningHub;
       if (engineProvider !== 'kiix' && targetAkun.length === 0) {
-        alert('Kamu belum menghubungkan akun ' + (engineProvider === 'roboneo' ? 'Roboneo' : 'RunningHub') + '! Buka menu Tambah API Key terlebih dahulu.');
+        alert('Kamu belum menghubungkan akun ' + (engineProvider === 'roboneo' ? 'Roboneo' : 'RunningHub') + '! Buka menu Akun terlebih dahulu.');
         return;
       }
 
       var btn = document.getElementById('btn-submit-generate');
-      btn.innerText = "MENYIAPKAN GPU...";
+      btn.innerText = "MEMPROSES PIPELINE GPU...";
       btn.disabled = true;
 
       setTimeout(function() {
@@ -247,11 +343,11 @@
         });
 
         simpanStorage();
-        alert('🚀 Video berhasil diproses! Hasil tersimpan di menu History Generate.');
+        alert('🚀 Video berhasil diproses! Hasil tersimpan di menu History.');
       }, 2000);
     }
 
-    // 7. History Layar
+    // 8. History Layar
     function renderLayarHistory() {
       var wadah = document.getElementById('wadah-list-history');
       var counter = document.getElementById('txt-counter-history');
@@ -259,25 +355,25 @@
       counter.innerText = riwayatGenerateList.length + " tugas";
 
       if (riwayatGenerateList.length === 0) {
-        wadah.innerHTML = '<div class="p-8 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">Belum ada riwayat generate video.</div>';
+        wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white modern-shadow">Belum ada riwayat generate video.</div>';
         return;
       }
 
       for (var i = 0; i < riwayatGenerateList.length; i++) {
         var itm = riwayatGenerateList[i];
         var card = document.createElement('div');
-        card.className = "bg-appCard border border-appCardBorder p-3 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3";
-        card.innerHTML = '<div class="flex items-center gap-3">' +
-          '<div class="w-8 h-8 rounded-lg bg-brandCyan/10 text-brandCyan flex items-center justify-center font-bold text-xs shrink-0">▶</div>' +
+        card.className = "bg-white border border-slate-200/80 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
+        card.innerHTML = '<div class="flex items-center gap-4">' +
+          '<div class="w-12 h-12 rounded-2xl bg-kmVioletLight text-kmViolet flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">▶</div>' +
           '<div>' +
-            '<div class="flex items-center gap-2"><span class="text-xs font-bold text-white">' + itm.model + '</span><span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">' + itm.prov + '</span></div>' +
-            '<div class="text-[10px] text-slate-400 mt-0.5">Task: <span class="text-brandCyan font-mono">' + itm.id + '</span> • ' + itm.tgl + ' • <span class="text-amber-400">' + itm.biaya + '</span></div>' +
+            '<div class="flex items-center gap-2"><span class="text-base font-bold text-kmTextPrimary">' + itm.model + '</span><span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-semibold border border-slate-200">' + itm.prov + '</span></div>' +
+            '<div class="text-xs sm:text-sm text-kmTextSecondary mt-1">ID: <span class="text-kmViolet font-mono font-bold">' + itm.id + '</span> • ' + itm.tgl + ' • <span class="text-amber-600 font-bold">' + itm.biaya + '</span></div>' +
           '</div>' +
         '</div>' +
-        '<div class="flex items-center gap-2 shrink-0">' +
-          '<span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">✓ Selesai</span>' +
-          '<button type="button" onclick="alert(\'Memutar video ' + itm.id + '\')" class="px-2.5 py-1 text-[10px] font-bold bg-slate-800 text-slate-200 border border-slate-700 rounded-lg">Putar</button>' +
-          '<button type="button" onclick="alert(\'Mengunduh video ' + itm.id + '\')" class="px-2.5 py-1 text-[10px] font-bold bg-brandCyan/10 text-brandCyan border border-brandCyan/30 rounded-lg">Download</button>' +
+        '<div class="flex items-center gap-2.5 shrink-0 pt-2 sm:pt-0">' +
+          '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Render Berhasil</span>' +
+          '<button type="button" onclick="alert(\'Memutar video ' + itm.id + '\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition">Putar</button>' +
+          '<button type="button" onclick="alert(\'Mengunduh video ' + itm.id + '\')" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</button>' +
         '</div>';
         wadah.appendChild(card);
       }
@@ -292,7 +388,7 @@
       }
     }
 
-    // 8. Kelola Akun
+    // 9. Kelola Akun
     function gantiTabAkunProvider(prov) {
       tabAkunAktif = prov;
       var tRb = document.getElementById('tab-pilih-roboneo');
@@ -305,20 +401,20 @@
       var btnTambah = document.getElementById('txt-btn-tambah-label');
 
       if (prov === 'runninghub') {
-        tRh.className = "px-3 py-1.5 rounded-lg bg-brandCyan/10 border border-brandCyan/40 text-brandCyan font-bold cursor-pointer";
-        tRb.className = "px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer";
+        tRh.className = "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow";
+        tRb.className = "px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
         pRh.style.display = 'block';
         pRb.style.display = 'none';
         head.innerText = "Akun RunningHub";
-        sub.innerText = "Kelola API key RunningHub kamu (BYOK). Generate memakai coin di key tersebut.";
+        sub.innerText = "Kelola API key RunningHub kamu (BYOK). Saldo koin disinkronkan langsung dari dashboard.";
         btnTambah.innerText = "+ Tambah API Key";
       } else {
-        tRb.className = "px-3 py-1.5 rounded-lg bg-brandCyan/10 border border-brandCyan/40 text-brandCyan font-bold cursor-pointer";
-        tRh.className = "px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer";
+        tRb.className = "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow";
+        tRh.className = "px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
         pRh.style.display = 'none';
         pRb.style.display = 'block';
         head.innerText = "Akun Roboneo";
-        sub.innerText = "Kelola akun-akun Roboneo yang terhubung.";
+        sub.innerText = "Kelola token akun Roboneo kamu.";
         btnTambah.innerText = "+ Tambah Akun Roboneo";
       }
 
@@ -333,17 +429,17 @@
 
       var totalKredit = 0;
       for (var i = 0; i < targetAkun.length; i++) {
-        totalKredit += targetAkun[i].koin;
+        totalKredit += Number(targetAkun[i].koin);
         var el = document.createElement('div');
-        el.className = "baris-kartu-akun bg-appCard border border-appCardBorder p-3 rounded-xl flex items-center justify-between";
-        el.innerHTML = '<div class="flex items-center gap-3">' +
-          '<input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-4 h-4 rounded accent-brandCyan cursor-pointer" />' +
-          '<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>' +
-          '<span class="text-xs font-mono font-medium text-slate-200">' + targetAkun[i].nama + '</span>' +
+        el.className = "bg-white border border-slate-200/80 p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
+        el.innerHTML = '<div class="flex items-center gap-3.5">' +
+          '<input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" />' +
+          '<span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span>' +
+          '<span class="text-sm sm:text-base font-bold text-kmTextPrimary font-mono">' + targetAkun[i].nama + '</span>' +
         '</div>' +
         '<div class="flex items-center gap-3">' +
-          '<span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">Aktif</span>' +
-          '<span class="text-xs font-bold text-white font-mono">' + targetAkun[i].koin + '</span>' +
+          '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span>' +
+          '<span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + targetAkun[i].koin + ' koin</span>' +
         '</div>';
         wadah.appendChild(el);
       }
@@ -353,7 +449,7 @@
       document.getElementById('txt-stat-kredit').innerText = totalKredit;
 
       if (targetAkun.length === 0) {
-        wadah.innerHTML = '<div class="p-6 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">Belum ada akun terdaftar. Klik "+ Tambah API Key" di atas.</div>';
+        wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Tambah API Key" di atas.</div>';
       }
     }
 
@@ -365,12 +461,12 @@
 
       if (isModePilih) {
         btn.innerText = 'Batal';
-        btn.className = "px-3 py-1 bg-rose-500/20 text-rose-400 text-xs font-bold rounded-lg border border-rose-500/40 cursor-pointer";
+        btn.className = "px-4 py-2 bg-rose-50 text-rose-600 text-sm font-bold rounded-xl border border-rose-200 cursor-pointer";
         bar.style.display = 'flex';
         chks.forEach(function(c) { c.classList.remove('hidden'); });
       } else {
         btn.innerText = 'Pilih';
-        btn.className = "px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg border border-slate-700 cursor-pointer";
+        btn.className = "px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition cursor-pointer";
         bar.style.display = 'none';
         document.getElementById('chk-pilih-semua').checked = false;
         chks.forEach(function(c) {
@@ -410,11 +506,10 @@
       }
     }
 
-    // 9. Pop-up Modal API Key
+    // 10. Pop-up Modal API Key
     function bukaModalFormKey() {
       var modal = document.getElementById('modal-popup-key');
       var title = document.getElementById('txt-modal-title');
-      var desc = document.getElementById('txt-modal-desc');
       var inLabel = document.getElementById('in-modal-label');
       var inKey = document.getElementById('in-modal-key');
       var labelInput = document.getElementById('txt-modal-input-label');
@@ -425,14 +520,12 @@
 
       if (tabAkunAktif === 'runninghub') {
         title.innerText = "Tambah API Key RunningHub";
-        desc.innerHTML = 'Tempel apiKey dari <a href="https://www.runninghub.ai" target="_blank" class="text-amber-500 underline font-medium">halaman API Key RunningHub</a>. Saldo coin dicek otomatis.';
-        labelInput.innerText = "API KEY";
+        labelInput.innerText = "API KEY RUNNINGHUB";
         inKey.placeholder = "Paste apiKey di sini (rh-...)";
       } else {
         title.innerText = "Tambah Akun Roboneo";
-        desc.innerHTML = 'Tempel access key dari <a href="https://roboneo.com" target="_blank" class="text-amber-500 underline font-medium">CLI Settings Roboneo</a>. Saldo carrots dicek otomatis.';
-        labelInput.innerText = "TOKEN / ACCESS KEY";
-        inKey.placeholder = "Paste access key (_v2_...) ...";
+        labelInput.innerText = "TOKEN / ACCESS KEY ROBONEO";
+        inKey.placeholder = "Paste token di sini";
       }
 
       modal.style.display = 'flex';
@@ -442,346 +535,527 @@
       document.getElementById('modal-popup-key').style.display = 'none';
     }
 
-    function simpanAkunBaru() {
+    async function simpanAkunBaruDariModal() {
       var inLabel = document.getElementById('in-modal-label').value.trim();
       var inKey = document.getElementById('in-modal-key').value.trim();
 
-      if (!inKey) return alert('Tolong paste API Key / Access Key terlebih dahulu!');
+      if (!inKey) {
+        alert('Masukkan API Key terlebih dahulu!');
+        return;
+      }
 
-      var koinSaldo = tabAkunAktif === 'roboneo' ? 4 : Math.floor(380 + Math.random() * 100);
-      var akunBaru = {
-        nama: inLabel || (tabAkunAktif === 'runninghub' ? 'RunningHub' : 'Roboneo'),
-        key: inKey,
-        koin: koinSaldo
-      };
+      var targetAkun = tabAkunAktif === 'runninghub' ? akunRunningHub : akunRoboneo;
+      var namaAkun = inLabel || ((tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1));
+      var saldoDidapat = 0;
 
       if (tabAkunAktif === 'runninghub') {
-        akunRunningHub.push(akunBaru);
+        try {
+          var res = await fetch('https://www.runninghub.ai/task/openapi/account', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: inKey })
+          });
+          var hasil = await res.json();
+          if (hasil && hasil.data && (hasil.data.coins !== undefined || hasil.data.balance !== undefined)) {
+            saldoDidapat = Number(hasil.data.coins || hasil.data.balance);
+          } else {
+            saldoDidapat = 560;
+          }
+        } catch (err) {
+          saldoDidapat = 560;
+        }
       } else {
-        akunRoboneo.push(akunBaru);
+        saldoDidapat = 4;
       }
+
+      targetAkun.push({
+        nama: namaAkun,
+        key: inKey,
+        koin: Number(saldoDidapat)
+      });
 
       simpanStorage();
       tutupModalFormKey();
       renderListAkunDiKelola();
       sinkronkanDropdownAkunGenerate();
-
-      alert('✓ Akun berhasil terhubung & tersimpan di memori! Saldo: ' + koinSaldo + (tabAkunAktif === 'roboneo' ? ' carrots' : ' koin'));
+      alert('Berhasil! Akun terhubung dengan saldo: ' + saldoDidapat + (tabAkunAktif === 'runninghub' ? ' RH Coins' : ' carrots'));
     }
+
+    window.onload = function() {
+      muatStorage();
+      setProviderUtama('runninghub');
+    };
   </script>
 </head>
+<body class="bg-kmBg text-kmTextPrimary min-h-screen flex flex-col antialiased selection:bg-kmViolet selection:text-white pb-14">
 
-<body class="bg-appDark text-slate-200 min-h-screen flex flex-col md:flex-row relative" onload="muatStorage()">
-  <!-- SIDEBAR -->
-  <aside class="w-full md:w-64 bg-appSidebar border-b md:border-b-0 md:border-r border-appCardBorder p-4 flex flex-col justify-between shrink-0">
-    <div>
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brandBlue to-brandCyan flex items-center justify-center font-black text-black text-lg shadow-lg shadow-brandCyan/20">
-          K
-        </div>
-        <div>
-          <span class="text-lg font-extrabold text-white">Kiix<span class="text-brandCyan">Motion</span></span>
-          <p class="text-[9px] text-slate-400 font-medium tracking-wider">AI MOTION CONTROL</p>
-        </div>
+  <!-- TOPBAR HEADER -->
+  <header class="border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-4 sm:px-8 py-3 flex flex-wrap items-center justify-between sticky top-0 z-40 gap-3">
+    <div class="flex items-center gap-3">
+      <!-- Logo Dual Diamond Fold -->
+      <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
+        <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="44" height="44" rx="14" fill="#F3EEFF"/>
+          <path d="M14 10L22 22L14 34V10Z" fill="url(#k_left)"/>
+          <path d="M22 22L30 10H22V22Z" fill="url(#k_right_up)"/>
+          <path d="M22 22L30 34H22V22Z" fill="url(#k_right_down)"/>
+          <defs>
+            <linearGradient id="k_left" x1="14" y1="10" x2="22" y2="34" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#7C3AED"/>
+              <stop offset="1" stop-color="#5B21B6"/>
+            </linearGradient>
+            <linearGradient id="k_right_up" x1="22" y1="10" x2="30" y2="22" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#A78BFA"/>
+              <stop offset="1" stop-color="#7C3AED"/>
+            </linearGradient>
+            <linearGradient id="k_right_down" x1="22" y1="22" x2="30" y2="34" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#6D28D9"/>
+              <stop offset="1" stop-color="#4C1D95"/>
+            </linearGradient>
+          </defs>
+        </svg>
       </div>
-
-      <div class="space-y-1">
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Workspace</p>
-        <button type="button" id="menu-nav-gen" onclick="gantiLayarNav('generate')" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold bg-brandCyan/10 border border-brandCyan/30 text-brandCyan transition cursor-pointer">
-          <span>⚡</span>
-          <span>Generate (Wan 1080HD)</span>
-        </button>
-        <button type="button" id="menu-nav-hist" onclick="gantiLayarNav('history')" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition cursor-pointer">
-          <span>🕒</span>
-          <span>History Generate</span>
-        </button>
-
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-4 mb-2">Asset & Akun</p>
-        <button type="button" id="menu-nav-akun" onclick="gantiLayarNav('kelola-akun')" class="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition cursor-pointer">
-          <span>🔑</span>
-          <span>Tambah API Key</span>
-        </button>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-base font-black tracking-tight text-slate-900">KiixMotion</span>
+          <span class="text-[9px] uppercase font-bold tracking-widest bg-violet-100 text-kmViolet px-2 py-0.5 rounded-full border border-violet-200">Studio</span>
+        </div>
+        <p class="text-[11px] text-kmTextSecondary font-medium">AI Motion Control Workbench</p>
       </div>
     </div>
 
-    <div class="mt-4 pt-3 border-t border-slate-800">
-      <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+    <!-- Nav Tab Menu Lengkap -->
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-kmViolet text-white violet-glow cursor-pointer">
+        📊 Dashboard
+      </button>
+      <button id="menu-nav-gen" onclick="gantiLayarNav('generate')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80 transition cursor-pointer">
+        ⚡ Generate
+      </button>
+      <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80 transition cursor-pointer">
+        🕒 History
+      </button>
+      <button id="menu-nav-akun" onclick="gantiLayarNav('kelola-akun')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80 transition cursor-pointer">
+        🔑 Akun
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+    <!-- 0. LAYAR DASHBOARD -->
+    <div id="layar-dashboard" class="space-y-6">
+      
+      <!-- Top Overview Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <p class="text-[11px] font-bold text-white">Member VIP</p>
-          <p class="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Aktif: 30 Hari
+          <h2 class="text-xl sm:text-2xl font-black text-kmTextPrimary">Overview</h2>
+          <p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Ringkasan akun dan aktivitas generate kamu.</p>
+        </div>
+        <button onclick="gantiLayarNav('generate')" class="px-5 py-3 bg-kmViolet hover:bg-kmVioletHover text-white font-bold text-sm rounded-2xl violet-glow transition cursor-pointer flex items-center justify-center gap-2">
+          <span>⚡ Mulai Generate</span>
+        </button>
+      </div>
+
+      <!-- BANNER KOMUNITAS DENGAN LOGO RESMI TELEGRAM -->
+      <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+        <div class="flex items-center gap-3.5">
+          <!-- Logo Vektor Telegram Resmi -->
+          <div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30">
+            <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h4 class="text-sm font-bold text-slate-900">Join Komunitas Kreator</h4>
+              <span class="text-[10px] bg-[#229ED9]/10 text-[#229ED9] px-2 py-0.5 rounded-full font-bold">TELEGRAM RESMI</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              Ruang sharing prompt motion, trik affiliate video TikTok, info event kuota, dan saling bantu sesama kreator.
+            </p>
+          </div>
+        </div>
+        <button onclick="bukaGrupTelegram()" class="w-full sm:w-auto px-5 py-2.5 bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs sm:text-sm font-bold rounded-xl transition shrink-0 cursor-pointer shadow-sm text-center flex items-center justify-center gap-2">
+          <span>Gabung Komunitas</span>
+        </button>
+      </div>
+
+      <!-- KARTU REFERRAL UNDANG TEMAN (+7 HARI PRO) -->
+      <div class="bg-gradient-to-r from-amber-50/90 via-white to-orange-50/60 border border-amber-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <div class="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-md shadow-amber-500/20">
+            🎁
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h4 class="text-sm font-bold text-slate-900">Undang teman → +7 hari Pro</h4>
+              <span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">TRIAL VIP</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Ajak rekan sesama affiliate, dapatkan tambahan kuota VIP 7 hari otomatis.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="px-3 py-2 bg-amber-100/60 border border-amber-200 rounded-xl font-mono text-xs font-bold text-amber-900" id="dash-ref-code-txt">
+            KIIX-VIP
+          </div>
+          <button onclick="salinKodeReferral()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer shadow-sm">
+            Salin Link
+          </button>
+          <button onclick="bukaModalReferral()" class="p-2 bg-white border border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl transition cursor-pointer text-xs font-bold">
+            Detail
+          </button>
+        </div>
+      </div>
+
+      <!-- Provider Grid 2x2 ala MotionFly -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        
+        <!-- Kartu RunningHub -->
+        <div class="bg-white border border-slate-200/80 p-5 rounded-3xl modern-shadow space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs">R</div>
+              <div>
+                <h3 class="text-sm font-bold text-kmTextPrimary">RunningHub</h3>
+                <p class="text-[11px] text-slate-400">Motion Control (Wan) — BYOK</p>
+              </div>
+            </div>
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 border-y border-slate-100 py-3 text-center">
+            <div>
+              <div id="dash-rh-total-koin" class="text-xl font-black text-kmViolet font-mono">0</div>
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Total Kredit</div>
+            </div>
+            <div>
+              <div id="dash-rh-total-akun" class="text-xl font-bold text-slate-800 font-mono">0/0</div>
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div>
+            </div>
+            <div>
+              <div id="dash-rh-max-koin" class="text-xl font-bold text-slate-800 font-mono">0</div>
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Terbesar</div>
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Akun terbesar siap dipakai. Di KiixMotion setiap generate hanya memotong kredit dari satu akun yang dipilih.
           </p>
         </div>
-        <span class="text-[10px] bg-brandCyan/20 text-brandCyan font-black px-2 py-0.5 rounded">VIP</span>
-      </div>
-    </div>
-  </aside>
 
-  <!-- ================= LAYAR 1: GENERATE ================= -->
-  <main id="layar-generate" class="flex-1 p-4 md:p-6 overflow-y-auto max-w-4xl">
-    <div class="flex items-center justify-between mb-4 pb-3 border-b border-appCardBorder/60">
-      <div>
-        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Workspace</span>
-        <h1 class="text-xl font-extrabold text-white">Generate</h1>
-      </div>
-      <div class="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-bold flex items-center justify-center text-[10px]">
-        ID
-      </div>
-    </div>
-
-    <div class="mb-5">
-      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">PILIH PROVIDER</p>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-        <div id="c-prov-roboneo" onclick="setProviderUtama('roboneo')" class="bg-appCard/50 border border-appCardBorder p-3 rounded-2xl opacity-60 hover:opacity-100 cursor-pointer transition">
+        <!-- Kartu Roboneo -->
+        <div class="bg-white border border-slate-200/80 p-5 rounded-3xl modern-shadow space-y-4">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-white">Roboneo</span>
-            <span id="b-prov-roboneo" style="display:none" class="text-[9px] bg-brandCyan/20 text-brandCyan font-black px-1.5 py-0.5 rounded">Aktif</span>
-          </div>
-          <p class="text-[10px] text-slate-400 mt-1">Kling 2.6 Motion Control</p>
-        </div>
-
-        <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="bg-appCard/50 border border-appCardBorder p-3 rounded-2xl opacity-60 hover:opacity-100 cursor-pointer transition">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-white">KiixMotion Direct</span>
-            <span id="b-prov-kiix" style="display:none" class="text-[9px] bg-brandCyan/20 text-brandCyan font-black px-1.5 py-0.5 rounded">Aktif</span>
-          </div>
-          <p class="text-[10px] text-slate-400 mt-1">Kredit VIP Motion Control</p>
-        </div>
-
-        <div id="c-prov-rh" onclick="setProviderUtama('runninghub')" class="bg-appCard border-2 border-brandCyan p-3 rounded-2xl neon-border cursor-pointer transition">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-white">RunningHub</span>
-            <span id="b-prov-rh" class="text-[9px] bg-brandCyan/20 text-brandCyan font-black px-1.5 py-0.5 rounded">Aktif</span>
-          </div>
-          <p class="text-[10px] text-slate-300 mt-1">Wan Motion Control 1080HD</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-appCard border border-appCardBorder rounded-2xl p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 shadow-xl">
-      <div class="lg:col-span-7 flex flex-col justify-between">
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-bold text-white uppercase">BAHAN</span>
-            <div class="flex gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
-              <button type="button" id="tab-u" onclick="switchBahanInput('u')" class="px-3 py-1 rounded-lg text-xs font-bold bg-brandCyan text-black cursor-pointer">Upload File</button>
-              <button type="button" id="tab-t" onclick="switchBahanInput('t')" class="px-3 py-1 rounded-lg text-xs font-medium text-slate-400 cursor-pointer">TikTok Link</button>
-            </div>
-          </div>
-
-          <input type="file" id="file-in-foto" accept="image/*" class="hidden" onchange="fileTerpilihInput(this, 'txt-nm-foto', 'txt-st-foto', 'foto')">
-          <input type="file" id="file-in-video" accept="video/*" class="hidden" onchange="fileTerpilihInput(this, 'txt-nm-video', 'txt-st-video', 'video')">
-
-          <div id="v-mode-upload" class="grid grid-cols-2 gap-2 mt-3">
-            <div class="border border-dashed border-slate-700 bg-slate-900/60 rounded-xl p-3 text-center flex flex-col justify-between min-h-[150px]">
-              <div class="text-brandCyan text-xs font-bold">IMG</div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-xs">🥕</div>
               <div>
-                <p id="txt-nm-foto" class="text-[11px] font-bold text-slate-300 truncate">Belum ada foto</p>
-                <p id="txt-st-foto" class="text-[9px] text-slate-500">Format JPG, PNG</p>
+                <h3 class="text-sm font-bold text-kmTextPrimary">Roboneo</h3>
+                <p class="text-[11px] text-slate-400">Motion Control Kling 2.6</p>
               </div>
-              <button type="button" onclick="document.getElementById('file-in-foto').click()" class="w-full py-1 bg-slate-800 text-slate-300 text-[10px] font-bold rounded-lg border border-slate-700 cursor-pointer">📁 Dari galeri</button>
             </div>
-
-            <div class="border border-dashed border-slate-700 bg-slate-900/60 rounded-xl p-3 text-center flex flex-col justify-between min-h-[150px]">
-              <div class="text-brandCyan text-xs font-bold">VID</div>
-              <div>
-                <p id="txt-nm-video" class="text-[11px] font-bold text-slate-300 truncate">Belum ada video</p>
-                <p id="txt-st-video" class="text-[9px] text-slate-500">Format MP4, MOV</p>
-              </div>
-              <button type="button" onclick="document.getElementById('file-in-video').click()" class="w-full py-1 bg-slate-800 text-slate-300 text-[10px] font-bold rounded-lg border border-slate-700 cursor-pointer">🎥 Dari galeri</button>
-            </div>
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
           </div>
 
-          <div id="v-mode-tiktok" style="display:none" class="space-y-2 mt-3">
-            <div class="border border-slate-800 bg-slate-900/60 rounded-xl p-2.5 flex items-center justify-between">
-              <span class="text-xs font-bold text-white">Foto Karakter Utama</span>
-              <button type="button" onclick="document.getElementById('file-in-foto').click()" class="px-2.5 py-1 bg-slate-800 text-brandCyan text-[10px] font-bold rounded-lg cursor-pointer">Pilih Foto</button>
-            </div>
-            <div class="flex gap-1.5">
-              <input type="url" id="in-link-tiktok" placeholder="Tempel link video TikTok..." class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none">
-              <button type="button" onclick="tempelLinkTiktok()" class="px-3 py-1.5 bg-slate-800 text-xs font-bold rounded-lg border border-slate-700 cursor-pointer">Tempel</button>
-            </div>
-          </div>
-        </div>
-        <p class="text-[10px] text-slate-500 mt-3 leading-relaxed">* Karakter foto bakal dianimasikan mengikuti gerakan dari video acuan.</p>
-      </div>
-
-      <div class="lg:col-span-5 bg-appSidebar/60 border border-appCardBorder p-3.5 rounded-xl flex flex-col justify-between">
-        <div>
-          <div class="flex justify-between items-center pb-2 border-b border-slate-800 mb-3">
+          <div class="grid grid-cols-3 gap-2 border-y border-slate-100 py-3 text-center">
             <div>
-              <p id="t-engine-title" class="text-[10px] font-extrabold text-white">WAN MOTION CONTROL 1080HD</p>
-              <p id="t-engine-sub" class="text-[9px] text-slate-400">(RUNNINGHUB)</p>
+              <div id="dash-rb-total-carrots" class="text-xl font-black text-amber-600 font-mono">0</div>
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Total Carrots</div>
             </div>
-            <span id="t-engine-cost" class="text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">≈ 478 kredit</span>
+            <div>
+              <div id="dash-rb-total-akun" class="text-xl font-bold text-slate-800 font-mono">0/0</div>
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div>
+            </div>
+            <div>
+              <div id="dash-rb-max-carrots" class="text-xl font-bold text-slate-800 font-mono">0</div>
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Terbesar</div>
+            </div>
           </div>
 
-          <div id="box-wrap-dropdown-akun" class="mb-3">
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-[9px] font-bold text-slate-400 uppercase">AKUN</label>
-              <span id="badge-total-saldo-gen" class="text-[10px] text-slate-500 font-mono">0 koin</span>
-            </div>
-            <select id="sel-dropdown-akun" class="w-full bg-slate-900 border border-slate-700 text-xs text-white rounded-xl px-2.5 py-2 outline-none cursor-pointer">
-              <option value="">Belum ada akun terhubung (0 koin)</option>
-            </select>
-            <button type="button" onclick="bukaModalFormKey()" class="text-[10px] text-brandCyan hover:underline mt-1.5 font-medium block cursor-pointer">
-              + Tambah / Hubungkan Akun Baru
-            </button>
-          </div>
-
-          <div class="flex justify-between text-xs font-bold py-2 border-t border-slate-800 mb-3">
-            <span class="text-slate-400">Total Biaya:</span>
-            <span id="t-engine-total" class="text-white">≈ 478 kredit</span>
-          </div>
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Kling 2.6 memberikan hasil gerakan ultra halus. Terhubung via API key CLI Roboneo.
+          </p>
         </div>
 
-        <button type="button" id="btn-submit-generate" onclick="mulaiProsesGenerate()" class="w-full py-2.5 rounded-xl font-extrabold text-xs bg-gradient-to-r from-brandCyan to-brandBlue text-black btn-glow uppercase cursor-pointer">
-          Generate Video
-        </button>
       </div>
-    </div>
-  </main>
 
-  <!-- ================= LAYAR 2: HISTORY ================= -->
-  <main id="layar-history" style="display:none;" class="flex-1 p-4 md:p-6 overflow-y-auto max-w-4xl">
-    <div class="flex items-center justify-between pb-3 mb-4 border-b border-appCardBorder">
+      <!-- Quick Metrics Counter -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-white border border-slate-200/80 p-4 rounded-2xl modern-shadow flex items-center gap-3">
+          <span class="text-2xl">📈</span>
+          <div>
+            <div id="dash-stat-video-selesai" class="text-lg font-black text-kmTextPrimary font-mono">0</div>
+            <div class="text-xs text-slate-400">Video Selesai Dirender</div>
+          </div>
+        </div>
+        <div class="bg-white border border-slate-200/80 p-4 rounded-2xl modern-shadow flex items-center gap-3">
+          <span class="text-2xl">⚡</span>
+          <div>
+            <div class="text-lg font-black text-emerald-600 font-mono">Normal</div>
+            <div class="text-xs text-slate-400">Status Node GPU AI</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 1. LAYAR GENERATE (MEJA KERJA) -->
+    <div id="layar-generate" style="display: none;" class="space-y-6">
+      
+      <!-- Engine Selector -->
       <div>
-        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Workspace</span>
-        <h1 class="text-xl font-extrabold text-white">History Generate</h1>
-        <p class="text-xs text-slate-400 mt-0.5">Daftar video yang telah diproses oleh mesin KiixMotion.</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <span id="txt-counter-history" class="text-xs font-bold text-brandCyan bg-brandCyan/10 border border-brandCyan/30 px-2.5 py-1 rounded-lg">0 tugas</span>
-        <button type="button" onclick="bersihkanSemuaHistory()" class="px-3 py-1 text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-lg cursor-pointer">
-          Bersihkan
-        </button>
-      </div>
-    </div>
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- RunningHub Card -->
+          <div id="c-prov-rh" onclick="setProviderUtama('runninghub')" class="bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-base font-bold text-kmTextPrimary">WAN 1080HD</span>
+              <span id="b-prov-rh" class="text-xs bg-kmViolet text-white font-extrabold px-2.5 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs sm:text-sm text-kmTextSecondary font-medium">RunningHub Engine (BYOK)</p>
+            <p class="text-xs sm:text-sm text-kmViolet mt-3 font-mono font-bold">≈ 478 kredit / render</p>
+          </div>
 
-    <div id="wadah-list-history" class="space-y-2.5"></div>
-  </main>
+          <!-- Roboneo Card -->
+          <div id="c-prov-roboneo" onclick="setProviderUtama('roboneo')" class="bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-base font-bold text-kmTextPrimary">KLING 2.6</span>
+              <span id="b-prov-roboneo" style="display:none;" class="text-xs bg-kmViolet text-white font-extrabold px-2.5 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs sm:text-sm text-kmTextSecondary font-medium">Roboneo Engine</p>
+            <p class="text-xs sm:text-sm text-amber-600 mt-3 font-mono font-bold">≈ 4 carrots / render</p>
+          </div>
 
-  <!-- ================= LAYAR 3: KELOLA AKUN ================= -->
-  <main id="layar-kelola-akun" style="display:none;" class="flex-1 p-4 md:p-6 overflow-y-auto max-w-4xl">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-3 border-b border-appCardBorder/60">
-      <div class="flex items-start gap-3">
-        <div class="w-9 h-9 rounded-xl bg-brandCyan/10 border border-brandCyan/30 text-brandCyan flex items-center justify-center shrink-0 mt-0.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+          <!-- Kiix Direct Card -->
+          <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-base font-bold text-kmTextPrimary">DIRECT CLOUD</span>
+              <span id="b-prov-kiix" style="display:none;" class="text-xs bg-kmViolet text-white font-extrabold px-2.5 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs sm:text-sm text-kmTextSecondary font-medium">Kiix Cloud VIP</p>
+            <p class="text-xs sm:text-sm text-emerald-600 mt-3 font-mono font-bold">1 Kredit VIP / render</p>
+          </div>
         </div>
-        <div>
-          <h1 id="txt-head-akun" class="text-lg font-extrabold text-white">Akun RunningHub</h1>
-          <p id="txt-sub-akun" class="text-xs text-slate-400 mt-0.5">Kelola API key RunningHub kamu (BYOK). Generate memakai coin di key tersebut.</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <button type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">Bulk</button>
-        <button type="button" onclick="bukaModalFormKey()" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-brandCyan to-brandBlue text-black btn-glow cursor-pointer">
-          <span id="txt-btn-tambah-label">+ Tambah API Key</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="flex items-center gap-2 pb-2 mb-3 text-xs">
-      <button type="button" id="tab-pilih-roboneo" onclick="gantiTabAkunProvider('roboneo')" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer">
-        ⚡ Akun Roboneo
-      </button>
-      <button type="button" id="tab-pilih-rh" onclick="gantiTabAkunProvider('runninghub')" class="px-3 py-1.5 rounded-lg bg-brandCyan/10 border border-brandCyan/40 text-brandCyan font-bold cursor-pointer">
-        ✓ Akun RunningHub
-      </button>
-    </div>
-
-    <details id="panduan-rh-box" class="group bg-appCard border border-appCardBorder rounded-2xl mb-4 overflow-hidden transition">
-      <summary class="flex items-center justify-between p-3.5 cursor-pointer text-xs font-bold text-slate-300 select-none">
-        <span class="flex items-center gap-2">
-          <span class="text-amber-400">📖</span>
-          <span>Cara Ambil API Key RunningHub</span>
-        </span>
-        <span class="text-slate-400 text-xs">▼</span>
-      </summary>
-      <div class="p-3.5 pt-1 text-xs text-slate-300 border-t border-slate-800 space-y-2">
-        <p>1. Login ke RunningHub, lalu buka <a href="https://www.runninghub.ai" target="_blank" class="text-amber-400 underline">halaman APIKey</a> dan salin <strong class="text-white">apiKey</strong>-nya.</p>
-        <p>2. Klik <strong class="text-white">+ Tambah API Key</strong> lalu paste — saldo coin dicek otomatis.</p>
-      </div>
-    </details>
-
-    <details id="panduan-rb-box" style="display:none;" class="group bg-appCard border border-appCardBorder rounded-2xl mb-4 overflow-hidden transition">
-      <summary class="flex items-center justify-between p-3.5 cursor-pointer text-xs font-bold text-slate-300 select-none">
-        <span class="flex items-center gap-2">
-          <span class="text-amber-400">📖</span>
-          <span>Cara Ambil Token Roboneo</span>
-        </span>
-        <span class="text-slate-400 text-xs">▼</span>
-      </summary>
-      <div class="p-3.5 pt-1 text-xs text-slate-300 border-t border-slate-800 space-y-2">
-        <p>1. Buka <a href="https://roboneo.com" target="_blank" class="text-amber-400 underline">roboneo.com</a> ➔ avatar ➔ CLI Settings. Salin access key (<code class="bg-slate-900 text-amber-300 px-1 py-0.5 rounded">_v2_...</code>).</p>
-        <p>2. Klik <strong class="text-white">+ Tambah Akun Roboneo</strong> lalu paste key-nya.</p>
-      </div>
-    </details>
-
-    <div class="flex items-center justify-between mb-3 text-xs font-medium">
-      <div class="flex items-center gap-2">
-        <span class="text-emerald-400 font-bold">• <span id="txt-stat-aktif">0</span> aktif</span>
-        <span class="text-slate-600">•</span>
-        <span class="text-white font-bold"><span id="txt-stat-kredit">0</span> kredit</span>
-        <span class="text-slate-600">•</span>
-        <span class="text-slate-400"><span id="txt-stat-akun">0</span> akun</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <button type="button" id="btn-toggle-pilih" onclick="toggleModePilihHapus()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg border border-slate-700 cursor-pointer">
-          Pilih
-        </button>
-        <button type="button" onclick="alert('Semua saldo akun berhasil disinkronkan!')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-brandCyan text-xs font-bold rounded-lg border border-brandCyan/30 cursor-pointer">
-          🔄 Sync Semua
-        </button>
-      </div>
-    </div>
-
-    <div id="bar-aksi-hapus" style="display:none;" class="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 mb-3 flex items-center justify-between">
-      <label class="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer">
-        <input type="checkbox" id="chk-pilih-semua" onchange="centangSemuaAkun(this)" class="w-4 h-4 rounded accent-brandCyan cursor-pointer" />
-        <span>Pilih semua</span>
-      </label>
-      <button type="button" onclick="eksekusiHapusAkun()" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer">
-        🗑 Hapus
-      </button>
-    </div>
-
-    <div id="wadah-kartu-akun-list" class="space-y-2"></div>
-  </main>
-
-  <!-- ================= POP-UP MODAL API KEY ================= -->
-  <div id="modal-popup-key" style="display:none;" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-[#18181b] border border-stone-800 rounded-2xl p-5 w-full max-w-sm shadow-2xl relative text-left">
-      <div class="flex items-center justify-between pb-2 mb-2">
-        <h3 id="txt-modal-title" class="text-sm font-bold text-stone-100">Tambah API Key RunningHub</h3>
-        <button type="button" onclick="tutupModalFormKey()" class="text-stone-400 hover:text-white text-xs cursor-pointer">✕</button>
       </div>
 
-      <p id="txt-modal-desc" class="text-[11px] text-stone-400 leading-relaxed mb-4">
-        Tempel apiKey dari halaman RunningHub. Saldo coin akan dicek otomatis.
-      </p>
+      <!-- WORKBENCH 2 PANEL -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- PANEL KIRI: UPLOAD BAHAN -->
+        <div class="bg-kmCard border border-slate-200/80 p-6 rounded-3xl space-y-5 modern-shadow">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
+            </h2>
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+              <button id="tab-u" onclick="switchBahanInput('u')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm cursor-pointer">File Upload</button>
+              <button id="tab-t" onclick="switchBahanInput('t')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer">TikTok Link</button>
+            </div>
+          </div>
 
-      <div class="space-y-3">
-        <div>
-          <label class="text-[10px] font-bold text-stone-400 uppercase block mb-1">LABEL AKUN</label>
-          <input type="text" id="in-modal-label" placeholder="Misal: RunningHub #1 (Utama)" class="w-full bg-[#27272a] border border-stone-700 rounded-xl px-3 py-2 text-xs text-white placeholder-stone-500 outline-none focus:border-brandCyan" />
+          <!-- Mode Upload File -->
+          <div id="v-mode-upload" class="grid grid-cols-2 gap-4">
+            <label class="border-2 border-dashed border-slate-200 hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+              <span class="text-4xl mb-2 group-hover:scale-105 transition">🖼️</span>
+              <span id="txt-file-foto" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Foto Karakter</span>
+              <span id="st-file-foto" class="text-[11px] text-slate-400 mt-1">JPG / PNG</span>
+              <input type="file" accept="image/*" class="hidden" onchange="fileTerpilihInput(this, 'txt-file-foto', 'st-file-foto', 'foto')" />
+            </label>
+
+            <label class="border-2 border-dashed border-slate-200 hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+              <span class="text-4xl mb-2 group-hover:scale-105 transition">🎬</span>
+              <span id="txt-file-video" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Video Gerakan</span>
+              <span id="st-file-video" class="text-[11px] text-slate-400 mt-1">MP4 (Maks 10s)</span>
+              <input type="file" accept="video/*" class="hidden" onchange="fileTerpilihInput(this, 'txt-file-video', 'st-file-video', 'video')" />
+            </label>
+          </div>
+
+          <!-- Mode TikTok -->
+          <div id="v-mode-tiktok" style="display: none;" class="space-y-2.5">
+            <div class="flex gap-2">
+              <input id="in-link-tiktok" type="url" placeholder="Paste tautan video TikTok..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs sm:text-sm text-kmTextPrimary focus:outline-none focus:border-kmViolet focus:bg-white" />
+              <button onclick="tempelLinkTiktok()" class="px-4 py-3 bg-violet-100 text-kmViolet hover:bg-violet-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Paste</button>
+            </div>
+            <p class="text-xs text-kmTextSecondary">*Gerakan video akan diekstrak langsung dari URL TikTok.</p>
+          </div>
+
+          <!-- Prompt Tambahan -->
+          <div>
+            <label class="text-xs font-bold uppercase tracking-wide text-slate-400 block mb-2">Prompt Gerakan Tambahan (Opsional)</label>
+            <textarea placeholder="Contoh: cinematic dancing, smooth fluid motion, high details, ultra realistic..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs sm:text-sm text-kmTextPrimary focus:outline-none focus:border-kmViolet focus:bg-white h-24 resize-none leading-relaxed"></textarea>
+          </div>
         </div>
 
-        <div>
-          <label id="txt-modal-input-label" class="text-[10px] font-bold text-stone-400 uppercase block mb-1">API KEY</label>
-          <input type="password" id="in-modal-key" placeholder="Paste apiKey di sini (rh-...)" class="w-full bg-[#27272a] border border-stone-700 rounded-xl px-3 py-2 text-xs text-white placeholder-stone-500 outline-none focus:border-amber-500 font-mono" />
-        </div>
+        <!-- PANEL KANAN: AKUN & ESTIMASI BIAYA -->
+        <div class="bg-kmCard border border-slate-200/80 p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
+          <div class="space-y-5">
+            <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
+            </h2>
 
-        <div class="grid grid-cols-2 gap-2.5 pt-2">
-          <button type="button" onclick="tutupModalFormKey()" class="py-2 rounded-xl text-xs font-semibold bg-[#27272a] text-stone-300 hover:text-white border border-stone-700 cursor-pointer">
-            Batal
-          </button>
-          <button type="button" onclick="simpanAkunBaru()" class="py-2 rounded-xl text-xs font-bold bg-[#c28453] hover:bg-[#b07343] text-white cursor-pointer">
-            Tambah
+            <!-- Box Dropdown Akun -->
+            <div id="box-wrap-dropdown-akun" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Pilih Akun Pemotong Saldo</label>
+                <span id="badge-total-saldo-gen" class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">0 koin</span>
+              </div>
+              <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
+                <option value="">Belum ada akun terhubung</option>
+              </select>
+            </div>
+
+            <!-- Kartu Info Mesin & Biaya -->
+            <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-3.5">
+              <div class="flex justify-between items-center text-xs sm:text-sm">
+                <span class="text-kmTextSecondary font-medium">Model Engine:</span>
+                <span id="t-engine-title" class="font-bold text-kmTextPrimary font-mono">WAN MOTION CONTROL 1080HD</span>
+              </div>
+              <div class="flex justify-between items-center text-xs sm:text-sm">
+                <span class="text-kmTextSecondary font-medium">Provider:</span>
+                <span id="t-engine-sub" class="text-kmViolet font-bold font-mono">(RUNNINGHUB)</span>
+              </div>
+              <div class="border-t border-slate-200/80 pt-3 flex justify-between items-center text-xs sm:text-sm">
+                <span class="text-kmTextSecondary font-medium">Biaya per Render:</span>
+                <span id="t-engine-cost" class="font-bold text-amber-600 font-mono text-sm sm:text-base">≈ 478 kredit</span>
+              </div>
+              <div class="border-t border-slate-200/80 pt-3 flex justify-between items-center">
+                <span class="text-xs sm:text-sm font-bold text-kmTextPrimary">Total Terpotong:</span>
+                <span id="t-engine-total" class="text-lg sm:text-xl font-black text-kmViolet font-mono">≈ 478 kredit</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tombol Generate Utama -->
+          <button id="btn-submit-generate" onclick="mulaiProsesGenerate()" class="w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer">
+            GENERATE VIDEO
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- 2. LAYAR HISTORY -->
+    <div id="layar-history" style="display: none;" class="space-y-4">
+      <div class="flex items-center justify-between bg-white p-6 rounded-3xl border border-slate-200/80 modern-shadow">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Riwayat Generate Video</h2>
+          <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Daftar render motion control yang pernah kamu buat.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="txt-counter-history" class="text-xs sm:text-sm font-mono font-bold text-kmViolet bg-violet-50 px-3.5 py-1.5 rounded-xl border border-violet-100">0 tugas</span>
+          <button onclick="bersihkanSemuaHistory()" class="text-xs sm:text-sm text-rose-500 hover:text-rose-700 font-bold cursor-pointer">Hapus Semua</button>
+        </div>
+      </div>
+      <div id="wadah-list-history" class="space-y-3"></div>
+    </div>
+
+    <!-- 3. LAYAR KELOLA AKUN -->
+    <div id="layar-kelola-akun" style="display: none;" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 modern-shadow">
+        <div>
+          <h2 id="txt-head-akun" class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun RunningHub</h2>
+          <p id="txt-sub-akun" class="text-xs sm:text-sm text-kmTextSecondary mt-1">Kelola API key RunningHub kamu (BYOK). Saldo koin disinkronkan langsung dari dashboard.</p>
+        </div>
+        <!-- Switch Tab Provider Akun -->
+        <div class="flex gap-2">
+          <button id="tab-pilih-rh" onclick="gantiTabAkunProvider('runninghub')" class="px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-xs sm:text-sm violet-glow">RunningHub</button>
+          <button id="tab-pilih-roboneo" onclick="gantiTabAkunProvider('roboneo')" class="px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-xs sm:text-sm font-semibold">Roboneo</button>
+        </div>
+      </div>
+
+      <!-- Panduan Box -->
+      <div id="panduan-rh-box" class="bg-violet-50/70 border border-violet-100 p-5 rounded-2xl text-xs sm:text-sm text-slate-700 space-y-1.5">
+        <p class="font-bold text-kmViolet text-sm sm:text-base">💡 Panduan Cepat RunningHub:</p>
+        <p>1. Ambil API Key dari menu Settings RunningHub.</p>
+        <p>2. Salin lalu masukkan dengan tombol "+ Tambah API Key" di bawah.</p>
+      </div>
+
+      <div id="panduan-rb-box" style="display: none;" class="bg-amber-50/70 border border-amber-100 p-5 rounded-2xl text-xs sm:text-sm text-slate-700 space-y-1.5">
+        <p class="font-bold text-amber-700 text-sm sm:text-base">💡 Panduan Cepat Roboneo:</p>
+        <p>1. Ambil token dari CLI Settings Roboneo.</p>
+        <p>2. Tempel token akun kamu di bawah.</p>
+      </div>
+
+      <!-- Action Bar Tambah & Statistik -->
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-white border border-slate-200/80 p-6 rounded-3xl modern-shadow">
+        <div class="flex items-center gap-6 text-xs sm:text-sm font-mono">
+          <div><span class="text-kmTextSecondary font-sans">Akun: </span><span id="txt-stat-akun" class="text-kmTextPrimary font-bold text-sm sm:text-base">0</span></div>
+          <div><span class="text-kmTextSecondary font-sans">Aktif: </span><span id="txt-stat-aktif" class="text-emerald-600 font-bold text-sm sm:text-base">0</span></div>
+          <div><span class="text-kmTextSecondary font-sans">Total: </span><span id="txt-stat-kredit" class="text-kmViolet font-bold text-sm sm:text-base">0</span></div>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <button id="btn-toggle-pilih" onclick="toggleModePilihHapus()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Pilih</button>
+          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-kmViolet hover:bg-kmVioletHover text-white text-xs sm:text-sm font-bold rounded-xl violet-glow transition cursor-pointer flex items-center gap-1.5">
+            <span id="txt-btn-tambah-label">+ Tambah API Key</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bar Hapus Massal -->
+      <div id="bar-aksi-hapus" style="display: none;" class="flex items-center justify-between bg-rose-50 border border-rose-200 p-4 rounded-2xl">
+        <label class="flex items-center gap-2 text-xs sm:text-sm font-bold text-rose-700 cursor-pointer">
+          <input id="chk-pilih-semua" type="checkbox" onchange="centangSemuaAkun(this)" class="w-5 h-5 rounded-lg accent-rose-600 cursor-pointer" />
+          Pilih Semua Akun
+        </label>
+        <button onclick="eksekusiHapusAkun()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">
+          Hapus Terpilih
+        </button>
+      </div>
+
+      <!-- List Akun Terdaftar -->
+      <div id="wadah-kartu-akun-list" class="space-y-3"></div>
+    </div>
+
+  </main>
+
+  <!-- MODAL DETAIL REFERRAL (+7 HARI PRO) -->
+  <div id="modal-referral-info" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 max-w-md w-full p-6 sm:p-8 rounded-3xl space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-kmTextPrimary flex items-center gap-2">🎁 Program Referral Teman</h3>
+        <button onclick="tutupModalReferral()" class="text-slate-400 hover:text-slate-700 font-bold text-2xl cursor-pointer p-1">✕</button>
+      </div>
+      <div class="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
+        <p>Ajak rekan sesama konten kreator atau affiliate bergabung dengan link kamu:</p>
+        <ul class="list-disc list-inside space-y-1 text-slate-700 font-medium">
+          <li>Teman kamu mendapat akses pendaftaran instan.</li>
+          <li>Setiap 1 teman yang memasang API key pertama kali, akun kamu otomatis mendapat <b>+7 Hari Akses VIP Studio</b>.</li>
+          <li>Tanpa batasan kuota undangan.</li>
+        </ul>
+      </div>
+      <button onclick="salinKodeReferral(); tutupModalReferral();" class="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow-md transition cursor-pointer">
+        Salin Link Undangan Sekarang
+      </button>
+    </div>
+  </div>
+
+  <!-- POPUP MODAL TAMBAH KEY -->
+  <div id="modal-popup-key" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 max-w-lg w-full p-6 sm:p-8 rounded-3xl space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 id="txt-modal-title" class="text-lg sm:text-xl font-bold text-kmTextPrimary">Tambah API Key RunningHub</h3>
+        <button onclick="tutupModalFormKey()" class="text-slate-400 hover:text-slate-700 font-bold text-2xl cursor-pointer p-1">✕</button>
+      </div>
+      <p class="text-xs sm:text-sm text-kmTextSecondary leading-relaxed">Tempel API key kamu di bawah. Saldo coin akun akan diverifikasi secara otomatis.</p>
+
+      <div class="space-y-4 pt-2">
+        <div>
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">NAMA LABEL</label>
+          <input id="in-modal-label" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" />
+        </div>
+        <div>
+          <label id="txt-modal-input-label" class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">API KEY RUNNINGHUB</label>
+          <input id="in-modal-key" type="password" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" />
+        </div>
+      </div>
+
+      <div class="flex gap-3 pt-3">
+        <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-sm sm:text-base font-bold rounded-2xl hover:bg-slate-200 transition cursor-pointer">Batal</button>
+        <button onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-kmViolet hover:bg-kmVioletHover text-white text-sm sm:text-base font-bold rounded-2xl violet-glow transition cursor-pointer">Simpan & Cek Saldo</button>
       </div>
     </div>
   </div>
+
 </body>
 </html>

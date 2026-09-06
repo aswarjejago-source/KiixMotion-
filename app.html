@@ -29,26 +29,38 @@
   </style>
   <script>
     var akunRunningHub = [];
+    var akunRoboneo = [];
     var riwayatGenerateList = [];
     var navLayarAktif = 'dashboard';
-    // WORKFLOW ID BARU SESUAI PERMINTAAN LU
+    var engineProvider = 'runninghub';
+    var tabAkunAktif = 'runninghub';
+    var isModePilih = false;
+    // WORKFLOW ID BARU SESUAI PILIHAN LU
     var RUNNINGHUB_WORKFLOW_ID = "2096634336232931330";
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
+    var userReferralCode = "KIIX-VIP" + Math.floor(100 + Math.random() * 900);
 
     function muatStorage() {
       try {
         var sRH = localStorage.getItem('km_rh_data');
+        var sRB = localStorage.getItem('km_rb_data');
         var sHist = localStorage.getItem('km_hist_data');
+        var sRef = localStorage.getItem('km_my_ref_code');
         if (sRH) akunRunningHub = JSON.parse(sRH);
+        if (sRB) akunRoboneo = JSON.parse(sRB);
         if (sHist) riwayatGenerateList = JSON.parse(sHist);
+        if (sRef) { userReferralCode = sRef; } else { localStorage.setItem('km_my_ref_code', userReferralCode); }
       } catch (e) { console.error(e); }
       sinkronkanDropdownAkunGenerate();
       updateStatistikDashboard();
+      var elRef = document.getElementById('dash-ref-code-txt');
+      if (elRef) elRef.innerText = userReferralCode;
     }
 
     function simpanStorage() {
       try {
         localStorage.setItem('km_rh_data', JSON.stringify(akunRunningHub));
+        localStorage.setItem('km_rb_data', JSON.stringify(akunRoboneo));
         localStorage.setItem('km_hist_data', JSON.stringify(riwayatGenerateList));
       } catch (e) { console.error(e); }
       updateStatistikDashboard();
@@ -118,43 +130,88 @@
         totalRhKoin += k;
         if (k > maxRhKoin) maxRhKoin = k;
       }
+      var totalRbCarrots = 0, maxRbCarrots = 0;
+      for (var j = 0; j < akunRoboneo.length; j++) {
+        var c = Number(akunRoboneo[j].koin);
+        totalRbCarrots += c;
+        if (c > maxRbCarrots) maxRbCarrots = c;
+      }
       var elRhKoin = document.getElementById('dash-rh-total-koin');
       var elRhAkun = document.getElementById('dash-rh-total-akun');
       var elRhMax = document.getElementById('dash-rh-max-koin');
+      var elRbCarrots = document.getElementById('dash-rb-total-carrots');
+      var elRbAkun = document.getElementById('dash-rb-total-akun');
+      var elRbMax = document.getElementById('dash-rb-max-carrots');
       var elStatSelesai = document.getElementById('dash-stat-video-selesai');
 
       if (elRhKoin) elRhKoin.innerText = totalRhKoin;
       if (elRhAkun) elRhAkun.innerText = akunRunningHub.length + "/" + akunRunningHub.length;
       if (elRhMax) elRhMax.innerText = maxRhKoin;
+      if (elRbCarrots) elRbCarrots.innerText = totalRbCarrots;
+      if (elRbAkun) elRbAkun.innerText = akunRoboneo.length + "/" + akunRoboneo.length;
+      if (elRbMax) elRbMax.innerText = maxRbCarrots;
       if (elStatSelesai) elStatSelesai.innerText = riwayatGenerateList.length;
     }
 
     function bukaGrupTelegram() { window.open(linkTelegramResmi, '_blank'); }
 
-    function sinkronkanDropdownAkunGenerate() {
-      var sel = document.getElementById('sel-dropdown-akun');
-      var badge = document.getElementById('badge-total-saldo-gen');
-      if (!sel) return;
-      sel.innerHTML = '';
+    function salinKodeReferral() {
+      var linkUndang = window.location.origin + "/app.html?ref=" + userReferralCode;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(linkUndang).then(function() {
+          alert('✓ Link referral berhasil disalin:\n' + linkUndang);
+        });
+      } else { prompt("Salin link referral kamu:", linkUndang); }
+    }
 
-      if (akunRunningHub.length === 0) {
-        var opt = document.createElement('option');
-        opt.value = ""; opt.innerText = "Belum ada akun terhubung (0 koin)";
-        sel.appendChild(opt);
-        if(badge) badge.innerText = "0 koin";
+    function bukaModalReferral() { document.getElementById('modal-referral-info').style.display = 'flex'; }
+    function tutupModalReferral() { document.getElementById('modal-referral-info').style.display = 'none'; }
+
+    function setProviderUtama(p) {
+      engineProvider = p;
+      var cRobo = document.getElementById('c-prov-roboneo'), cKiix = document.getElementById('c-prov-kiix'), cRh = document.getElementById('c-prov-rh');
+      var bRobo = document.getElementById('b-prov-roboneo'), bKiix = document.getElementById('b-prov-kiix'), bRh = document.getElementById('b-prov-rh');
+      var tTitle = document.getElementById('t-engine-title'), tSub = document.getElementById('t-engine-sub'), tCost = document.getElementById('t-engine-cost'), tTotal = document.getElementById('t-engine-total');
+      var dropWrap = document.getElementById('box-wrap-dropdown-akun');
+
+      if(cRobo) cRobo.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+      if(cKiix) cKiix.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+      if(cRh) cRh.className = "bg-kmCard border border-slate-200/80 p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+      if(bRobo) bRobo.style.display = 'none'; if(bKiix) bKiix.style.display = 'none'; if(bRh) bRh.style.display = 'none';
+
+      if (p === 'roboneo') {
+        if(cRobo) cRobo.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
+        if(bRobo) bRobo.style.display = 'inline-block';
+        if(tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL"; if(tSub) tSub.innerText = "(ROBONEO)";
+        if(tCost) tCost.innerText = "≈ 4 carrots"; if(tTotal) tTotal.innerText = "≈ 4 carrots";
+        if(dropWrap) dropWrap.style.display = 'block';
+      } else if (p === 'kiix') {
+        if(cKiix) cKiix.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
+        if(bKiix) bKiix.style.display = 'inline-block';
+        if(tTitle) tTitle.innerText = "KIIXMOTION DIRECT CLOUD"; if(tSub) tSub.innerText = "(DIRECT ENGINE)";
+        if(tCost) tCost.innerText = "1 Kredit VIP"; if(tTotal) tTotal.innerText = "1 kredit VIP";
+        if(dropWrap) dropWrap.style.display = 'none';
       } else {
-        var optRand = document.createElement('option');
-        optRand.value = "random"; optRand.innerText = "🎲 Otomatis (Pilih Acak Akun)";
-        sel.appendChild(optRand);
-        var total = 0;
-        for (var i = 0; i < akunRunningHub.length; i++) {
-          total += Number(akunRunningHub[i].koin);
-          var o = document.createElement('option');
-          o.value = i;
-          o.innerText = akunRunningHub[i].nama + " (" + akunRunningHub[i].koin + " koin)";
-          sel.appendChild(o);
-        }
-        if(badge) badge.innerText = total + " koin";
+        if(cRh) cRh.className = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50";
+        if(bRh) bRh.style.display = 'inline-block';
+        if(tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD"; if(tSub) tSub.innerText = "(RUNNINGHUB)";
+        if(tCost) tCost.innerText = "≈ 478 kredit"; if(tTotal) tTotal.innerText = "≈ 478 kredit";
+        if(dropWrap) dropWrap.style.display = 'block';
+      }
+      sinkronkanDropdownAkunGenerate();
+    }
+
+    function switchBahanInput(mode) {
+      var bu = document.getElementById('tab-u'), bt = document.getElementById('tab-t');
+      var vu = document.getElementById('v-mode-upload'), vt = document.getElementById('v-mode-tiktok');
+      if (mode === 'u') {
+        if(vu) vu.style.display = "grid"; if(vt) vt.style.display = "none";
+        if(bu) bu.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-kmViolet shadow-sm cursor-pointer";
+        if(bt) bt.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer";
+      } else {
+        if(vu) vu.style.display = "none"; if(vt) vt.style.display = "block";
+        if(bt) bt.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-kmViolet shadow-sm cursor-pointer";
+        if(bu) bu.className = "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer";
       }
     }
 
@@ -164,6 +221,52 @@
         var elSt = document.getElementById(stId);
         if(elTxt) elTxt.innerText = input.files[0].name;
         if(elSt) elSt.innerHTML = '<span class="text-emerald-600 font-bold">✓ ' + (tipe === 'foto' ? 'Siap digunakan' : 'File terpasang') + '</span>';
+      }
+    }
+
+    function tempelLinkTiktok() {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(function(t) {
+          if (t) {
+            var el = document.getElementById('in-link-tiktok');
+            if(el) el.value = t;
+            alert('Link TikTok berhasil ditempel!');
+          }
+        });
+      }
+    }
+
+    function sinkronkanDropdownAkunGenerate() {
+      var sel = document.getElementById('sel-dropdown-akun');
+      var badge = document.getElementById('badge-total-saldo-gen');
+      var targetAkun = engineProvider === 'roboneo' ? akunRoboneo : akunRunningHub;
+      if (!sel) return;
+      sel.innerHTML = '';
+
+      if (targetAkun.length === 0) {
+        var opt = document.createElement('option');
+        opt.value = ""; opt.innerText = "Belum ada akun terhubung (0 koin)";
+        sel.appendChild(opt);
+        if(badge) {
+          badge.innerText = "0 koin";
+          badge.className = "text-xs font-mono text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg";
+        }
+      } else {
+        var optRand = document.createElement('option');
+        optRand.value = "random"; optRand.innerText = "🎲 Otomatis (Pilih Acak Akun)";
+        sel.appendChild(optRand);
+        var total = 0;
+        for (var i = 0; i < targetAkun.length; i++) {
+          total += Number(targetAkun[i].koin);
+          var o = document.createElement('option');
+          o.value = i;
+          o.innerText = targetAkun[i].nama + " (" + targetAkun[i].koin + (engineProvider === 'roboneo' ? " carrots)" : " koin)");
+          sel.appendChild(o);
+        }
+        if(badge) {
+          badge.innerText = total + (engineProvider === 'roboneo' ? " carrots" : " koin");
+          badge.className = "text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
+        }
       }
     }
 
@@ -179,15 +282,16 @@
       return null;
     }
 
+    // FUNGSI UTAMA DENGAN UPLOAD BERTAHAP & TUNGGU HINGGA SELESAI
     async function mulaiProsesGenerate() {
-      if (akunRunningHub.length === 0) {
-        alert('Hubungkan akun RunningHub terlebih dahulu di menu Akun!');
-        gantiLayarNav('kelola-akun');
+      var targetAkun = engineProvider === 'roboneo' ? akunRoboneo : akunRunningHub;
+      if (engineProvider !== 'kiix' && targetAkun.length === 0) {
+        alert('Hubungkan akun terlebih dahulu di menu Akun!');
         return;
       }
       var sel = document.getElementById('sel-dropdown-akun');
       var idx = sel ? sel.value : "";
-      var akunAktif = (idx === "random" || idx === "") ? akunRunningHub[0] : akunRunningHub[parseInt(idx, 10)];
+      var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
 
       var inputFoto = document.querySelector('input[type="file"][accept="image/*"]');
       var fileFoto = inputFoto && inputFoto.files ? inputFoto.files[0] : null;
@@ -195,99 +299,105 @@
       var fileVideo = inputVideo && inputVideo.files ? inputVideo.files[0] : null;
 
       if (!fileFoto || !fileVideo) {
-        alert('Harap unggah Foto Karakter dan Video Gerakan terlebih dahulu!');
+        alert('Harap unggah Foto Karakter dan Video Gerakan (min 10 detik) terlebih dahulu!');
         return;
       }
 
       var btn = document.getElementById('btn-submit-generate');
-      if(btn) btn.disabled = true;
+      if(btn) { btn.disabled = true; }
 
-      try {
-        if(btn) btn.innerText = "MENGUPLOAD FOTO...";
-        var fotoUrl = await uploadFileKeRunningHub(fileFoto, akunAktif.key);
-        if (!fotoUrl) throw new Error("Gagal mengunggah foto karakter.");
+      var taskIdAsli = null;
 
-        if(btn) btn.innerText = "MENGUPLOAD VIDEO GERAKAN...";
-        var videoUrlInput = await uploadFileKeRunningHub(fileVideo, akunAktif.key);
-        if (!videoUrlInput) throw new Error("Gagal mengunggah video gerakan.");
+      if (engineProvider === 'runninghub') {
+        try {
+          if(btn) btn.innerText = "MENGUPLOAD FOTO...";
+          var fotoUrl = await uploadFileKeRunningHub(fileFoto, akunAktif.key);
+          if (!fotoUrl) { throw new Error("Gagal mengunggah foto karakter."); }
 
-        if(btn) btn.innerText = "MENGIRIM WORKFLOW GPU...";
-        
-        // Target Node disesuaikan dengan workflow baru 2096634336232931330
-        var nodeParams = [
-          { nodeId: "3", fieldName: "text", fieldValue: "Follow reference video accurately. High detail, smooth movement." },
-          { nodeId: "308", fieldName: "image", fieldValue: fotoUrl },
-          { nodeId: "444", fieldName: "image", fieldValue: fotoUrl },
-          { nodeId: "128", fieldName: "image", fieldValue: videoUrlInput }
-        ];
+          if(btn) btn.innerText = "MENGUPLOAD VIDEO GERAKAN...";
+          var videoUrlInput = await uploadFileKeRunningHub(fileVideo, akunAktif.key);
+          if (!videoUrlInput) { throw.error("Gagal mengunggah video gerakan."); }
 
-        var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            apiKey: akunAktif.key,
-            workflowId: RUNNINGHUB_WORKFLOW_ID,
-            nodeInfoList: nodeParams
-          })
-        });
-        var data = await res.json();
-        
-        if (!data || !data.data || !data.data.taskId) {
-          throw new Error(data.msg || "Gagal membuat task di RunningHub.");
+          if(btn) btn.innerText = "MENGIRIM WORKFLOW GPU...";
+          
+          // PEMETAAN NODE AKURAT KE WORKFLOW 2096634336232931330 (NODE 128 UNTUK VIDEO POSE)
+          var nodeParams = [
+            { nodeId: "3", fieldName: "text", fieldValue: "Follow reference video accurately. High detail, smooth movement." },
+            { nodeId: "308", fieldName: "image", fieldValue: fotoUrl },
+            { nodeId: "444", fieldName: "image", fieldValue: fotoUrl },
+            { nodeId: "128", fieldName: "image", fieldValue: videoUrlInput }
+          ];
+
+          var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              apiKey: akunAktif.key,
+              workflowId: RUNNINGHUB_WORKFLOW_ID,
+              nodeInfoList: nodeParams
+            })
+          });
+          var data = await res.json();
+          if (data && data.data && data.data.taskId) {
+            taskIdAsli = data.data.taskId;
+          } else {
+            alert('Gagal dari server: ' + (data.msg || 'Periksa kuota/API Key RunningHub Anda.'));
+            if(btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+            return;
+          }
+        } catch (e) {
+          alert('Proses Gagal: ' + e.message);
+          if(btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+          return;
         }
-
-        var taskIdAsli = data.data.taskId;
-
-        var tugasBaru = {
-          id: taskIdAsli,
-          model: "Wan Motion Control 1080HD",
-          prov: "RunningHub",
-          tgl: "Baru saja",
-          biaya: "≈ 478 koin",
-          videoUrl: null,
-          status: "Sedang Render di GPU...",
-          selesai: false
-        };
-
-        riwayatGenerateList.unshift(tugasBaru);
-        simpanStorage();
-        gantiLayarNav('history');
-        if(btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-
-        var cekInterval = setInterval(async function() {
-          try {
-            var resStatus = await fetch('https://www.runninghub.ai/task/openapi/status', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ apiKey: akunAktif.key, taskId: taskIdAsli })
-            });
-            var jsonStatus = await resStatus.json();
-            if (jsonStatus && jsonStatus.data) {
-              var st = jsonStatus.data.taskStatus;
-              if (st === "SUCCESS") {
-                clearInterval(cekInterval);
-                tugasBaru.status = "Selesai"; tugasBaru.selesai = true;
-                if (jsonStatus.data.fileUrlList && jsonStatus.data.fileUrlList.length > 0) {
-                  tugasBaru.videoUrl = jsonStatus.data.fileUrlList[0];
-                }
-                await segarkanSaldoRunningHub(akunAktif, akunAktif.key);
-                simpanStorage();
-                if (navLayarAktif === 'history') renderLayarHistory();
-              } else if (st === "FAILED") {
-                clearInterval(cekInterval);
-                tugasBaru.status = "Gagal Dirender";
-                await segarkanSaldoRunningHub(akunAktif, akunAktif.key);
-                simpanStorage();
-                if (navLayarAktif === 'history') renderLayarHistory();
-              }
-            }
-          } catch (err) { console.warn("Polling tertunda:", err); }
-        }, 10000);
-
-      } catch (e) {
-        alert('Proses Gagal: ' + e.message);
-        if(btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
       }
+
+      var tugasBaru = {
+        id: taskIdAsli || ("RH-" + Date.now().toString().slice(-6)),
+        model: "Wan Motion Control 1080HD",
+        prov: "RunningHub",
+        tgl: "Baru saja",
+        biaya: "≈ 478 koin",
+        videoUrl: null,
+        status: "Sedang Render di GPU...",
+        selesai: false
+      };
+
+      riwayatGenerateList.unshift(tugasBaru);
+      simpanStorage();
+      gantiLayarNav('history');
+      if(btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+
+      // Polling status berkala
+      var cekInterval = setInterval(async function() {
+        try {
+          var resStatus = await fetch('https://www.runninghub.ai/task/openapi/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: akunAktif.key, taskId: tugasBaru.id })
+          });
+          var jsonStatus = await resStatus.json();
+          if (jsonStatus && jsonStatus.data) {
+            var st = jsonStatus.data.taskStatus;
+            if (st === "SUCCESS") {
+              clearInterval(cekInterval);
+              tugasBaru.status = "Selesai"; tugasBaru.selesai = true;
+              if (jsonStatus.data.fileUrlList && jsonStatus.data.fileUrlList.length > 0) {
+                tugasBaru.videoUrl = jsonStatus.data.fileUrlList[0];
+              }
+              await segarkanSaldoRunningHub(akunAktif, akunAktif.key);
+              simpanStorage();
+              if (navLayarAktif === 'history') renderLayarHistory();
+            } else if (st === "FAILED") {
+              clearInterval(cekInterval);
+              tugasBaru.status = "Gagal Dirender";
+              await segarkanSaldoRunningHub(akunAktif, akunAktif.key);
+              simpanStorage();
+              if (navLayarAktif === 'history') renderLayarHistory();
+            }
+          }
+        } catch (err) { console.warn("Polling tertunda:", err); }
+      }, 8000);
     }
 
     function renderLayarHistory() {
@@ -298,128 +408,4 @@
       if(counter) counter.innerText = riwayatGenerateList.length + " tugas";
 
       if (riwayatGenerateList.length === 0) {
-        wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white modern-shadow">Belum ada riwayat generate video.</div>';
-        return;
-      }
-      for (var i = 0; i < riwayatGenerateList.length; i++) {
-        var itm = riwayatGenerateList[i];
-        var isDone = itm.selesai === true && itm.videoUrl;
-        var card = document.createElement('div');
-        card.className = "bg-white border border-slate-200/80 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
-        card.innerHTML = '<div class="flex items-center gap-4">' +
-          '<div class="w-12 h-12 rounded-2xl bg-kmVioletLight text-kmViolet flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">' + (isDone ? '▶' : '⏳') + '</div>' +
-          '<div>' +
-            '<div class="flex items-center gap-2"><span class="text-base font-bold text-kmTextPrimary">' + itm.model + '</span><span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-semibold border border-slate-200">' + itm.prov + '</span></div>' +
-            '<div class="text-xs sm:text-sm text-kmTextSecondary mt-1">ID: <span class="text-kmViolet font-mono font-bold">' + itm.id + '</span> • ' + itm.tgl + ' • <span class="text-amber-600 font-bold">' + itm.biaya + '</span></div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="flex items-center gap-2.5 shrink-0 pt-2 sm:pt-0">' +
-          (isDone 
-            ? '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Berhasil</span>' +
-              '<button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition">Putar</button>' +
-              '<a href="' + itm.videoUrl + '" target="_blank" download="video-kiixmotion.mp4" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</a>'
-            : '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">⏳ ' + itm.status + '</span>') +
-        '</div>';
-        wadah.appendChild(card);
-      }
-    }
-
-    function bersihkanSemuaHistory() {
-      if (riwayatGenerateList.length === 0) return alert('History sudah kosong.');
-      if (confirm('Hapus seluruh riwayat generate?')) {
-        riwayatGenerateList = [];
-        simpanStorage();
-        renderLayarHistory();
-      }
-    }
-
-    function renderListAkunDiKelola() {
-      var wadah = document.getElementById('wadah-kartu-akun-list');
-      if(!wadah) return;
-      wadah.innerHTML = '';
-      var totalKredit = 0;
-      for (var i = 0; i < akunRunningHub.length; i++) {
-        totalKredit += Number(akunRunningHub[i].koin);
-        var el = document.createElement('div');
-        el.className = "bg-white border border-slate-200/80 p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
-        el.innerHTML = '<div class="flex items-center gap-3.5">' +
-          '<span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span>' +
-          '<span class="text-sm sm:text-base font-bold text-kmTextPrimary font-mono">' + akunRunningHub[i].nama + '</span>' +
-        '</div>' +
-        '<div class="flex items-center gap-3">' +
-          '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span>' +
-          '<span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + akunRunningHub[i].koin + ' koin</span>' +
-        '</div>';
-        wadah.appendChild(el);
-      }
-      var elAktif = document.getElementById('txt-stat-aktif');
-      var elAkun = document.getElementById('txt-stat-akun');
-      var elKredit = document.getElementById('txt-stat-kredit');
-      if(elAktif) elAktif.innerText = akunRunningHub.length;
-      if(elAkun) elAkun.innerText = akunRunningHub.length;
-      if(elKredit) elKredit.innerText = totalKredit;
-
-      if (akunRunningHub.length === 0) {
-        wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Tambah API Key" di atas.</div>';
-      }
-    }
-
-    function bukaModalFormKey() {
-      var modal = document.getElementById('modal-popup-key');
-      var inLabel = document.getElementById('in-modal-label'), inKey = document.getElementById('in-modal-key');
-      if(inLabel) inLabel.value = 'RunningHub #' + (akunRunningHub.length + 1);
-      if(inKey) inKey.value = '';
-      if(modal) modal.style.display = 'flex';
-    }
-
-    function tutupModalFormKey() {
-      var modal = document.getElementById('modal-popup-key');
-      if(modal) modal.style.display = 'none';
-    }
-
-    async function simpanAkunBaruDariModal() {
-      var inLabel = document.getElementById('in-modal-label');
-      var inKey = document.getElementById('in-modal-key');
-      var valLabel = inLabel ? inLabel.value.trim() : "";
-      var valKey = inKey ? inKey.value.trim() : "";
-
-      if (!valKey) return alert('Masukkan API Key terlebih dahulu!');
-
-      var namaAkun = valLabel || ('RunningHub #' + (akunRunningHub.length + 1));
-      var saldoDidapat = 0; // Murni ditarik dari server, tanpa angka default rekayasa
-
-      try {
-        var res = await fetch('https://www.runninghub.ai/task/openapi/account', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey: valKey })
-        });
-        var hasil = await res.json();
-        if (hasil && hasil.data) {
-          if (hasil.data.coins !== undefined) {
-            saldoDidapat = Number(hasil.data.coins);
-          } else if (hasil.data.balance !== undefined) {
-            saldoDidapat = Number(hasil.data.balance);
-          }
-        }
-      } catch (err) { console.warn("Gagal ambil saldo asli:", err); }
-
-      akunRunningHub.push({ nama: namaAkun, key: valKey, koin: Number(saldoDidapat) });
-      simpanStorage();
-      tutupModalFormKey();
-      renderListAkunDiKelola();
-      sinkronkanDropdownAkunGenerate();
-      alert('Berhasil terhubung! Saldo terbaca: ' + saldoDidapat + ' koin.');
-    }
-
-    window.onload = function() {
-      muatStorage();
-    };
-  </script>
-</head>
-<body class="bg-kmBg text-kmTextPrimary min-h-screen flex flex-col antialiased selection:bg-kmViolet selection:text-white pb-14">
-
-  <header class="border-b border-slate-200/80 bg-white/90 backdrop-blur-md px-4 sm:px-8 py-3 flex flex-wrap items-center justify-between sticky top-0 z-40 gap-3">
-    <div class="flex items-center gap-3">
-      <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
-        <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 
+        wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white m

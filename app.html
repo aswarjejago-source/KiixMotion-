@@ -71,12 +71,28 @@
 
     async function segarkanSaldoRunningHub(akun, apiKey) {
       try {
-        var res = await fetch('https://www.runninghub.ai/task/openapi/account', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: apiKey })
+        var res = await fetch('https://www.runninghub.ai/uc/openapi/apiKey/balance', {
+          method: 'GET',
+          headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' }
         });
         var hasil = await res.json();
-        if (hasil && hasil.data && (hasil.data.coins !== undefined || hasil.data.balance !== undefined)) {
-          akun.koin = Number(hasil.data.coins || hasil.data.balance);
+        var koinBaru = null;
+        if (hasil && hasil.data !== undefined) {
+          koinBaru = Number(hasil.data.coins !== undefined ? hasil.data.coins : (hasil.data.balance !== undefined ? hasil.data.balance : hasil.data));
+        }
+        if (koinBaru === null || isNaN(koinBaru)) {
+          var res2 = await fetch('https://www.runninghub.ai/task/openapi/account', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: apiKey })
+          });
+          var hasil2 = await res2.json();
+          if (hasil2 && hasil2.data) {
+            koinBaru = Number(hasil2.data.coins !== undefined ? hasil2.data.coins : hasil2.data.balance);
+          }
+        }
+        if (koinBaru !== null && !isNaN(koinBaru)) {
+          akun.koin = koinBaru;
           simpanStorage(); updateStatistikDashboard(); sinkronkanDropdownAkunGenerate();
         }
       } catch (err) { console.warn("Gagal update saldo:", err); }
@@ -84,8 +100,8 @@
 
     function updateStatistikDashboard() {
       var totalRhKoin = 0, maxRhKoin = 0, totalRbCarrots = 0, maxRbCarrots = 0;
-      akunRunningHub.forEach(function(a) { var k = Number(a.koin); totalRhKoin += k; if (k > maxRhKoin) maxRhKoin = k; });
-      akunRoboneo.forEach(function(r) { var c = Number(r.koin); totalRbCarrots += c; if (c > maxRbCarrots) maxRbCarrots = c; });
+      akunRunningHub.forEach(function(a) { var k = Number(a.koin) || 0; totalRhKoin += k; if (k > maxRhKoin) maxRhKoin = k; });
+      akunRoboneo.forEach(function(r) { var c = Number(r.koin) || 0; totalRbCarrots += c; if (c > maxRbCarrots) maxRbCarrots = c; });
       var setTxt = function(id, val) { var el = document.getElementById(id); if (el) el.innerText = val; };
       setTxt('dash-rh-total-koin', totalRhKoin); setTxt('dash-rh-total-akun', akunRunningHub.length + "/" + akunRunningHub.length);
       setTxt('dash-rh-max-koin', maxRhKoin); setTxt('dash-rb-total-carrots', totalRbCarrots);
@@ -160,6 +176,7 @@
 
       var xhr = new XMLHttpRequest();
       xhr.open("POST", "https://www.runninghub.ai/task/openapi/upload");
+      xhr.setRequestHeader("Authorization", "Bearer " + akunAktif.key);
       xhr.upload.onprogress = function(e) {
         if (e.lengthComputable && stEl) {
           var pct = Math.round((e.loaded / e.total) * 100);
@@ -209,8 +226,9 @@
         var optRand = document.createElement('option'); optRand.value = "random"; optRand.innerText = "🎲 Otomatis (Pilih Acak Akun)"; sel.appendChild(optRand);
         var total = 0;
         targetAkun.forEach(function(a, idx) {
-          total += Number(a.koin);
-          var o = document.createElement('option'); o.value = idx; o.innerText = a.nama + " (" + a.koin + (engineProvider === 'roboneo' ? " carrots)" : " koin)"); sel.appendChild(o);
+          var koinVal = Number(a.koin) || 0;
+          total += koinVal;
+          var o = document.createElement('option'); o.value = idx; o.innerText = a.nama + " (" + koinVal + (engineProvider === 'roboneo' ? " carrots)" : " koin)"); sel.appendChild(o);
         });
         if (badge) {
           badge.innerText = total + (engineProvider === 'roboneo' ? " carrots" : " koin");
@@ -222,17 +240,15 @@
     function pantauTaskRunningHub(tugas, apiKey) {
       var cekInterval = setInterval(async function() {
         try {
-          var resStatus = await fetch('https://www.runninghub.ai/task/openapi/status', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: apiKey, taskId: tugas.id })
+          var resStatus = await fetch('https://www.runninghub.ai/task/openapi/outputs?taskId=' + tugas.id, {
+            headers: { 'Authorization': 'Bearer ' + apiKey }
           });
           var jsonStatus = await resStatus.json();
           if (jsonStatus && jsonStatus.data) {
             var st = jsonStatus.data.taskStatus;
             if (st === "SUCCESS") {
               clearInterval(cekInterval); tugas.status = "Selesai"; tugas.selesai = true;
-              var vUrl = null;
-              if (jsonStatus.data.fileUrlList && jsonStatus.data.fileUrlList.length > 0) vUrl = jsonStatus.data.fileUrlList[0];
-              else if (jsonStatus.data.fileUrl) vUrl = jsonStatus.data.fileUrl;
+              var vUrl = jsonStatus.data.fileUrl || (jsonStatus.data.outputs && jsonStatus.data.outputs[0] ? jsonStatus.data.outputs[0].fileUrl : null);
               tugas.videoUrl = vUrl;
               simpanStorage();
               var targetAkun = akunRunningHub.find(function(a) { return a.key === apiKey; });
@@ -268,21 +284,42 @@
 
       if (engineProvider === 'runninghub') {
         try {
-          var nodeParams = [{ nodeId: "3", fieldName: "text", fieldValue: "Follow reference video accurately. High detail, smooth movement." }];
-          if (urlBahanFoto) {
-            nodeParams.push({ nodeId: "308", fieldName: "image", fieldValue: urlBahanFoto });
-            nodeParams.push({ nodeId: "444", fieldName: "image", fieldValue: urlBahanFoto });
-          }
-          if (urlBahanVideo) { nodeParams.push({ nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo }); }
+          var promptTxt = document.querySelector('textarea') ? document.querySelector('textarea').value.trim() : "";
+          var promptFinal = promptTxt || "Follow reference video accurately. High detail, smooth movement.";
+
+          // Node 426 dibuang resmi: hanya menggunakan 3, 89, 308, dan 444
+          var nodeParams = [
+            { nodeId: "3", fieldName: "text", fieldValue: promptFinal },
+            { nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo },
+            { nodeId: "308", fieldName: "image", fieldValue: urlBahanFoto },
+            { nodeId: "444", fieldName: "image", fieldValue: urlBahanFoto }
+          ];
 
           var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: akunAktif.key, workflowId: RUNNINGHUB_WORKFLOW_ID, nodeInfoList: nodeParams })
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + akunAktif.key
+            },
+            body: JSON.stringify({ 
+              workflowId: RUNNINGHUB_WORKFLOW_ID, 
+              apiKey: akunAktif.key,
+              nodeInfoList: nodeParams 
+            })
           });
           var data = await res.json();
-          if (data && data.data && data.data.taskId) { taskIdAsli = data.data.taskId; }
-          else { alert('Gagal dari server: ' + (data.msg || 'Periksa kuota RunningHub.')); if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } return; }
-        } catch (e) { alert('Proses Gagal: ' + e.message); if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } return; }
+          if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
+            taskIdAsli = data.data?.taskId || data.taskId; 
+          } else { 
+            alert('Pesan RunningHub:\n' + (data.msg || JSON.stringify(data))); 
+            if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } 
+            return; 
+          }
+        } catch (e) { 
+          alert('Proses Gagal: ' + e.message); 
+          if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } 
+          return; 
+        }
       }
 
       var tugasBaru = {
@@ -291,7 +328,9 @@
         model: "Wan Motion Control 1080HD", prov: "RunningHub",
         tgl: "Baru saja", biaya: "≈ 478 koin", videoUrl: null, status: "Sedang Render di GPU...", selesai: false
       };
-      riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
+      riwayatGenerateList.unshift(tugasBaru); 
+      simpanStorage(); 
+      gantiLayarNav('history');
       if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
       if (taskIdAsli) pantauTaskRunningHub(tugasBaru, akunAktif.key);
     }
@@ -349,10 +388,11 @@
       if (!wadah) return;
       wadah.innerHTML = ''; var totalKredit = 0;
       targetAkun.forEach(function(a, i) {
-        totalKredit += Number(a.koin);
+        var koinVal = Number(a.koin) || 0;
+        totalKredit += koinVal;
         var el = document.createElement('div');
         el.className = "bg-white border border-slate-200/80 p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
-        el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-sm sm:text-base font-bold text-kmTextPrimary font-mono">' + a.nama + '</span></div><div class="flex items-center gap-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span><span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + a.koin + (tabAkunAktif === 'roboneo' ? ' carrots' : ' koin') + '</span></div>';
+        el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-sm sm:text-base font-bold text-kmTextPrimary font-mono">' + a.nama + '</span></div><div class="flex items-center gap-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span><span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + (tabAkunAktif === 'roboneo' ? ' carrots' : ' koin') + '</span></div>';
         wadah.appendChild(el);
       });
       var setTxt = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
@@ -395,20 +435,48 @@
       var valLabel = inLabel ? inLabel.value.trim() : "", valKey = inKey ? inKey.value.trim() : "";
       if (!valKey) return alert('Masukkan API Key terlebih dahulu!');
       var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
-      var namaAkun = valLabel || ((tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1)), saldoDidapat = 0;
+      var namaAkun = valLabel || ((tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1));
+      var saldoDidapat = 0;
+
+      // Cek apakah user mengetik manual jumlah koin di nama label (contoh: Akun 250 koin)
+      var matchLabel = namaAkun.match(/(\d+)\s*(koin|carrots)?/i);
 
       if (tabAkunAktif === 'runninghub') {
         try {
-          var res = await fetch('https://www.runninghub.ai/task/openapi/account', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: valKey })
+          var res = await fetch('https://www.runninghub.ai/uc/openapi/apiKey/balance', {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + valKey, 'Content-Type': 'application/json' }
           });
           var hasil = await res.json();
-          if (hasil && hasil.data && (hasil.data.coins !== undefined || hasil.data.balance !== undefined)) saldoDidapat = Number(hasil.data.coins || hasil.data.balance);
-        } catch (err) { saldoDidapat = 0; }
-      } else { saldoDidapat = 4; }
+          if (hasil && hasil.data !== undefined) {
+            saldoDidapat = Number(hasil.data.coins !== undefined ? hasil.data.coins : (hasil.data.balance !== undefined ? hasil.data.balance : hasil.data));
+          } else {
+            var res2 = await fetch('https://www.runninghub.ai/task/openapi/account', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + valKey, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ apiKey: valKey })
+            });
+            var hasil2 = await res2.json();
+            if (hasil2 && hasil2.data) {
+              saldoDidapat = Number(hasil2.data.coins !== undefined ? hasil2.data.coins : hasil2.data.balance);
+            }
+          }
+        } catch (err) {
+          console.warn("Gagal cek saldo otomatis:", err);
+        }
 
+        // Jika API gagal membaca saldo tapi user mencantumkan angka di label, pakai angka tersebut
+        if ((!saldoDidapat || isNaN(saldoDidapat)) && matchLabel) {
+          saldoDidapat = Number(matchLabel[1]);
+        }
+      } else {
+        saldoDidapat = matchLabel ? Number(matchLabel[1]) : 4;
+      }
+
+      saldoDidapat = isNaN(saldoDidapat) ? 0 : saldoDidapat;
       targetAkun.push({ nama: namaAkun, key: valKey, koin: Number(saldoDidapat) });
-      simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate(); alert('Berhasil terhubung!');
+      simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
+      alert('Berhasil terhubung!\nSaldo terdeteksi: ' + saldoDidapat + (tabAkunAktif === 'roboneo' ? ' carrots' : ' koin'));
     }
 
     window.onload = function() { muatStorage(); setProviderUtama('runninghub'); };

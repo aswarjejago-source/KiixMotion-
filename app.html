@@ -69,33 +69,43 @@
       if (layar === 'kelola-akun') renderListAkunDiKelola();
     }
 
-    async function segarkanSaldoRunningHub(akun, apiKey) {
+    async function cekSaldoRunningHubOnline(apiKey) {
       try {
-        var res = await fetch('https://www.runninghub.ai/uc/openapi/apiKey/balance', {
-          method: 'GET',
-          headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' }
+        var urlTarget = "https://www.runninghub.ai/task/openapi/account";
+        var proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(urlTarget);
+        var res = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey: apiKey })
         });
         var hasil = await res.json();
-        var koinBaru = null;
-        if (hasil && hasil.data !== undefined) {
-          koinBaru = Number(hasil.data.coins !== undefined ? hasil.data.coins : (hasil.data.balance !== undefined ? hasil.data.balance : hasil.data));
+        if (hasil && hasil.data) {
+          var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
+          if (k !== undefined && k !== null) return Number(k);
         }
-        if (koinBaru === null || isNaN(koinBaru)) {
-          var res2 = await fetch('https://www.runninghub.ai/task/openapi/account', {
+      } catch (err) {
+        try {
+          var resLangsung = await fetch('https://www.runninghub.ai/task/openapi/account', {
             method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ apiKey: apiKey })
           });
-          var hasil2 = await res2.json();
-          if (hasil2 && hasil2.data) {
-            koinBaru = Number(hasil2.data.coins !== undefined ? hasil2.data.coins : hasil2.data.balance);
+          var hasilLangsung = await resLangsung.json();
+          if (hasilLangsung && hasilLangsung.data) {
+            var k2 = hasilLangsung.data.remainCoins !== undefined ? hasilLangsung.data.remainCoins : (hasilLangsung.data.coins !== undefined ? hasilLangsung.data.coins : hasilLangsung.data.balance);
+            if (k2 !== undefined && k2 !== null) return Number(k2);
           }
-        }
-        if (koinBaru !== null && !isNaN(koinBaru)) {
-          akun.koin = koinBaru;
-          simpanStorage(); updateStatistikDashboard(); sinkronkanDropdownAkunGenerate();
-        }
-      } catch (err) { console.warn("Gagal update saldo:", err); }
+        } catch (e) {}
+      }
+      return null;
+    }
+
+    async function segarkanSaldoRunningHub(akun, apiKey) {
+      var koinBaru = await cekSaldoRunningHubOnline(apiKey);
+      if (koinBaru !== null && !isNaN(koinBaru)) {
+        akun.koin = koinBaru;
+        simpanStorage(); updateStatistikDashboard(); sinkronkanDropdownAkunGenerate();
+      }
     }
 
     function updateStatistikDashboard() {
@@ -104,7 +114,7 @@
       akunRoboneo.forEach(function(r) { var c = Number(r.koin) || 0; totalRbCarrots += c; if (c > maxRbCarrots) maxRbCarrots = c; });
       var setTxt = function(id, val) { var el = document.getElementById(id); if (el) el.innerText = val; };
       setTxt('dash-rh-total-koin', totalRhKoin); setTxt('dash-rh-total-akun', akunRunningHub.length + "/" + akunRunningHub.length);
-      setTxt('dash-rh-max-koin', maxRhKoin); setTxt('dash-rb-total-carrots', totalRbCarrots);
+      setTxt('dash-rh-max-koin', maxRhKoin); setTxt('dash-rh-max-koin', maxRhKoin); setTxt('dash-rb-total-carrots', totalRbCarrots);
       setTxt('dash-rb-total-akun', akunRoboneo.length + "/" + akunRoboneo.length); setTxt('dash-rb-max-carrots', maxRbCarrots);
       setTxt('dash-stat-video-selesai', riwayatGenerateList.filter(function(r){ return r.selesai; }).length);
     }
@@ -170,8 +180,6 @@
       if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah: 0%</span>';
 
       var formData = new FormData();
-      formData.append("apiKey", akunAktif.key);
-      formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
       formData.append("file", file);
 
       var xhr = new XMLHttpRequest();
@@ -270,10 +278,6 @@
       var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
       var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
 
-      if (engineProvider === 'runninghub' && Number(akunAktif.koin) < 478) {
-        return alert('Saldo koin tidak cukup!\nAkun: ' + akunAktif.nama + ' memiliki ' + akunAktif.koin + ' koin.\n(Dibutuhkan minimal 478 koin untuk 1x render).');
-      }
-
       if (!urlBahanFoto || !urlBahanVideo) {
         return alert('Harap tunggu! Foto Karakter DAN Video Gerakan keduanya harus selesai diunggah 100%!');
       }
@@ -287,7 +291,6 @@
           var promptTxt = document.querySelector('textarea') ? document.querySelector('textarea').value.trim() : "";
           var promptFinal = promptTxt || "Follow reference video accurately. High detail, smooth movement.";
 
-          // Node 426 dibuang resmi: hanya menggunakan 3, 89, 308, dan 444
           var nodeParams = [
             { nodeId: "3", fieldName: "text", fieldValue: promptFinal },
             { nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo },
@@ -371,14 +374,13 @@
       tabAkunAktif = prov;
       var tRb = document.getElementById('tab-pilih-roboneo'), tRh = document.getElementById('tab-pilih-rh');
       var pRh = document.getElementById('panduan-rh-box'), pRb = document.getElementById('panduan-rb-box');
-      var head = document.getElementById('txt-head-akun'), sub = document.getElementById('txt-sub-akun'), btnTambah = document.getElementById('txt-btn-tambah-label');
+      var head = document.getElementById('txt-head-akun'), sub = document.getElementById('txt-sub-akun');
       if (tRh) tRh.className = (prov === 'runninghub') ? "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow" : "px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
       if (tRb) tRb.className = (prov === 'roboneo') ? "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow" : "px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
       if (pRh) pRh.style.display = (prov === 'runninghub') ? 'block' : 'none';
       if (pRb) pRb.style.display = (prov === 'roboneo') ? 'block' : 'none';
       if (head) head.innerText = (prov === 'runninghub') ? "Akun RunningHub" : "Akun Roboneo";
       if (sub) sub.innerText = (prov === 'runninghub') ? "Kelola API key RunningHub kamu (BYOK)." : "Kelola token akun Roboneo kamu.";
-      if (btnTambah) btnTambah.innerText = (prov === 'runninghub') ? "+ Tambah API Key" : "+ Tambah Token Roboneo";
       if (isModePilih) toggleModePilihHapus();
       renderListAkunDiKelola();
     }
@@ -397,7 +399,7 @@
       });
       var setTxt = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
       setTxt('txt-stat-aktif', targetAkun.length); setTxt('txt-stat-akun', targetAkun.length); setTxt('txt-stat-kredit', totalKredit);
-      if (targetAkun.length === 0) wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Tambah" di atas.</div>';
+      if (targetAkun.length === 0) wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Tambah API Key" di atas.</div>';
     }
 
     function toggleModePilihHapus() {
@@ -422,61 +424,41 @@
     }
 
     function bukaModalFormKey() {
-      var modal = document.getElementById('modal-popup-key'), inLabel = document.getElementById('in-modal-label');
-      var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
-      if (inLabel) inLabel.value = (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1);
+      var modal = document.getElementById('modal-popup-key');
       var inKey = document.getElementById('in-modal-key');
-      if (inKey) inKey.value = ''; if (modal) modal.style.display = 'flex';
+      if (inKey) inKey.value = ''; 
+      if (modal) modal.style.display = 'flex';
     }
     function tutupModalFormKey() { var modal = document.getElementById('modal-popup-key'); if (modal) modal.style.display = 'none'; }
 
     async function simpanAkunBaruDariModal() {
-      var inLabel = document.getElementById('in-modal-label'), inKey = document.getElementById('in-modal-key');
-      var valLabel = inLabel ? inLabel.value.trim() : "", valKey = inKey ? inKey.value.trim() : "";
+      var inKey = document.getElementById('in-modal-key');
+      var valKey = inKey ? inKey.value.trim() : "";
+      
       if (!valKey) return alert('Masukkan API Key terlebih dahulu!');
+      
       var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
-      var namaAkun = valLabel || ((tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1));
+      var nomorUrut = targetAkun.length + 1;
+      var namaAkun = (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + nomorUrut;
       var saldoDidapat = 0;
 
-      // Cek apakah user mengetik manual jumlah koin di nama label (contoh: Akun 250 koin)
-      var matchLabel = namaAkun.match(/(\d+)\s*(koin|carrots)?/i);
+      var btnSimpan = document.getElementById('btn-simpan-key');
+      if (btnSimpan) { btnSimpan.innerText = 'Memeriksa Koin...'; btnSimpan.disabled = true; }
 
       if (tabAkunAktif === 'runninghub') {
-        try {
-          var res = await fetch('https://www.runninghub.ai/uc/openapi/apiKey/balance', {
-            method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + valKey, 'Content-Type': 'application/json' }
-          });
-          var hasil = await res.json();
-          if (hasil && hasil.data !== undefined) {
-            saldoDidapat = Number(hasil.data.coins !== undefined ? hasil.data.coins : (hasil.data.balance !== undefined ? hasil.data.balance : hasil.data));
-          } else {
-            var res2 = await fetch('https://www.runninghub.ai/task/openapi/account', {
-              method: 'POST',
-              headers: { 'Authorization': 'Bearer ' + valKey, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ apiKey: valKey })
-            });
-            var hasil2 = await res2.json();
-            if (hasil2 && hasil2.data) {
-              saldoDidapat = Number(hasil2.data.coins !== undefined ? hasil2.data.coins : hasil2.data.balance);
-            }
-          }
-        } catch (err) {
-          console.warn("Gagal cek saldo otomatis:", err);
-        }
-
-        // Jika API gagal membaca saldo tapi user mencantumkan angka di label, pakai angka tersebut
-        if ((!saldoDidapat || isNaN(saldoDidapat)) && matchLabel) {
-          saldoDidapat = Number(matchLabel[1]);
-        }
+        var cekKoin = await cekSaldoRunningHubOnline(valKey);
+        saldoDidapat = (cekKoin !== null && !isNaN(cekKoin)) ? cekKoin : 0;
       } else {
-        saldoDidapat = matchLabel ? Number(matchLabel[1]) : 4;
+        saldoDidapat = 4;
       }
 
-      saldoDidapat = isNaN(saldoDidapat) ? 0 : saldoDidapat;
       targetAkun.push({ nama: namaAkun, key: valKey, koin: Number(saldoDidapat) });
-      simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
-      alert('Berhasil terhubung!\nSaldo terdeteksi: ' + saldoDidapat + (tabAkunAktif === 'roboneo' ? ' carrots' : ' koin'));
+      simpanStorage(); 
+      tutupModalFormKey(); 
+      if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
+      renderListAkunDiKelola(); 
+      sinkronkanDropdownAkunGenerate();
+      alert('✓ Akun ' + namaAkun + ' berhasil terhubung!\nKoin terbaca: ' + saldoDidapat + (tabAkunAktif === 'roboneo' ? ' carrots' : ' koin'));
     }
 
     window.onload = function() { muatStorage(); setProviderUtama('runninghub'); };
@@ -631,7 +613,7 @@
         </div>
         <div class="flex items-center gap-2.5">
           <button id="btn-toggle-pilih" onclick="toggleModePilihHapus()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Pilih</button>
-          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-kmViolet hover:bg-kmVioletHover text-white text-xs sm:text-sm font-bold rounded-xl violet-glow transition cursor-pointer flex items-center gap-1.5"><span id="txt-btn-tambah-label">+ Tambah API Key</span></button>
+          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-kmViolet hover:bg-kmVioletHover text-white text-xs sm:text-sm font-bold rounded-xl violet-glow transition cursor-pointer flex items-center gap-1.5"><span>+ Tambah API Key</span></button>
         </div>
       </div>
       <div id="bar-aksi-hapus" style="display: none;" class="flex items-center justify-between bg-rose-50 border border-rose-200 p-4 rounded-2xl">
@@ -652,14 +634,13 @@
 
   <div id="modal-popup-key" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white border border-slate-200 max-w-lg w-full p-6 sm:p-8 rounded-3xl space-y-5 shadow-2xl">
-      <div class="flex items-center justify-between"><h3 id="txt-modal-title" class="text-lg sm:text-xl font-bold text-kmTextPrimary">Tambah API Key RunningHub</h3><button onclick="tutupModalFormKey()" class="text-slate-400 hover:text-slate-700 font-bold text-2xl cursor-pointer p-1">✕</button></div>
+      <div class="flex items-center justify-between"><h3 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Tambah API Key RunningHub</h3><button onclick="tutupModalFormKey()" class="text-slate-400 hover:text-slate-700 font-bold text-2xl cursor-pointer p-1">✕</button></div>
       <div class="space-y-4 pt-2">
-        <div><label class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">NAMA LABEL</label><input id="in-modal-label" type="text" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" /></div>
-        <div><label id="txt-modal-input-label" class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">API KEY RUNNINGHUB</label><input id="in-modal-key" type="password" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" /></div>
+        <div><label class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">API KEY RUNNINGHUB</label><input id="in-modal-key" type="password" placeholder="Masukkan API Key RunningHub kamu di sini..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" /></div>
       </div>
       <div class="flex gap-3 pt-3">
         <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-sm sm:text-base font-bold rounded-2xl hover:bg-slate-200 transition cursor-pointer">Batal</button>
-        <button onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-kmViolet hover:bg-kmVioletHover text-white text-sm sm:text-base font-bold rounded-2xl violet-glow transition cursor-pointer">Simpan & Cek Saldo</button>
+        <button id="btn-simpan-key" onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-kmViolet hover:bg-kmVioletHover text-white text-sm sm:text-base font-bold rounded-2xl violet-glow transition cursor-pointer">Simpan API Key</button>
       </div>
     </div>
   </div>

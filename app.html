@@ -57,8 +57,8 @@
     var akunRunningHub = [], akunRoboneo = [], riwayatGenerateList = [];
     var navLayarAktif = 'generate', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    // ID WORKFLOW MOTIONFLY RESMI
-    var RUNNINGHUB_WORKFLOW_ID = "376fc06f88ba44eeb000a98c69d25280";
+    // ⬇️ FIX: INI ID WORKFLOW YANG BENAR! ⬇️
+    var RUNNINGHUB_WORKFLOW_ID = "2097019509266087937";
     
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var userReferralCode = "KIIX-VIP" + Math.floor(100 + Math.random() * 900);
@@ -270,7 +270,7 @@
       var formData = new FormData();
       formData.append("file", file);
       
-      // FIX: RunningHub minta apiKey dimasukkan langsung ke Form Data
+      // FIX SERVER UPLOAD: apiKey wajib diikutkan di FormData
       formData.append("apiKey", akunAktif.key);
       formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
 
@@ -407,7 +407,7 @@
           var promptTxt = document.getElementById('in-prompt-gerak') ? document.getElementById('in-prompt-gerak').value.trim() : "";
           var promptFinal = promptTxt || "Follow reference video accurately. High detail, smooth movement.";
 
-          // Menggunakan format node yang sesuai dengan MotionFly
+          // Hapus Node 444, pastikan cuma pakai 3 Node valid
           var nodeParams = [
             { nodeId: "3", fieldName: "text", fieldValue: promptFinal },
             { nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo },

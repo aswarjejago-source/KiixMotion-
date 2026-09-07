@@ -24,6 +24,7 @@
     var RUNNINGHUB_WORKFLOW_ID = "2096475206973194241";
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var userReferralCode = "KIIX-VIP" + Math.floor(100 + Math.random() * 900);
+    var urlBahanFoto = null, urlBahanVideo = null;
 
     function muatStorage() {
       try {
@@ -37,7 +38,7 @@
       sinkronkanDropdownAkunGenerate(); updateStatistikDashboard();
       var elRef = document.getElementById('dash-ref-code-txt'); if (elRef) elRef.innerText = userReferralCode;
 
-      // Auto-Resume: Lanjutkan pemantauan task yang masih gantung saat halaman dimuat ulang
+      // Auto-Resume task yang masih gantung saat halaman dibuka lagi
       riwayatGenerateList.forEach(function(t) {
         if (!t.selesai && t.id && t.prov === "RunningHub") {
           var k = t.key || (akunRunningHub[0] ? akunRunningHub[0].key : null);
@@ -138,12 +139,56 @@
       if (bt) bt.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold " + ((mode === 't') ? "bg-white text-kmViolet shadow-sm" : "text-slate-500 hover:text-slate-800") + " cursor-pointer";
     }
 
-    function fileTerpilihInput(input, txtId, stId, tipe) {
-      if (input.files && input.files[0]) {
-        var elTxt = document.getElementById(txtId), elSt = document.getElementById(stId);
-        if (elTxt) elTxt.innerText = input.files[0].name;
-        if (elSt) elSt.innerHTML = '<span class="text-emerald-600 font-bold">✓ ' + (tipe === 'foto' ? 'Foto Dipilih' : 'Video Dipilih') + '</span>';
+    // UPLOAD LANGSUNG ALA MOTIONFLY DENGAN PERSENTASE REAL-TIME
+    function unggahBahanLangsung(input, tipe) {
+      if (!input.files || !input.files[0]) return;
+      var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
+      if (engineProvider !== 'kiix' && targetAkun.length === 0) {
+        input.value = "";
+        return alert('Hubungkan akun RunningHub terlebih dahulu di menu Akun!');
       }
+      var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
+      var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
+      var file = input.files[0];
+      var txtEl = document.getElementById(tipe === 'foto' ? 'txt-file-foto' : 'txt-file-video');
+      var stEl = document.getElementById(tipe === 'foto' ? 'st-file-foto' : 'st-file-video');
+      if (txtEl) txtEl.innerText = file.name;
+      if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah: 0%</span>';
+
+      var formData = new FormData();
+      formData.append("apiKey", akunAktif.key);
+      formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
+      formData.append("file", file);
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "https://www.runninghub.ai/task/openapi/upload");
+      xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable && stEl) {
+          var pct = Math.round((e.loaded / e.total) * 100);
+          stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah: ' + pct + '%</span>';
+        }
+      };
+      xhr.onload = function() {
+        try {
+          var json = JSON.parse(xhr.responseText);
+          var serverFile = (json && json.data && (json.data.fileName || json.data.fileUrl)) ? (json.data.fileName || json.data.fileUrl) : null;
+          if (serverFile) {
+            if (tipe === 'foto') urlBahanFoto = serverFile; else urlBahanVideo = serverFile;
+            var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
+            if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
+          } else {
+            throw new Error((json && json.msg) || "Format tidak didukung");
+          }
+        } catch(err) {
+          if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
+          alert('Gagal unggah ' + tipe + ': ' + err.message);
+        }
+      };
+      xhr.onerror = function() {
+        if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Jaringan</span>';
+        alert('Koneksi internet bermasalah saat unggah ' + tipe);
+      };
+      xhr.send(formData);
     }
 
     function tempelLinkTiktok() {
@@ -174,16 +219,6 @@
           badge.className = "text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
         }
       }
-    }
-
-    async function uploadFileKeRunningHub(file, apiKey) {
-      try {
-        var formData = new FormData(); formData.append("file", file); formData.append("apiKey", apiKey);
-        var res = await fetch("https://www.runninghub.ai/task/openapi/upload", { method: "POST", body: formData });
-        var json = await res.json();
-        if (json && json.data && json.data.fileUrl) return json.data.fileUrl;
-      } catch (e) { console.error("Upload error:", e); }
-      return null;
     }
 
     function pantauTaskRunningHub(tugas, apiKey) {
@@ -221,42 +256,29 @@
       var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
       var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
 
-      // 1. PENCEGAT KOIN DI DEPAN
+      // 1. PENCEGAT KOIN
       if (engineProvider === 'runninghub' && Number(akunAktif.koin) < 478) {
         return alert('Saldo koin tidak cukup!\nAkun: ' + akunAktif.nama + ' memiliki ' + akunAktif.koin + ' koin.\n(Dibutuhkan minimal 478 koin untuk 1x render).');
       }
 
-      var inputFoto = document.getElementById('input-file-foto'), fileFoto = inputFoto && inputFoto.files ? inputFoto.files[0] : null;
-      var inputVideo = document.getElementById('input-file-video'), fileVideo = inputVideo && inputVideo.files ? inputVideo.files[0] : null;
-      if (!fileFoto && !fileVideo) return alert('Unggah minimal Foto Karakter atau Video Gerakan terlebih dahulu!');
+      // 2. CEK KESIAPAN BAHAN TERUNGGAH (Wajib dua-duanya beres 100%)
+      if (!urlBahanFoto || !urlBahanVideo) {
+        return alert('Harap tunggu! Foto Karakter DAN Video Gerakan keduanya harus selesai diunggah 100%!');
+      }
 
       var btn = document.getElementById('btn-submit-generate');
-      if (btn) { btn.disabled = true; }
+      if (btn) { btn.disabled = true; btn.innerText = "⚡ MENGIRIM WORKFLOW KE GPU..."; }
       var taskIdAsli = null;
 
       if (engineProvider === 'runninghub') {
         try {
-          var fotoUrl = null, videoUrlInput = null;
-          // 2. VISUAL FEEDBACK UPLOAD ALA MOTIONFLY
-          if (fileFoto) {
-            if (btn) btn.innerText = "⏳ MENGUNGGAH FOTO KARAKTER...";
-            fotoUrl = await uploadFileKeRunningHub(fileFoto, akunAktif.key);
-            if (!fotoUrl) throw new Error("Gagal mengunggah foto ke RunningHub. Periksa koneksi internet kamu!");
-          }
-          if (fileVideo) {
-            if (btn) btn.innerText = "⏳ MENGUNGGAH VIDEO GERAKAN...";
-            videoUrlInput = await uploadFileKeRunningHub(fileVideo, akunAktif.key);
-            if (!videoUrlInput) throw new Error("Gagal mengunggah video ke RunningHub. Periksa koneksi internet kamu!");
-          }
-
-          if (btn) btn.innerText = "⚡ MENGIRIM WORKFLOW KE GPU...";
           var nodeParams = [{ nodeId: "3", fieldName: "text", fieldValue: "Follow reference video accurately. High detail, smooth movement." }];
-          if (fotoUrl) {
-            nodeParams.push({ nodeId: "308", fieldName: "image", fieldValue: fotoUrl });
-            nodeParams.push({ nodeId: "426", fieldName: "image", fieldValue: fotoUrl });
-            nodeParams.push({ nodeId: "444", fieldName: "image", fieldValue: fotoUrl });
+          if (urlBahanFoto) {
+            nodeParams.push({ nodeId: "308", fieldName: "image", fieldValue: urlBahanFoto });
+            nodeParams.push({ nodeId: "426", fieldName: "image", fieldValue: urlBahanFoto });
+            nodeParams.push({ nodeId: "444", fieldName: "image", fieldValue: urlBahanFoto });
           }
-          if (videoUrlInput) { nodeParams.push({ nodeId: "89", fieldName: "image", fieldValue: videoUrlInput }); }
+          if (urlBahanVideo) { nodeParams.push({ nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo }); }
 
           var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -365,9 +387,10 @@
     }
 
     function bukaModalFormKey() {
-      var modal = document.getElementById('modal-popup-key'), inLabel = document.getElementById('in-modal-label'), inKey = document.getElementById('in-modal-key');
+      var modal = document.getElementById('modal-popup-key'), inLabel = document.getElementById('in-modal-label');
       var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
       if (inLabel) inLabel.value = (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1);
+      var inKey = document.getElementById('in-modal-key');
       if (inKey) inKey.value = ''; if (modal) modal.style.display = 'flex';
     }
     function tutupModalFormKey() { var modal = document.getElementById('modal-popup-key'); if (modal) modal.style.display = 'none'; }
@@ -426,10 +449,6 @@
         </div>
         <button onclick="bukaGrupTelegram()" class="w-full sm:w-auto px-5 py-2.5 bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer shadow-sm text-center">Gabung Komunitas</button>
       </div>
-      <div class="bg-gradient-to-r from-amber-50/90 via-white to-orange-50/60 border border-amber-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div class="flex items-center gap-3.5"><div class="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-md shadow-amber-500/20">🎁</div><div><div class="flex items-center gap-2"><h4 class="text-sm font-bold text-slate-900">Undang teman → +7 hari Pro</h4><span class="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">TRIAL VIP</span></div><p class="text-xs text-slate-500 mt-0.5">Ajak rekan sesama affiliate, dapatkan tambahan kuota VIP 7 hari otomatis.</p></div></div>
-        <div class="flex items-center gap-2"><div class="px-3 py-2 bg-amber-100/60 border border-amber-200 rounded-xl font-mono text-xs font-bold text-amber-900" id="dash-ref-code-txt">KIIX-VIP</div><button onclick="salinKodeReferral()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Salin Link</button><button onclick="bukaModalReferral()" class="p-2 bg-white border border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl transition cursor-pointer text-xs font-bold">Detail</button></div>
-      </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="bg-white border border-slate-200/80 p-5 rounded-3xl modern-shadow space-y-4">
           <div class="flex items-center justify-between"><div class="flex items-center gap-2.5"><div class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs">R</div><div><h3 class="text-sm font-bold text-kmTextPrimary">RunningHub</h3><p class="text-[11px] text-slate-400">Motion Control (Wan) — BYOK</p></div></div><span class="w-2 h-2 rounded-full bg-emerald-500"></span></div>
@@ -487,11 +506,11 @@
           <div id="v-mode-upload" class="grid grid-cols-2 gap-4">
             <label class="border-2 border-dashed border-slate-200 hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
               <span class="text-4xl mb-2 group-hover:scale-105 transition">🖼️</span><span id="txt-file-foto" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Foto Karakter</span><span id="st-file-foto" class="text-[11px] text-slate-400 mt-1">JPG / PNG</span>
-              <input id="input-file-foto" type="file" accept="image/*" class="hidden" onchange="fileTerpilihInput(this, 'txt-file-foto', 'st-file-foto', 'foto')" />
+              <input id="input-file-foto" type="file" accept="image/*" class="hidden" onchange="unggahBahanLangsung(this, 'foto')" />
             </label>
             <label class="border-2 border-dashed border-slate-200 hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
               <span class="text-4xl mb-2 group-hover:scale-105 transition">🎬</span><span id="txt-file-video" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Video Gerakan</span><span id="st-file-video" class="text-[11px] text-slate-400 mt-1">MP4 (Maks 10s)</span>
-              <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="fileTerpilihInput(this, 'txt-file-video', 'st-file-video', 'video')" />
+              <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
             </label>
           </div>
           <div id="v-mode-tiktok" style="display: none;" class="space-y-2.5">
@@ -539,8 +558,8 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 modern-shadow">
         <div><h2 id="txt-head-akun" class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun RunningHub</h2><p id="txt-sub-akun" class="text-xs sm:text-sm text-kmTextSecondary mt-1">Kelola API key RunningHub kamu (BYOK).</p></div>
         <div class="flex gap-2">
-          <button id="tab-pilih-rh" onclick="gantiTabAkunProvider('runninghub')" class="px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-xs sm:text-sm violet-glow">RunningHub</button>
-          <button id="tab-pilih-roboneo" onclick="gantiTabAkunProvider('roboneo')" class="px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-xs sm:text-sm font-semibold">Roboneo</button>
+          <button id="tab-pilih-rh" onclick="gantiTabAkunProvider('runninghub')" class="px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow">RunningHub</button>
+          <button id="tab-pilih-roboneo" onclick="gantiTabAkunProvider('roboneo')" class="px-5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold">Roboneo</button>
         </div>
       </div>
       <div id="panduan-rh-box" class="bg-violet-50/70 border border-violet-100 p-5 rounded-2xl text-xs sm:text-sm text-slate-700 space-y-1.5"><p class="font-bold text-kmViolet text-sm sm:text-base">💡 Panduan Cepat RunningHub:</p><p>1. Ambil API Key dari menu Settings RunningHub.</p><p>2. Salin lalu masukkan dengan tombol "+ Tambah API Key" di bawah.</p></div>

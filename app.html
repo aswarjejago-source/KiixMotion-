@@ -57,7 +57,7 @@
     var akunRunningHub = [], akunRoboneo = [], riwayatGenerateList = [];
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    // ID WORKFLOW BARU SESUAI PERMINTAAN
+    // ID WORKFLOW MOTIONFLY YANG BENAR SESUAI FILE JSON LU
     var RUNNINGHUB_WORKFLOW_ID = "2095991824610615297";
     
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
@@ -193,14 +193,6 @@
         tampilkanNotif('Gagal menyalin. Silakan salin manual.', 'error');
       }
       document.body.removeChild(tempInput);
-    }
-
-    function bukaModalReferral() {
-      document.getElementById('modal-referral-info').style.display = 'flex';
-    }
-
-    function tutupModalReferral() {
-      document.getElementById('modal-referral-info').style.display = 'none';
     }
 
     function setProviderUtama(p) {
@@ -351,7 +343,6 @@
       }
     }
 
-    // 🔍 CCTV DETEKTIF PEMANTAU STATUS TUGAS
     function pantauTaskRunningHub(tugas, apiKey) {
       var cekInterval = setInterval(async function() {
         try {
@@ -359,10 +350,6 @@
             headers: { 'Authorization': 'Bearer ' + apiKey }
           });
           var textBalasan = await resStatus.text();
-          
-          // CCTV MUNCUL DI SINI UNTUK NUNJUKIN APA BALASAN SERVER STATUS
-          console.log("CCTV Status Response:", textBalasan);
-
           var jsonStatus = JSON.parse(textBalasan);
           if (jsonStatus && jsonStatus.data) {
             var st = jsonStatus.data.taskStatus;
@@ -408,8 +395,12 @@
       if (engineProvider === 'runninghub') {
         try {
           var promptTxt = document.getElementById('in-prompt-gerak') ? document.getElementById('in-prompt-gerak').value.trim() : "";
-          var promptFinal = promptTxt || "Follow reference video accurately. High detail, smooth movement.";
+          var promptFinal = promptTxt || "Follow the reference video as accurately as possible. High quality, smooth movement.";
 
+          // NODE ID AKURAT SESUAI JSON MOTIONFLY:
+          // Node 3 = Prompt Teks Utama
+          // Node 89 = Video Referensi Gerakan (Pose)
+          // Node 308 = Foto Karakter Utama
           var nodeParams = [
             { nodeId: "3", fieldName: "text", fieldValue: promptFinal },
             { nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo },

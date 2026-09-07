@@ -9,19 +9,20 @@ module.exports = async (req, res) => {
 
   const apiKey = req.query.apiKey || (req.body && req.body.apiKey);
   if (!apiKey) {
-    return res.status(400).json({ code: 1, msg: "API Key kosong" });
+    return res.status(400).json({ code: 1, msg: "API Key kosong dari web kita" });
   }
 
   try {
-    // INI ALAMAT BARU YANG RESMI DARI RUNNINGHUB
+    // Nembak ke RunningHub dengan format Body yang benar
     const respon = await fetch("https://www.runninghub.ai/uc/openapi/accountStatus", {
       method: "POST",
       headers: { 
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + apiKey
+        "Content-Type": "application/json"
       },
-      // RunningHub butuh format kosong kalau gak ada data yang dikirim selain API Key
-      body: JSON.stringify({}) 
+      // KUNCI PERUBAHAN: RunningHub minta apiKey ditaruh di sini
+      body: JSON.stringify({ 
+          "apiKey": apiKey 
+      }) 
     });
     
     const data = await respon.json();

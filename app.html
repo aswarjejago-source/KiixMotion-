@@ -69,18 +69,36 @@
       if (layar === 'kelola-akun') renderListAkunDiKelola();
     }
 
-    async function segarkanSaldoRunningHub(akun, apiKey) {
-      try {
-        var res = await fetch('/api/saldo?apiKey=' + encodeURIComponent(apiKey));
-        var hasil = await res.json();
-        if (hasil && hasil.data) {
-          var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
-          if (k !== undefined && k !== null) {
-            akun.koin = Number(k);
-            simpanStorage(); updateStatistikDashboard(); sinkronkanDropdownAkunGenerate();
+    async function cekSaldoOnline(apiKey) {
+      var targetUrl = "https://www.runninghub.ai/task/openapi/account";
+      var proxies = [
+        "https://corsproxy.io/?url=" + encodeURIComponent(targetUrl),
+        "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl)
+      ];
+
+      for (var i = 0; i < proxies.length; i++) {
+        try {
+          var res = await fetch(proxies[i], {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: apiKey })
+          });
+          var hasil = await res.json();
+          if (hasil && hasil.data) {
+            var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
+            if (k !== undefined && k !== null) return Number(k);
           }
-        }
-      } catch (err) { console.warn("Gagal segarkan saldo:", err); }
+        } catch (e) {}
+      }
+      return null;
+    }
+
+    async function segarkanSaldoRunningHub(akun, apiKey) {
+      var koinBaru = await cekSaldoOnline(apiKey);
+      if (koinBaru !== null && !isNaN(koinBaru)) {
+        akun.koin = koinBaru;
+        simpanStorage(); updateStatistikDashboard(); sinkronkanDropdownAkunGenerate();
+      }
     }
 
     function updateStatistikDashboard() {
@@ -155,12 +173,11 @@
       if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah: 0%</span>';
 
       var formData = new FormData();
-      formData.append("apiKey", akunAktif.key);
-      formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
       formData.append("file", file);
 
       var xhr = new XMLHttpRequest();
       xhr.open("POST", "https://www.runninghub.ai/task/openapi/upload");
+      xhr.setRequestHeader("Authorization", "Bearer " + akunAktif.key);
       xhr.upload.onprogress = function(e) {
         if (e.lengthComputable && stEl) {
           var pct = Math.round((e.loaded / e.total) * 100);
@@ -267,7 +284,6 @@
           var promptTxt = document.querySelector('textarea') ? document.querySelector('textarea').value.trim() : "";
           var promptFinal = promptTxt || "Follow reference video accurately. High detail, smooth movement.";
 
-          // Workflow Wan Motion Control: 3, 89, 308, 444
           var nodeParams = [
             { nodeId: "3", fieldName: "text", fieldValue: promptFinal },
             { nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo },
@@ -423,18 +439,8 @@
       if (btnSimpan) { btnSimpan.innerText = 'Memeriksa Koin...'; btnSimpan.disabled = true; }
 
       if (tabAkunAktif === 'runninghub') {
-        try {
-          var res = await fetch('/api/saldo?apiKey=' + encodeURIComponent(valKey));
-          var hasil = await res.json();
-          if (hasil && hasil.data) {
-            var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
-            if (k !== undefined && k !== null) saldoDidapat = Number(k);
-          } else {
-            alert('RunningHub menolak: ' + (hasil.msg || 'API Key tidak valid'));
-          }
-        } catch (err) {
-          alert('Gagal terhubung ke RunningHub: ' + err.message);
-        }
+        var cekKoin = await cekSaldoOnline(valKey);
+        saldoDidapat = (cekKoin !== null && !isNaN(cekKoin)) ? cekKoin : 0;
       } else {
         saldoDidapat = 4;
       }
@@ -446,7 +452,7 @@
       tutupModalFormKey(); 
       renderListAkunDiKelola(); 
       sinkronkanDropdownAkunGenerate();
-      alert('✓ Akun ' + namaAkun + ' terhubung!\nSaldo RunningHub asli: ' + saldoDidapat + ' koin');
+      alert('✓ Akun ' + namaAkun + ' terhubung!\nKoin terbaca: ' + saldoDidapat + (tabAkunAktif === 'roboneo' ? ' carrots' : ' koin'));
     }
 
     window.onload = function() { muatStorage(); setProviderUtama('runninghub'); };
@@ -525,7 +531,7 @@
           </div>
         </div>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div grid class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-kmCard border border-slate-200/80 p-6 rounded-3xl space-y-5 modern-shadow">
           <div class="flex items-center justify-between">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input</h2>

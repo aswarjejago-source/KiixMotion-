@@ -6,7 +6,7 @@
   <title>KiixMotion Studio</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -55,10 +55,10 @@
 
   <script>
     var akunRunningHub = [], akunRoboneo = [], riwayatGenerateList = [];
-    var navLayarAktif = 'generate', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
+    var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    // ⬇️ FIX: INI ID WORKFLOW YANG BENAR! ⬇️
-    var RUNNINGHUB_WORKFLOW_ID = "2097019509266087937";
+    // ID WORKFLOW BARU SESUAI PERMINTAAN
+    var RUNNINGHUB_WORKFLOW_ID = "2095991824610615297";
     
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var userReferralCode = "KIIX-VIP" + Math.floor(100 + Math.random() * 900);
@@ -269,20 +269,20 @@
 
       var formData = new FormData();
       formData.append("file", file);
-      
-      // FIX SERVER UPLOAD: apiKey wajib diikutkan di FormData
       formData.append("apiKey", akunAktif.key);
       formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
 
       var xhr = new XMLHttpRequest();
       xhr.open("POST", "https://www.runninghub.ai/task/openapi/upload");
       xhr.setRequestHeader("Authorization", "Bearer " + akunAktif.key);
+      
       xhr.upload.onprogress = function(e) {
         if (e.lengthComputable && stEl) {
           var pct = Math.round((e.loaded / e.total) * 100);
           stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah: ' + pct + '%</span>';
         }
       };
+      
       xhr.onload = function() {
         try {
           var json = JSON.parse(xhr.responseText);
@@ -351,24 +351,27 @@
       }
     }
 
+    // 🔍 CCTV DETEKTIF PEMANTAU STATUS TUGAS
     function pantauTaskRunningHub(tugas, apiKey) {
       var cekInterval = setInterval(async function() {
         try {
           var resStatus = await fetch('https://www.runninghub.ai/task/openapi/outputs?taskId=' + tugas.id, {
             headers: { 'Authorization': 'Bearer ' + apiKey }
           });
-          var jsonStatus = await resStatus.json();
+          var textBalasan = await resStatus.text();
+          
+          // CCTV MUNCUL DI SINI UNTUK NUNJUKIN APA BALASAN SERVER STATUS
+          console.log("CCTV Status Response:", textBalasan);
+
+          var jsonStatus = JSON.parse(textBalasan);
           if (jsonStatus && jsonStatus.data) {
             var st = jsonStatus.data.taskStatus;
             if (st === "SUCCESS") {
               clearInterval(cekInterval);
               tugas.status = "Selesai";
               tugas.selesai = true;
-              var vUrl = jsonStatus.data.fileUrl || (jsonStatus.data.outputs && jsonStatus.data.outputs[0] ? jsonStatus.data.outputs[0].fileUrl : null);
-              tugas.videoUrl = vUrl;
+              tugas.videoUrl = jsonStatus.data.fileUrl || (jsonStatus.data.outputs && jsonStatus.data.outputs[0] ? jsonStatus.data.outputs[0].fileUrl : null);
               simpanStorage();
-              var targetAkun = akunRunningHub.find(function(a) { return a.key === apiKey; });
-              if (targetAkun) segarkanSaldoRunningHub(targetAkun, apiKey);
               if (navLayarAktif === 'history') renderLayarHistory();
               tampilkanNotif('Render selesai: ' + tugas.id, 'sukses');
             } else if (st === "FAILED") {
@@ -381,7 +384,7 @@
             }
           }
         } catch (err) {
-          console.warn("Polling tertunda:", err);
+          console.warn("Polling CCTV tertunda:", err);
         }
       }, 8000);
     }
@@ -407,12 +410,17 @@
           var promptTxt = document.getElementById('in-prompt-gerak') ? document.getElementById('in-prompt-gerak').value.trim() : "";
           var promptFinal = promptTxt || "Follow reference video accurately. High detail, smooth movement.";
 
-          // Hapus Node 444, pastikan cuma pakai 3 Node valid
           var nodeParams = [
             { nodeId: "3", fieldName: "text", fieldValue: promptFinal },
             { nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo },
             { nodeId: "308", fieldName: "image", fieldValue: urlBahanFoto }
           ];
+
+          var payloadGenerate = {
+            workflowId: RUNNINGHUB_WORKFLOW_ID,
+            apiKey: akunAktif.key,
+            nodeInfoList: nodeParams
+          };
 
           var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
             method: 'POST',
@@ -420,17 +428,15 @@
               'Content-Type': 'application/json',
               'Authorization': 'Bearer ' + akunAktif.key
             },
-            body: JSON.stringify({ 
-              workflowId: RUNNINGHUB_WORKFLOW_ID, 
-              apiKey: akunAktif.key,
-              nodeInfoList: nodeParams 
-            })
+            body: JSON.stringify(payloadGenerate)
           });
           var data = await res.json();
+          
           if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
             taskIdAsli = data.data?.taskId || data.taskId; 
+            tampilkanNotif('Tugas berhasil dikirim ke GPU!', 'sukses');
           } else { 
-            tampilkanNotif('Gagal RunningHub: ' + (data.msg || "Error"), 'error');
+            tampilkanNotif('Gagal RunningHub: ' + (data.msg || JSON.stringify(data)), 'error');
             if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } 
             return; 
           }
@@ -452,10 +458,12 @@
         status: "Sedang Render di GPU...",
         selesai: false
       };
+      
       riwayatGenerateList.unshift(tugasBaru); 
       simpanStorage(); 
       gantiLayarNav('history');
       if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+      
       if (taskIdAsli) pantauTaskRunningHub(tugasBaru, akunAktif.key);
     }
 
@@ -586,22 +594,6 @@
     function tutupModalFormKey() {
       var modal = document.getElementById('modal-popup-key');
       if (modal) modal.style.display = 'none';
-    }
-
-    async function segarkanSaldoRunningHub(akun, apiKey) {
-        try {
-          var res = await fetch('/api/saldo?apiKey=' + encodeURIComponent(apiKey));
-          var hasil = await res.json();
-          if (hasil && hasil.data) {
-             var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
-             if (k !== undefined && k !== null) {
-                akun.koin = Number(k);
-                simpanStorage();
-                renderListAkunDiKelola();
-                sinkronkanDropdownAkunGenerate();
-             }
-          }
-        } catch(e) {}
     }
 
     async function simpanAkunBaruDariModal() {

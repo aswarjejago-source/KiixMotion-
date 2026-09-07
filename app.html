@@ -6,7 +6,7 @@
   <title>KiixMotion Studio</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -55,8 +55,9 @@
 
   <script>
     var akunRunningHub = [], akunRoboneo = [], riwayatGenerateList = [];
-    var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
-    var RUNNINGHUB_WORKFLOW_ID = "2096475206973194241";
+    var navLayarAktif = 'generate', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
+    // ID WORKFLOW MOTIONFLY RESMI
+    var RUNNINGHUB_WORKFLOW_ID = "376fc06f88ba44eeb000a98c69d25280";
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var userReferralCode = "KIIX-VIP" + Math.floor(100 + Math.random() * 900);
     var urlBahanFoto = null, urlBahanVideo = null;
@@ -77,8 +78,6 @@
       }
       sinkronkanDropdownAkunGenerate();
       updateStatistikDashboard();
-      var elRef = document.getElementById('dash-ref-code-txt');
-      if (elRef) elRef.innerText = userReferralCode;
 
       riwayatGenerateList.forEach(function(t) {
         if (!t.selesai && t.id && t.prov === "RunningHub") {
@@ -405,8 +404,7 @@
           var nodeParams = [
             { nodeId: "3", fieldName: "text", fieldValue: promptFinal },
             { nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo },
-            { nodeId: "308", fieldName: "image", fieldValue: urlBahanFoto },
-            { nodeId: "444", fieldName: "image", fieldValue: urlBahanFoto }
+            { nodeId: "308", fieldName: "image", fieldValue: urlBahanFoto }
           ];
 
           var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
@@ -679,8 +677,8 @@
       </div>
     </div>
     <div class="flex items-center gap-1.5 sm:gap-2">
-      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-kmViolet text-white violet-glow cursor-pointer">📊 Dashboard</button>
-      <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80 transition cursor-pointer">⚡ Generate</button>
+      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80 transition cursor-pointer">📊 Dashboard</button>
+      <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-kmViolet text-white violet-glow cursor-pointer">⚡ Generate</button>
       <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80 transition cursor-pointer">🕒 History</button>
       <button id="menu-nav-kelo" onclick="gantiLayarNav('kelola-akun')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-kmTextSecondary hover:text-kmViolet hover:bg-slate-100/80 transition cursor-pointer">🔑 Akun</button>
     </div>
@@ -688,7 +686,7 @@
 
   <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
     
-    <div id="layar-dashboard" class="space-y-6">
+    <div id="layar-dashboard" style="display: none;" class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-xl sm:text-2xl font-black text-kmTextPrimary">Overview</h2>
@@ -767,7 +765,7 @@
       </div>
     </div>
 
-    <div id="layar-generate" style="display: none;" class="space-y-6">
+    <div id="layar-generate" class="space-y-6">
       <div>
         <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

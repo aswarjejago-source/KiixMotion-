@@ -69,36 +69,19 @@
       if (layar === 'kelola-akun') renderListAkunDiKelola();
     }
 
-    async function cekSaldoOnline(apiKey) {
-      var targetUrl = "https://www.runninghub.ai/task/openapi/account";
-      var proxies = [
-        "https://corsproxy.io/?url=" + encodeURIComponent(targetUrl),
-        "https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl)
-      ];
-
-      for (var i = 0; i < proxies.length; i++) {
-        try {
-          var res = await fetch(proxies[i], {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: apiKey })
-          });
-          var hasil = await res.json();
-          if (hasil && hasil.data) {
-            var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
-            if (k !== undefined && k !== null) return Number(k);
-          }
-        } catch (e) {}
-      }
-      return null;
-    }
-
+    // FUNGSI BARU: Nembak langsung ke Vercel Backend kita sendiri
     async function segarkanSaldoRunningHub(akun, apiKey) {
-      var koinBaru = await cekSaldoOnline(apiKey);
-      if (koinBaru !== null && !isNaN(koinBaru)) {
-        akun.koin = koinBaru;
-        simpanStorage(); updateStatistikDashboard(); sinkronkanDropdownAkunGenerate();
-      }
+      try {
+        var res = await fetch('/api/saldo?apiKey=' + encodeURIComponent(apiKey));
+        var hasil = await res.json();
+        if (hasil && hasil.data) {
+          var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
+          if (k !== undefined && k !== null) {
+            akun.koin = Number(k);
+            simpanStorage(); updateStatistikDashboard(); sinkronkanDropdownAkunGenerate();
+          }
+        }
+      } catch (err) { console.warn("Gagal segarkan saldo via Vercel:", err); }
     }
 
     function updateStatistikDashboard() {
@@ -424,6 +407,7 @@
     }
     function tutupModalFormKey() { var modal = document.getElementById('modal-popup-key'); if (modal) modal.style.display = 'none'; }
 
+    // FUNGSI BARU: Tambah akun lewat Vercel Backend kita
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
@@ -439,8 +423,18 @@
       if (btnSimpan) { btnSimpan.innerText = 'Memeriksa Koin...'; btnSimpan.disabled = true; }
 
       if (tabAkunAktif === 'runninghub') {
-        var cekKoin = await cekSaldoOnline(valKey);
-        saldoDidapat = (cekKoin !== null && !isNaN(cekKoin)) ? cekKoin : 0;
+        try {
+          var res = await fetch('/api/saldo?apiKey=' + encodeURIComponent(valKey));
+          var hasil = await res.json();
+          if (hasil && hasil.data) {
+            var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
+            if (k !== undefined && k !== null) saldoDidapat = Number(k);
+          } else {
+            console.warn("Gagal baca saldo dari Vercel:", hasil);
+          }
+        } catch (err) {
+          console.error("Koneksi Vercel API Error:", err);
+        }
       } else {
         saldoDidapat = 4;
       }
@@ -531,7 +525,7 @@
           </div>
         </div>
       </div>
-      <div grid class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-kmCard border border-slate-200/80 p-6 rounded-3xl space-y-5 modern-shadow">
           <div class="flex items-center justify-between">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input</h2>

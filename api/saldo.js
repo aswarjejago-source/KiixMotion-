@@ -1,30 +1,32 @@
 module.exports = async (req, res) => {
-  // Langsung kasih izin kalau browser nanya jalur (CORS preflight)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Ambil API key dari web kita
   const apiKey = req.query.apiKey || (req.body && req.body.apiKey);
-  
   if (!apiKey) {
     return res.status(400).json({ code: 1, msg: "API Key kosong" });
   }
 
   try {
-    // Mesin Vercel nembak ke server RunningHub (gak bakal diblokir browser)
-    const response = await fetch("https://www.runninghub.ai/task/openapi/account", {
+    // INI ALAMAT BARU YANG RESMI DARI RUNNINGHUB
+    const respon = await fetch("https://www.runninghub.ai/uc/openapi/accountStatus", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + apiKey 
+        "Authorization": "Bearer " + apiKey
       },
-      body: JSON.stringify({ apiKey: apiKey })
+      // RunningHub butuh format kosong kalau gak ada data yang dikirim selain API Key
+      body: JSON.stringify({}) 
     });
     
-    const data = await response.json();
+    const data = await respon.json();
     return res.status(200).json(data);
-  } catch (error) {
-    return res.status(500).json({ code: 1, msg: error.message });
+  } catch (err) {
+    return res.status(500).json({ code: 1, msg: err.message });
   }
 };

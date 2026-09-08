@@ -58,15 +58,13 @@
 
   <script>
     var akunRunningHub = [], akunRoboneo = [], riwayatGenerateList = [];
-    var currentView = 'landing'; // 'landing', 'auth', 'workbench'
-    var authMode = 'login'; 
+    var currentView = 'workbench'; // Langsung ke workbench agar fungsional
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
     var RUNNINGHUB_WORKFLOW_ID = "2095991824610615297";
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
-    var userReferralCode = "KIIX-VIP" + Math.floor(100 + Math.random() * 900);
     var urlBahanFoto = null, urlBahanVideo = null;
-    var currentUserEmail = null, isUserVip = false;
+    var currentUserEmail = "aswar@kiixmotion.com";
     var pendingKonfirmasiFn = null;
 
     function muatStorage() {
@@ -74,16 +72,10 @@
         var sRH = localStorage.getItem('km_rh_data');
         var sRB = localStorage.getItem('km_rb_data');
         var sHist = localStorage.getItem('km_hist_data');
-        var sRef = localStorage.getItem('km_my_ref_code');
-        var sEmail = localStorage.getItem('km_current_email');
-        var sVip = localStorage.getItem('km_is_vip');
         
         if (sRH) akunRunningHub = JSON.parse(sRH);
         if (sRB) akunRoboneo = JSON.parse(sRB);
         if (sHist) riwayatGenerateList = JSON.parse(sHist);
-        if (sRef) userReferralCode = sRef;
-        if (sEmail) { currentUserEmail = sEmail; currentView = 'workbench'; }
-        if (sVip === 'true') isUserVip = true;
       } catch (e) {
         console.error("Gagal muat penyimpanan:", e);
       }
@@ -97,8 +89,6 @@
         localStorage.setItem('km_rh_data', JSON.stringify(akunRunningHub));
         localStorage.setItem('km_rb_data', JSON.stringify(akunRoboneo));
         localStorage.setItem('km_hist_data', JSON.stringify(riwayatGenerateList));
-        if (currentUserEmail) localStorage.setItem('km_current_email', currentUserEmail);
-        localStorage.setItem('km_is_vip', isUserVip ? 'true' : 'false');
       } catch (e) {
         console.error("Gagal simpan penyimpanan:", e);
       }
@@ -122,83 +112,16 @@
     }
 
     function aturTampilanHalamanUtama() {
-      var vLanding = document.getElementById('view-landing');
-      var vAuth = document.getElementById('view-auth');
       var vWorkbench = document.getElementById('view-workbench');
       var navHeader = document.getElementById('main-header-nav');
-
-      if (currentView === 'landing') {
-        if (vLanding) vLanding.style.display = 'block';
-        if (vAuth) vAuth.style.display = 'none';
-        if (vWorkbench) vWorkbench.style.display = 'none';
-        if (navHeader) navHeader.style.display = 'flex';
-      } else if (currentView === 'auth') {
-        if (vLanding) vLanding.style.display = 'none';
-        if (vAuth) vAuth.style.display = 'flex';
-        if (vWorkbench) vWorkbench.style.display = 'none';
-        if (navHeader) navHeader.style.display = 'none';
-      } else if (currentView === 'workbench') {
-        if (vLanding) vLanding.style.display = 'none';
-        if (vAuth) vAuth.style.display = 'none';
-        if (vWorkbench) vWorkbench.style.display = 'block';
-        if (navHeader) navHeader.style.display = 'flex';
-        gantiLayarNav(navLayarAktif);
-      }
+      if (vWorkbench) vWorkbench.style.display = 'block';
+      if (navHeader) navHeader.style.display = 'flex';
+      gantiLayarNav(navLayarAktif);
     }
 
     function switchView(viewName) {
       currentView = viewName;
-      aturTampilanHalamanUtama();
       window.scrollTo(0, 0);
-    }
-
-    function setAuthMode(mode) {
-      authMode = mode;
-      var btnM = document.getElementById('tab-auth-login');
-      var btnR = document.getElementById('tab-auth-reg');
-      var btnSubmit = document.getElementById('btn-auth-submit');
-      var titleAuth = document.getElementById('title-auth-mode');
-      
-      if (mode === 'login') {
-        if (btnM) btnM.className = "flex-1 py-2 rounded-xl bg-white text-kmViolet font-bold shadow-sm text-xs";
-        if (btnR) btnR.className = "flex-1 py-2 rounded-xl text-slate-500 font-semibold text-xs";
-        if (btnSubmit) btnSubmit.innerText = "Masuk ke Studio";
-        if (titleAuth) titleAuth.innerText = "Masuk ke Akun Anda";
-      } else {
-        if (btnR) btnR.className = "flex-1 py-2 rounded-xl bg-white text-kmViolet font-bold shadow-sm text-xs";
-        if (btnM) btnM.className = "flex-1 py-2 rounded-xl text-slate-500 font-semibold text-xs";
-        if (btnSubmit) btnSubmit.innerText = "Daftar Akun Baru";
-        if (titleAuth) titleAuth.innerText = "Buat Akun Kreator Baru";
-      }
-    }
-
-    function prosesAutentikasiEmail(e) {
-      if (e) e.preventDefault();
-      var inpEmail = document.getElementById('in-auth-email');
-      var emailVal = inpEmail ? inpEmail.value.trim() : "";
-      
-      if (!emailVal || !emailVal.includes('@')) {
-        return tampilkanNotif('Masukkan alamat email yang valid!', 'error');
-      }
-
-      currentUserEmail = emailVal;
-      simpanStorage();
-      tampilkanNotif('Berhasil masuk sebagai ' + emailVal, 'sukses');
-      switchView('workbench');
-    }
-
-    function prosesCheckoutPakasir() {
-      if (!currentUserEmail) {
-        switchView('auth');
-        return tampilkanNotif('Silakan login terlebih dahulu untuk berlangganan!', 'info');
-      }
-      tampilkanNotif('Mengarahkan ke pembayaran Pakasir...', 'sukses');
-      setTimeout(function() {
-        isUserVip = true;
-        simpanStorage();
-        tampilkanNotif('✓ Pembayaran sukses! Status VIP 30 Hari Aktif.', 'sukses');
-        switchView('workbench');
-      }, 1500);
     }
 
     function mintaKonfirmasi(pesan, callbackYa) {
@@ -253,10 +176,10 @@
         if (el) el.innerText = val;
       };
       setTxt('dash-rh-total-koin', totalRhKoin);
-      setTxt('dash-rh-total-akun', akunRunningHub.length + "/" + akunRunningHub.length);
+      setTxt('dash-rh-total-akun', akunRunningHub.length);
       setTxt('dash-rh-max-koin', maxRhKoin);
       setTxt('dash-rb-total-carrots', totalRbCarrots);
-      setTxt('dash-rb-total-akun', akunRoboneo.length + "/" + akunRoboneo.length);
+      setTxt('dash-rb-total-akun', akunRoboneo.length);
       setTxt('dash-rb-max-carrots', maxRbCarrots);
       setTxt('dash-stat-video-selesai', riwayatGenerateList.filter(function(r) { return r.selesai; }).length);
       
@@ -308,21 +231,12 @@
       sinkronkanDropdownAkunGenerate();
     }
 
-    function switchBahanInput(mode) {
-      var bu = document.getElementById('tab-u'), bt = document.getElementById('tab-t');
-      var vu = document.getElementById('v-mode-upload'), vt = document.getElementById('v-mode-tiktok');
-      if (vu) vu.style.display = (mode === 'u') ? "grid" : "none";
-      if (vt) vt.style.display = (mode === 'u') ? "none" : "block";
-      if (bu) bu.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold " + ((mode === 'u') ? "bg-white text-kmViolet shadow-sm" : "text-slate-500 hover:text-slate-800") + " cursor-pointer";
-      if (bt) bt.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold " + ((mode === 't') ? "bg-white text-kmViolet shadow-sm" : "text-slate-500 hover:text-slate-800") + " cursor-pointer";
-    }
-
     function unggahBahanLangsung(input, tipe) {
       if (!input.files || !input.files[0]) return;
       var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
       if (engineProvider !== 'kiix' && targetAkun.length === 0) {
         input.value = "";
-        return tampilkanNotif('Hubungkan akun RunningHub di menu Akun!', 'error');
+        return tampilkanNotif('Hubungkan akun RunningHub di menu Kelola Akun!', 'error');
       }
       var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
       var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
@@ -356,7 +270,7 @@
             if (typeof json.data === 'string') {
               serverFile = json.data;
             } else if (typeof json.data === 'object') {
-              serverFile = json.data.fileName || json.data.fileUrl || json.data.path;
+              serverFile = json.data.fileName || json.data.fileUrl || json.data.path || json.data.url;
             }
           }
           
@@ -451,7 +365,7 @@
     async function mulaiProsesGenerate() {
       var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
       if (engineProvider !== 'kiix' && targetAkun.length === 0) {
-        return tampilkanNotif('Hubungkan akun terlebih dahulu!', 'error');
+        return tampilkanNotif('Hubungkan akun di menu Kelola Akun terlebih dahulu!', 'error');
       }
       var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
       var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
@@ -567,11 +481,8 @@
     function gantiTabAkunProvider(prov) {
       tabAkunAktif = prov;
       var tRb = document.getElementById('tab-pilih-roboneo'), tRh = document.getElementById('tab-pilih-rh');
-      var pRh = document.getElementById('panduan-rh-box'), pRb = document.getElementById('panduan-rb-box');
       if (tRh) tRh.className = (prov === 'runninghub') ? "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow" : "px-5 py-2.5 rounded-xl bg-white border border-kmBorder text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
       if (tRb) tRb.className = (prov === 'roboneo') ? "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow" : "px-5 py-2.5 rounded-xl bg-white border border-kmBorder text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
-      if (pRh) pRh.style.display = (prov === 'runninghub') ? 'block' : 'none';
-      if (pRb) pRb.style.display = (prov === 'roboneo') ? 'block' : 'none';
       if (isModePilih) toggleModePilihHapus();
       renderListAkunDiKelola();
     }
@@ -693,7 +604,7 @@
           }
         } catch (err) {
           if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-          return tampilkanNotif('Gagal terhubung ke Vercel: ' + err.message, 'error');
+          return tampilkanNotif('Gagal terhubung ke server: ' + err.message, 'error');
         }
       } else {
         saldoDidapat = 4;
@@ -723,7 +634,7 @@
 
   <header id="main-header-nav" class="border-b border-kmBorder bg-kmBg/90 backdrop-blur-md px-4 sm:px-8 py-3.5 flex flex-wrap items-center justify-between sticky top-0 z-40 gap-3">
     <div class="flex items-center gap-3">
-      <div onclick="switchView('landing')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
+      <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
         <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="14" fill="#F3EEFF"/><path d="M14 10L22 22L14 34V10Z" fill="#7C3AED"/><path d="M22 22L30 10H22V22Z" fill="#A78BFA"/><path d="M22 22L30 34H22V22Z" fill="#6D28D9"/></svg>
       </div>
       <div>
@@ -735,128 +646,15 @@
       </div>
     </div>
     
-    <div id="nav-links-right" class="flex items-center gap-2">
-      <button onclick="switchView('landing')" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-kmTextSecondary hover:text-kmViolet transition cursor-pointer">Beranda</button>
-      <button onclick="switchView('auth')" class="px-4 py-2 rounded-xl text-xs font-bold bg-white border border-kmBorder text-kmTextPrimary hover:border-kmViolet transition cursor-pointer">Masuk</button>
-      <button onclick="switchView('auth'); setAuthMode('register');" class="px-4 py-2 rounded-xl text-xs font-bold bg-kmViolet text-white violet-glow transition cursor-pointer">Daftar Gratis</button>
-    </div>
+    <nav class="flex items-center gap-1 sm:gap-2 bg-white/60 p-1 rounded-2xl border border-kmBorder">
+      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer">Dashboard</button>
+      <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer">Generate</button>
+      <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer">History</button>
+      <button id="menu-nav-kelo" onclick="gantiLayarNav('kelola-akun')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer">Kelola Akun</button>
+    </nav>
   </header>
 
-  <div id="view-landing" style="display: none;" class="space-y-20 pb-20">
-    <section class="max-w-5xl mx-auto px-4 pt-16 sm:pt-24 text-center space-y-6">
-      <div class="inline-flex items-center gap-2 bg-violet-50 border border-violet-200 px-4 py-1.5 rounded-full text-xs font-bold text-kmViolet">
-        <span>⚡ AI VIDEO & IMAGE CREATOR PLATFORM</span>
-      </div>
-      <h1 class="text-3xl sm:text-6xl font-black tracking-tight text-kmTextPrimary max-w-3xl mx-auto leading-tight">
-        Semua kreasi AI kamu, <span class="text-kmViolet">satu dashboard.</span>
-      </h1>
-      <p class="text-sm sm:text-base text-kmTextSecondary max-w-xl mx-auto leading-relaxed">
-        Generate video motion control, upscale, dan multi-akun otomatis. Jauh lebih cepat dan efisien dibanding manual.
-      </p>
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
-        <button onclick="switchView('auth'); setAuthMode('register');" class="w-full sm:w-auto px-8 py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm rounded-2xl violet-glow transition cursor-pointer">
-          Mulai Gratis Sekarang →
-        </button>
-        <button onclick="switchView('auth')" class="w-full sm:w-auto px-8 py-4 bg-white border border-kmBorder hover:border-violet-300 text-kmTextPrimary font-bold text-sm rounded-2xl modern-shadow transition cursor-pointer">
-          Masuk Akun
-        </button>
-      </div>
-      <div class="flex items-center justify-center gap-6 text-xs text-kmTextSecondary pt-2">
-        <span>✓ Gratis selamanya</span>
-        <span>✓ Tanpa kartu kredit</span>
-        <span>✓ Setup instan 1 menit</span>
-      </div>
-    </section>
-
-    <section class="max-w-4xl mx-auto px-4">
-      <div class="bg-white border border-kmBorder rounded-3xl p-6 sm:p-8 modern-shadow grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-        <div><div class="text-2xl sm:text-3xl font-black text-kmViolet font-mono">3</div><div class="text-xs text-kmTextSecondary font-medium mt-1">Provider AI</div></div>
-        <div><div class="text-2xl sm:text-3xl font-black text-kmTextPrimary font-mono">10+</div><div class="text-xs text-kmTextSecondary font-medium mt-1">Model & Engine</div></div>
-        <div><div class="text-2xl sm:text-3xl font-black text-kmViolet font-mono">4K</div><div class="text-xs text-kmTextSecondary font-medium mt-1">Max Resolusi</div></div>
-        <div><div class="text-2xl sm:text-3xl font-black text-amber-600 font-mono">24/7</div><div class="text-xs text-kmTextSecondary font-medium mt-1">Background Processing</div></div>
-      </div>
-    </section>
-
-    <section class="max-w-4xl mx-auto px-4 space-y-10">
-      <div class="text-center space-y-2">
-        <h2 class="text-2xl sm:text-3xl font-black text-kmTextPrimary">Simpel. Transparan.</h2>
-        <p class="text-sm text-kmTextSecondary">Mulai gratis atau upgrade untuk fitur tanpa batas.</p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white border border-kmBorder p-8 rounded-3xl modern-shadow space-y-6 flex flex-col justify-between">
-          <div class="space-y-4">
-            <span class="text-xs uppercase font-bold tracking-widest bg-slate-100 text-slate-700 px-3 py-1 rounded-full">GRATIS</span>
-            <div>
-              <span class="text-3xl sm:text-4xl font-black text-kmTextPrimary">Rp 0</span>
-              <span class="text-xs text-kmTextSecondary">/tanpa langganan</span>
-            </div>
-            <p class="text-xs sm:text-sm text-kmTextSecondary leading-relaxed">Generate langsung menggunakan sistem server, bayar per video pakai kredit.</p>
-            <ul class="space-y-2.5 text-xs sm:text-sm text-kmTextSecondary">
-              <li class="flex items-center gap-2"><span>✓</span> Generate Motion Control Server</li>
-              <li class="flex items-center gap-2"><span>✓</span> Bayar per video pakai kredit</li>
-              <li class="flex items-center gap-2"><span>✓</span> Tanpa perlu akun penyedia</li>
-            </ul>
-          </div>
-          <button onclick="switchView('auth'); setAuthMode('register');" class="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm rounded-2xl transition cursor-pointer">
-            Daftar Gratis
-          </button>
-        </div>
-
-        <div class="bg-white border-2 border-kmViolet p-8 rounded-3xl modern-shadow space-y-6 flex flex-col justify-between relative overflow-hidden ring-4 ring-violet-50">
-          <div class="absolute top-4 right-4 bg-kmViolet text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">Paling Laris</div>
-          <div class="space-y-4">
-            <span class="text-xs uppercase font-bold tracking-widest bg-violet-100 text-kmViolet px-3 py-1 rounded-full">PRO VIP</span>
-            <div>
-              <span class="text-3xl sm:text-4xl font-black text-kmTextPrimary">Rp 50.000</span>
-              <span class="text-xs text-kmTextSecondary">/30 hari</span>
-            </div>
-            <p class="text-xs sm:text-sm text-kmTextSecondary leading-relaxed">Akses penuh untuk kreator profesional & affiliator TikTok.</p>
-            <ul class="space-y-2.5 text-xs sm:text-sm text-kmTextPrimary font-medium">
-              <li class="flex items-center gap-2 text-kmViolet"><span>✓</span> Unlimited Akses Studio & Workbench</li>
-              <li class="flex items-center gap-2"><span>✓</span> Pool akun sendiri (RunningHub & Roboneo)</li>
-              <li class="flex items-center gap-2"><span>✓</span> Prioritas antrean server & background process</li>
-              <li class="flex items-center gap-2"><span>✓</span> Integrasi instan via Pakasir Gateway</li>
-            </ul>
-          </div>
-          <button onclick="prosesCheckoutPakasir()" class="w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm rounded-2xl violet-glow transition cursor-pointer">
-            Ambil Akses VIP - Rp 50.000 →
-          </button>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <div id="view-auth" style="display: none;" class="min-h-[85vh] flex items-center justify-center p-4">
-    <div class="bg-white border border-kmBorder max-w-md w-full p-8 rounded-3xl modern-shadow space-y-6">
-      <div class="text-center space-y-2">
-        <div class="w-12 h-12 bg-violet-100 text-kmViolet rounded-2xl flex items-center justify-center mx-auto text-xl font-bold">🔐</div>
-        <h2 id="title-auth-mode" class="text-xl font-black text-kmTextPrimary">Masuk ke Akun Anda</h2>
-        <p class="text-xs text-kmTextSecondary">Satu akun untuk seluruh dashboard KiixMotion Studio.</p>
-      </div>
-
-      <div class="flex bg-slate-100 p-1 rounded-2xl border border-kmBorder">
-        <button id="tab-auth-login" onclick="setAuthMode('login')" class="flex-1 py-2 rounded-xl bg-white text-kmViolet font-bold shadow-sm text-xs">Masuk</button>
-        <button id="tab-auth-reg" onclick="setAuthMode('register')" class="flex-1 py-2 rounded-xl text-slate-500 font-semibold text-xs">Daftar</button>
-      </div>
-
-      <form onsubmit="prosesAutentikasiEmail(event)" class="space-y-4 pt-2">
-        <div class="space-y-1.5">
-          <label class="text-xs font-bold uppercase tracking-wider text-kmTextSecondary">Alamat Email</label>
-          <input id="in-auth-email" type="email" placeholder="nama@email.com" required class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm text-kmTextPrimary focus:outline-none focus:border-kmViolet focus:bg-white" />
-        </div>
-        <button id="btn-auth-submit" type="submit" class="w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm rounded-2xl violet-glow transition cursor-pointer">
-          Masuk ke Studio
-        </button>
-      </form>
-
-      <div class="text-center pt-2">
-        <button onclick="switchView('landing')" class="text-xs font-bold text-kmTextSecondary hover:text-kmViolet">← Kembali ke Beranda</button>
-      </div>
-    </div>
-  </div>
-
-  <main id="view-workbench" style="display: none;" class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
+  <main id="view-workbench" class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
     
     <div id="layar-dashboard" style="display: none;" class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -896,7 +694,7 @@
           </div>
           <div class="grid grid-cols-3 gap-2 border-y border-kmBorder py-3 text-center">
             <div><div id="dash-rh-total-koin" class="text-xl font-black text-kmViolet font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Total Kredit</div></div>
-            <div><div id="dash-rh-total-akun" class="text-xl font-bold text-slate-800 font-mono">0/0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div></div>
+            <div><div id="dash-rh-total-akun" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div></div>
             <div><div id="dash-rh-max-koin" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Terbesar</div></div>
           </div>
         </div>
@@ -911,7 +709,7 @@
           </div>
           <div class="grid grid-cols-3 gap-2 border-y border-kmBorder py-3 text-center">
             <div><div id="dash-rb-total-carrots" class="text-xl font-black text-amber-600 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Total Carrots</div></div>
-            <div><div id="dash-rb-total-akun" class="text-xl font-bold text-slate-800 font-mono">0/0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div></div>
+            <div><div id="dash-rb-total-akun" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div></div>
             <div><div id="dash-rb-max-carrots" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Terbesar</div></div>
           </div>
         </div>
@@ -958,7 +756,7 @@
               <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
             </h2>
             <div class="flex gap-1 bg-slate-100 p-1 rounded-xl border border-kmBorder">
-              <button id="tab-u" onclick="switchBahanInput('u')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm cursor-pointer">File Upload</button>
+              <span class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm">File Upload</span>
             </div>
           </div>
 

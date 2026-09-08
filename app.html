@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KiixMotion Studio (v2.1) — AI Video Platform</title>
+  <title>KiixMotion Studio (v2.2) — API v2 Integrated</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
   <script src="https://cdn.tailwindcss.com"></script>
   
   <script>
@@ -44,8 +43,8 @@
     var akunRunningHub = [], akunRoboneo = [], riwayatGenerateList = [];
     var currentView = 'workbench', navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    // WORKFLOW ID & NODE ID SESUAI SCREENSHOT
-    var RUNNINGHUB_WORKFLOW_ID = "2097258183463436289"; 
+    // WORKFLOW ID FIX (Sesuai JSON dan Log Sukses)
+    var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745"; 
     
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var urlBahanFoto = null, urlBahanVideo = null;
@@ -138,8 +137,6 @@
       if (emailDisp && currentUserEmail) emailDisp.innerText = currentUserEmail;
     }
 
-    function bukaGrupTelegram() { window.open(linkTelegramResmi, '_blank'); }
-
     function setProviderUtama(p) {
       engineProvider = p;
       var provs = ['runninghub', 'roboneo', 'kiix'];
@@ -150,14 +147,8 @@
       });
       var setTxt = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
       var dropWrap = document.getElementById('box-wrap-dropdown-akun');
-      if (p === 'roboneo') {
-        setTxt('t-engine-title', "KLING 2.6 MOTION CONTROL"); setTxt('t-engine-sub', "(ROBONEO)"); setTxt('t-engine-cost', "≈ 4 carrots"); setTxt('t-engine-total', "≈ 4 carrots");
-        if (dropWrap) dropWrap.style.display = 'block';
-      } else if (p === 'kiix') {
-        setTxt('t-engine-title', "KIIXMOTION DIRECT CLOUD"); setTxt('t-engine-sub', "(DIRECT ENGINE)"); setTxt('t-engine-cost', "1 Kredit VIP"); setTxt('t-engine-total', "1 kredit VIP");
-        if (dropWrap) dropWrap.style.display = 'none';
-      } else {
-        setTxt('t-engine-title', "WAN MOTION CONTROL 1080HD"); setTxt('t-engine-sub', "(RUNNINGHUB)"); setTxt('t-engine-cost', "≈ 478 kredit"); setTxt('t-engine-total', "≈ 478 kredit");
+      if (p === 'runninghub') {
+        setTxt('t-engine-title', "WAN MOTION CONTROL 1080HD"); setTxt('t-engine-sub', "(RUNNINGHUB)"); setTxt('t-engine-cost', "≈ 360 koin"); setTxt('t-engine-total', "≈ 360 koin");
         if (dropWrap) dropWrap.style.display = 'block';
       }
       sinkronkanDropdownAkunGenerate();
@@ -165,8 +156,8 @@
 
     function unggahBahanLangsung(input, tipe) {
       if (!input.files || !input.files[0]) return;
-      var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
-      if (engineProvider !== 'kiix' && targetAkun.length === 0) {
+      var targetAkun = akunRunningHub;
+      if (targetAkun.length === 0) {
         input.value = ""; return tampilkanNotif('Hubungkan akun di menu Kelola Akun!', 'error');
       }
       var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
@@ -179,11 +170,10 @@
 
       var formData = new FormData();
       formData.append("file", file);
-      formData.append("apiKey", akunAktif.key);
-      formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
-
+      
       var xhr = new XMLHttpRequest();
-      xhr.open("POST", "https://www.runninghub.ai/task/openapi/upload");
+      // MENGGUNAKAN API V2 UNTUK UPLOAD
+      xhr.open("POST", "https://www.runninghub.ai/openapi/v2/media/upload/binary");
       xhr.setRequestHeader("Authorization", "Bearer " + akunAktif.key);
       
       xhr.upload.onprogress = function(e) {
@@ -198,10 +188,9 @@
           var json = JSON.parse(xhr.responseText);
           var serverFile = null;
           
-          if (json && json.data) {
-             // PARSER DIPERBAIKI (Tangkep tipe String)
-             if (typeof json.data === 'string') serverFile = json.data;
-             else serverFile = json.data.fileName || json.data.fileUrl || json.data.url;
+          if (json && json.code === 0 && json.data) {
+             // API v2 mengembalikan download_url atau fileName
+             serverFile = json.data.download_url || json.data.fileName;
           }
           
           if (serverFile) {
@@ -209,7 +198,7 @@
             if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah</span>';
             tampilkanNotif('File berhasil diunggah!', 'sukses');
           } else {
-            throw new Error((json && json.msg) || "Format error dari server.");
+            throw new Error((json && json.message) || "Format error dari server.");
           }
         } catch (err) {
           if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal</span>';
@@ -221,7 +210,7 @@
 
     function sinkronkanDropdownAkunGenerate() {
       var sel = document.getElementById('sel-dropdown-akun'), badge = document.getElementById('badge-total-saldo-gen');
-      var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
+      var targetAkun = akunRunningHub;
       if (!sel) return;
       sel.innerHTML = '';
       if (targetAkun.length === 0) {
@@ -232,10 +221,10 @@
         var total = 0;
         targetAkun.forEach(function(a, idx) {
           var koinVal = Number(a.koin) || 0; total += koinVal;
-          var o = document.createElement('option'); o.value = idx; o.innerText = a.nama + " (" + koinVal + (engineProvider === 'roboneo' ? " carrots)" : " koin)"); sel.appendChild(o);
+          var o = document.createElement('option'); o.value = idx; o.innerText = a.nama + " (" + koinVal + " koin)"; sel.appendChild(o);
         });
         if (badge) {
-          badge.innerText = total + (engineProvider === 'roboneo' ? " carrots" : " koin");
+          badge.innerText = total + " koin";
           badge.className = "text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
         }
       }
@@ -246,72 +235,86 @@
 
       var cekInterval = setInterval(async function() {
         try {
+          // HIT KE JEMBATAN CCTV KITA YANG BARU (V2)
           var resStatus = await fetch('/api/cctv?taskId=' + tugas.id + '&apiKey=' + encodeURIComponent(apiKey));
           var jsonStatus = await resStatus.json();
 
-          // SIMULASI PROGRESS BAR BIAR GA KOSONG (Naik 3-12% tiap 8 detik)
-          if (tugas.progress < 95) {
-             tugas.progress += Math.floor(Math.random() * 10) + 3; 
-             if(tugas.progress > 98) tugas.progress = 98;
-          }
+          // DARI KITAB SUCI: Struktur JSON sekarang ada di root (jsonStatus.status)
+          var st = jsonStatus.status ? jsonStatus.status.toUpperCase() : "";
 
-          // PEMBUNUH BUG (Nangkap error JSON asli lu)
-          if (jsonStatus && (jsonStatus.errorMessage || jsonStatus.failedReason || jsonStatus.error)) {
-            clearInterval(cekInterval);
-            var pesanAsli = "Gagal Render.";
-            
-            if (jsonStatus.failedReason && jsonStatus.failedReason.exception_message) {
-               pesanAsli = jsonStatus.failedReason.exception_message;
-               var nodeP = jsonStatus.failedReason.node_id || "?";
-               tugas.status = "Gagal (Node " + nodeP + "): " + pesanAsli.substring(0, 30);
-            } else if (jsonStatus.errorMessage) {
-               tugas.status = "Gagal: " + jsonStatus.errorMessage.substring(0, 30);
-            }
+          // JIKA STATUS FAILED/ERROR DARI SERVER
+          if (st === "FAILED" || st === "ERROR" || st.includes("FAIL")) {
+             clearInterval(cekInterval);
+             var pesanAsli = "Gagal di GPU Server.";
+             
+             if (jsonStatus.failedReason && jsonStatus.failedReason.exception_message) {
+                 pesanAsli = jsonStatus.failedReason.exception_message;
+                 var nodeP = jsonStatus.failedReason.node_id || "?";
+                 tugas.status = "Gagal (Node " + nodeP + "): " + pesanAsli.substring(0, 30);
+             } else if (jsonStatus.errorMessage) {
+                 tugas.status = "Gagal: " + jsonStatus.errorMessage.substring(0, 30);
+             } else {
+                 tugas.status = "Gagal Render Ditolak Server";
+             }
 
-            tugas.selesai = true;
-            tugas.progress = null; // Matiin persentase
-            simpanStorage();
-            if (navLayarAktif === 'history') renderLayarHistory();
-            tampilkanNotif('Render Ditolak GPU!', 'error');
-            return;
+             tugas.selesai = true;
+             tugas.progress = null; // Matiin persentase
+             simpanStorage();
+             if (navLayarAktif === 'history') renderLayarHistory();
+             tampilkanNotif('Render Gagal!', 'error');
+             return;
           }
           
-          // PENGECEKAN NORMAL KALAU LANCAR
-          if (jsonStatus && jsonStatus.data) {
-            var st = jsonStatus.data.taskStatus ? jsonStatus.data.taskStatus.toUpperCase() : "";
-            
-            if (st === "SUCCESS") {
+          // JIKA STATUS SUCCESS
+          else if (st === "SUCCESS") {
               clearInterval(cekInterval);
               tugas.status = "Selesai";
               tugas.selesai = true;
               tugas.progress = 100;
-              tugas.videoUrl = jsonStatus.data.fileUrl || (jsonStatus.data.outputs && jsonStatus.data.outputs[0] ? jsonStatus.data.outputs[0].fileUrl : null);
+              // MENGAMBIL LINK URL SESUAI ATURAN V2
+              if(jsonStatus.results && jsonStatus.results.length > 0) {
+                  tugas.videoUrl = jsonStatus.results[0].url;
+              }
               simpanStorage();
               if (navLayarAktif === 'history') renderLayarHistory();
-              tampilkanNotif('Render sukses!', 'sukses');
-            } 
-            else if (st === "FAILED" || st === "ERROR" || st.includes("FAIL")) {
+              tampilkanNotif('Render sukses 100%!', 'sukses');
+          }
+          
+          // JIKA STATUS ANTRIAN (QUEUED)
+          else if (st === "QUEUED") {
+              tugas.status = "Mengantre di GPU (Sabar ya...)";
+              simpanStorage();
+              if (navLayarAktif === 'history') renderLayarHistory();
+          }
+
+          // JIKA STATUS LAGI JALAN RENDER (RUNNING)
+          else if (st === "RUNNING") {
+              if (tugas.progress < 95) {
+                 tugas.progress += Math.floor(Math.random() * 8) + 2; 
+                 if(tugas.progress > 98) tugas.progress = 98;
+              }
+              tugas.status = "Sedang Render di GPU (" + tugas.progress + "%)";
+              simpanStorage();
+              if (navLayarAktif === 'history') renderLayarHistory();
+          }
+
+          // FALLBACK JIKA ADA ERROR JSON LAINNYA
+          else if (jsonStatus && jsonStatus.code && jsonStatus.code !== 0) {
               clearInterval(cekInterval);
-              var errMsg = jsonStatus.data.errorMsg || jsonStatus.data.message || "GPU Crash";
-              tugas.status = "Gagal: " + errMsg.substring(0, 30);
+              tugas.status = "Gagal API: " + (jsonStatus.msg || "Unknown");
               tugas.selesai = true;
               tugas.progress = null;
               simpanStorage();
               if (navLayarAktif === 'history') renderLayarHistory();
-            } else {
-              // TETAP UPDATE PERSENTASE DI HISTORY SAAT RUNNING
-              tugas.status = "Sedang Render (" + tugas.progress + "%)";
-              simpanStorage();
-              if (navLayarAktif === 'history') renderLayarHistory();
-            }
           }
+
         } catch (err) { console.warn("CCTV polling pending:", err); }
       }, 8000);
     }
 
     async function mulaiProsesGenerate() {
-      var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
-      if (engineProvider !== 'kiix' && targetAkun.length === 0) return tampilkanNotif('Hubungkan akun terlebih dahulu!', 'error');
+      var targetAkun = akunRunningHub;
+      if (targetAkun.length === 0) return tampilkanNotif('Hubungkan akun terlebih dahulu!', 'error');
       
       var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
       var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
@@ -321,53 +324,46 @@
       var btn = document.getElementById('btn-submit-generate');
       if (btn) { btn.disabled = true; btn.innerText = "⚡ MENGIRIM KE GPU..."; }
 
-      if (engineProvider === 'runninghub') {
-        try {
-          var promptTxt = document.getElementById('in-prompt-gerak') ? document.getElementById('in-prompt-gerak').value.trim() : "";
-          var promptFinal = promptTxt || "Follow the reference video.";
+      try {
+        // NODE ID FIXED: 30 = Foto, 33 = Video. (Tidak pakai Node 3 lagi)
+        var nodeParams = [
+          { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
+          { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto }
+        ];
 
-          // NODE ID SUDAH DIGANTI SESUAI SCREENSHOT
-          var nodeParams = [
-            { nodeId: "3", fieldName: "text", fieldValue: promptFinal }, 
-            { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }, // VIDEO SEKARANG KE PINTU 33
-            { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto }   // FOTO SEKARANG KE PINTU 30
-          ];
+        var payloadGenerate = {
+          nodeInfoList: nodeParams
+        };
 
-          var payloadGenerate = {
-            workflowId: RUNNINGHUB_WORKFLOW_ID,
-            apiKey: akunAktif.key,
-            nodeInfoList: nodeParams
-          };
-
-          var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
-            body: JSON.stringify(payloadGenerate)
-          });
-          var data = await res.json();
+        // URL ENDPOINT API V2
+        var res = await fetch('https://www.runninghub.ai/openapi/v2/run/workflow/' + RUNNINGHUB_WORKFLOW_ID, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
+          body: JSON.stringify(payloadGenerate)
+        });
+        var data = await res.json();
+        
+        // Di V2, taskId langsung ada di root object
+        if (data && data.taskId) { 
+          tampilkanNotif('Tugas dikirim! ID: ' + data.taskId, 'sukses');
           
-          if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
-            var taskIdAsli = data.data?.taskId || data.taskId; 
-            tampilkanNotif('Tugas dikirim! ID: ' + taskIdAsli, 'sukses');
-            
-            var tugasBaru = {
-              id: taskIdAsli, key: akunAktif.key, model: "Wan Motion", prov: "RunningHub", tgl: "Baru saja", biaya: "≈ 478 kredit",
-              videoUrl: null, status: "Sedang Render (0%)", selesai: false, progress: 0
-            };
-            
-            riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
-            if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-            
-            pantauTaskRunningHub(tugasBaru, akunAktif.key);
-          } else { 
-            var pesanErrorAsli = data.msg || JSON.stringify(data);
-            tampilkanNotif('GAGAL: ' + pesanErrorAsli, 'error');
-            if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } 
-          }
-        } catch (e) { 
-          tampilkanNotif('Koneksi Gagal: ' + e.message, 'error'); 
+          var tugasBaru = {
+            id: data.taskId, key: akunAktif.key, model: "Wan Motion (v2)", prov: "RunningHub", tgl: "Baru saja", biaya: "≈ 360 koin",
+            videoUrl: null, status: "Terkirim ke Server (0%)", selesai: false, progress: 0
+          };
+          
+          riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
+          if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+          
+          pantauTaskRunningHub(tugasBaru, akunAktif.key);
+        } else { 
+          var pesanErrorAsli = data.errorMessage || data.msg || JSON.stringify(data);
+          tampilkanNotif('GAGAL: ' + pesanErrorAsli, 'error');
           if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } 
         }
+      } catch (e) { 
+        tampilkanNotif('Koneksi Gagal: ' + e.message, 'error'); 
+        if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } 
       }
     }
 
@@ -397,9 +393,7 @@
               badgeStatusHTML = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">' + itm.status + '</span>';
            }
         } else {
-           // SHOW PROGRESS BAR PERCENTAGE
            var stText = itm.status;
-           if (itm.progress !== undefined && itm.progress !== null) stText = "⏳ Render GPU... " + itm.progress + "%";
            badgeStatusHTML = '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">' + stText + '</span>';
         }
 
@@ -419,22 +413,21 @@
 
     function gantiTabAkunProvider(prov) {
       tabAkunAktif = prov;
-      var tRb = document.getElementById('tab-pilih-roboneo'), tRh = document.getElementById('tab-pilih-rh');
-      if (tRh) tRh.className = (prov === 'runninghub') ? "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow" : "px-5 py-2.5 rounded-xl bg-white border border-kmBorder text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
-      if (tRb) tRb.className = (prov === 'roboneo') ? "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow" : "px-5 py-2.5 rounded-xl bg-white border border-kmBorder text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold";
+      var tRh = document.getElementById('tab-pilih-rh');
+      if (tRh) tRh.className = "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow";
       if (isModePilih) toggleModePilihHapus();
       renderListAkunDiKelola();
     }
 
     function renderListAkunDiKelola() {
-      var wadah = document.getElementById('wadah-kartu-akun-list'), targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
+      var wadah = document.getElementById('wadah-kartu-akun-list'), targetAkun = akunRunningHub;
       if (!wadah) return;
       wadah.innerHTML = ''; var totalKredit = 0;
       targetAkun.forEach(function(a, i) {
         var koinVal = Number(a.koin) || 0; totalKredit += koinVal;
         var el = document.createElement('div'); el.className = "bg-white border border-kmBorder p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
         el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-sm sm:text-base font-bold text-kmTextPrimary font-mono">' + a.nama + '</span></div>' +
-          '<div class="flex items-center gap-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span><span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + (tabAkunAktif === 'roboneo' ? ' carrots' : ' koin') + '</span><button onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans">Hapus</button></div>';
+          '<div class="flex items-center gap-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span><span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + ' koin</span><button onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans">Hapus</button></div>';
         wadah.appendChild(el);
       });
       var setTxt = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
@@ -443,7 +436,7 @@
     }
 
     function hapusAkunSatu(idx) {
-      var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
+      var targetAkun = akunRunningHub;
       mintaKonfirmasi("Hapus akun ini?", function() { targetAkun.splice(idx, 1); simpanStorage(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate(); });
     }
 
@@ -461,7 +454,7 @@
       var checkedBoxes = document.querySelectorAll('.chk-seleksi-akun:checked');
       if (checkedBoxes.length === 0) return;
       mintaKonfirmasi('Hapus ' + checkedBoxes.length + ' akun?', function() {
-        var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo, toDel = [];
+        var targetAkun = akunRunningHub, toDel = [];
         checkedBoxes.forEach(function(c) { toDel.push(parseInt(c.getAttribute('data-idx'), 10)); });
         toDel.sort(function(a, b) { return b - a; }).forEach(function(idx) { targetAkun.splice(idx, 1); });
         simpanStorage(); toggleModePilihHapus(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
@@ -474,25 +467,23 @@
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key'), valKey = inKey ? inKey.value.trim() : "";
       if (!valKey) return tampilkanNotif('Masukkan API Key!', 'error');
-      var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
+      var targetAkun = akunRunningHub;
       if (targetAkun.find(function(a) { return a.key === valKey; })) return tampilkanNotif("API Key sudah ada!", 'error');
       var btnSimpan = document.getElementById('btn-simpan-key');
       if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan...'; btnSimpan.disabled = true; }
 
       var saldoDidapat = 0;
-      if (tabAkunAktif === 'runninghub') {
-        try {
-          var res = await fetch('/api/saldo?apiKey=' + encodeURIComponent(valKey));
-          var hasil = await res.json();
-          if (hasil && hasil.data) {
-            var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
-            if (k !== undefined && k !== null) saldoDidapat = Number(k);
-          }
-        } catch (err) { }
-      } else { saldoDidapat = 4; }
+      try {
+        var res = await fetch('/api/saldo?apiKey=' + encodeURIComponent(valKey));
+        var hasil = await res.json();
+        if (hasil && hasil.data) {
+          var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
+          if (k !== undefined && k !== null) saldoDidapat = Number(k);
+        }
+      } catch (err) { }
 
       if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-      targetAkun.push({ nama: (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + (targetAkun.length + 1), key: valKey, koin: Number(saldoDidapat) });
+      targetAkun.push({ nama: 'RunningHub #' + (targetAkun.length + 1), key: valKey, koin: Number(saldoDidapat) });
       simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
       tampilkanNotif('Akun terhubung!', 'sukses');
     }
@@ -512,7 +503,7 @@
       <div>
         <div class="flex items-center gap-2">
           <span class="text-base font-black tracking-tight text-kmTextPrimary">KiixMotion</span>
-          <span class="text-[9px] uppercase font-bold tracking-widest bg-violet-100 text-kmViolet px-2 py-0.5 rounded-full border border-violet-200">Studio</span>
+          <span class="text-[9px] uppercase font-bold tracking-widest bg-violet-100 text-kmViolet px-2 py-0.5 rounded-full border border-violet-200">Studio V2.2</span>
         </div>
       </div>
     </div>
@@ -530,16 +521,14 @@
     <!-- DASHBOARD VIEW -->
     <div id="layar-dashboard" style="display: none;" class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 class="text-xl sm:text-2xl font-black text-kmTextPrimary">Overview Studio</h2>
-        </div>
+        <div><h2 class="text-xl sm:text-2xl font-black text-kmTextPrimary">Overview Studio</h2></div>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="bg-white border border-kmBorder p-5 rounded-3xl modern-shadow space-y-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5">
               <div class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs">R</div>
-              <div><h3 class="text-sm font-bold text-kmTextPrimary">RunningHub</h3><p class="text-[11px] text-slate-400">Motion Control</p></div>
+              <div><h3 class="text-sm font-bold text-kmTextPrimary">RunningHub</h3><p class="text-[11px] text-slate-400">API V2 Connected</p></div>
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2 border-y border-kmBorder py-3 text-center">
@@ -555,7 +544,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
           <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
+            <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input (Nodes: 30 & 33)
           </h2>
           <div id="v-mode-upload" class="grid grid-cols-2 gap-4">
             <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
@@ -586,7 +575,7 @@
             </div>
           </div>
           <button id="btn-submit-generate" onclick="mulaiProsesGenerate()" class="w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer">
-            GENERATE VIDEO
+            GENERATE VIDEO (API V2)
           </button>
         </div>
       </div>
@@ -607,7 +596,6 @@
         <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (BYOK)</h2>
         <div class="flex gap-2">
           <button id="tab-pilih-rh" onclick="gantiTabAkunProvider('runninghub')" class="px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow">RunningHub</button>
-          <button id="tab-pilih-roboneo" onclick="gantiTabAkunProvider('roboneo')" class="px-5 py-2.5 rounded-xl bg-white border border-kmBorder text-slate-600 transition cursor-pointer text-sm font-semibold">Roboneo</button>
         </div>
       </div>
 

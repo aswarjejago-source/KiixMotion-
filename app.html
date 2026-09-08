@@ -261,11 +261,13 @@
         try {
           var json = JSON.parse(xhr.responseText);
           var serverFile = null;
-          if (json && json.data) {
+          if (json) {
             if (typeof json.data === 'string') {
               serverFile = json.data;
-            } else if (typeof json.data === 'object') {
+            } else if (json.data && typeof json.data === 'object') {
               serverFile = json.data.fileName || json.data.fileUrl || json.data.path || json.data.url;
+            } else if (json.fileUrl) {
+              serverFile = json.fileUrl;
             }
           }
           

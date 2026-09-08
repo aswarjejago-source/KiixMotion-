@@ -261,23 +261,24 @@
         try {
           var json = JSON.parse(xhr.responseText);
           var serverFile = null;
-          if (json) {
-            if (typeof json.data === 'string') {
-              serverFile = json.data;
-            } else if (json.data && typeof json.data === 'object') {
-              serverFile = json.data.fileName || json.data.fileUrl || json.data.path || json.data.url;
-            } else if (json.fileUrl) {
-              serverFile = json.fileUrl;
-            }
+          
+          if (json && json.code === 0 && json.data) {
+             serverFile = json.data;
+          } else if (json && json.data) {
+             serverFile = json.data;
           }
           
-          if (serverFile) {
+          if (typeof serverFile === 'object' && serverFile !== null) {
+              serverFile = serverFile.fileName || serverFile.fileUrl || serverFile.url || serverFile.path;
+          }
+          
+          if (serverFile && typeof serverFile === 'string') {
             if (tipe === 'foto') urlBahanFoto = serverFile; else urlBahanVideo = serverFile;
             var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
             if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-            tampilkanNotif('File berhasil diunggah: ' + serverFile, 'sukses');
+            tampilkanNotif('File berhasil diunggah!', 'sukses');
           } else {
-            throw new Error((json && json.msg) || "Format respons server tidak dikenali");
+            throw new Error((json && json.msg) || "Format respons server tidak dikenali. Data kosong.");
           }
         } catch (err) {
           if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
@@ -329,13 +330,13 @@
     function pantauTaskRunningHub(tugas, apiKey) {
       var cekInterval = setInterval(async function() {
         try {
-          var resStatus = await fetch('https://www.runninghub.ai/task/openapi/outputs?taskId=' + tugas.id, {
-            headers: { 'Authorization': 'Bearer ' + apiKey }
-          });
-          var textBalasan = await resStatus.text();
-          var jsonStatus = JSON.parse(textBalasan);
+          // MENGGUNAKAN API CCTV VERCEL UNTUK BYPASS CORS
+          var resStatus = await fetch('/api/cctv?taskId=' + tugas.id + '&apiKey=' + encodeURIComponent(apiKey));
+          var jsonStatus = await resStatus.json();
+          
           if (jsonStatus && jsonStatus.data) {
             var st = jsonStatus.data.taskStatus;
+            
             if (st === "SUCCESS") {
               clearInterval(cekInterval);
               tugas.status = "Selesai";
@@ -344,14 +345,24 @@
               simpanStorage();
               if (navLayarAktif === 'history') renderLayarHistory();
               tampilkanNotif('Render selesai: ' + tugas.id, 'sukses');
-            } else if (st === "FAILED") {
+            } else if (st === "FAILED" || st === "ERROR") {
               clearInterval(cekInterval);
               tugas.status = "Gagal Dirender";
               tugas.selesai = true;
               simpanStorage();
               if (navLayarAktif === 'history') renderLayarHistory();
-              tampilkanNotif('Render gagal: ' + tugas.id, 'error');
+              tampilkanNotif('Render gagal di GPU!', 'error');
             }
+          } else if (jsonStatus && jsonStatus.msg) {
+             // Tangani kalau server membalas pesan error eksplisit
+             console.warn("Pesan CCTV:", jsonStatus.msg);
+             if (jsonStatus.msg.includes("not exist") || jsonStatus.msg.toLowerCase().includes("error")) {
+                clearInterval(cekInterval);
+                tugas.status = "Dibatalkan / Error";
+                tugas.selesai = true;
+                simpanStorage();
+                if (navLayarAktif === 'history') renderLayarHistory();
+             }
           }
         } catch (err) {
           console.warn("Polling CCTV tertunda:", err);
@@ -382,7 +393,8 @@
 
           var nodeParams = [
             { nodeId: "3", fieldName: "text", fieldValue: promptFinal },
-            { nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo },
+            // PERBAIKAN: Node 89 adalah Video, jadi fieldName-nya harus "video", BUKAN "image"
+            { nodeId: "89", fieldName: "video", fieldValue: urlBahanVideo },
             { nodeId: "308", fieldName: "image", fieldValue: urlBahanFoto }
           ];
 
@@ -447,18 +459,23 @@
         return;
       }
       riwayatGenerateList.forEach(function(itm) {
-        var isDone = (itm.selesai === true || itm.status === "Selesai"), hasVideo = Boolean(itm.videoUrl);
+        var isDone = (itm.selesai === true || itm.status === "Selesai" || itm.status.includes("Gagal") || itm.status.includes("Error")), hasVideo = Boolean(itm.videoUrl);
         var card = document.createElement('div');
         card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
+        
+        var iconStat = '⏳';
+        if (hasVideo) iconStat = '▶';
+        else if (isDone) iconStat = '❌';
+
         card.innerHTML = '<div class="flex items-center gap-4">' +
-          '<div class="w-12 h-12 rounded-2xl bg-kmVioletLight text-kmViolet flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">' + (isDone ? '▶' : '⏳') + '</div>' +
+          '<div class="w-12 h-12 rounded-2xl bg-kmVioletLight text-kmViolet flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">' + iconStat + '</div>' +
           '<div><div class="flex items-center gap-2"><span class="text-base font-bold text-kmTextPrimary">' + itm.model + '</span><span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-semibold border border-slate-200">' + itm.prov + '</span></div>' +
           '<div class="text-xs sm:text-sm text-kmTextSecondary mt-1">ID: <span class="text-kmViolet font-mono font-bold">' + itm.id + '</span> • ' + itm.tgl + ' • <span class="text-amber-600 font-bold">' + itm.biaya + '</span></div></div></div>' +
           '<div class="flex items-center gap-2.5 shrink-0 pt-2 sm:pt-0">' +
           (isDone ? (hasVideo ? '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai</span>' +
             '<button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer">Putar</button>' +
             '<a href="' + itm.videoUrl + '" target="_blank" download="kiixmotion-' + itm.id + '.mp4" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</a>'
-            : '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai di GPU</span>')
+            : '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">' + itm.status + '</span>')
             : '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">⏳ ' + itm.status + '</span>') +
           '</div>';
         wadah.appendChild(card);
@@ -846,7 +863,7 @@
       <div class="flex flex-wrap items-center justify-between gap-4 bg-white border border-kmBorder p-6 rounded-3xl modern-shadow">
         <div class="flex items-center gap-6 text-xs sm:text-sm font-mono">
           <div><span class="text-kmTextSecondary font-sans">Akun: </span><span id="txt-stat-akun" class="text-kmTextPrimary font-bold text-sm sm:text-base">0</span></div>
-          <div><span class="text-kmTextSecondary font-sans">Aktif: </span><span id="txt-emerald-600 font-bold text-sm sm:text-base">0</span></div>
+          <div><span class="text-kmTextSecondary font-sans">Aktif: </span><span id="txt-stat-aktif" class="text-emerald-600 font-bold text-sm sm:text-base">0</span></div>
           <div><span class="text-kmTextSecondary font-sans">Total Koin: </span><span id="txt-stat-kredit" class="text-kmViolet font-bold text-sm sm:text-base">0</span></div>
         </div>
         <div class="flex items-center gap-2.5">

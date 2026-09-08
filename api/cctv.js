@@ -12,13 +12,15 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Tembak langsung dari server Vercel ke server RunningHub
-    const response = await fetch("https://www.runninghub.ai/task/openapi/outputs?taskId=" + taskId, {
-      method: "GET",
+    // ATURAN BARU V2: Tembak ke endpoint /v2/query pakai metode POST
+    const response = await fetch("https://www.runninghub.ai/openapi/v2/query", {
+      method: "POST",
       headers: { 
         "Content-Type": "application/json",
         "Authorization": "Bearer " + apiKey 
-      }
+      },
+      // ATURAN BARU V2: Task ID dibungkus di dalam body JSON
+      body: JSON.stringify({ taskId: taskId })
     });
     
     const data = await response.json();

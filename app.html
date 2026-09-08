@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KiixMotion Studio (v5.0) — Final Verified Edition</title>
+  <title>KiixMotion Studio (v6.0) — Verified Final Edition</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -128,6 +128,7 @@
         try {
           var json = JSON.parse(xhr.responseText);
           if (json && json.code === 0 && json.data) {
+             // Tangkap URL lengkap publik sesuai temuan sukses terbaru
              var fileUrlPublik = json.data.download_url || json.data.url || json.data.fileName;
              if (!fileUrlPublik.startsWith('http')) {
                  fileUrlPublik = "https://rh-hk-images-switch.xiaoyaoyou.com/" + fileUrlPublik;
@@ -193,7 +194,6 @@
              tugas.status = "Gagal: " + pesanAsli.substring(0, 45);
              tugas.selesai = true; tugas.progress = null; 
              simpanStorage(); if (navLayarAktif === 'history') renderLayarHistory();
-             tampilkanNotif('Render digagalkan server!', 'error');
              return; 
           }
           
@@ -203,7 +203,7 @@
               tugas.selesai = true; tugas.progress = 100;
               tugas.videoUrl = jsonStatus.results[0].url; 
               simpanStorage(); if (navLayarAktif === 'history') renderLayarHistory();
-              tampilkanNotif('Render sukses 100%!', 'sukses');
+              tampilkanNotif('Render video sukses 100%!', 'sukses');
               return; 
           }
           
@@ -252,9 +252,9 @@
         var data = await res.json();
         
         if (data && data.taskId) { 
-          tampilkanNotif('Tugas berhasil dikirim!', 'sukses');
+          tampilkanNotif('Tugas berhasil dikirim ke GPU!', 'sukses');
           var tugasBaru = {
-            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v5)", prov: "RunningHub", tgl: "Baru saja",
+            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v6)", prov: "RunningHub", tgl: "Baru saja",
             videoUrl: null, status: "Masuk Antrean (0%)", selesai: false, progress: 0
           };
           riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
@@ -356,7 +356,7 @@
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
   <header id="main-header-nav" class="border-b border-kmBorder bg-white/90 backdrop-blur-md px-4 py-3.5 flex items-center justify-between sticky top-0 z-40">
-    <div class="font-black text-kmTextPrimary">KiixMotion V5.0</div>
+    <div class="font-black text-kmTextPrimary">KiixMotion V6.0</div>
     <nav class="flex items-center gap-1">
       <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3 py-2 rounded-xl text-xs font-semibold">Dashboard</button>
       <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3 py-2 rounded-xl text-xs font-semibold">Generate</button>

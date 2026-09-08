@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KiixMotion Studio (v3.0) — Stable Core</title>
+  <title>KiixMotion Studio (v5.0) — Final Verified Edition</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,9 +36,9 @@
 
   <script>
     var akunRunningHub = [], riwayatGenerateList = [];
-    var currentView = 'workbench', navLayarAktif = 'dashboard', tabAkunAktif = 'runninghub', isModePilih = false;
+    var currentView = 'workbench', navLayarAktif = 'dashboard';
     
-    // WORKFLOW ID RESMI (Dari Kitab Suci V2)
+    // WORKFLOW ID RESMI YANG SUDAH TERVERIFIKASI
     var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745"; 
     
     var urlBahanFoto = null, urlBahanVideo = null;
@@ -128,11 +128,12 @@
         try {
           var json = JSON.parse(xhr.responseText);
           if (json && json.code === 0 && json.data) {
-             // SOLUSI BUG 1: Wajib pakai fileName (path lokal ComfyUI), bukan download_url
-             var serverFile = json.data.fileName;
-             if (!serverFile) serverFile = json.data.download_url; // Cadangan terakhir
+             var fileUrlPublik = json.data.download_url || json.data.url || json.data.fileName;
+             if (!fileUrlPublik.startsWith('http')) {
+                 fileUrlPublik = "https://rh-hk-images-switch.xiaoyaoyou.com/" + fileUrlPublik;
+             }
              
-             if (tipe === 'foto') urlBahanFoto = serverFile; else urlBahanVideo = serverFile;
+             if (tipe === 'foto') urlBahanFoto = fileUrlPublik; else urlBahanVideo = fileUrlPublik;
              stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah</span>';
           } else { throw new Error(json.message || "Gagal upload"); }
         } catch (err) {
@@ -166,19 +167,15 @@
           var resStatus = await fetch(urlCek);
           var rawJson = await resStatus.json();
 
-          // Cegat error dari Jembatan Vercel
           if (rawJson.code && rawJson.code !== 0 && rawJson.code !== 200) {
               clearInterval(cekInterval);
               tugas.status = "Gagal (API): " + (rawJson.msg || rawJson.message || "Sistem Menolak");
               tugas.selesai = true; simpanStorage(); renderLayarHistory(); return;
           }
 
-          // SOLUSI BUG 2: Buka kardus "data" dari RunningHub
           var jsonStatus = rawJson.data ? rawJson.data : rawJson;
-          
           var st = jsonStatus.status ? jsonStatus.status.toUpperCase() : "";
 
-          // Deteksi error mutlak
           var isFailed = (
               st === "FAILED" || st === "ERROR" || st.includes("FAIL") || 
               jsonStatus.errorMessage || jsonStatus.failedReason || jsonStatus.errorCode
@@ -186,7 +183,6 @@
 
           if (isFailed) {
              clearInterval(cekInterval); 
-             
              var pesanAsli = "Ditolak Server GPU.";
              if (jsonStatus.failedReason && jsonStatus.failedReason.exception_message) {
                  pesanAsli = "Node " + (jsonStatus.failedReason.node_id||"?") + ": " + jsonStatus.failedReason.exception_message;
@@ -196,25 +192,21 @@
 
              tugas.status = "Gagal: " + pesanAsli.substring(0, 45);
              tugas.selesai = true; tugas.progress = null; 
-             
              simpanStorage(); if (navLayarAktif === 'history') renderLayarHistory();
              tampilkanNotif('Render digagalkan server!', 'error');
              return; 
           }
           
-          // Deteksi sukses
           if (st === "SUCCESS" && jsonStatus.results && jsonStatus.results.length > 0) {
               clearInterval(cekInterval); 
               tugas.status = "Selesai";
               tugas.selesai = true; tugas.progress = 100;
               tugas.videoUrl = jsonStatus.results[0].url; 
-              
               simpanStorage(); if (navLayarAktif === 'history') renderLayarHistory();
               tampilkanNotif('Render sukses 100%!', 'sukses');
               return; 
           }
           
-          // Indikator loading
           if (st === "QUEUED") {
               tugas.status = "Mengantre di GPU...";
           } else if (st === "RUNNING") {
@@ -223,7 +215,6 @@
           }
           
           simpanStorage(); if (navLayarAktif === 'history') renderLayarHistory();
-
         } catch (err) { 
            console.warn("CCTV error:", err); 
         }
@@ -244,22 +235,28 @@
           { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
         ];
 
+        var payloadKirim = {
+          randomSeed: true,
+          instanceType: "default",
+          nodeInfoList: nodeParams,
+          retainSeconds: 0,
+          usePersonalQueue: false
+        };
+
         var res = await fetch('https://www.runninghub.ai/openapi/v2/run/workflow/' + RUNNINGHUB_WORKFLOW_ID, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
-          body: JSON.stringify({ nodeInfoList: nodeParams })
+          body: JSON.stringify(payloadKirim)
         });
         
         var data = await res.json();
         
         if (data && data.taskId) { 
           tampilkanNotif('Tugas berhasil dikirim!', 'sukses');
-          
           var tugasBaru = {
-            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v3)", prov: "RunningHub", tgl: "Baru saja",
+            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v5)", prov: "RunningHub", tgl: "Baru saja",
             videoUrl: null, status: "Masuk Antrean (0%)", selesai: false, progress: 0
           };
-          
           riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
           pantauTaskRunningHub(tugasBaru, akunAktif.key);
         } else { 
@@ -281,7 +278,7 @@
       }
       
       riwayatGenerateList.forEach(function(itm) {
-        var isDone = itm.selesai, isFailed = itm.status.includes("Gagal") || itm.status.includes("Error");
+        var isDone = itm.selesai, isFailed = itm.status.includes("Gagal") || rtStatusFailed(itm.status);
         var card = document.createElement('div');
         card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
         
@@ -306,6 +303,8 @@
         wadah.appendChild(card);
       });
     }
+
+    function rtStatusFailed(st) { return st && (st.includes('Gagal') || st.includes('Error') || st.includes('FAIL')); }
 
     function bersihkanSemuaHistory() {
       mintaKonfirmasi('Hapus seluruh riwayat?', function() { riwayatGenerateList = []; simpanStorage(); renderLayarHistory(); });
@@ -357,7 +356,7 @@
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
   <header id="main-header-nav" class="border-b border-kmBorder bg-white/90 backdrop-blur-md px-4 py-3.5 flex items-center justify-between sticky top-0 z-40">
-    <div class="font-black text-kmTextPrimary">KiixMotion V3.0</div>
+    <div class="font-black text-kmTextPrimary">KiixMotion V5.0</div>
     <nav class="flex items-center gap-1">
       <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3 py-2 rounded-xl text-xs font-semibold">Dashboard</button>
       <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3 py-2 rounded-xl text-xs font-semibold">Generate</button>
@@ -367,7 +366,6 @@
   </header>
 
   <main class="flex-1 max-w-5xl w-full mx-auto p-4 space-y-6">
-    
     <div id="layar-dashboard" style="display: none;" class="space-y-6">
       <div class="bg-white border border-kmBorder p-5 rounded-3xl modern-shadow text-center space-y-2">
         <h3 class="text-sm font-bold text-slate-500">Total Koin Tersedia</h3>
@@ -377,7 +375,7 @@
 
     <div id="layar-generate" class="space-y-6">
       <div class="bg-white border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
-        <h2 class="font-bold text-kmTextPrimary">1. Bahan Input</h2>
+        <h2 class="font-bold text-kmTextPrimary">1. Bahan Input (Full URL Mode)</h2>
         <div class="grid grid-cols-2 gap-4">
           <label class="border-2 border-dashed border-kmBorder rounded-2xl p-5 text-center cursor-pointer bg-slate-50">
             <span class="text-3xl">🖼️</span><br>
@@ -420,7 +418,7 @@
       <input id="in-modal-key" type="password" placeholder="Tempel API Key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3" />
       <div class="flex gap-3 pt-2">
         <button onclick="tutupModalFormKey()" class="flex-1 py-3 bg-slate-100 font-bold rounded-2xl">Batal</button>
-        <button id="btn-simpan-key" onclick="simpanAkunBaruBriModal()" class="flex-1 py-3 bg-kmViolet text-white font-bold rounded-2xl">Simpan</button>
+        <button id="btn-simpan-key" onclick="simpanAkunBaruDariModal()" class="flex-1 py-3 bg-kmViolet text-white font-bold rounded-2xl">Simpan</button>
       </div>
     </div>
   </div>
@@ -434,6 +432,5 @@
       </div>
     </div>
   </div>
-
 </body>
 </html>

@@ -1,33 +1,27 @@
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   const apiKey = req.query.apiKey || (req.body && req.body.apiKey);
+  
   if (!apiKey) {
-    return res.status(400).json({ code: 1, msg: "API Key kosong dari web kita" });
+    return res.status(400).json({ code: 1, msg: "API Key kosong" });
   }
 
   try {
-    // Nembak ke RunningHub dengan format Body yang benar
-    const respon = await fetch("https://www.runninghub.ai/uc/openapi/accountStatus", {
+    const response = await fetch("https://www.runninghub.ai/uc/openapi/accountStatus", {
       method: "POST",
       headers: { 
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + apiKey 
       },
-      // KUNCI PERUBAHAN: RunningHub minta apiKey ditaruh di sini
-      body: JSON.stringify({ 
-          "apiKey": apiKey 
-      }) 
+      body: JSON.stringify({ apiKey: apiKey })
     });
     
-    const data = await respon.json();
+    const data = await response.json();
     return res.status(200).json(data);
-  } catch (err) {
-    return res.status(500).json({ code: 1, msg: err.message });
+  } catch (error) {
+    return res.status(500).json({ code: 1, msg: error.message });
   }
 };

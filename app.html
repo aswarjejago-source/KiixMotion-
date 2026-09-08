@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KiixMotion Studio (v7.0) — Final Verified Edition</title>
+  <title>KiixMotion Studio (v8.0) — Ultimate Verified Edition</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,7 +41,7 @@
     // WORKFLOW ID RESMI YANG SUDAH TERVERIFIKASI
     var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745"; 
     
-    // Menyimpan nilai field value persis seperti format sukses payload ComfyUI
+    // Menyimpan nilai file persis sesuai format yang sukses diteruskan ke ComfyUI backend
     var dataBahanFotoVal = null, dataBahanVideoVal = null;
     var pendingKonfirmasiFn = null;
 
@@ -129,9 +129,10 @@
         try {
           var json = JSON.parse(xhr.responseText);
           if (json && json.code === 0 && json.data) {
-             // Tangkap path fileName persis sesuai format payload sukses yang dikirim ComfyUI backend
-             var pathFileServer = json.data.fileName || json.data.download_url;
-             
+             // Tangkap file path absolut / download url agar Node 89 tidak menerima string kosong/mentah
+             var pathFileServer = json.data.download_url || json.data.fileName;
+             if (!pathFileServer) throw new Error("Format path file kosong dari server");
+
              if (tipe === 'foto') {
                  dataBahanFotoVal = pathFileServer;
              } else {
@@ -179,21 +180,23 @@
           var jsonStatus = rawJson.data ? rawJson.data : rawJson;
           var st = jsonStatus.status ? jsonStatus.status.toUpperCase() : "";
 
+          // Deteksi komprehensif kegagalan backend ComfyUI termasuk Node 89 exception
+          var exceptionInfo = jsonStatus.failedReason && jsonStatus.failedReason.exception_message ? jsonStatus.failedReason.exception_message : "";
           var isFailed = (
               st === "FAILED" || st === "ERROR" || st.includes("FAIL") || 
-              jsonStatus.errorMessage || jsonStatus.failedReason || jsonStatus.errorCode
+              jsonStatus.errorMessage || jsonStatus.failedReason || jsonStatus.errorCode || exceptionInfo !== ""
           );
 
           if (isFailed) {
              clearInterval(cekInterval); 
-             var pesanAsli = "Ditolak Server GPU.";
-             if (jsonStatus.failedReason && jsonStatus.failedReason.exception_message) {
-                 pesanAsli = "Node " + (jsonStatus.failedReason.node_id||"?") + ": " + jsonStatus.failedReason.exception_message;
+             var pesanAsli = "Gagal di GPU.";
+             if (exceptionInfo) {
+                 pesanAsli = "Node " + (jsonStatus.failedReason.node_id||"?") + ": " + exceptionInfo;
              } else if (jsonStatus.errorMessage) {
                  pesanAsli = jsonStatus.errorMessage;
              }
 
-             tugas.status = "Gagal: " + pesanAsli.substring(0, 45);
+             tugas.status = "Gagal: " + pesanAsli.substring(0, 50);
              tugas.selesai = true; tugas.progress = null; 
              simpanStorage(); if (navLayarAktif === 'history') renderLayarHistory();
              return; 
@@ -226,7 +229,7 @@
     async function mulaiProsesGenerate() {
       var akunAktif = akunRunningHub[0];
       if (!akunAktif) return tampilkanNotif('Hubungkan akun terlebih dahulu!', 'error');
-      if (!dataBahanFotoVal || !dataBahanVideoVal) return tampilkanNotif('Foto dan Video harus diunggah!', 'error');
+      if (!dataBahanFotoVal || !dataBahanVideoVal) return tampilkanNotif('Foto dan Video harus diunggah dengan sempurna!', 'error');
 
       var btn = document.getElementById('btn-submit-generate');
       btn.disabled = true; btn.innerText = "⚡ MENGIRIM TUGAS...";
@@ -256,7 +259,7 @@
         if (data && data.taskId) { 
           tampilkanNotif('Tugas berhasil dikirim ke GPU!', 'sukses');
           var tugasBaru = {
-            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v7)", prov: "RunningHub", tgl: "Baru saja",
+            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v8)", prov: "RunningHub", tgl: "Baru saja",
             videoUrl: null, status: "Masuk Antrean (0%)", selesai: false, progress: 0
           };
           riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
@@ -292,7 +295,7 @@
             '<button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 text-slate-700 rounded-xl">Putar</button>' +
             '<a href="' + itm.videoUrl + '" target="_blank" download class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl">Download</a>';
         } else if (isFailed) {
-            badgeHTML = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">' + itm.status + '</span>';
+            badgeHTML = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3.5 py-1.5 rounded-xl font-bold block max-w-xs break-words text-left">' + itm.status + '</span>';
         } else {
             badgeHTML = '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">' + itm.status + '</span>';
         }
@@ -358,7 +361,7 @@
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
   <header id="main-header-nav" class="border-b border-kmBorder bg-white/90 backdrop-blur-md px-4 py-3.5 flex items-center justify-between sticky top-0 z-40">
-    <div class="font-black text-kmTextPrimary">KiixMotion V7.0</div>
+    <div class="font-black text-kmTextPrimary">KiixMotion V8.0</div>
     <nav class="flex items-center gap-1">
       <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3 py-2 rounded-xl text-xs font-semibold">Dashboard</button>
       <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3 py-2 rounded-xl text-xs font-semibold">Generate</button>
@@ -377,7 +380,7 @@
 
     <div id="layar-generate" class="space-y-6">
       <div class="bg-white border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
-        <h2 class="font-bold text-kmTextPrimary">1. Bahan Input (Verified Payload)</h2>
+        <h2 class="font-bold text-kmTextPrimary">1. Bahan Input (Node 30 & Node 33)</h2>
         <div class="grid grid-cols-2 gap-4">
           <label class="border-2 border-dashed border-kmBorder rounded-2xl p-5 text-center cursor-pointer bg-slate-50">
             <span class="text-3xl">🖼️</span><br>

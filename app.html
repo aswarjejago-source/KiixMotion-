@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KiixMotion Studio (v6.0) — Verified Final Edition</title>
+  <title>KiixMotion Studio (v7.0) — Final Verified Edition</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,7 +41,8 @@
     // WORKFLOW ID RESMI YANG SUDAH TERVERIFIKASI
     var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745"; 
     
-    var urlBahanFoto = null, urlBahanVideo = null;
+    // Menyimpan nilai field value persis seperti format sukses payload ComfyUI
+    var dataBahanFotoVal = null, dataBahanVideoVal = null;
     var pendingKonfirmasiFn = null;
 
     function muatStorage() {
@@ -128,13 +129,14 @@
         try {
           var json = JSON.parse(xhr.responseText);
           if (json && json.code === 0 && json.data) {
-             // Tangkap URL lengkap publik sesuai temuan sukses terbaru
-             var fileUrlPublik = json.data.download_url || json.data.url || json.data.fileName;
-             if (!fileUrlPublik.startsWith('http')) {
-                 fileUrlPublik = "https://rh-hk-images-switch.xiaoyaoyou.com/" + fileUrlPublik;
-             }
+             // Tangkap path fileName persis sesuai format payload sukses yang dikirim ComfyUI backend
+             var pathFileServer = json.data.fileName || json.data.download_url;
              
-             if (tipe === 'foto') urlBahanFoto = fileUrlPublik; else urlBahanVideo = fileUrlPublik;
+             if (tipe === 'foto') {
+                 dataBahanFotoVal = pathFileServer;
+             } else {
+                 dataBahanVideoVal = pathFileServer;
+             }
              stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah</span>';
           } else { throw new Error(json.message || "Gagal upload"); }
         } catch (err) {
@@ -224,15 +226,15 @@
     async function mulaiProsesGenerate() {
       var akunAktif = akunRunningHub[0];
       if (!akunAktif) return tampilkanNotif('Hubungkan akun terlebih dahulu!', 'error');
-      if (!urlBahanFoto || !urlBahanVideo) return tampilkanNotif('Foto dan Video harus diunggah!', 'error');
+      if (!dataBahanFotoVal || !dataBahanVideoVal) return tampilkanNotif('Foto dan Video harus diunggah!', 'error');
 
       var btn = document.getElementById('btn-submit-generate');
       btn.disabled = true; btn.innerText = "⚡ MENGIRIM TUGAS...";
 
       try {
         var nodeParams = [
-          { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
-          { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
+          { nodeId: "30", fieldName: "image", fieldValue: dataBahanFotoVal },
+          { nodeId: "33", fieldName: "video", fieldValue: dataBahanVideoVal }
         ];
 
         var payloadKirim = {
@@ -254,7 +256,7 @@
         if (data && data.taskId) { 
           tampilkanNotif('Tugas berhasil dikirim ke GPU!', 'sukses');
           var tugasBaru = {
-            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v6)", prov: "RunningHub", tgl: "Baru saja",
+            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v7)", prov: "RunningHub", tgl: "Baru saja",
             videoUrl: null, status: "Masuk Antrean (0%)", selesai: false, progress: 0
           };
           riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
@@ -356,7 +358,7 @@
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
   <header id="main-header-nav" class="border-b border-kmBorder bg-white/90 backdrop-blur-md px-4 py-3.5 flex items-center justify-between sticky top-0 z-40">
-    <div class="font-black text-kmTextPrimary">KiixMotion V6.0</div>
+    <div class="font-black text-kmTextPrimary">KiixMotion V7.0</div>
     <nav class="flex items-center gap-1">
       <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3 py-2 rounded-xl text-xs font-semibold">Dashboard</button>
       <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3 py-2 rounded-xl text-xs font-semibold">Generate</button>
@@ -375,7 +377,7 @@
 
     <div id="layar-generate" class="space-y-6">
       <div class="bg-white border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
-        <h2 class="font-bold text-kmTextPrimary">1. Bahan Input (Full URL Mode)</h2>
+        <h2 class="font-bold text-kmTextPrimary">1. Bahan Input (Verified Payload)</h2>
         <div class="grid grid-cols-2 gap-4">
           <label class="border-2 border-dashed border-kmBorder rounded-2xl p-5 text-center cursor-pointer bg-slate-50">
             <span class="text-3xl">🖼️</span><br>

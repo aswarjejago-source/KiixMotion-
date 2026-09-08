@@ -61,7 +61,7 @@
     var currentView = 'workbench';
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    // UPDATE TERBARU: WORKFLOW ID DARI SCREENSHOT URL LU
+    // WORKFLOW ID YANG BENAR DARI URL LU
     var RUNNINGHUB_WORKFLOW_ID = "2097258183463436289"; 
     
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
@@ -280,7 +280,7 @@
             if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
             tampilkanNotif('File berhasil diunggah!', 'sukses');
           } else {
-            throw new Error((json && json.msg) || "Format respons server tidak dikenali. Data kosong.");
+            throw new Error((json && json.msg) || "Format respons server tidak dikenali.");
           }
         } catch (err) {
           if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
@@ -335,6 +335,22 @@
           var resStatus = await fetch('/api/cctv?taskId=' + tugas.id + '&apiKey=' + encodeURIComponent(apiKey));
           var jsonStatus = await resStatus.json();
           
+          // PENANGKAP ERROR BARU (Berdasarkan json mentah dari lu)
+          // Jika RunningHub kirim { errorMessage: "..." } langsung
+          if (jsonStatus && (jsonStatus.errorMessage || jsonStatus.failedReason)) {
+            clearInterval(cekInterval);
+            var nodePenyebab = jsonStatus.failedReason ? jsonStatus.failedReason.node_id : "Unknown";
+            var pesanAsli = jsonStatus.failedReason ? jsonStatus.failedReason.exception_message : jsonStatus.errorMessage;
+            
+            tugas.status = "Gagal (Node " + nodePenyebab + "): " + pesanAsli.substring(0, 30);
+            tugas.selesai = true;
+            simpanStorage();
+            if (navLayarAktif === 'history') renderLayarHistory();
+            tampilkanNotif('Render Gagal di Server!', 'error');
+            return; // Stop eksekusi
+          }
+          
+          // CEK FORMAT JIKA BERHASIL ATAU NORMAL
           if (jsonStatus && jsonStatus.data && jsonStatus.data.taskStatus) {
             var st = jsonStatus.data.taskStatus.toUpperCase();
             
@@ -349,7 +365,7 @@
             } 
             else if (st === "FAILED" || st === "FAIL" || st === "ERROR" || st === "CANCELLED" || st.includes("FAIL")) {
               clearInterval(cekInterval);
-              var errMsg = jsonStatus.data.errorMsg || jsonStatus.data.message || "GPU Crash / Salah Node";
+              var errMsg = jsonStatus.data.errorMsg || jsonStatus.data.message || "GPU Crash";
               tugas.status = "Gagal: " + errMsg.substring(0, 30);
               tugas.selesai = true;
               simpanStorage();
@@ -391,11 +407,11 @@
           var promptTxt = document.getElementById('in-prompt-gerak') ? document.getElementById('in-prompt-gerak').value.trim() : "";
           var promptFinal = promptTxt || "Follow the reference video as accurately as possible. High quality, smooth movement.";
 
-          // UPDATE TERBARU: NODE ID DARI SCREENSHOT LU (30 = FOTO, 33 = VIDEO)
+          // NODE ID SUDAH DIPERBAIKI SESUAI SCREENSHOT LU
           var nodeParams = [
-            { nodeId: "3", fieldName: "text", fieldValue: promptFinal }, // Node Teks (Semoga masih 3)
-            { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }, // NODE VIDEO BENAR!
-            { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto }   // NODE FOTO BENAR!
+            { nodeId: "3", fieldName: "text", fieldValue: promptFinal }, // Node Teks
+            { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }, // NODE VIDEO BENAR (33)
+            { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto }   // NODE FOTO BENAR (30)
           ];
 
           var payloadGenerate = {
@@ -416,7 +432,7 @@
           
           if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
             var taskIdAsli = data.data?.taskId || data.taskId; 
-            tampilkanNotif('Tugas berhasil dikirim ke GPU! ID: ' + taskIdAsli, 'sukses');
+            tampilkanNotif('Tugas dikirim! ID: ' + taskIdAsli, 'sukses');
             
             var tugasBaru = {
               id: taskIdAsli,
@@ -439,8 +455,8 @@
 
           } else { 
             var pesanErrorAsli = data.msg || JSON.stringify(data);
-            tampilkanNotif('GAGAL DITOLAK SERVER: ' + pesanErrorAsli, 'error');
-            alert("GAGAL MENGIRIM TUGAS!\nAlasan dari RunningHub: \n" + pesanErrorAsli + "\n\nPastikan ID Node Foto, Video, dan Teks sudah benar.");
+            tampilkanNotif('GAGAL: ' + pesanErrorAsli, 'error');
+            alert("GAGAL MENGIRIM TUGAS!\nAlasan dari RunningHub: \n" + pesanErrorAsli);
             if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } 
             return; 
           }

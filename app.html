@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KiixMotion Studio (v8.0) — Ultimate Verified Edition</title>
+  <title>KiixMotion Studio (v9.0) — Ultimate Verified Edition</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,10 +38,9 @@
     var akunRunningHub = [], riwayatGenerateList = [];
     var currentView = 'workbench', navLayarAktif = 'dashboard';
     
-    // WORKFLOW ID RESMI YANG SUDAH TERVERIFIKASI
     var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745"; 
     
-    // Menyimpan nilai file persis sesuai format yang sukses diteruskan ke ComfyUI backend
+    // Menyimpan path string bersih dari server upload agar node ComfyUI tidak membaca sebagai str acak
     var dataBahanFotoVal = null, dataBahanVideoVal = null;
     var pendingKonfirmasiFn = null;
 
@@ -129,8 +128,8 @@
         try {
           var json = JSON.parse(xhr.responseText);
           if (json && json.code === 0 && json.data) {
-             // Tangkap file path absolut / download url agar Node 89 tidak menerima string kosong/mentah
-             var pathFileServer = json.data.download_url || json.data.fileName;
+             // Tangkap fileName atau download_url secara akurat agar diterima ComfyUI tanpa error str
+             var pathFileServer = json.data.fileName || json.data.download_url;
              if (!pathFileServer) throw new Error("Format path file kosong dari server");
 
              if (tipe === 'foto') {
@@ -180,7 +179,6 @@
           var jsonStatus = rawJson.data ? rawJson.data : rawJson;
           var st = jsonStatus.status ? jsonStatus.status.toUpperCase() : "";
 
-          // Deteksi komprehensif kegagalan backend ComfyUI termasuk Node 89 exception
           var exceptionInfo = jsonStatus.failedReason && jsonStatus.failedReason.exception_message ? jsonStatus.failedReason.exception_message : "";
           var isFailed = (
               st === "FAILED" || st === "ERROR" || st.includes("FAIL") || 
@@ -196,7 +194,7 @@
                  pesanAsli = jsonStatus.errorMessage;
              }
 
-             tugas.status = "Gagal: " + pesanAsli.substring(0, 50);
+             tugas.status = "Gagal: " + pesanAsli.substring(0, 60);
              tugas.selesai = true; tugas.progress = null; 
              simpanStorage(); if (navLayarAktif === 'history') renderLayarHistory();
              return; 
@@ -259,7 +257,7 @@
         if (data && data.taskId) { 
           tampilkanNotif('Tugas berhasil dikirim ke GPU!', 'sukses');
           var tugasBaru = {
-            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v8)", prov: "RunningHub", tgl: "Baru saja",
+            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v9)", prov: "RunningHub", tgl: "Baru saja",
             videoUrl: null, status: "Masuk Antrean (0%)", selesai: false, progress: 0
           };
           riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
@@ -361,7 +359,7 @@
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
   <header id="main-header-nav" class="border-b border-kmBorder bg-white/90 backdrop-blur-md px-4 py-3.5 flex items-center justify-between sticky top-0 z-40">
-    <div class="font-black text-kmTextPrimary">KiixMotion V8.0</div>
+    <div class="font-black text-kmTextPrimary">KiixMotion V9.0</div>
     <nav class="flex items-center gap-1">
       <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3 py-2 rounded-xl text-xs font-semibold">Dashboard</button>
       <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3 py-2 rounded-xl text-xs font-semibold">Generate</button>

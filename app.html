@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KiixMotion Studio (v9.0) — Ultimate Verified Edition</title>
+  <title>KiixMotion Studio (v10.0) — Ultimate Verified Edition</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,10 +37,9 @@
   <script>
     var akunRunningHub = [], riwayatGenerateList = [];
     var currentView = 'workbench', navLayarAktif = 'dashboard';
-    
     var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745"; 
     
-    // Menyimpan path string bersih dari server upload agar node ComfyUI tidak membaca sebagai str acak
+    // Menyimpan URL absolut publik hasil upload binary agar diterima sempurna oleh ComfyUI
     var dataBahanFotoVal = null, dataBahanVideoVal = null;
     var pendingKonfirmasiFn = null;
 
@@ -128,14 +127,19 @@
         try {
           var json = JSON.parse(xhr.responseText);
           if (json && json.code === 0 && json.data) {
-             // Tangkap fileName atau download_url secara akurat agar diterima ComfyUI tanpa error str
-             var pathFileServer = json.data.fileName || json.data.download_url;
-             if (!pathFileServer) throw new Error("Format path file kosong dari server");
+             // Tangkap URL absolut publik atau download_url agar diterima ComfyUI tanpa error string
+             var urlPublik = json.data.download_url || json.data.fileName;
+             if (!urlPublik) throw new Error("Format URL file kosong dari server");
+
+             // Pastikan format URL lengkap jika berupa relative path
+             if (!urlPublik.startsWith('http')) {
+                 urlPublik = "https://rh-hk-images-switch.xiaoyaoyou.com/input/" + urlPublik;
+             }
 
              if (tipe === 'foto') {
-                 dataBahanFotoVal = pathFileServer;
+                 dataBahanFotoVal = urlPublik;
              } else {
-                 dataBahanVideoVal = pathFileServer;
+                 dataBahanVideoVal = urlPublik;
              }
              stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah</span>';
           } else { throw new Error(json.message || "Gagal upload"); }
@@ -257,7 +261,7 @@
         if (data && data.taskId) { 
           tampilkanNotif('Tugas berhasil dikirim ke GPU!', 'sukses');
           var tugasBaru = {
-            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v9)", prov: "RunningHub", tgl: "Baru saja",
+            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v10)", prov: "RunningHub", tgl: "Baru saja",
             videoUrl: null, status: "Masuk Antrean (0%)", selesai: false, progress: 0
           };
           riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
@@ -359,7 +363,7 @@
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
   <header id="main-header-nav" class="border-b border-kmBorder bg-white/90 backdrop-blur-md px-4 py-3.5 flex items-center justify-between sticky top-0 z-40">
-    <div class="font-black text-kmTextPrimary">KiixMotion V9.0</div>
+    <div class="font-black text-kmTextPrimary">KiixMotion V10</div>
     <nav class="flex items-center gap-1">
       <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3 py-2 rounded-xl text-xs font-semibold">Dashboard</button>
       <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3 py-2 rounded-xl text-xs font-semibold">Generate</button>

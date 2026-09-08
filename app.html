@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KiixMotion Studio (v2.2) — API v2 Integrated</title>
+  <title>KiixMotion Studio (v3.0) — Stable Core</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,12 +27,7 @@
   </script>
   
   <style>
-    body {
-      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      background-color: #FBF9F5;
-      color: #1A1816;
-    }
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; background-color: #FBF9F5; color: #1A1816; }
     .modern-shadow { box-shadow: 0 10px 30px -5px rgba(26, 24, 22, 0.04), 0 4px 6px -2px rgba(26, 24, 22, 0.02); }
     .violet-glow { box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.35); }
     @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -40,37 +35,30 @@
   </style>
 
   <script>
-    var akunRunningHub = [], akunRoboneo = [], riwayatGenerateList = [];
-    var currentView = 'workbench', navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
+    var akunRunningHub = [], riwayatGenerateList = [];
+    var currentView = 'workbench', navLayarAktif = 'dashboard', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    // WORKFLOW ID FIX (Sesuai JSON dan Log Sukses)
+    // WORKFLOW ID RESMI (Dari Kitab Suci V2)
     var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745"; 
     
-    var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var urlBahanFoto = null, urlBahanVideo = null;
-    var currentUserEmail = "aswar@kiixmotion.com";
     var pendingKonfirmasiFn = null;
 
     function muatStorage() {
       try {
         var sRH = localStorage.getItem('km_rh_data');
-        var sRB = localStorage.getItem('km_rb_data');
         var sHist = localStorage.getItem('km_hist_data');
         if (sRH) akunRunningHub = JSON.parse(sRH);
-        if (sRB) akunRoboneo = JSON.parse(sRB);
         if (sHist) riwayatGenerateList = JSON.parse(sHist);
-      } catch (e) { console.error(e); }
-      sinkronkanDropdownAkunGenerate();
-      updateStatistikDashboard();
-      aturTampilanHalamanUtama();
+      } catch (e) {}
+      sinkronkanDropdownAkunGenerate(); updateStatistikDashboard(); gantiLayarNav(navLayarAktif);
     }
 
     function simpanStorage() {
       try {
         localStorage.setItem('km_rh_data', JSON.stringify(akunRunningHub));
-        localStorage.setItem('km_rb_data', JSON.stringify(akunRoboneo));
         localStorage.setItem('km_hist_data', JSON.stringify(riwayatGenerateList));
-      } catch (e) { console.error(e); }
+      } catch (e) {}
       updateStatistikDashboard();
     }
 
@@ -82,32 +70,17 @@
       el.className = 'animate-toast px-5 py-3 rounded-2xl shadow-xl font-bold text-xs sm:text-sm flex items-center gap-2 mb-2 ' + warnaBg;
       el.innerHTML = '<span>' + (jenis === 'error' ? '⚠️' : (jenis === 'sukses' ? '✓' : 'ℹ️')) + '</span> <span>' + pesan + '</span>';
       wadah.appendChild(el);
-      setTimeout(function() {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(-10px)';
-        el.style.transition = 'all 0.3s ease';
-        setTimeout(function() { el.remove(); }, 300);
-      }, (jenis === 'error' ? 6000 : 3500));
-    }
-
-    function aturTampilanHalamanUtama() {
-      var vWorkbench = document.getElementById('view-workbench'), navHeader = document.getElementById('main-header-nav');
-      if (vWorkbench) vWorkbench.style.display = 'block';
-      if (navHeader) navHeader.style.display = 'flex';
-      gantiLayarNav(navLayarAktif);
+      setTimeout(function() { el.remove(); }, 5000);
     }
 
     function mintaKonfirmasi(pesan, callbackYa) {
-      var modal = document.getElementById('modal-konfirmasi-box'), txt = document.getElementById('modal-konfirmasi-teks');
-      if (!modal || !txt) return;
-      txt.innerText = pesan;
+      document.getElementById('modal-konfirmasi-teks').innerText = pesan;
       pendingKonfirmasiFn = callbackYa;
-      modal.style.display = 'flex';
+      document.getElementById('modal-konfirmasi-box').style.display = 'flex';
     }
 
     function tutupModalKonfirmasi(apakahYa) {
-      var modal = document.getElementById('modal-konfirmasi-box');
-      if (modal) modal.style.display = 'none';
+      document.getElementById('modal-konfirmasi-box').style.display = 'none';
       if (apakahYa && typeof pendingKonfirmasiFn === 'function') pendingKonfirmasiFn();
       pendingKonfirmasiFn = null;
     }
@@ -126,107 +99,59 @@
     }
 
     function updateStatistikDashboard() {
-      var totalRhKoin = 0, maxRhKoin = 0, totalRbCarrots = 0, maxRbCarrots = 0;
-      akunRunningHub.forEach(function(a) { var k = Number(a.koin) || 0; totalRhKoin += k; if (k > maxRhKoin) maxRhKoin = k; });
-      akunRoboneo.forEach(function(r) { var c = Number(r.koin) || 0; totalRbCarrots += c; if (c > maxRbCarrots) maxRbCarrots = c; });
+      var totalRhKoin = 0;
+      akunRunningHub.forEach(function(a) { totalRhKoin += (Number(a.koin) || 0); });
       var setTxt = function(id, val) { var el = document.getElementById(id); if (el) el.innerText = val; };
-      setTxt('dash-rh-total-koin', totalRhKoin); setTxt('dash-rh-total-akun', akunRunningHub.length); setTxt('dash-rh-max-koin', maxRhKoin);
-      setTxt('dash-rb-total-carrots', totalRbCarrots); setTxt('dash-rb-total-akun', akunRoboneo.length); setTxt('dash-rb-max-carrots', maxRbCarrots);
-      setTxt('dash-stat-video-selesai', riwayatGenerateList.filter(function(r) { return r.selesai; }).length);
-      var emailDisp = document.getElementById('label-current-user-email');
-      if (emailDisp && currentUserEmail) emailDisp.innerText = currentUserEmail;
-    }
-
-    function setProviderUtama(p) {
-      engineProvider = p;
-      var provs = ['runninghub', 'roboneo', 'kiix'];
-      provs.forEach(function(pr) {
-        var card = document.getElementById('c-prov-' + pr), badge = document.getElementById('b-prov-' + pr);
-        if (card) card.className = (pr === p) ? "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition" : "bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
-        if (badge) badge.style.display = (pr === p) ? 'inline-block' : 'none';
-      });
-      var setTxt = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
-      var dropWrap = document.getElementById('box-wrap-dropdown-akun');
-      if (p === 'runninghub') {
-        setTxt('t-engine-title', "WAN MOTION CONTROL 1080HD"); setTxt('t-engine-sub', "(RUNNINGHUB)"); setTxt('t-engine-cost', "≈ 360 koin"); setTxt('t-engine-total', "≈ 360 koin");
-        if (dropWrap) dropWrap.style.display = 'block';
-      }
-      sinkronkanDropdownAkunGenerate();
+      setTxt('dash-rh-total-koin', totalRhKoin); 
+      setTxt('dash-rh-total-akun', akunRunningHub.length); 
+      setTxt('dash-stat-video-selesai', riwayatGenerateList.filter(function(r) { return r.selesai && !r.status.includes('Gagal'); }).length);
     }
 
     function unggahBahanLangsung(input, tipe) {
       if (!input.files || !input.files[0]) return;
-      var targetAkun = akunRunningHub;
-      if (targetAkun.length === 0) {
-        input.value = ""; return tampilkanNotif('Hubungkan akun di menu Kelola Akun!', 'error');
-      }
-      var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
-      var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
+      var akunAktif = akunRunningHub[0];
+      if (!akunAktif) { input.value = ""; return tampilkanNotif('Hubungkan akun di menu Kelola Akun!', 'error'); }
+      
       var file = input.files[0];
       var txtEl = document.getElementById(tipe === 'foto' ? 'txt-file-foto' : 'txt-file-video');
       var stEl = document.getElementById(tipe === 'foto' ? 'st-file-foto' : 'st-file-video');
       if (txtEl) txtEl.innerText = file.name;
-      if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ 0%</span>';
+      if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah...</span>';
 
-      var formData = new FormData();
-      formData.append("file", file);
-      
+      var formData = new FormData(); formData.append("file", file);
       var xhr = new XMLHttpRequest();
-      // MENGGUNAKAN API V2 UNTUK UPLOAD
+      
       xhr.open("POST", "https://www.runninghub.ai/openapi/v2/media/upload/binary");
       xhr.setRequestHeader("Authorization", "Bearer " + akunAktif.key);
-      
-      xhr.upload.onprogress = function(e) {
-        if (e.lengthComputable && stEl) {
-          var pct = Math.round((e.loaded / e.total) * 100);
-          stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ ' + pct + '%</span>';
-        }
-      };
       
       xhr.onload = function() {
         try {
           var json = JSON.parse(xhr.responseText);
-          var serverFile = null;
-          
           if (json && json.code === 0 && json.data) {
-             // API v2 mengembalikan download_url atau fileName
-             serverFile = json.data.download_url || json.data.fileName;
-          }
-          
-          if (serverFile) {
-            if (tipe === 'foto') urlBahanFoto = serverFile; else urlBahanVideo = serverFile;
-            if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah</span>';
-            tampilkanNotif('File berhasil diunggah!', 'sukses');
-          } else {
-            throw new Error((json && json.message) || "Format error dari server.");
-          }
+             // SOLUSI BUG 1: Wajib pakai fileName (path lokal ComfyUI), bukan download_url
+             var serverFile = json.data.fileName;
+             if (!serverFile) serverFile = json.data.download_url; // Cadangan terakhir
+             
+             if (tipe === 'foto') urlBahanFoto = serverFile; else urlBahanVideo = serverFile;
+             stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah</span>';
+          } else { throw new Error(json.message || "Gagal upload"); }
         } catch (err) {
-          if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal</span>';
-          tampilkanNotif('Gagal unggah: ' + err.message, 'error');
+          stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal</span>';
+          tampilkanNotif('Gagal upload: ' + err.message, 'error');
         }
       };
       xhr.send(formData);
     }
 
     function sinkronkanDropdownAkunGenerate() {
-      var sel = document.getElementById('sel-dropdown-akun'), badge = document.getElementById('badge-total-saldo-gen');
-      var targetAkun = akunRunningHub;
-      if (!sel) return;
-      sel.innerHTML = '';
-      if (targetAkun.length === 0) {
-        var opt = document.createElement('option'); opt.value = ""; opt.innerText = "Belum ada akun (0 koin)"; sel.appendChild(opt);
-        if (badge) { badge.innerText = "0 koin"; badge.className = "text-xs font-mono text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg"; }
+      var sel = document.getElementById('sel-dropdown-akun');
+      if (!sel) return; sel.innerHTML = '';
+      if (akunRunningHub.length === 0) {
+        var opt = document.createElement('option'); opt.value = ""; opt.innerText = "Belum ada akun"; sel.appendChild(opt);
       } else {
-        var optRand = document.createElement('option'); optRand.value = "random"; optRand.innerText = "🎲 Otomatis (Pilih Acak)"; sel.appendChild(optRand);
-        var total = 0;
-        targetAkun.forEach(function(a, idx) {
-          var koinVal = Number(a.koin) || 0; total += koinVal;
-          var o = document.createElement('option'); o.value = idx; o.innerText = a.nama + " (" + koinVal + " koin)"; sel.appendChild(o);
+        akunRunningHub.forEach(function(a, idx) {
+          var o = document.createElement('option'); o.value = idx; o.innerText = a.nama + " (" + (Number(a.koin)||0) + " koin)"; sel.appendChild(o);
         });
-        if (badge) {
-          badge.innerText = total + " koin";
-          badge.className = "text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
-        }
       }
     }
 
@@ -235,397 +160,273 @@
 
       var cekInterval = setInterval(async function() {
         try {
-          // HIT KE JEMBATAN CCTV KITA YANG BARU (V2)
-          var resStatus = await fetch('/api/cctv?taskId=' + tugas.id + '&apiKey=' + encodeURIComponent(apiKey));
-          var jsonStatus = await resStatus.json();
+          var antiCache = new Date().getTime();
+          var urlCek = '/api/cctv?taskId=' + tugas.id + '&apiKey=' + encodeURIComponent(apiKey) + '&_t=' + antiCache;
+          
+          var resStatus = await fetch(urlCek);
+          var rawJson = await resStatus.json();
 
-          // DARI KITAB SUCI: Struktur JSON sekarang ada di root (jsonStatus.status)
+          // Cegat error dari Jembatan Vercel
+          if (rawJson.code && rawJson.code !== 0 && rawJson.code !== 200) {
+              clearInterval(cekInterval);
+              tugas.status = "Gagal (API): " + (rawJson.msg || rawJson.message || "Sistem Menolak");
+              tugas.selesai = true; simpanStorage(); renderLayarHistory(); return;
+          }
+
+          // SOLUSI BUG 2: Buka kardus "data" dari RunningHub
+          var jsonStatus = rawJson.data ? rawJson.data : rawJson;
+          
           var st = jsonStatus.status ? jsonStatus.status.toUpperCase() : "";
 
-          // JIKA STATUS FAILED/ERROR DARI SERVER
-          if (st === "FAILED" || st === "ERROR" || st.includes("FAIL")) {
-             clearInterval(cekInterval);
-             var pesanAsli = "Gagal di GPU Server.";
+          // Deteksi error mutlak
+          var isFailed = (
+              st === "FAILED" || st === "ERROR" || st.includes("FAIL") || 
+              jsonStatus.errorMessage || jsonStatus.failedReason || jsonStatus.errorCode
+          );
+
+          if (isFailed) {
+             clearInterval(cekInterval); 
              
+             var pesanAsli = "Ditolak Server GPU.";
              if (jsonStatus.failedReason && jsonStatus.failedReason.exception_message) {
-                 pesanAsli = jsonStatus.failedReason.exception_message;
-                 var nodeP = jsonStatus.failedReason.node_id || "?";
-                 tugas.status = "Gagal (Node " + nodeP + "): " + pesanAsli.substring(0, 30);
+                 pesanAsli = "Node " + (jsonStatus.failedReason.node_id||"?") + ": " + jsonStatus.failedReason.exception_message;
              } else if (jsonStatus.errorMessage) {
-                 tugas.status = "Gagal: " + jsonStatus.errorMessage.substring(0, 30);
-             } else {
-                 tugas.status = "Gagal Render Ditolak Server";
+                 pesanAsli = jsonStatus.errorMessage;
              }
 
-             tugas.selesai = true;
-             tugas.progress = null; // Matiin persentase
-             simpanStorage();
-             if (navLayarAktif === 'history') renderLayarHistory();
-             tampilkanNotif('Render Gagal!', 'error');
-             return;
+             tugas.status = "Gagal: " + pesanAsli.substring(0, 45);
+             tugas.selesai = true; tugas.progress = null; 
+             
+             simpanStorage(); if (navLayarAktif === 'history') renderLayarHistory();
+             tampilkanNotif('Render digagalkan server!', 'error');
+             return; 
           }
           
-          // JIKA STATUS SUCCESS
-          else if (st === "SUCCESS") {
-              clearInterval(cekInterval);
+          // Deteksi sukses
+          if (st === "SUCCESS" && jsonStatus.results && jsonStatus.results.length > 0) {
+              clearInterval(cekInterval); 
               tugas.status = "Selesai";
-              tugas.selesai = true;
-              tugas.progress = 100;
-              // MENGAMBIL LINK URL SESUAI ATURAN V2
-              if(jsonStatus.results && jsonStatus.results.length > 0) {
-                  tugas.videoUrl = jsonStatus.results[0].url;
-              }
-              simpanStorage();
-              if (navLayarAktif === 'history') renderLayarHistory();
+              tugas.selesai = true; tugas.progress = 100;
+              tugas.videoUrl = jsonStatus.results[0].url; 
+              
+              simpanStorage(); if (navLayarAktif === 'history') renderLayarHistory();
               tampilkanNotif('Render sukses 100%!', 'sukses');
+              return; 
           }
           
-          // JIKA STATUS ANTRIAN (QUEUED)
-          else if (st === "QUEUED") {
-              tugas.status = "Mengantre di GPU (Sabar ya...)";
-              simpanStorage();
-              if (navLayarAktif === 'history') renderLayarHistory();
-          }
-
-          // JIKA STATUS LAGI JALAN RENDER (RUNNING)
-          else if (st === "RUNNING") {
-              if (tugas.progress < 95) {
-                 tugas.progress += Math.floor(Math.random() * 8) + 2; 
-                 if(tugas.progress > 98) tugas.progress = 98;
-              }
+          // Indikator loading
+          if (st === "QUEUED") {
+              tugas.status = "Mengantre di GPU...";
+          } else if (st === "RUNNING") {
+              if (tugas.progress < 95) tugas.progress += Math.floor(Math.random() * 5) + 2; 
               tugas.status = "Sedang Render di GPU (" + tugas.progress + "%)";
-              simpanStorage();
-              if (navLayarAktif === 'history') renderLayarHistory();
           }
+          
+          simpanStorage(); if (navLayarAktif === 'history') renderLayarHistory();
 
-          // FALLBACK JIKA ADA ERROR JSON LAINNYA
-          else if (jsonStatus && jsonStatus.code && jsonStatus.code !== 0) {
-              clearInterval(cekInterval);
-              tugas.status = "Gagal API: " + (jsonStatus.msg || "Unknown");
-              tugas.selesai = true;
-              tugas.progress = null;
-              simpanStorage();
-              if (navLayarAktif === 'history') renderLayarHistory();
-          }
-
-        } catch (err) { console.warn("CCTV polling pending:", err); }
-      }, 8000);
+        } catch (err) { 
+           console.warn("CCTV error:", err); 
+        }
+      }, 8000); 
     }
 
     async function mulaiProsesGenerate() {
-      var targetAkun = akunRunningHub;
-      if (targetAkun.length === 0) return tampilkanNotif('Hubungkan akun terlebih dahulu!', 'error');
-      
-      var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
-      var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
-
-      if (!urlBahanFoto || !urlBahanVideo) return tampilkanNotif('Foto dan Video harus selesai diunggah!', 'error');
+      var akunAktif = akunRunningHub[0];
+      if (!akunAktif) return tampilkanNotif('Hubungkan akun terlebih dahulu!', 'error');
+      if (!urlBahanFoto || !urlBahanVideo) return tampilkanNotif('Foto dan Video harus diunggah!', 'error');
 
       var btn = document.getElementById('btn-submit-generate');
-      if (btn) { btn.disabled = true; btn.innerText = "⚡ MENGIRIM KE GPU..."; }
+      btn.disabled = true; btn.innerText = "⚡ MENGIRIM TUGAS...";
 
       try {
-        // NODE ID FIXED: 30 = Foto, 33 = Video. (Tidak pakai Node 3 lagi)
         var nodeParams = [
-          { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
-          { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto }
+          { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
+          { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
         ];
 
-        var payloadGenerate = {
-          nodeInfoList: nodeParams
-        };
-
-        // URL ENDPOINT API V2
         var res = await fetch('https://www.runninghub.ai/openapi/v2/run/workflow/' + RUNNINGHUB_WORKFLOW_ID, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
-          body: JSON.stringify(payloadGenerate)
+          body: JSON.stringify({ nodeInfoList: nodeParams })
         });
+        
         var data = await res.json();
         
-        // Di V2, taskId langsung ada di root object
         if (data && data.taskId) { 
-          tampilkanNotif('Tugas dikirim! ID: ' + data.taskId, 'sukses');
+          tampilkanNotif('Tugas berhasil dikirim!', 'sukses');
           
           var tugasBaru = {
-            id: data.taskId, key: akunAktif.key, model: "Wan Motion (v2)", prov: "RunningHub", tgl: "Baru saja", biaya: "≈ 360 koin",
-            videoUrl: null, status: "Terkirim ke Server (0%)", selesai: false, progress: 0
+            id: data.taskId, key: akunAktif.key, model: "MotionFly HD (v3)", prov: "RunningHub", tgl: "Baru saja",
+            videoUrl: null, status: "Masuk Antrean (0%)", selesai: false, progress: 0
           };
           
           riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
-          if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-          
           pantauTaskRunningHub(tugasBaru, akunAktif.key);
         } else { 
-          var pesanErrorAsli = data.errorMessage || data.msg || JSON.stringify(data);
-          tampilkanNotif('GAGAL: ' + pesanErrorAsli, 'error');
-          if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } 
+          tampilkanNotif('GAGAL KIRIM: ' + (data.errorMessage || data.msg), 'error');
         }
       } catch (e) { 
         tampilkanNotif('Koneksi Gagal: ' + e.message, 'error'); 
-        if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } 
+      } finally {
+        btn.innerText = "GENERATE VIDEO"; btn.disabled = false;
       }
     }
 
     function renderLayarHistory() {
-      var wadah = document.getElementById('wadah-list-history'), counter = document.getElementById('txt-counter-history');
-      if (!wadah) return;
-      wadah.innerHTML = '';
-      if (counter) counter.innerText = riwayatGenerateList.length + " tugas";
+      var wadah = document.getElementById('wadah-list-history');
+      if (!wadah) return; wadah.innerHTML = '';
+      
       if (riwayatGenerateList.length === 0) {
-        wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada riwayat.</div>'; return;
+        wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white">Belum ada riwayat.</div>'; return;
       }
+      
       riwayatGenerateList.forEach(function(itm) {
-        var isDone = (itm.selesai === true || itm.status === "Selesai" || itm.status.includes("Gagal") || itm.status.includes("Error")), hasVideo = Boolean(itm.videoUrl);
+        var isDone = itm.selesai, isFailed = itm.status.includes("Gagal") || itm.status.includes("Error");
         var card = document.createElement('div');
         card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
         
-        var iconStat = '⏳';
-        if (hasVideo) iconStat = '▶'; else if (isDone) iconStat = '❌';
+        var iconStat = isFailed ? '❌' : (isDone ? '▶' : '⏳');
+        var badgeHTML = '';
 
-        var badgeStatusHTML = '';
-        if (isDone) {
-           if (hasVideo) {
-              badgeStatusHTML = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai 100%</span>' +
-              '<button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer">Putar</button>' +
-              '<a href="' + itm.videoUrl + '" target="_blank" download="kiixmotion-' + itm.id + '.mp4" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</a>';
-           } else {
-              badgeStatusHTML = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">' + itm.status + '</span>';
-           }
+        if (isDone && !isFailed) {
+            badgeHTML = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai 100%</span>' +
+            '<button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 text-slate-700 rounded-xl">Putar</button>' +
+            '<a href="' + itm.videoUrl + '" target="_blank" download class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl">Download</a>';
+        } else if (isFailed) {
+            badgeHTML = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">' + itm.status + '</span>';
         } else {
-           var stText = itm.status;
-           badgeStatusHTML = '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">' + stText + '</span>';
+            badgeHTML = '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">' + itm.status + '</span>';
         }
 
         card.innerHTML = '<div class="flex items-center gap-4">' +
-          '<div class="w-12 h-12 rounded-2xl bg-kmVioletLight text-kmViolet flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">' + iconStat + '</div>' +
-          '<div><div class="flex items-center gap-2"><span class="text-base font-bold text-kmTextPrimary">' + itm.model + '</span><span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-semibold border border-slate-200">' + itm.prov + '</span></div>' +
-          '<div class="text-xs sm:text-sm text-kmTextSecondary mt-1">ID: <span class="text-kmViolet font-mono font-bold">' + itm.id + '</span> • ' + itm.tgl + '</div></div></div>' +
-          '<div class="flex items-center gap-2.5 shrink-0 pt-2 sm:pt-0">' + badgeStatusHTML + '</div>';
+          '<div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center font-bold text-lg">' + iconStat + '</div>' +
+          '<div><div class="text-base font-bold text-kmTextPrimary">' + itm.model + '</div>' +
+          '<div class="text-xs text-kmTextSecondary mt-1">ID: ' + itm.id + '</div></div></div>' +
+          '<div class="flex items-center gap-2.5 shrink-0">' + badgeHTML + '</div>';
         wadah.appendChild(card);
       });
     }
 
     function bersihkanSemuaHistory() {
-      if (riwayatGenerateList.length === 0) return;
       mintaKonfirmasi('Hapus seluruh riwayat?', function() { riwayatGenerateList = []; simpanStorage(); renderLayarHistory(); });
     }
 
-    function gantiTabAkunProvider(prov) {
-      tabAkunAktif = prov;
-      var tRh = document.getElementById('tab-pilih-rh');
-      if (tRh) tRh.className = "px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow";
-      if (isModePilih) toggleModePilihHapus();
-      renderListAkunDiKelola();
-    }
-
     function renderListAkunDiKelola() {
-      var wadah = document.getElementById('wadah-kartu-akun-list'), targetAkun = akunRunningHub;
-      if (!wadah) return;
-      wadah.innerHTML = ''; var totalKredit = 0;
-      targetAkun.forEach(function(a, i) {
-        var koinVal = Number(a.koin) || 0; totalKredit += koinVal;
-        var el = document.createElement('div'); el.className = "bg-white border border-kmBorder p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
-        el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-sm sm:text-base font-bold text-kmTextPrimary font-mono">' + a.nama + '</span></div>' +
-          '<div class="flex items-center gap-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span><span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + ' koin</span><button onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans">Hapus</button></div>';
+      var wadah = document.getElementById('wadah-kartu-akun-list');
+      if (!wadah) return; wadah.innerHTML = ''; 
+      
+      akunRunningHub.forEach(function(a, i) {
+        var el = document.createElement('div'); el.className = "bg-white border border-kmBorder p-4 rounded-2xl flex items-center justify-between modern-shadow";
+        el.innerHTML = '<div class="flex items-center gap-3.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span><span class="font-bold text-kmTextPrimary">' + a.nama + '</span></div>' +
+          '<div class="flex items-center gap-3"><span class="text-sm font-black text-kmViolet bg-violet-50 px-3 py-1 rounded-xl">' + a.koin + ' koin</span><button onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 text-xs font-bold">Hapus</button></div>';
         wadah.appendChild(el);
       });
-      var setTxt = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
-      setTxt('txt-stat-aktif', targetAkun.length); setTxt('txt-stat-akun', targetAkun.length); setTxt('txt-stat-kredit', totalKredit);
-      if (targetAkun.length === 0) wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Tambah API Key" di atas.</div>';
     }
 
     function hapusAkunSatu(idx) {
-      var targetAkun = akunRunningHub;
-      mintaKonfirmasi("Hapus akun ini?", function() { targetAkun.splice(idx, 1); simpanStorage(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate(); });
+      mintaKonfirmasi("Hapus akun ini?", function() { akunRunningHub.splice(idx, 1); simpanStorage(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate(); });
     }
 
-    function toggleModePilihHapus() {
-      isModePilih = !isModePilih;
-      var btn = document.getElementById('btn-toggle-pilih'), bar = document.getElementById('bar-aksi-hapus'), chks = document.querySelectorAll('.chk-seleksi-akun');
-      if (btn) { btn.innerText = isModePilih ? 'Batal' : 'Pilih'; btn.className = isModePilih ? "px-4 py-2 bg-rose-50 text-rose-600 text-sm font-bold rounded-xl border border-rose-200 cursor-pointer" : "px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition cursor-pointer"; }
-      if (bar) bar.style.display = isModePilih ? 'flex' : 'none';
-      chks.forEach(function(c) { if (isModePilih) c.classList.remove('hidden'); else { c.checked = false; c.classList.add('hidden'); } });
-    }
-
-    function centangSemuaAkun(master) { document.querySelectorAll('.chk-seleksi-akun').forEach(function(c) { c.checked = master.checked; }); }
-
-    function eksekusiHapusAkun() {
-      var checkedBoxes = document.querySelectorAll('.chk-seleksi-akun:checked');
-      if (checkedBoxes.length === 0) return;
-      mintaKonfirmasi('Hapus ' + checkedBoxes.length + ' akun?', function() {
-        var targetAkun = akunRunningHub, toDel = [];
-        checkedBoxes.forEach(function(c) { toDel.push(parseInt(c.getAttribute('data-idx'), 10)); });
-        toDel.sort(function(a, b) { return b - a; }).forEach(function(idx) { targetAkun.splice(idx, 1); });
-        simpanStorage(); toggleModePilihHapus(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
-      });
-    }
-
-    function bukaModalFormKey() { var m = document.getElementById('modal-popup-key'), k = document.getElementById('in-modal-key'); if (k) k.value = ''; if (m) m.style.display = 'flex'; }
-    function tutupModalFormKey() { var m = document.getElementById('modal-popup-key'); if (m) m.style.display = 'none'; }
+    function bukaModalFormKey() { document.getElementById('modal-popup-key').style.display = 'flex'; }
+    function tutupModalFormKey() { document.getElementById('modal-popup-key').style.display = 'none'; }
 
     async function simpanAkunBaruDariModal() {
-      var inKey = document.getElementById('in-modal-key'), valKey = inKey ? inKey.value.trim() : "";
-      if (!valKey) return tampilkanNotif('Masukkan API Key!', 'error');
-      var targetAkun = akunRunningHub;
-      if (targetAkun.find(function(a) { return a.key === valKey; })) return tampilkanNotif("API Key sudah ada!", 'error');
-      var btnSimpan = document.getElementById('btn-simpan-key');
-      if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan...'; btnSimpan.disabled = true; }
+      var valKey = document.getElementById('in-modal-key').value.trim();
+      if (!valKey) return;
+      var btn = document.getElementById('btn-simpan-key');
+      btn.innerText = 'Menyinkronkan...'; btn.disabled = true;
 
-      var saldoDidapat = 0;
+      var saldo = 0;
       try {
         var res = await fetch('/api/saldo?apiKey=' + encodeURIComponent(valKey));
         var hasil = await res.json();
-        if (hasil && hasil.data) {
-          var k = hasil.data.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data.coins !== undefined ? hasil.data.coins : hasil.data.balance);
-          if (k !== undefined && k !== null) saldoDidapat = Number(k);
-        }
-      } catch (err) { }
+        if (hasil && hasil.data) saldo = Number(hasil.data.remainCoins || hasil.data.coins || hasil.data.balance || 0);
+      } catch (err) {}
 
-      if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-      targetAkun.push({ nama: 'RunningHub #' + (targetAkun.length + 1), key: valKey, koin: Number(saldoDidapat) });
+      btn.innerText = 'Simpan API Key'; btn.disabled = false;
+      akunRunningHub.push({ nama: 'RunningHub', key: valKey, koin: saldo });
       simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
       tampilkanNotif('Akun terhubung!', 'sukses');
     }
 
-    window.onload = function() { muatStorage(); setProviderUtama('runninghub'); };
+    window.onload = function() { muatStorage(); };
   </script>
 </head>
 
-<body class="selection:bg-kmViolet selection:text-white pb-14">
+<body class="pb-14">
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
-  <header id="main-header-nav" class="border-b border-kmBorder bg-kmBg/90 backdrop-blur-md px-4 sm:px-8 py-3.5 flex flex-wrap items-center justify-between sticky top-0 z-40 gap-3">
-    <div class="flex items-center gap-3">
-      <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
-        <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="14" fill="#F3EEFF"/><path d="M14 10L22 22L14 34V10Z" fill="#7C3AED"/><path d="M22 22L30 10H22V22Z" fill="#A78BFA"/><path d="M22 22L30 34H22V22Z" fill="#6D28D9"/></svg>
-      </div>
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="text-base font-black tracking-tight text-kmTextPrimary">KiixMotion</span>
-          <span class="text-[9px] uppercase font-bold tracking-widest bg-violet-100 text-kmViolet px-2 py-0.5 rounded-full border border-violet-200">Studio V2.2</span>
-        </div>
-      </div>
-    </div>
-    
-    <nav class="flex items-center gap-1 sm:gap-2 bg-white/60 p-1 rounded-2xl border border-kmBorder">
-      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer">Dashboard</button>
-      <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer">Generate</button>
-      <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer">History</button>
-      <button id="menu-nav-kelo" onclick="gantiLayarNav('kelola-akun')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer">Kelola Akun</button>
+  <header id="main-header-nav" class="border-b border-kmBorder bg-white/90 backdrop-blur-md px-4 py-3.5 flex items-center justify-between sticky top-0 z-40">
+    <div class="font-black text-kmTextPrimary">KiixMotion V3.0</div>
+    <nav class="flex items-center gap-1">
+      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3 py-2 rounded-xl text-xs font-semibold">Dashboard</button>
+      <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3 py-2 rounded-xl text-xs font-semibold">Generate</button>
+      <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="px-3 py-2 rounded-xl text-xs font-semibold">History</button>
+      <button id="menu-nav-kelo" onclick="gantiLayarNav('kelola-akun')" class="px-3 py-2 rounded-xl text-xs font-semibold">Akun</button>
     </nav>
   </header>
 
-  <main id="view-workbench" class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 space-y-6">
     
-    <!-- DASHBOARD VIEW -->
     <div id="layar-dashboard" style="display: none;" class="space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div><h2 class="text-xl sm:text-2xl font-black text-kmTextPrimary">Overview Studio</h2></div>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="bg-white border border-kmBorder p-5 rounded-3xl modern-shadow space-y-4">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs">R</div>
-              <div><h3 class="text-sm font-bold text-kmTextPrimary">RunningHub</h3><p class="text-[11px] text-slate-400">API V2 Connected</p></div>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-2 border-y border-kmBorder py-3 text-center">
-            <div><div id="dash-rh-total-koin" class="text-xl font-black text-kmViolet font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Total Kredit</div></div>
-            <div><div id="dash-rh-total-akun" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div></div>
-          </div>
-        </div>
+      <div class="bg-white border border-kmBorder p-5 rounded-3xl modern-shadow text-center space-y-2">
+        <h3 class="text-sm font-bold text-slate-500">Total Koin Tersedia</h3>
+        <div id="dash-rh-total-koin" class="text-3xl font-black text-kmViolet">0</div>
       </div>
     </div>
 
-    <!-- GENERATE VIEW -->
     <div id="layar-generate" class="space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
-          <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input (Nodes: 30 & 33)
-          </h2>
-          <div id="v-mode-upload" class="grid grid-cols-2 gap-4">
-            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
-              <span class="text-4xl mb-2 group-hover:scale-105 transition">🖼️</span>
-              <span id="txt-file-foto" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Foto Karakter</span>
-              <span id="st-file-foto" class="text-[11px] text-slate-400 mt-1">Klik untuk upload</span>
-              <input id="input-file-foto" type="file" accept="image/*" class="hidden" onchange="unggahBahanLangsung(this, 'foto')" />
-            </label>
-
-            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
-              <span class="text-4xl mb-2 group-hover:scale-105 transition">🎬</span>
-              <span id="txt-file-video" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Video Gerakan</span>
-              <span id="st-file-video" class="text-[11px] text-slate-400 mt-1">Klik untuk upload</span>
-              <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
-            </label>
-          </div>
+      <div class="bg-white border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
+        <h2 class="font-bold text-kmTextPrimary">1. Bahan Input</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <label class="border-2 border-dashed border-kmBorder rounded-2xl p-5 text-center cursor-pointer bg-slate-50">
+            <span class="text-3xl">🖼️</span><br>
+            <span id="txt-file-foto" class="text-xs font-bold mt-2 block">Foto Karakter</span>
+            <span id="st-file-foto" class="text-[10px] text-slate-400">Klik untuk upload</span>
+            <input type="file" accept="image/*" class="hidden" onchange="unggahBahanLangsung(this, 'foto')" />
+          </label>
+          <label class="border-2 border-dashed border-kmBorder rounded-2xl p-5 text-center cursor-pointer bg-slate-50">
+            <span class="text-3xl">🎬</span><br>
+            <span id="txt-file-video" class="text-xs font-bold mt-2 block">Video Gerakan</span>
+            <span id="st-file-video" class="text-[10px] text-slate-400">Klik untuk upload</span>
+            <input type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
+          </label>
         </div>
+      </div>
 
-        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
-          <div class="space-y-5">
-            <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
-            </h2>
-            <div id="box-wrap-dropdown-akun" class="space-y-2">
-              <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
-                <option value="">Belum ada akun terhubung</option>
-              </select>
-            </div>
-          </div>
-          <button id="btn-submit-generate" onclick="mulaiProsesGenerate()" class="w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer">
-            GENERATE VIDEO (API V2)
-          </button>
-        </div>
+      <div class="bg-white border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
+        <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3 text-sm focus:outline-none"></select>
+        <button id="btn-submit-generate" onclick="mulaiProsesGenerate()" class="w-full py-4 bg-kmViolet text-white font-extrabold text-sm rounded-2xl violet-glow active:scale-95 transition">GENERATE VIDEO</button>
       </div>
     </div>
 
-    <!-- HISTORY VIEW -->
     <div id="layar-history" style="display: none;" class="space-y-4">
-      <div class="flex items-center justify-between bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
-        <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Riwayat Generate Video</h2>
-        <button onclick="bersihkanSemuaHistory()" class="text-xs sm:text-sm text-rose-500 font-bold cursor-pointer">Hapus Semua</button>
+      <div class="flex items-center justify-between bg-white p-5 rounded-3xl border border-kmBorder">
+        <h2 class="font-bold text-kmTextPrimary">Riwayat Video</h2>
+        <button onclick="bersihkanSemuaHistory()" class="text-xs text-rose-500 font-bold">Hapus Semua</button>
       </div>
       <div id="wadah-list-history" class="space-y-3"></div>
     </div>
 
-    <!-- KELOLA AKUN VIEW -->
     <div id="layar-kelola-akun" style="display: none;" class="space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
-        <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (BYOK)</h2>
-        <div class="flex gap-2">
-          <button id="tab-pilih-rh" onclick="gantiTabAkunProvider('runninghub')" class="px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow">RunningHub</button>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap items-center justify-between gap-4 bg-white border border-kmBorder p-6 rounded-3xl modern-shadow">
-        <div class="flex items-center gap-6 text-xs sm:text-sm font-mono">
-          <div><span class="text-kmTextSecondary">Akun: </span><span id="txt-stat-akun" class="font-bold">0</span></div>
-        </div>
-        <div class="flex items-center gap-2.5">
-          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-kmViolet hover:bg-kmVioletHover text-white text-xs sm:text-sm font-bold rounded-xl violet-glow transition cursor-pointer flex items-center gap-1.5">+ Tambah API Key</button>
-        </div>
-      </div>
+      <button onclick="bukaModalFormKey()" class="w-full py-4 bg-kmViolet text-white font-bold rounded-2xl violet-glow">+ Tambah API Key</button>
       <div id="wadah-kartu-akun-list" class="space-y-3"></div>
     </div>
   </main>
 
-  <!-- MODAL TAMBAH API KEY -->
   <div id="modal-popup-key" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white border border-kmBorder max-w-lg w-full p-6 sm:p-8 rounded-3xl space-y-5 shadow-2xl">
-      <div class="flex items-center justify-between"><h3 class="text-lg font-bold">Tambah API Key</h3><button onclick="tutupModalFormKey()" class="text-slate-400 font-bold text-2xl">✕</button></div>
-      <input id="in-modal-key" type="password" placeholder="Tempel API Key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 focus:border-kmViolet" />
-      <div class="flex gap-3 pt-3">
-        <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 font-bold rounded-2xl">Batal</button>
-        <button id="btn-simpan-key" onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-kmViolet text-white font-bold rounded-2xl">Simpan API Key</button>
+    <div class="bg-white border border-kmBorder max-w-sm w-full p-6 rounded-3xl space-y-5">
+      <h3 class="text-lg font-bold">Tambah API Key</h3>
+      <input id="in-modal-key" type="password" placeholder="Tempel API Key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3" />
+      <div class="flex gap-3 pt-2">
+        <button onclick="tutupModalFormKey()" class="flex-1 py-3 bg-slate-100 font-bold rounded-2xl">Batal</button>
+        <button id="btn-simpan-key" onclick="simpanAkunBaruBriModal()" class="flex-1 py-3 bg-kmViolet text-white font-bold rounded-2xl">Simpan</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL KONFIRMASI -->
   <div id="modal-konfirmasi-box" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white border border-kmBorder max-w-sm w-full p-6 rounded-3xl space-y-4 shadow-2xl text-center">
+    <div class="bg-white border border-kmBorder max-w-xs w-full p-6 rounded-3xl space-y-4 text-center">
       <p id="modal-konfirmasi-teks" class="text-sm font-semibold">Lanjutkan?</p>
       <div class="flex gap-2.5 pt-2">
         <button onclick="tutupModalKonfirmasi(false)" class="flex-1 py-2.5 bg-slate-100 font-bold rounded-xl">Batal</button>

@@ -59,11 +59,10 @@ async function runWorkflow() {
         return;
     }
 
-    statusEl.innerText = "Status: Mengirim request lewat backend proxy Vercel...";
+    statusEl.innerText = "Status: Mengirim request ke server...";
     resultContainer.style.display = "none";
 
     try {
-        // PERHATIAN: Nembak ke backend kita sendiri (/api/run), aman dari blokir CORS!
         const response = await fetch('/api/run', {
             method: 'POST',
             headers: {
@@ -77,9 +76,16 @@ async function runWorkflow() {
             })
         });
 
-        const data = await response.json();
+        // Cek apakah response dari server berupa teks mentah atau JSON valid
+        const responseText = await response.text();
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (e) {
+            throw new Error("Server mengembalikan bukan format JSON: " + responseText.substring(0, 100));
+        }
 
-        if (data.status === "SUCCESS" || data.taskId) {
+        if (response.ok && (data.status === "SUCCESS" || data.taskId || data.code === 0)) {
             statusEl.innerText = "Status: Render Berhasil! Menyiapkan video...";
             
             let videoResultUrl = "";
@@ -97,11 +103,11 @@ async function runWorkflow() {
                 statusEl.innerText = "Status: Task sukses tapi URL hasil belum muncul, Cek dashboard.";
             }
         } else {
-            statusEl.innerText = "Status Gagal: " + (data.errorMessage || data.errorCode || data.error || "Unknown error");
+            statusEl.innerText = "Status Gagal: " + (data.errorMessage || data.message || data.error || "Unknown error");
         }
     } catch (error) {
         console.error(error);
-        statusEl.innerText = "Status: Terjadi kesalahan koneksi ke server proxy.";
+        statusEl.innerText = "Status Error: " + error.message;
     }
 }
 </script>

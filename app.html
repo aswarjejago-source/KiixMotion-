@@ -1,230 +1,129 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>KiixMotion Studio (Frontend UI)</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
-          colors: {
-            kmBg: '#FBF9F5', kmCard: '#FFFFFF', kmBorder: '#EFECE6',
-            kmTextPrimary: '#1A1816', kmTextSecondary: '#736B63',
-            kmViolet: '#7C3AED', kmVioletHover: '#6D28D9',
-            kmVioletLight: '#F3EEFF', kmAccent: '#D97706'
-          }
-        }
-      }
-    };
-  </script>
-  
-  <style>
-    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; background-color: #FBF9F5; color: #1A1816; }
-    .modern-shadow { box-shadow: 0 10px 30px -5px rgba(26, 24, 22, 0.04), 0 4px 6px -2px rgba(26, 24, 22, 0.02); }
-    .violet-glow { box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.35); }
-    @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    .animate-toast { animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-  </style>
-
-  <script>
-    var riwayatList = [];
-    var navLayarAktif = 'generate';
-    var fileFotoObj = null;
-    var fileVideoObj = null;
-
-    function muatData() {
-      try {
-        var sHist = localStorage.getItem('km_frontend_hist');
-        if (sHist) riwayatList = JSON.parse(sHist);
-        var savedUrl = localStorage.getItem('km_backend_url');
-        if (savedUrl) {
-          var inputUrl = document.getElementById('input-backend-url');
-          if (inputUrl) inputUrl.value = savedUrl;
-        }
-      } catch (e) {}
-      gantiLayar(navLayarAktif);
-    }
-
-    function simpanData() {
-      try {
-        localStorage.setItem('km_frontend_hist', JSON.stringify(riwayatList));
-      } catch (e) {}
-    }
-
-    function simpanKonfigBackend() {
-      var inputUrl = document.getElementById('input-backend-url');
-      if (!inputUrl || !inputUrl.value.trim()) {
-        tampilkanNotif('URL Backend tidak boleh kosong!', 'error');
-        return;
-      }
-      localStorage.setItem('km_backend_url', inputUrl.value.trim());
-      tampilkanNotif('Konfigurasi Backend berhasil disimpan!', 'sukses');
-    }
-
-    function tampilkanNotif(pesan, jenis) {
-      var wadah = document.getElementById('toast-container');
-      if (!wadah) return;
-      var el = document.createElement('div');
-      var warnaBg = jenis === 'error' ? 'bg-rose-600 text-white' : (jenis === 'sukses' ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white');
-      el.className = 'animate-toast px-5 py-3 rounded-2xl shadow-xl font-bold text-xs sm:text-sm flex items-center gap-2 mb-2 ' + warnaBg;
-      el.innerHTML = '<span>' + (jenis === 'error' ? '⚠️' : (jenis === 'sukses' ? '✓' : 'ℹ️')) + '</span> <span>' + pesan + '</span>';
-      wadah.appendChild(el);
-      setTimeout(function() { el.remove(); }, 4000);
-    }
-
-    function gantiLayar(layar) {
-      navLayarAktif = layar;
-      var ids = ['generate', 'history', 'akun'];
-      ids.forEach(function(id) {
-        var el = document.getElementById('layar-' + id), btn = document.getElementById('menu-' + id);
-        if (el) el.style.display = (layar === id) ? 'block' : 'none';
-        if (btn) btn.className = "px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer " + ((layar === id) ? "bg-kmViolet text-white violet-glow" : "text-kmTextSecondary hover:text-kmViolet hover:bg-white/80");
-      });
-      if (layar === 'history') renderHistory();
-    }
-
-    function handleFile(input, tipe) {
-      if (!input.files || !input.files[0]) return;
-      var file = input.files[0];
-      if (tipe === 'foto') {
-        fileFotoObj = file;
-        var txtEl = document.getElementById('txt-foto');
-        var stEl = document.getElementById('st-foto');
-        if (txtEl) txtEl.innerText = file.name;
-        if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terpilih</span>';
-      } else {
-        fileVideoObj = file;
-        var txtEl = document.getElementById('txt-video');
-        var stEl = document.getElementById('st-video');
-        if (txtEl) txtEl.innerText = file.name;
-        if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terpilih</span>';
-      }
-      tampilkanNotif(tipe.toUpperCase() + ' berhasil dimuat ke antrean.', 'sukses');
-    }
-
-    function kirimKeBackendProxy() {
-      var backendUrl = localStorage.getItem('km_backend_url');
-      if (!backendUrl) {
-        tampilkanNotif('Atur URL Backend Server terlebih dahulu di menu Akun!', 'error');
-        gantiLayar('akun');
-        return;
-      }
-      if (!fileFotoObj || !fileVideoObj) {
-        tampilkanNotif('Mohon unggah Foto Karakter dan Video Gerakan terlebih dahulu!', 'error');
-        return;
-      }
-
-      tampilkanNotif('Mengirim tugas ke Backend Proxy...', 'info');
-
-      // Membungkus file ke FormData untuk dikirim ke Backend Proxy terpisah
-      var formData = new FormData();
-      formData.append('foto', fileFotoObj);
-      formData.append('video', fileVideoObj);
-
-      fetch(backendUrl.replace(/\/$/, '') + '/api/generate', {
-        method: 'POST',
-        body: formData
-      })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if (data.code === 0 || data.taskId) {
-          tampilkanNotif('Berhasil dikirim ke Backend Server!', 'sukses');
-          var tugasBaru = {
-            id: data.taskId || ('TASK-' + Math.floor(Math.random() * 1000000)),
-            model: 'MotionFly HD (Proxy Ready)',
-            tgl: 'Baru saja',
-            status: 'Diproses di Backend...',
-            selesai: false
-          };
-          riwayatList.unshift(tugasBaru);
-          simpanData();
-          gantiLayar('history');
-        } else {
-          tampilkanNotif('Gagal dari Backend: ' + (data.msg || 'Unknown error'), 'error');
-        }
-      })
-      .catch(function(err) {
-        tampilkanNotif('Gagal terhubung ke Backend Proxy: ' + err.message, 'error');
-      });
-    }
-
-    function renderHistory() {
-      var wadah = document.getElementById('wadah-history');
-      if (!wadah) return; wadah.innerHTML = '';
-      if (riwayatList.length === 0) {
-        wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white">Belum ada riwayat render.</div>';
-        return;
-      }
-      riwayatList.forEach(function(item) {
-        var card = document.createElement('div');
-        card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex items-center justify-between modern-shadow";
-        card.innerHTML = '<div><div class="font-bold text-kmTextPrimary text-sm">' + item.model + '</div>' +
-          '<div class="text-xs text-kmTextSecondary mt-1">ID: ' + item.id + '</div></div>' +
-          '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold">' + item.status + '</span>';
-        wadah.appendChild(card);
-      });
-    }
-
-    window.onload = function() { muatData(); };
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiixMotion Direct Client</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; max-width: 600px; margin: auto; }
+        .card { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        input, button { width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 15px; background: #334155; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box; }
+        button { background: #2563eb; font-weight: bold; cursor: pointer; border: none; }
+        button:hover { background: #1d4ed8; }
+        #status { font-weight: bold; color: #38bdf8; margin-top: 10px; }
+        video { width: 100%; border-radius: 8px; margin-top: 10px; }
+    </style>
 </head>
+<body>
 
-<body class="pb-14">
-  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
+    <div class="card">
+        <h2>KiixMotion Render Panel</h2>
+        
+        <label>API Key RunningHub:</label>
+        <input type="text" id="apiKey" value="88e79a44ded64b4a84a15b6d1bef72ac" placeholder="Masukkan API Key lu">
 
-  <header class="border-b border-kmBorder bg-white/90 backdrop-blur-md px-4 py-3.5 flex items-center justify-between sticky top-0 z-40">
-    <div class="font-black text-kmTextPrimary">KiixMotion Studio</div>
-    <nav class="flex items-center gap-1">
-      <button id="menu-generate" onclick="gantiLayar('generate')" class="px-3 py-2 rounded-xl text-xs font-semibold">Generate</button>
-      <button id="menu-history" onclick="gantiLayar('history')" class="px-3 py-2 rounded-xl text-xs font-semibold">History</button>
-      <button id="menu-akun" onclick="gantiLayar('akun')" class="px-3 py-2 rounded-xl text-xs font-semibold">Akun</button>
-    </nav>
-  </header>
+        <label>Workflow ID:</label>
+        <input type="text" id="workflowId" value="2096475206973194241" placeholder="Masukkan Workflow ID">
 
-  <main class="max-w-3xl w-full mx-auto p-4 space-y-6">
-    <div id="layar-generate" class="space-y-6">
-      <div class="bg-white border border-kmBorder p-6 rounded-3xl space-y-4 modern-shadow">
-        <h2 class="font-bold text-kmTextPrimary text-sm">Upload Bahan (Foto & Video)</h2>
-        <div class="grid grid-cols-2 gap-4">
-          <label class="border-2 border-dashed border-kmBorder rounded-2xl p-5 text-center cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
-            <span class="text-2xl">🖼️</span><br>
-            <span id="txt-foto" class="text-xs font-bold mt-2 block">Foto Karakter</span>
-            <span id="st-foto" class="text-[10px] text-slate-400">Pilih file</span>
-            <input type="file" accept="image/*" class="hidden" onchange="handleFile(this, 'foto')" />
-          </label>
-          <label class="border-2 border-dashed border-kmBorder rounded-2xl p-5 text-center cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
-            <span class="text-2xl">🎬</span><br>
-            <span id="txt-video" class="text-xs font-bold mt-2 block">Video Gerakan</span>
-            <span id="st-video" class="text-[10px] text-slate-400">Pilih file</span>
-            <input type="file" accept="video/*" class="hidden" onchange="handleFile(this, 'video')" />
-          </label>
-        </div>
-      </div>
+        <label>URL Foto (Node 30):</label>
+        <input type="text" id="imageUrl" placeholder="https://... URL gambar lu">
 
-      <button onclick="kirimKeBackendProxy()" class="w-full py-4 bg-kmViolet text-white font-extrabold text-sm rounded-2xl violet-glow active:scale-95 transition">GENERATE VIDEO</button>
+        <label>URL Video (Node 33):</label>
+        <input type="text" id="videoUrl" placeholder="https://... URL video referensi lu">
+
+        <button onclick="runWorkflow()">Mulai Render</button>
+        
+        <div id="status">Status: Siap</div>
     </div>
 
-    <div id="layar-history" style="display: none;" class="space-y-4">
-      <h2 class="font-bold text-kmTextPrimary text-sm">Riwayat Render</h2>
-      <div id="wadah-history" class="space-y-3"></div>
+    <div class="card" id="resultContainer" style="display:none;">
+        <h3>Hasil Render</h3>
+        <video id="outputVideo" controls></video>
+        <br>
+        <a id="downloadLink" href="#" target="_blank"><button style="background: #16a34a;">Download Video</button></a>
     </div>
 
-    <div id="layar-akun" style="display: none;" class="space-y-4">
-      <div class="bg-white border border-kmBorder p-6 rounded-3xl space-y-3 modern-shadow">
-        <h2 class="font-bold text-kmTextPrimary text-sm">Konfigurasi Backend Proxy</h2>
-        <p class="text-xs text-kmTextSecondary">Masukkan URL server backend perantara (Render/Railway) lu di bawah ini agar web Vercel bisa mengirimkan tugas dengan aman.</p>
-        <input id="input-backend-url" type="text" placeholder="URL Backend Server (contoh: https://kiix-motion-backend.onrender.com)" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3 text-xs" />
-        <button onclick="simpanKonfigBackend()" class="w-full py-3 bg-slate-900 text-white text-xs font-bold rounded-2xl">Simpan Konfigurasi</button>
-      </div>
-    </div>
-  </main>
+<script>
+async function runWorkflow() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    const workflowId = document.getElementById('workflowId').value.trim();
+    const imageUrl = document.getElementById('imageUrl').value.trim();
+    const videoUrl = document.getElementById('videoUrl').value.trim();
+    const statusEl = document.getElementById('status');
+    const resultContainer = document.getElementById('resultContainer');
+    const outputVideo = document.getElementById('outputVideo');
+    const downloadLink = document.getElementById('downloadLink');
+
+    if (!apiKey || !workflowId || !imageUrl || !videoUrl) {
+        alert("Isi dulu semua datanya, Bree!");
+        return;
+    }
+
+    statusEl.innerText = "Status: Mengirim request ke RunningHub...";
+    resultContainer.style.display = "none";
+
+    // Payload sesuai data sukses log API sebelumnya
+    const payload = {
+        apiKey: apiKey,
+        workflowId: workflowId,
+        randomSeed: true,
+        retainSeconds: 0,
+        usePersonalQueue: false,
+        nodeInfoList: [
+            {
+                nodeId: "30",
+                fieldName: "image",
+                fieldValue: imageUrl,
+                description: "image"
+            },
+            {
+                nodeId: "33",
+                fieldName: "video",
+                fieldValue: videoUrl,
+                description: "video"
+            }
+        ]
+    };
+
+    try {
+        // Endpoint OpenAPI Run Workflow dari RunningHub
+        const response = await fetch('https://www.runninghub.ai/openapi/v2/run/workflow/synchronous', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.status === "SUCCESS" || data.taskId) {
+            statusEl.innerText = "Status: Render Berhasil! Menyiapkan video...";
+            
+            // Ambil URL hasil dari node 490 (berdasarkan struktur response sukses lu sebelumnya)
+            let videoResultUrl = "";
+            if (data.results && data.results.length > 0) {
+                const resItem = data.results.find(r => r.nodeId === "490") || data.results[0];
+                videoResultUrl = resItem.url;
+            }
+
+            if (videoResultUrl) {
+                outputVideo.src = videoResultUrl;
+                downloadLink.href = videoResultUrl;
+                resultContainer.style.display = "block";
+                statusEl.innerText = "Status: Selesai!";
+            } else {
+                statusEl.innerText = "Status: Task sukses tapi URL hasil belum muncul, Cek dashboard.";
+            }
+        } else {
+            statusEl.innerText = "Status Gagal: " + (data.errorMessage || "Unknown error");
+        }
+    } catch (error) {
+        console.error(error);
+        statusEl.innerText = "Status: Error koneksi atau diblokir CORS oleh browser.";
+    }
+}
+</script>
+
 </body>
 </html>

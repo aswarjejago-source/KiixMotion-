@@ -3,40 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KiixMotion Dashboard & Render</title>
+    <title>KiixMotion Studio</title>
     <style>
         body { font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; max-width: 600px; margin: auto; }
         .card { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         input, button { width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 15px; background: #334155; border: 1px solid #475569; color: white; border-radius: 6px; box-sizing: border-box; }
         button { background: #2563eb; font-weight: bold; cursor: pointer; border: none; }
         button:hover { background: #1d4ed8; }
-        .btn-green { background: #16a34a; }
-        .btn-green:hover { background: #15803d; }
         #status { font-weight: bold; color: #38bdf8; margin-top: 10px; }
         video { width: 100%; border-radius: 8px; margin-top: 10px; }
-        .info-box { background: #334155; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <!-- Panel Akun & Cek Koin -->
     <div class="card">
-        <h2>Akun Terhubung (BYOK)</h2>
-        <div class="info-box">
-            Kelola API key RunningHub kamu di sini.
-        </div>
+        <h2>KiixMotion Render Panel</h2>
         
-        <label>API Key:</label>
-        <input type="text" id="apiKeyInput" value="88e79a44ded64b4a84a15b6d1bef72ac" placeholder="Masukkan API Key RunningHub">
+        <label>API Key RunningHub:</label>
+        <input type="text" id="apiKey" value="88e79a44ded64b4a84a15b6d1bef72ac" placeholder="Masukkan API Key">
 
-        <button class="btn-green" onclick="checkCoinBalance()">Cek Koin / Akun</button>
-        <div id="coinStatus" style="font-size: 14px; margin-top: 5px; color: #cbd5e1;">Status Akun: Belum dicek</div>
-    </div>
-
-    <!-- Panel Render Workflow -->
-    <div class="card">
-        <h2>RunningHub Workflow Render</h2>
-        
         <label>Workflow ID:</label>
         <input type="text" id="workflowId" value="2096475206973194241" placeholder="Masukkan Workflow ID">
 
@@ -46,114 +31,8 @@
         <label>URL Video (Node 33):</label>
         <input type="text" id="videoUrl" placeholder="https://... URL video referensi lu">
 
-        <button onclick="runWorkflow()">Mulai Render</button>
+        <button onclick="triggerRender()">Mulai Render</button>
         
         <div id="status">Status: Siap</div>
     </div>
-
-    <!-- Panel Hasil -->
-    <div class="card" id="resultContainer" style="display:none;">
-        <h3>Hasil Render Video</h3>
-        <video id="outputVideo" controls></video>
-        <br>
-        <a id="downloadLink" href="#" target="_blank"><button class="btn-green" style="margin-top: 10px;">Download Video</button></a>
-    </div>
-
-<script>
-// Fungsi Cek Koin / Status Akun
-async function checkCoinBalance() {
-    const apiKey = document.getElementById('apiKeyInput').value.trim();
-    const coinStatus = document.getElementById('coinStatus');
-
-    if (!apiKey) {
-        alert("Masukkan API Key terlebih dahulu!");
-        return;
-    }
-
-    coinStatus.innerText = "Status Akun: Mengecek data...";
-
-    try {
-        // Menggunakan backend proxy Vercel atau direct jika didukung
-        const response = await fetch('/api/run', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'check_balance', apiKey: apiKey })
-        });
-
-        const data = await response.json();
-        coinStatus.innerText = "Status Akun: Terhubung! (Koin/Data Aktif)";
-    } catch (error) {
-        coinStatus.innerText = "Status Akun: Gagal terhubung (" + error.message + ")";
-    }
-}
-
-// Fungsi Eksekusi Render Workflow
-async function runWorkflow() {
-    const apiKey = document.getElementById('apiKeyInput').value.trim();
-    const workflowId = document.getElementById('workflowId').value.trim();
-    const imageUrl = document.getElementById('imageUrl').value.trim();
-    const videoUrl = document.getElementById('videoUrl').value.trim();
-    const statusEl = document.getElementById('status');
-    const resultContainer = document.getElementById('resultContainer');
-    const outputVideo = document.getElementById('outputVideo');
-    const downloadLink = document.getElementById('downloadLink');
-
-    if (!apiKey || !workflowId || !imageUrl || !videoUrl) {
-        alert("Isi dulu semua datanya dengan benar, Bree!");
-        return;
-    }
-
-    statusEl.innerText = "Status: Mengirim request render...";
-    resultContainer.style.display = "none";
-
-    try {
-        const response = await fetch('/api/run', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                apiKey: apiKey,
-                workflowId: workflowId,
-                imageUrl: imageUrl,
-                videoUrl: videoUrl
-            })
-        });
-
-        const responseText = await response.text();
-        let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            throw new Error("Server mengembalikan format non-JSON: " + responseText.substring(0, 80));
-        }
-
-        if (response.ok && (data.status === "SUCCESS" || data.taskId || data.code === 0)) {
-            statusEl.innerText = "Status: Render Berhasil! Menyiapkan video...";
-            
-            let videoResultUrl = "";
-            if (data.results && data.results.length > 0) {
-                const resItem = data.results.find(r => r.nodeId === "490") || data.results[0];
-                videoResultUrl = resItem.url;
-            }
-
-            if (videoResultUrl) {
-                outputVideo.src = videoResultUrl;
-                downloadLink.href = videoResultUrl;
-                resultContainer.style.display = "block";
-                statusEl.innerText = "Status: Selesai!";
-            } else {
-                statusEl.innerText = "Status: Task sukses, tapi URL hasil belum muncul di node target.";
-            }
-        } else {
-            statusEl.innerText = "Status Gagal: " + (data.errorMessage || data.message || data.error || "Unknown error");
-        }
-    } catch (error) {
-        console.error(error);
-        statusEl.innerText = "Status Error: " + error.message;
-    }
-}
-</script>
-
-</body>
-</html>
+    

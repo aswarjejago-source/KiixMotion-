@@ -6,11 +6,13 @@ export default async function handler(req, res) {
     try {
         const { apiKey, workflowId, imageUrl, videoUrl } = req.body;
 
+        if (!apiKey || !workflowId || !imageUrl || !videoUrl) {
+            return res.status(400).json({ error: 'Data yang dikirim kurang lengkap!' });
+        }
+
         const apiResponse = await fetch('https://www.runninghub.ai/openapi/v2/run/workflow/synchronous', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 apiKey: apiKey,
                 workflowId: workflowId,

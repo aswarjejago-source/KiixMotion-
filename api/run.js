@@ -1,4 +1,7 @@
 export default async function handler(req, res) {
+    // Pastikan header selalu ngebales dalam bentuk JSON, cegah error HTML dari Vercel
+    res.setHeader('Content-Type', 'application/json');
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -10,23 +13,27 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'API Key tidak boleh kosong!' });
         }
 
-        // 1. JIKA AKSI CEK SALDO / KOIN
+        // 1. CEK SALDO / INFO AKUN RUNNINGHUB
         if (action === 'check_balance') {
-            // Sesuaikan endpoint cek saldo RunningHub jika ada endpoint resminya, 
-            // sementara kita pakai endpoint user info/balance standar
-            const balanceResponse = await fetch('https://www.runninghub.ai/openapi/v2/user/balance', {
+            const apiResponse = await fetch('https://www.runninghub.ai/openapi/v2/user/balance', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ apiKey: apiKey })
             });
             
-            const balanceData = await balanceResponse.json();
-            return res.status(200).json(balanceData);
+            const textResponse = await apiResponse.text();
+            let data;
+            try {
+                data = JSON.parse(textResponse);
+            } catch (e) {
+                return res.status(500).json({ error: 'Gagal parsing dari RunningHub: ' + textResponse.substring(0, 100) });
+            }
+            return res.status(200).json(data);
         }
 
-        // 2. JIKA AKSI RENDER WORKFLOW
+        // 2. EKSEKUSI RENDER WORKFLOW
         if (!workflowId || !imageUrl || !videoUrl) {
-            return res.status(400).json({ error: 'Data render kurang lengkap!' });
+            return res.status(400).json({ error: 'Data render (Workflow ID / URL Foto / URL Video) kurang lengkap!' });
         }
 
         const apiResponse = await fetch('https://www.runninghub.ai/openapi/v2/run/workflow/synchronous', {
@@ -45,10 +52,17 @@ export default async function handler(req, res) {
             })
         });
 
-        const data = await apiResponse.json();
+        const textResponse = await apiResponse.text();
+        let data;
+        try {
+            data = JSON.parse(textResponse);
+        } catch (e) {
+            return res.status(500).json({ error: 'RunningHub mengembalikan non-JSON: ' + textResponse.substring(0, 100) });
+        }
+
         return res.status(200).json(data);
 
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: 'Server Error: ' + error.message });
     }
 }

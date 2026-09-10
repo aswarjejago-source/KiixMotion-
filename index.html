@@ -559,21 +559,21 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI UTAMA CEK SALDO LANGSUNG MENGGUNAKAN CORS PROXY (TANPA RIBET BACKEND VERCEL)
+    // FUNGSI TARIK SALDO FINAL - MENGUNAKAN VERCEL (/api/run) DENGAN PENGECEKAN KETAT
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
       
-      if (!valKey) return tampilkanNotif('Masukkan API Key terlebih dahulu!', 'error');
+      if (!valKey) return tampilkanNotif('Masukkan API Key lu dulu!', 'error');
       
       var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
       
       if (targetAkun.find(function(a) { return a.key === valKey; })) {
-        return tampilkanNotif("API Key ini sudah ada di daftar akun!", 'error');
+        return tampilkanNotif("API Key ini udah ada di daftar!", 'error');
       }
 
       var btnSimpan = document.getElementById('btn-simpan-key');
-      if (btnSimpan) { btnSimpan.innerText = 'Mengecek Saldo Asli...'; btnSimpan.disabled = true; }
+      if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan Koin...'; btnSimpan.disabled = true; }
 
       var nomorUrut = targetAkun.length + 1;
       var namaAkun = (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + nomorUrut;
@@ -581,21 +581,33 @@
 
       if (tabAkunAktif === 'runninghub') {
         try {
-          // Menggunakan jembatan corsproxy.io untuk nembak langsung saldo ke RunningHub
-          var targetUrl = encodeURIComponent('https://www.runninghub.ai/task/openapi/balance');
-          var res = await fetch('https://corsproxy.io/?' + targetUrl, {
-            method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + valKey }
+          var response = await fetch('/api/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'check_balance', apiKey: valKey })
           });
-          var hasil = await res.json();
           
-          if (hasil) {
-            var rawKoin = hasil.remainCoins ?? hasil.coins ?? hasil.balance ?? hasil.data?.remainCoins ?? hasil.data?.coins ?? hasil.data?.balance ?? hasil.data ?? 0;
-            saldoDidapat = Number(rawKoin);
-            if (isNaN(saldoDidapat)) saldoDidapat = 0;
+          var hasil = await response.json();
+          console.log("Respon API Vercel:", hasil); // Debugging murni
+          
+          if (response.ok && hasil) {
+            // Scanner akurat buat nangkep nilai 319 dari respon RunningHub
+            var koin = 0;
+            if (hasil.data && hasil.data.remainCoins !== undefined) {
+               koin = hasil.data.remainCoins;
+            } else if (hasil.remainCoins !== undefined) {
+               koin = hasil.remainCoins;
+            } else if (hasil.data && hasil.data.coins !== undefined) {
+               koin = hasil.data.coins;
+            } else if (hasil.coins !== undefined) {
+               koin = hasil.coins;
+            } else if (hasil.balance !== undefined) {
+               koin = hasil.balance;
+            }
+            saldoDidapat = Number(koin);
           }
         } catch (err) {
-          console.warn("Gagal tarik saldo otomatis:", err);
+          console.error("Error tarik koin:", err);
           saldoDidapat = 0;
         }
       } else {

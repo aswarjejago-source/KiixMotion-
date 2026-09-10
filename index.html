@@ -61,7 +61,7 @@
     var currentView = 'workbench';
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    var RUNNINGHUB_WORKFLOW_ID = "2095991824610615297";
+    var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745";
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var urlBahanFoto = null, urlBahanVideo = null;
     var currentUserEmail = "aswar@kiixmotion.com";
@@ -381,9 +381,9 @@
           var promptFinal = promptTxt || "Follow the reference video as accurately as possible. High quality, smooth movement.";
           
           var nodeParams = [
-            { nodeId: "3", fieldName: "text", fieldValue: promptFinal },
-            { nodeId: "89", fieldName: "image", fieldValue: urlBahanVideo },
-            { nodeId: "308", fieldName: "image", fieldValue: urlBahanFoto }
+            var nodeParams = [
+            { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
+            { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
           ];
 
           var payloadGenerate = {

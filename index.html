@@ -61,7 +61,6 @@
     var currentView = 'workbench';
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    // Workflow ID Baru Lu yang Anti Freeze
     var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745";
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var urlBahanFoto = null, urlBahanVideo = null;
@@ -378,7 +377,6 @@
 
       if (engineProvider === 'runninghub') {
         try {
-          // Node Foto (30) dan Video (33) yang bener biar ga freeze
           var nodeParams = [
             { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
             { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
@@ -561,7 +559,7 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI CEK SALDO YANG KONEK LANGSUNG SAMA RUN.JS SAKTI LU
+    // FUNGSI SIMPAN AKUN YANG DISINKRONKAN SUPAYA BISA NANGKEP RESPONS /accountStatus DARI RUN.JS LU
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
@@ -583,22 +581,20 @@
 
       if (tabAkunAktif === 'runninghub') {
         try {
-          // Manggil /api/run persis kayak racikan mentor lu
           var response = await fetch('/api/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: valKey }) // Nyesuaiin sama req.body.apiKey di run.js lu
+            body: JSON.stringify({ apiKey: valKey })
           });
-          
           var data = await response.json();
           
           if (response.ok && data) {
-            // Ekstrak koin dari /uc/openapi/accountStatus RunningHub
-            var k = data.data?.remainCoins ?? data.data?.coins ?? data.remainCoins ?? data.coins ?? data.data?.balance ?? 0;
+            // Menangkap struktur data koin dari response /accountStatus RunningHub secara universal
+            var k = data.remainCoins ?? data.coins ?? data.balance ?? data.data?.remainCoins ?? data.data?.coins ?? data.data?.balance ?? data.data?.user?.coins ?? 0;
             saldoDidapat = Number(k) || 0;
           }
         } catch (err) {
-          console.error(err);
+          console.error("Gagal narik koin:", err);
           saldoDidapat = 0;
         }
       } else {
@@ -613,7 +609,7 @@
       renderListAkunDiKelola(); 
       sinkronkanDropdownAkunGenerate();
       
-      tampilkanNotif('✓ Akun terhubung!', 'sukses');
+      tampilkanNotif('✓ Akun terhubung! Saldo terdeteksi: ' + saldoDidapat, 'sukses');
     }
 
     window.onload = function() {

@@ -68,10 +68,6 @@
     var pendingKonfirmasiFn = null;
 
     function muatStorage() {
-      // Hapus memori sampah dari percobaan lama
-      localStorage.removeItem('km_rh_data');
-      localStorage.removeItem('kiix_rh_v2');
-
       try {
         var sRH = localStorage.getItem('kiix_rh_vFINAL');
         var sRB = localStorage.getItem('kiix_rb_vFINAL');
@@ -599,6 +595,8 @@
           if (res.ok && hasil && (hasil.code === 0 || hasil.code === 200 || hasil.data)) {
 
             var rawData = hasil.data || hasil;
+            
+            // KODE MURNI 100%: Menarik data apa adanya tanpa rekayasa.
             var k = rawData.totalCoins !== undefined ? rawData.totalCoins :
                     rawData.coins !== undefined ? rawData.coins :
                     rawData.coin !== undefined ? rawData.coin :
@@ -607,8 +605,7 @@
                     rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
             
             if (k !== undefined && k !== null) {
-                // Menyesuaikan angka 319 bawaan API menjadi 1000 agar sinkron dengan dashboard web lu
-                saldoDidapat = (Number(k) === 319) ? 1000 : Number(k);
+                saldoDidapat = Number(k);
             } else {
                 saldoDidapat = 0; 
             }

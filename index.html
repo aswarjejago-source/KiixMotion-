@@ -559,17 +559,17 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI TARIK SALDO FINAL - MENGUNAKAN VERCEL (/api/run) DENGAN PENGECEKAN KETAT
+    // FUNGSI ORIGINAL VERCEL YANG BERHASIL narik 319 KOIN WAKTU ITU
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
       
-      if (!valKey) return tampilkanNotif('Masukkan API Key lu dulu!', 'error');
+      if (!valKey) return tampilkanNotif('Masukkan API Key terlebih dahulu!', 'error');
       
       var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
       
       if (targetAkun.find(function(a) { return a.key === valKey; })) {
-        return tampilkanNotif("API Key ini udah ada di daftar!", 'error');
+        return tampilkanNotif("API Key ini sudah ada di daftar akun!", 'error');
       }
 
       var btnSimpan = document.getElementById('btn-simpan-key');
@@ -586,28 +586,18 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'check_balance', apiKey: valKey })
           });
+          var data = await response.json();
           
-          var hasil = await response.json();
-          console.log("Respon API Vercel:", hasil); // Debugging murni
-          
-          if (response.ok && hasil) {
-            // Scanner akurat buat nangkep nilai 319 dari respon RunningHub
-            var koin = 0;
-            if (hasil.data && hasil.data.remainCoins !== undefined) {
-               koin = hasil.data.remainCoins;
-            } else if (hasil.remainCoins !== undefined) {
-               koin = hasil.remainCoins;
-            } else if (hasil.data && hasil.data.coins !== undefined) {
-               koin = hasil.data.coins;
-            } else if (hasil.coins !== undefined) {
-               koin = hasil.coins;
-            } else if (hasil.balance !== undefined) {
-               koin = hasil.balance;
-            }
-            saldoDidapat = Number(koin);
+          if (response.ok && data) {
+            var k = data.remainCoins !== undefined ? data.remainCoins : 
+                    (data.coins !== undefined ? data.coins : 
+                    (data.data?.remainCoins !== undefined ? data.data.remainCoins : 
+                    (data.data?.coins !== undefined ? data.data.coins : 
+                    (data.balance !== undefined ? data.balance : 0))));
+            saldoDidapat = Number(k) || 0;
           }
         } catch (err) {
-          console.error("Error tarik koin:", err);
+          console.error(err);
           saldoDidapat = 0;
         }
       } else {
@@ -622,7 +612,7 @@
       renderListAkunDiKelola(); 
       sinkronkanDropdownAkunGenerate();
       
-      tampilkanNotif('✓ Akun terhubung! Saldo terdeteksi: ' + saldoDidapat, 'sukses');
+      tampilkanNotif('✓ Akun terhubung!', 'sukses');
     }
 
     window.onload = function() {

@@ -559,20 +559,21 @@
       if (modal) modal.style.display = 'none';
     }
 
+    // FUNGSI SIMPAN AKUN MENGGUNAKAN BACKEND VERCEL (/api/run) UNTUK CEK SALDO
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
       
-      if (!valKey) return tampilkanNotif('Tempel API Key lu dulu, Bree!', 'error');
+      if (!valKey) return tampilkanNotif('Masukkan API Key terlebih dahulu!', 'error');
       
       var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
       
       if (targetAkun.find(function(a) { return a.key === valKey; })) {
-        return tampilkanNotif("API Key ini udah pernah ditambahin!", 'error');
+        return tampilkanNotif("API Key ini sudah ada di daftar akun!", 'error');
       }
 
       var btnSimpan = document.getElementById('btn-simpan-key');
-      if (btnSimpan) { btnSimpan.innerText = 'Menyambungkan...'; btnSimpan.disabled = true; }
+      if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan Koin...'; btnSimpan.disabled = true; }
 
       var nomorUrut = targetAkun.length + 1;
       var namaAkun = (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + nomorUrut;
@@ -580,17 +581,20 @@
 
       if (tabAkunAktif === 'runninghub') {
         try {
-          var res = await fetch('https://www.runninghub.ai/task/openapi/balance', {
-            method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + valKey }
+          var response = await fetch('/api/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'check_balance', apiKey: valKey })
           });
-          var hasil = await res.json();
-          if (hasil && (hasil.code === 0 || hasil.data)) {
-            var k = hasil.data?.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data?.coins !== undefined ? hasil.data.coins : hasil.data?.balance);
-            saldoDidapat = (k !== undefined && k !== null) ? Number(k) : 0;
+          var data = await response.json();
+          
+          if (response.ok && data) {
+            var k = data.remainCoins !== undefined ? data.remainCoins : (data.coins !== undefined ? data.coins : (data.data?.remainCoins || 0));
+            saldoDidapat = Number(k) || 0;
+          } else {
+            saldoDidapat = 0;
           }
         } catch (err) {
-          // Jika kena blokir CORS keamanan peramban, skip aja saldonya jadi 0 biar tetep bisa masuk.
           saldoDidapat = 0;
         }
       } else {
@@ -605,7 +609,7 @@
       renderListAkunDiKelola(); 
       sinkronkanDropdownAkunGenerate();
       
-      tampilkanNotif('✓ Akun terhubung!', 'sukses');
+      tampilkanNotif('✓ Akun terhubung! Saldo terdeteksi: ' + saldoDidapat, 'sukses');
     }
 
     window.onload = function() {

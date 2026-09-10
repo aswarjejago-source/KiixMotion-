@@ -69,9 +69,10 @@
 
     function muatStorage() {
       try {
-        var sRH = localStorage.getItem('km_rh_data');
-        var sRB = localStorage.getItem('km_rb_data');
-        var sHist = localStorage.getItem('km_hist_data');
+        // REVISI 1: Ganti nama brankas jadi v2 supaya bersih dari data hantu yang bikin error duplikat
+        var sRH = localStorage.getItem('kiix_rh_v2');
+        var sRB = localStorage.getItem('kiix_rb_v2');
+        var sHist = localStorage.getItem('kiix_hist_v2');
         if (sRH) akunRunningHub = JSON.parse(sRH);
         if (sRB) akunRoboneo = JSON.parse(sRB);
         if (sHist) riwayatGenerateList = JSON.parse(sHist);
@@ -85,9 +86,10 @@
 
     function simpanStorage() {
       try {
-        localStorage.setItem('km_rh_data', JSON.stringify(akunRunningHub));
-        localStorage.setItem('km_rb_data', JSON.stringify(akunRoboneo));
-        localStorage.setItem('km_hist_data', JSON.stringify(riwayatGenerateList));
+        // REVISI 1 LANJUTAN: Simpan ke brankas v2
+        localStorage.setItem('kiix_rh_v2', JSON.stringify(akunRunningHub));
+        localStorage.setItem('kiix_rb_v2', JSON.stringify(akunRoboneo));
+        localStorage.setItem('kiix_hist_v2', JSON.stringify(riwayatGenerateList));
       } catch (e) {
         console.error("Gagal simpan penyimpanan:", e);
       }
@@ -218,8 +220,8 @@
       } else {
         setTxt('t-engine-title', "WAN MOTION CONTROL 1080HD");
         setTxt('t-engine-sub', "(RUNNINGHUB)");
-        setTxt('t-engine-cost', "≈ 478 kredit");
-        setTxt('t-engine-total', "≈ 478 kredit");
+        setTxt('t-engine-cost', "≈ 478 coin");
+        setTxt('t-engine-total', "≈ 478 coin");
         if (dropWrap) dropWrap.style.display = 'block';
       }
       sinkronkanDropdownAkunGenerate();
@@ -563,7 +565,7 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI UTAMA PENARIKAN COIN YANG DISESUAIKAN DENGAN BACKEND /api/saldo.js
+    // REVISI 2: FUNGSI CEK API KEY DAN KOIN YANG LEBIH KUAT
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
@@ -585,30 +587,35 @@
 
       if (tabAkunAktif === 'runninghub') {
         try {
-          // Menembak backend proxy Vercel /api/saldo yang menggunakan metode POST
           var res = await fetch('/api/saldo', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ apiKey: valKey })
           });
+          
           var hasil = await res.json();
           
-          if (hasil && (hasil.code === 0 || hasil.data || hasil.coin !== undefined)) {
-            var rawData = hasil.data || hasil;
-            var k = rawData.coin !== undefined ? rawData.coin : (rawData.remainCoins !== undefined ? rawData.remainCoins : (rawData.coins !== undefined ? rawData.coins : rawData.balance));
+          // Memastikan balasan dari API RunningHub sukses (code: 0)
+          if (res.ok && hasil && hasil.code === 0) {
+            var rawData = hasil.data || {};
+            
+            // Jaring deteksi koin yang lebih aman
+            var k = rawData.remainCoins !== undefined ? rawData.remainCoins : (rawData.coin !== undefined ? rawData.coin : (rawData.coins !== undefined ? rawData.coins : rawData.balance));
             
             if (k !== undefined && k !== null) {
                 saldoDidapat = Number(k);
             } else {
-                saldoDidapat = 0;
+                saldoDidapat = 0; // Jika API key benar tapi format koin tidak ketarik, kasih 0 aja daripada error merah
             }
           } else {
+            // Jika API Key salah, expired, atau server menolak
             if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-            return tampilkanNotif('Gagal tarik coin: ' + (hasil.msg || hasil.error || 'Akses ditolak'), 'error');
+            var pesanError = (hasil && hasil.msg) ? hasil.msg : 'Ditolak Server RunningHub';
+            return tampilkanNotif('API Key Tidak Valid: ' + pesanError, 'error');
           }
         } catch (err) {
           if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-          return tampilkanNotif('Gagal terhubung ke server: ' + err.message, 'error');
+          return tampilkanNotif('Gagal terhubung ke Vercel: ' + err.message, 'error');
         }
       } else {
         saldoDidapat = 4;

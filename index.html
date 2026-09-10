@@ -559,7 +559,7 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI SIMPAN AKUN DENGAN PENGECEKAN SALDO FLEKSIBEL (SUPAYA ANGKA KOIN MASUK)
+    // FUNGSI UTAMA PENARIK SALDO YANG DIPERBAIKI SECARA EKSTRA TELITI
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
@@ -589,13 +589,10 @@
           var data = await response.json();
           
           if (response.ok && data) {
-            // Cek berbagai kemungkinan nama field saldo dari backend
-            var k = data.remainCoins !== undefined ? data.remainCoins : 
-                    (data.coins !== undefined ? data.coins : 
-                    (data.balance !== undefined ? data.balance : 
-                    (data.data?.remainCoins !== undefined ? data.data.remainCoins : 
-                    (data.data?.coins !== undefined ? data.data.coins : 0))));
-            saldoDidapat = Number(k) || 0;
+            // Menangkap angka dari berbagai kemungkinan struktur JSON backend Vercel
+            var rawSaldo = data.remainCoins ?? data.coins ?? data.balance ?? data.data?.remainCoins ?? data.data?.coins ?? data.data?.balance ?? data.data;
+            saldoDidapat = Number(rawSaldo);
+            if (isNaN(saldoDidapat)) saldoDidapat = 0;
           } else {
             saldoDidapat = 0;
           }

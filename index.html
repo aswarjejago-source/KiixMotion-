@@ -559,7 +559,7 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI UTAMA PENARIK SALDO YANG DIPERBAIKI SECARA EKSTRA TELITI
+    // FUNGSI UTAMA CEK SALDO LANGSUNG MENGGUNAKAN CORS PROXY (TANPA RIBET BACKEND VERCEL)
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
@@ -573,7 +573,7 @@
       }
 
       var btnSimpan = document.getElementById('btn-simpan-key');
-      if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan Koin...'; btnSimpan.disabled = true; }
+      if (btnSimpan) { btnSimpan.innerText = 'Mengecek Saldo Asli...'; btnSimpan.disabled = true; }
 
       var nomorUrut = targetAkun.length + 1;
       var namaAkun = (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + nomorUrut;
@@ -581,22 +581,21 @@
 
       if (tabAkunAktif === 'runninghub') {
         try {
-          var response = await fetch('/api/run', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'check_balance', apiKey: valKey })
+          // Menggunakan jembatan corsproxy.io untuk nembak langsung saldo ke RunningHub
+          var targetUrl = encodeURIComponent('https://www.runninghub.ai/task/openapi/balance');
+          var res = await fetch('https://corsproxy.io/?' + targetUrl, {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + valKey }
           });
-          var data = await response.json();
+          var hasil = await res.json();
           
-          if (response.ok && data) {
-            // Menangkap angka dari berbagai kemungkinan struktur JSON backend Vercel
-            var rawSaldo = data.remainCoins ?? data.coins ?? data.balance ?? data.data?.remainCoins ?? data.data?.coins ?? data.data?.balance ?? data.data;
-            saldoDidapat = Number(rawSaldo);
+          if (hasil) {
+            var rawKoin = hasil.remainCoins ?? hasil.coins ?? hasil.balance ?? hasil.data?.remainCoins ?? hasil.data?.coins ?? hasil.data?.balance ?? hasil.data ?? 0;
+            saldoDidapat = Number(rawKoin);
             if (isNaN(saldoDidapat)) saldoDidapat = 0;
-          } else {
-            saldoDidapat = 0;
           }
         } catch (err) {
+          console.warn("Gagal tarik saldo otomatis:", err);
           saldoDidapat = 0;
         }
       } else {

@@ -559,7 +559,7 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI SIMPAN AKUN YANG PASTI NANGKEP RESPONS /accountStatus DARI /api/run
+    // FUNGSI SIMPAN AKUN FINAL: NANGKEP SALDO 319 DARI RUN.JS LU
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
@@ -587,10 +587,10 @@
             body: JSON.stringify({ apiKey: valKey })
           });
           var data = await response.json();
-          console.log("Respon Backend accountStatus:", data);
+          console.log("DATA RESPON RUNNINGHUB:", data);
           
           if (response.ok && data) {
-            // Mencari angka koin dari semua variasi struktur respons RunningHub /accountStatus
+            // Scanner universal buat nangkep angka 319 dari struktur data RunningHub
             var k = data.remainCoins ?? 
                     data.coins ?? 
                     data.balance ?? 
@@ -600,6 +600,7 @@
                     data.data?.user?.coins ?? 
                     data.data?.surplusCoins ?? 
                     data.surplusCoins ?? 
+                    data.data ?? 
                     0;
             saldoDidapat = Number(k) || 0;
           }

@@ -61,6 +61,7 @@
     var currentView = 'workbench';
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
+    // WORKFLOW ID SUDAH DIGANTI KE VERSI BARU
     var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745";
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var urlBahanFoto = null, urlBahanVideo = null;
@@ -377,11 +378,8 @@
 
       if (engineProvider === 'runninghub') {
         try {
-          var promptTxt = document.getElementById('in-prompt-gerak') ? document.getElementById('in-prompt-gerak').value.trim() : "";
-          var promptFinal = promptTxt || "Follow the reference video as accurately as possible. High quality, smooth movement.";
-          
+          // NODE SUDAH DIGANTI SESUAI WORKFLOW (NODE 30 DAN NODE 33)
           var nodeParams = [
-            var nodeParams = [
             { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
             { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
           ];
@@ -583,9 +581,11 @@
       var saldoDidapat = 0;
 
       if (tabAkunAktif === 'runninghub') {
-        // PERUBAHAN SATU-SATUNYA: Nembak ke Vercel API jembatan mikro punya lu.
         try {
-          var res = await fetch('/api/saldo?apiKey=' + encodeURIComponent(valKey));
+          var res = await fetch('https://www.runninghub.ai/task/openapi/balance', {
+            method: 'GET',
+            headers: { 'Authorization': 'Bearer ' + valKey }
+          });
           var hasil = await res.json();
           
           if (hasil && (hasil.code === 0 || hasil.data)) {
@@ -601,8 +601,8 @@
           }
         } catch (err) {
           if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-          tampilkanNotif('Gagal koneksi ke server Vercel.', 'error');
-          return;
+          tampilkanNotif('Simpan offline (Gagal cek saldo langsung)', 'info');
+          saldoDidapat = 0;
         }
       } else {
         saldoDidapat = 4;

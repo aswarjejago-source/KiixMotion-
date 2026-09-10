@@ -68,10 +68,14 @@
     var pendingKonfirmasiFn = null;
 
     function muatStorage() {
+      // BAPAKNYA SAPU BERSIH: Hapus semua cache hantu secara paksa saat web dibuka
+      localStorage.removeItem('km_rh_data');
+      localStorage.removeItem('kiix_rh_v2');
+
       try {
-        var sRH = localStorage.getItem('kiix_rh_v2');
-        var sRB = localStorage.getItem('kiix_rb_v2');
-        var sHist = localStorage.getItem('kiix_hist_v2');
+        var sRH = localStorage.getItem('kiix_rh_vLIVE');
+        var sRB = localStorage.getItem('kiix_rb_vLIVE');
+        var sHist = localStorage.getItem('kiix_hist_vLIVE');
         if (sRH) akunRunningHub = JSON.parse(sRH);
         if (sRB) akunRoboneo = JSON.parse(sRB);
         if (sHist) riwayatGenerateList = JSON.parse(sHist);
@@ -85,9 +89,9 @@
 
     function simpanStorage() {
       try {
-        localStorage.setItem('kiix_rh_v2', JSON.stringify(akunRunningHub));
-        localStorage.setItem('kiix_rb_v2', JSON.stringify(akunRoboneo));
-        localStorage.setItem('kiix_hist_v2', JSON.stringify(riwayatGenerateList));
+        localStorage.setItem('kiix_rh_vLIVE', JSON.stringify(akunRunningHub));
+        localStorage.setItem('kiix_rb_vLIVE', JSON.stringify(akunRoboneo));
+        localStorage.setItem('kiix_hist_vLIVE', JSON.stringify(riwayatGenerateList));
       } catch (e) {
         console.error("Gagal simpan penyimpanan:", e);
       }
@@ -107,7 +111,7 @@
         el.style.transform = 'translateY(-10px)';
         el.style.transition = 'all 0.3s ease';
         setTimeout(function() { el.remove(); }, 300);
-      }, 3500);
+      }, 4500);
     }
 
     function aturTampilanHalamanUtama() {
@@ -592,26 +596,23 @@
           
           var hasil = await res.json();
           
-          // --- FITUR CCTV TEMBUS PANDANG ---
-          // Ini bakal munculin data murni dari RunningHub langsung ke HP lu
-          alert("BUKTI DATA MENTAH RUNNINGHUB:\n\n" + JSON.stringify(hasil, null, 2) + "\n\nCek di baris mana angka 1000 lu ngumpet, Bree!");
-
-          // Jaring super ketat, kalau sukses (code 0) baru narik data
           if (res.ok && hasil && (hasil.code === 0 || hasil.code === 200 || hasil.data)) {
             var rawData = hasil.data || hasil;
             
-            // Jaring yang memprioritaskan koin terbesar / balance utama
-            var k = rawData.credit !== undefined ? rawData.credit :
-                    rawData.balance !== undefined ? rawData.balance :
+            // Jaring tangkap SEMUA nama variabel yang mungkin dikirim Server RunningHub
+            // Kita prioritaskan angka terbesar atau 'totalCoins' jika ada
+            var k = rawData.totalCoins !== undefined ? rawData.totalCoins :
                     rawData.coins !== undefined ? rawData.coins :
                     rawData.coin !== undefined ? rawData.coin :
-                    rawData.remainCoins !== undefined ? rawData.remainCoins :
-                    rawData.amount !== undefined ? rawData.amount : 
-                    rawData.point !== undefined ? rawData.point : undefined;
+                    rawData.credit !== undefined ? rawData.credit :
+                    rawData.balance !== undefined ? rawData.balance :
+                    rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
             
             if (k !== undefined && k !== null) {
                 saldoDidapat = Number(k);
             } else {
+                // Kalau nama variabelnya beda banget, kasih tau mentahannya ke lu
+                alert("Server sukses terhubung, tapi koin lu disembunyiin pakai nama ini:\n\n" + JSON.stringify(rawData));
                 saldoDidapat = 0; 
             }
           } else {
@@ -854,7 +855,7 @@
     <div id="layar-kelola-akun" style="display: none;" class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
         <div>
-          <h2 id="txt-head-akun" class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (BYOK)</h2>
+          <h2 id="txt-head-akun" class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2>
           <p id="txt-sub-akun" class="text-xs sm:text-sm text-kmTextSecondary mt-1">Kelola API key RunningHub dan Roboneo kamu.</p>
         </div>
         <div class="flex gap-2">

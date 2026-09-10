@@ -106,8 +106,8 @@
         el.style.opacity = '0';
         el.style.transform = 'translateY(-10px)';
         el.style.transition = 'all 0.3s ease';
-        setTimeout(function() { el.remove(); }, 300);
-      }, 3500);
+        setTimeout(function() { el.remove(); }, 4000);
+      }, 4000);
     }
 
     function aturTampilanHalamanUtama() {
@@ -559,7 +559,7 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI SIMPAN AKUN FINAL: NANGKEP SALDO 319 DARI RUN.JS LU
+    // FUNGSI SIMPAN AKUN DENGAN CCTV (MENAMPILKAN RESPON MENTAH SERVER KE LAYAR)
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
@@ -587,10 +587,14 @@
             body: JSON.stringify({ apiKey: valKey })
           });
           var data = await response.json();
-          console.log("DATA RESPON RUNNINGHUB:", data);
+          
+          // --- CCTV DIAKTIFKAN DI SINI (Muncul sebagai notifikasi di layar HP lu) ---
+          console.log("CCTV RESPON RUNNINGHUB:", data);
+          tampilkanNotif('CCTV Respon: ' + JSON.stringify(data), 'info');
+          // --------------------------------------------------------------------------
           
           if (response.ok && data) {
-            // Scanner universal buat nangkep angka 319 dari struktur data RunningHub
+            // Scanner menyeluruh yang mendeteksi segala jenis format properti koin dari server
             var k = data.remainCoins ?? 
                     data.coins ?? 
                     data.balance ?? 
@@ -600,12 +604,13 @@
                     data.data?.user?.coins ?? 
                     data.data?.surplusCoins ?? 
                     data.surplusCoins ?? 
-                    data.data ?? 
-                    0;
+                    (typeof data.data === 'number' ? data.data : 0);
+            
             saldoDidapat = Number(k) || 0;
           }
         } catch (err) {
           console.error("Gagal narik koin:", err);
+          tampilkanNotif('CCTV Error: ' + err.message, 'error');
           saldoDidapat = 0;
         }
       } else {
@@ -852,7 +857,7 @@
         <div class="flex items-center gap-6 text-xs sm:text-sm font-mono">
           <div><span class="text-kmTextSecondary font-sans">Akun: </span><span id="txt-stat-akun" class="text-kmTextPrimary font-bold text-sm sm:text-base">0</span></div>
           <div><span class="text-kmTextSecondary font-sans">Aktif: </span><span id="txt-stat-aktif" class="text-emerald-600 font-bold text-sm sm:text-base">0</span></div>
-          <div><span class="text-kmTextSecondary font-sans">Total Koin: </span><span id="txt-stat-kredit" class="text-kmViolet font-bold text-sm sm:text-base">0</span></div>
+          <div><span class="text-kmTextSecondary font-sans">Total Koin: </span><span id="txt-violet font-bold text-sm sm:text-base">0</span></div>
         </div>
         <div class="flex items-center gap-2.5">
           <button id="btn-toggle-pilih" onclick="toggleModePilihHapus()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Pilih</button>

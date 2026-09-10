@@ -68,14 +68,14 @@
     var pendingKonfirmasiFn = null;
 
     function muatStorage() {
-      // BAPAKNYA SAPU BERSIH: Hapus semua cache hantu secara paksa saat web dibuka
+      // Hapus memori sampah dari percobaan lama
       localStorage.removeItem('km_rh_data');
       localStorage.removeItem('kiix_rh_v2');
 
       try {
-        var sRH = localStorage.getItem('kiix_rh_vLIVE');
-        var sRB = localStorage.getItem('kiix_rb_vLIVE');
-        var sHist = localStorage.getItem('kiix_hist_vLIVE');
+        var sRH = localStorage.getItem('kiix_rh_vFINAL');
+        var sRB = localStorage.getItem('kiix_rb_vFINAL');
+        var sHist = localStorage.getItem('kiix_hist_vFINAL');
         if (sRH) akunRunningHub = JSON.parse(sRH);
         if (sRB) akunRoboneo = JSON.parse(sRB);
         if (sHist) riwayatGenerateList = JSON.parse(sHist);
@@ -89,9 +89,9 @@
 
     function simpanStorage() {
       try {
-        localStorage.setItem('kiix_rh_vLIVE', JSON.stringify(akunRunningHub));
-        localStorage.setItem('kiix_rb_vLIVE', JSON.stringify(akunRoboneo));
-        localStorage.setItem('kiix_hist_vLIVE', JSON.stringify(riwayatGenerateList));
+        localStorage.setItem('kiix_rh_vFINAL', JSON.stringify(akunRunningHub));
+        localStorage.setItem('kiix_rb_vFINAL', JSON.stringify(akunRoboneo));
+        localStorage.setItem('kiix_hist_vFINAL', JSON.stringify(riwayatGenerateList));
       } catch (e) {
         console.error("Gagal simpan penyimpanan:", e);
       }
@@ -320,7 +320,7 @@
           total += koinVal;
           var o = document.createElement('option');
           o.value = idx;
-          o.innerText = a.nama + " (" + koinVal + (engineProvider === 'roboneo' ? " carrots)" : " coin)");
+          o.innerText = "API Key: " + a.key.substring(0, 10) + "... (" + koinVal + (engineProvider === 'roboneo' ? " carrots)" : " coin)");
           sel.appendChild(o);
         });
         if (badge) {
@@ -498,7 +498,9 @@
         totalKredit += koinVal;
         var el = document.createElement('div');
         el.className = "bg-white border border-kmBorder p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
-        el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-sm sm:text-base font-bold text-kmTextPrimary font-mono">' + a.nama + '</span></div>' +
+        
+        // REVISI NAMA AKUN: Menampilkan nama akun sesuai string API Key yang diinput
+        el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-xs sm:text-sm font-bold text-kmTextPrimary font-mono break-all w-32 sm:w-64 truncate" title="' + a.key + '">' + a.nama + '</span></div>' +
           '<div class="flex items-center gap-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span><span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + (tabAkunAktif === 'roboneo' ? ' carrots' : ' coin') + '</span><button onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans">Hapus</button></div>';
         wadah.appendChild(el);
       });
@@ -582,8 +584,8 @@
       var btnSimpan = document.getElementById('btn-simpan-key');
       if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan Coin...'; btnSimpan.disabled = true; }
 
-      var nomorUrut = targetAkun.length + 1;
-      var namaAkun = (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + nomorUrut;
+      // NAMA AKUN DIGANTI JADI API KEY LANGSUNG
+      var namaAkun = valKey; 
       var saldoDidapat = 0;
 
       if (tabAkunAktif === 'runninghub') {
@@ -597,10 +599,11 @@
           var hasil = await res.json();
           
           if (res.ok && hasil && (hasil.code === 0 || hasil.code === 200 || hasil.data)) {
-            var rawData = hasil.data || hasil;
             
-            // Jaring tangkap SEMUA nama variabel yang mungkin dikirim Server RunningHub
-            // Kita prioritaskan angka terbesar atau 'totalCoins' jika ada
+            // POP-UP UNTUK MEMBUKTIKAN DATA MURNI DARI SERVER RUNNINGHUB
+            alert("INI DATA ASLI DARI SERVER RUNNINGHUB:\n\n" + JSON.stringify(hasil, null, 2));
+
+            var rawData = hasil.data || hasil;
             var k = rawData.totalCoins !== undefined ? rawData.totalCoins :
                     rawData.coins !== undefined ? rawData.coins :
                     rawData.coin !== undefined ? rawData.coin :
@@ -611,8 +614,6 @@
             if (k !== undefined && k !== null) {
                 saldoDidapat = Number(k);
             } else {
-                // Kalau nama variabelnya beda banget, kasih tau mentahannya ke lu
-                alert("Server sukses terhubung, tapi koin lu disembunyiin pakai nama ini:\n\n" + JSON.stringify(rawData));
                 saldoDidapat = 0; 
             }
           } else {

@@ -559,7 +559,7 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI SIMPAN AKUN MENGGUNAKAN BACKEND VERCEL (/api/run) UNTUK CEK SALDO
+    // FUNGSI SIMPAN AKUN DENGAN PENGECEKAN SALDO FLEKSIBEL (SUPAYA ANGKA KOIN MASUK)
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
@@ -589,7 +589,12 @@
           var data = await response.json();
           
           if (response.ok && data) {
-            var k = data.remainCoins !== undefined ? data.remainCoins : (data.coins !== undefined ? data.coins : (data.data?.remainCoins || 0));
+            // Cek berbagai kemungkinan nama field saldo dari backend
+            var k = data.remainCoins !== undefined ? data.remainCoins : 
+                    (data.coins !== undefined ? data.coins : 
+                    (data.balance !== undefined ? data.balance : 
+                    (data.data?.remainCoins !== undefined ? data.data.remainCoins : 
+                    (data.data?.coins !== undefined ? data.data.coins : 0))));
             saldoDidapat = Number(k) || 0;
           } else {
             saldoDidapat = 0;

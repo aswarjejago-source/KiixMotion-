@@ -61,7 +61,7 @@
     var currentView = 'workbench';
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    // WORKFLOW ID SUDAH DIGANTI KE VERSI BARU
+    // WORKFLOW ID LU YG BARU
     var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745";
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var urlBahanFoto = null, urlBahanVideo = null;
@@ -300,10 +300,10 @@
       if (targetAkun.length === 0) {
         var opt = document.createElement('option');
         opt.value = "";
-        opt.innerText = "Belum ada akun terhubung (0 koin)";
+        opt.innerText = "Belum ada akun terhubung";
         sel.appendChild(opt);
         if (badge) {
-          badge.innerText = "0 koin";
+          badge.innerText = "-";
           badge.className = "text-xs font-mono text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg";
         }
       } else {
@@ -311,17 +311,17 @@
         optRand.value = "random";
         optRand.innerText = "🎲 Otomatis (Pilih Acak Akun)";
         sel.appendChild(optRand);
-        var total = 0;
+        
         targetAkun.forEach(function(a, idx) {
-          var koinVal = Number(a.koin) || 0;
-          total += koinVal;
+          var koinText = a.koin !== undefined ? a.koin : "Aktif";
           var o = document.createElement('option');
           o.value = idx;
-          o.innerText = a.nama + " (" + koinVal + (engineProvider === 'roboneo' ? " carrots)" : " koin)");
+          o.innerText = a.nama + " (" + koinText + ")";
           sel.appendChild(o);
         });
+        
         if (badge) {
-          badge.innerText = total + (engineProvider === 'roboneo' ? " carrots" : " koin");
+          badge.innerText = targetAkun.length + " Akun";
           badge.className = "text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
         }
       }
@@ -378,7 +378,7 @@
 
       if (engineProvider === 'runninghub') {
         try {
-          // NODE SUDAH DIGANTI SESUAI WORKFLOW (NODE 30 DAN NODE 33)
+          // NODE SUDAH DIGANTI SESUAI WORKFLOW LU (NODE 30 DAN NODE 33)
           var nodeParams = [
             { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
             { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
@@ -486,20 +486,17 @@
       var wadah = document.getElementById('wadah-kartu-akun-list'), targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
       if (!wadah) return;
       wadah.innerHTML = '';
-      var totalKredit = 0;
       targetAkun.forEach(function(a, i) {
-        var koinVal = Number(a.koin) || 0;
-        totalKredit += koinVal;
+        var koinText = a.koin !== undefined ? a.koin : "0";
         var el = document.createElement('div');
         el.className = "bg-white border border-kmBorder p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
         el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-sm sm:text-base font-bold text-kmTextPrimary font-mono">' + a.nama + '</span></div>' +
-          '<div class="flex items-center gap-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span><span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + (tabAkunAktif === 'roboneo' ? ' carrots' : ' koin') + '</span><button onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans">Hapus</button></div>';
+          '<div class="flex items-center gap-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span><span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinText + '</span><button onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans">Hapus</button></div>';
         wadah.appendChild(el);
       });
       var setTxt = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
       setTxt('txt-stat-aktif', targetAkun.length);
       setTxt('txt-stat-akun', targetAkun.length);
-      setTxt('txt-stat-kredit', totalKredit);
       if (targetAkun.length === 0) {
         wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Tambah API Key" di atas.</div>';
       }
@@ -561,62 +558,36 @@
       if (modal) modal.style.display = 'none';
     }
 
-    async function simpanAkunBaruDariModal() {
+    // FUNGSI SIMPAN API KEY YG UDAH DIBERSIHIN DARI JEBAKAN SERVER CORS
+    function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
       
-      if (!valKey) return tampilkanNotif('Masukkan API Key terlebih dahulu!', 'error');
+      if (!valKey) return tampilkanNotif('Tempel API Key lu dulu, Bree!', 'error');
       
       var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
       
       if (targetAkun.find(function(a) { return a.key === valKey; })) {
-        return tampilkanNotif("API Key ini sudah ada di daftar akun!", 'error');
+        return tampilkanNotif("API Key ini udah pernah ditambahin!", 'error');
       }
 
       var btnSimpan = document.getElementById('btn-simpan-key');
-      if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan Koin...'; btnSimpan.disabled = true; }
+      if (btnSimpan) { btnSimpan.innerText = 'Menyimpan...'; btnSimpan.disabled = true; }
 
       var nomorUrut = targetAkun.length + 1;
       var namaAkun = (tabAkunAktif === 'runninghub' ? 'RunningHub #' : 'Roboneo #') + nomorUrut;
-      var saldoDidapat = 0;
 
-      if (tabAkunAktif === 'runninghub') {
-        try {
-          var res = await fetch('https://www.runninghub.ai/task/openapi/balance', {
-            method: 'GET',
-            headers: { 'Authorization': 'Bearer ' + valKey }
-          });
-          var hasil = await res.json();
-          
-          if (hasil && (hasil.code === 0 || hasil.data)) {
-            var k = hasil.data?.remainCoins !== undefined ? hasil.data.remainCoins : (hasil.data?.coins !== undefined ? hasil.data.coins : hasil.data?.balance);
-            if (k !== undefined && k !== null) {
-                saldoDidapat = Number(k);
-            } else {
-                saldoDidapat = 1000;
-            }
-          } else {
-            if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-            return tampilkanNotif('Gagal tarik koin: ' + (hasil.msg || 'Akses ditolak'), 'error');
-          }
-        } catch (err) {
-          if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-          tampilkanNotif('Simpan offline (Gagal cek saldo langsung)', 'info');
-          saldoDidapat = 0;
-        }
-      } else {
-        saldoDidapat = 4;
-      }
-
-      if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-
-      targetAkun.push({ nama: namaAkun, key: valKey, koin: Number(saldoDidapat) });
+      // Langsung simpan paksa ke memori lokal tanpa muter-muter nunggu balasan server
+      targetAkun.push({ nama: namaAkun, key: valKey, koin: "Cek pas render" });
       simpanStorage(); 
+      
+      if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
+      
       tutupModalFormKey(); 
       renderListAkunDiKelola(); 
       sinkronkanDropdownAkunGenerate();
       
-      tampilkanNotif('✓ Akun terhubung!', 'sukses');
+      tampilkanNotif('✓ API Key berhasil disimpen!', 'sukses');
     }
 
     window.onload = function() {

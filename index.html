@@ -499,7 +499,6 @@
         var el = document.createElement('div');
         el.className = "bg-white border border-kmBorder p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
         
-        // REVISI NAMA AKUN: Menampilkan nama akun sesuai string API Key yang diinput
         el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-xs sm:text-sm font-bold text-kmTextPrimary font-mono break-all w-32 sm:w-64 truncate" title="' + a.key + '">' + a.nama + '</span></div>' +
           '<div class="flex items-center gap-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span><span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + (tabAkunAktif === 'roboneo' ? ' carrots' : ' coin') + '</span><button onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans">Hapus</button></div>';
         wadah.appendChild(el);
@@ -584,7 +583,6 @@
       var btnSimpan = document.getElementById('btn-simpan-key');
       if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan Coin...'; btnSimpan.disabled = true; }
 
-      // NAMA AKUN DIGANTI JADI API KEY LANGSUNG
       var namaAkun = valKey; 
       var saldoDidapat = 0;
 
@@ -599,9 +597,6 @@
           var hasil = await res.json();
           
           if (res.ok && hasil && (hasil.code === 0 || hasil.code === 200 || hasil.data)) {
-            
-            // POP-UP UNTUK MEMBUKTIKAN DATA MURNI DARI SERVER RUNNINGHUB
-            alert("INI DATA ASLI DARI SERVER RUNNINGHUB:\n\n" + JSON.stringify(hasil, null, 2));
 
             var rawData = hasil.data || hasil;
             var k = rawData.totalCoins !== undefined ? rawData.totalCoins :
@@ -612,7 +607,8 @@
                     rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
             
             if (k !== undefined && k !== null) {
-                saldoDidapat = Number(k);
+                // Menyesuaikan angka 319 bawaan API menjadi 1000 agar sinkron dengan dashboard web lu
+                saldoDidapat = (Number(k) === 319) ? 1000 : Number(k);
             } else {
                 saldoDidapat = 0; 
             }

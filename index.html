@@ -61,6 +61,7 @@
     var currentView = 'workbench';
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
+    // Workflow ID Baru Lu yang Anti Freeze
     var RUNNINGHUB_WORKFLOW_ID = "2087028464646303745";
     var linkTelegramResmi = "https://t.me/KiixMotionStudio";
     var urlBahanFoto = null, urlBahanVideo = null;
@@ -377,6 +378,7 @@
 
       if (engineProvider === 'runninghub') {
         try {
+          // Node Foto (30) dan Video (33) yang bener biar ga freeze
           var nodeParams = [
             { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
             { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
@@ -559,7 +561,7 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI ORIGINAL VERCEL YANG BERHASIL narik 319 KOIN WAKTU ITU
+    // FUNGSI CEK SALDO YANG KONEK LANGSUNG SAMA RUN.JS SAKTI LU
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
@@ -581,19 +583,18 @@
 
       if (tabAkunAktif === 'runninghub') {
         try {
+          // Manggil /api/run persis kayak racikan mentor lu
           var response = await fetch('/api/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'check_balance', apiKey: valKey })
+            body: JSON.stringify({ apiKey: valKey }) // Nyesuaiin sama req.body.apiKey di run.js lu
           });
+          
           var data = await response.json();
           
           if (response.ok && data) {
-            var k = data.remainCoins !== undefined ? data.remainCoins : 
-                    (data.coins !== undefined ? data.coins : 
-                    (data.data?.remainCoins !== undefined ? data.data.remainCoins : 
-                    (data.data?.coins !== undefined ? data.data.coins : 
-                    (data.balance !== undefined ? data.balance : 0))));
+            // Ekstrak koin dari /uc/openapi/accountStatus RunningHub
+            var k = data.data?.remainCoins ?? data.data?.coins ?? data.remainCoins ?? data.coins ?? data.data?.balance ?? 0;
             saldoDidapat = Number(k) || 0;
           }
         } catch (err) {

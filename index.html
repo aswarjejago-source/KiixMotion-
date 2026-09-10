@@ -559,7 +559,7 @@
       if (modal) modal.style.display = 'none';
     }
 
-    // FUNGSI UTAMA PENGAMBIL SALDO UNIVERSAL DARI /uc/openapi/accountStatus
+    // FUNGSI UTAMA PENARIK KOIN PRESISI DENGAN CCTV NOTIFIKASI
     async function simpanAkunBaruDariModal() {
       var inKey = document.getElementById('in-modal-key');
       var valKey = inKey ? inKey.value.trim() : "";
@@ -588,28 +588,45 @@
           });
           var data = await response.json();
           
-          // CCTV PEMBERITAHUAN MENTAH
-          console.log("CCTV MENTAH ACCOUNT STATUS:", data);
+          // CCTV: Menampilkan data mentah ke layar agar lu bisa lihat koin aslinya
+          tampilkanNotif('CCTV Respon: ' + JSON.stringify(data), 'info');
           
           if (response.ok && data) {
-            // Scanner cerdas yang menelusuri seluruh kemungkinan properti saldo RunningHub
-            var k = data.remainCoins ?? 
-                    data.coins ?? 
-                    data.balance ?? 
-                    data.data?.remainCoins ?? 
-                    data.data?.coins ?? 
-                    data.data?.balance ?? 
-                    data.data?.user?.coins ?? 
-                    data.data?.surplusCoins ?? 
-                    data.surplusCoins ?? 
-                    data.data ?? 
-                    0;
+            // Scanner canggih khusus mencari sisa koin asli, melewati angka 0 milik dolar
+            var koinDitemukan = 0;
             
-            saldoDidapat = Number(k);
-            if (isNaN(saldoDidapat)) saldoDidapat = 0;
+            // Periksa jalur objek umum RunningHub
+            if (data.data) {
+              koinDitemukan = data.data.remainCoins ?? data.data.coins ?? data.data.balance ?? data.data.surplusCoins;
+            }
+            if (!koinDitemukan || koinDitemukan === 0) {
+              koinDitemukan = data.remainCoins ?? data.coins ?? data.balance ?? data.surplusCoins;
+            }
+            
+            // Pencarian otomatis nilai angka di dalam seluruh respons yang nilainya paling masuk akal (> 0 dan bukan 0)
+            if (!koinDitemukan || koinDitemukan === 0) {
+              var kandidat = [];
+              function cariAngka(obj) {
+                for (var k in obj) {
+                  if (typeof obj[k] === 'number' && obj[k] > 0) {
+                    kandidat.push(obj[k]);
+                  } else if (obj[k] && typeof obj[k] === 'object') {
+                    cariAngka(obj[k]);
+                  }
+                }
+              }
+              cariAngka(data);
+              // Ambil angka terbesar yang ditemukan (biasanya itu jumlah koin lu, misal 319 atau 1084)
+              if (kandidat.length > 0) {
+                koinDitemukan = Math.max(...kandidat);
+              }
+            }
+
+            saldoDidapat = Number(koinDitemukan) || 0;
           }
         } catch (err) {
           console.error("Gagal narik koin:", err);
+          tampilkanNotif('CCTV Error: ' + err.message, 'error');
           saldoDidapat = 0;
         }
       } else {
@@ -624,7 +641,7 @@
       renderListAkunDiKelola(); 
       sinkronkanDropdownAkunGenerate();
       
-      tampilkanNotif('✓ Akun terhubung! Saldo terdeteksi: ' + saldoDidapat, 'sukses');
+      tampilkanNotif('✓ Akun terhubung! Koin terdeteksi: ' + saldoDidapat, 'sukses');
     }
 
     window.onload = function() {

@@ -3,23 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Meta tag buat pancing Vercel build ulang -->
-    <meta name="updated-at" content="2026-09-13">
     <title>KiixMotion - AI Video Auto-Pilot</title>
     
-    <!-- Ambil font puitis (Serif) kayak MotionFly -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     
     <style>
-        /* Skema Warna KiixMotion: Putih, Abu, Ungu */
         :root {
             --bg-terang: #FAFAFA;
             --bg-gelap: #121212;
             --teks-utama: #1A1A1A;
             --teks-pudar: #666666;
             --ungu-utama: #7C3AED;
-            --ungu-hover: #6D28D9;
             --ungu-badge: #EDE9FE;
+            --telegram-color: #229ED9;
         }
 
         body {
@@ -28,104 +25,135 @@
             overflow-x: hidden;
         }
 
-        /* TIPOGRAFI SERIF (Ala MotionFly) */
         h1, h2, h3, .serif { font-family: 'Playfair Display', serif; font-weight: 700; color: #111; }
         
         .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
 
-        /* 1. HEADER (LOGO & TOMBOL MASUK) */
+        /* HEADER & LOGO */
         header {
             display: flex; justify-content: space-between; align-items: center;
             padding: 20px 0; border-bottom: 1px solid #E5E7EB;
         }
         
-        /* Logo KiixMotion (CSS Murni meniru screenshot) */
         .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-        .logo-k {
-            background-color: white; color: var(--ungu-utama); width: 32px; height: 32px;
+        .logo-box {
+            background-color: var(--ungu-badge); color: var(--ungu-utama); width: 34px; height: 34px;
             display: flex; align-items: center; justify-content: center; font-weight: bold;
-            font-size: 1.2em; border-radius: 8px; border: 1px solid #E5E7EB; transform: rotate(45deg);
+            font-size: 1.1em; border-radius: 10px; font-family: 'Inter', sans-serif;
         }
-        .logo-k span { transform: rotate(-45deg); } 
-        .brand-teks { font-family: 'Inter', sans-serif; font-weight: 600; color: #333; font-size: 1.1em; letter-spacing: -0.5px;}
+        .brand-teks { font-family: 'Inter', sans-serif; font-weight: 600; color: #222; font-size: 1.1em; }
         .badge-studio {
-            background-color: var(--ungu-badge); color: var(--ungu-utama);
-            font-size: 0.65em; font-weight: 700; padding: 3px 6px; border-radius: 4px; letter-spacing: 0.5px;
+            background-color: #F3F4F6; color: #6B7280;
+            font-size: 0.6em; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 4px;
         }
 
         .btn-masuk {
-            background-color: var(--ungu-utama); color: white; padding: 8px 24px;
+            background-color: var(--ungu-utama); color: white; padding: 8px 22px;
             border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 0.9em;
+            cursor: pointer; border: none;
         }
 
-        /* 2. HERO SECTION */
+        /* HERO SECTION */
         .hero { padding: 80px 0 60px; }
-        .hero h1 { font-size: 4em; line-height: 1.1; margin: 0 0 20px 0; max-width: 800px; }
+        .hero h1 { font-size: 3.5em; line-height: 1.1; margin: 0 0 20px 0; max-width: 800px; }
         .hero p { font-size: 1.1em; color: var(--teks-pudar); max-width: 600px; margin-bottom: 30px; }
         
         .btn-coba {
             background-color: #222; color: white; padding: 12px 28px;
             border-radius: 8px; text-decoration: none; font-weight: 600;
-            display: inline-block; margin-right: 15px;
+            display: inline-block; margin-right: 15px; border: none; cursor: pointer;
         }
         .btn-contoh {
             background-color: white; color: #222; padding: 12px 28px; border: 1px solid #ddd;
             border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;
         }
 
-        /* 3. MEDIA (FOTO & VIDEO) */
-        .media-showcase {
-            display: flex; gap: 20px; align-items: center; margin-top: 60px;
-        }
+        /* MEDIA SHOWCASE */
+        .media-showcase { display: flex; gap: 20px; align-items: center; margin-top: 60px; }
         .media-box { flex: 1; text-align: center; }
         .media-box img, .media-box video {
-            width: 100%; max-width: 300px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            width: 100%; max-width: 280px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
         }
         .media-label { font-size: 0.85em; color: var(--teks-pudar); margin-top: 10px; }
 
-        /* 4. FITUR TETAP DIA */
-        .fitur-wajah { padding: 100px 0; border-bottom: 1px solid #eee; }
-        .fitur-wajah h2 { font-size: 3em; margin: 0 0 20px 0; max-width: 600px; }
+        /* FITUR, LANGKAH, HARGA */
+        .fitur-wajah { padding: 90px 0; border-bottom: 1px solid #eee; }
+        .fitur-wajah h2 { font-size: 2.5em; margin: 0 0 20px 0; max-width: 600px; }
         .fitur-wajah p { font-size: 1.1em; color: var(--teks-pudar); max-width: 600px; }
 
-        /* 5. TIGA LANGKAH */
-        .langkah { padding: 100px 0; }
-        .langkah h2 { font-size: 3em; margin-bottom: 50px; }
-        .grid-langkah { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; }
+        .langkah { padding: 90px 0; }
+        .langkah h2 { font-size: 2.5em; margin-bottom: 40px; }
+        .grid-langkah { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
         .item-langkah { border-top: 1px solid #ccc; padding-top: 20px; }
-        .item-langkah h3 { font-size: 1.5em; margin: 0 0 10px 0; }
+        .item-langkah h3 { font-size: 1.4em; margin: 0 0 10px 0; }
         .item-langkah p { color: var(--teks-pudar); font-size: 0.95em; }
         .angka-langkah { font-size: 0.8em; color: #888; font-weight: bold; margin-bottom: 10px; display: block;}
 
-        /* 6. HARGA (KOTAK MELENGKUNG) */
-        .harga { padding: 100px 0; }
-        .harga h2 { font-size: 3em; margin-bottom: 10px; }
-        .harga p.sub { color: var(--teks-pudar); margin-bottom: 50px; }
+        .harga { padding: 90px 0; }
+        .harga h2 { font-size: 2.5em; margin-bottom: 10px; }
+        .harga p.sub { color: var(--teks-pudar); margin-bottom: 40px; }
         
-        .grid-harga { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .grid-harga { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
         .kotak-harga {
-            background: white; border: 1px solid #eee; border-radius: 16px; padding: 30px;
+            background: white; border: 1px solid #eee; border-radius: 16px; padding: 25px;
             display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.02);
         }
-        /* Kotak Spesial buat paket Unlimited lu */
         .kotak-vip { border: 2px solid var(--ungu-utama); background: #FAF5FF; }
-        
-        .info-harga h3 { font-size: 1.6em; margin: 0 0 5px 0; font-family: 'Inter', sans-serif;}
-        .info-harga p { margin: 0; color: var(--teks-pudar); font-size: 0.9em; }
-        
-        .nilai-harga { text-align: right; font-size: 1.8em; font-weight: bold; color: #222; }
-        .nilai-harga span { display: block; font-size: 0.4em; color: #888; font-weight: normal; margin-top: 5px; }
+        .info-harga h3 { font-size: 1.4em; margin: 0 0 5px 0; font-family: 'Inter', sans-serif;}
+        .info-harga p { margin: 0; color: var(--teks-pudar); font-size: 0.85em; }
+        .nilai-harga { text-align: right; font-size: 1.6em; font-weight: bold; color: #222; }
+        .nilai-harga span { display: block; font-size: 0.45em; color: #888; font-weight: normal; margin-top: 3px; }
 
-        /* 7. SPESIFIKASI (BAGIAN GELAP DI BAWAH) */
+        /* SPESIFIKASI */
         .spesifikasi { background-color: var(--bg-gelap); color: white; padding: 80px 0; margin-top: 50px;}
-        .spesifikasi h2 { font-size: 3em; color: white; max-width: 500px; margin-bottom: 50px; }
-        
+        .spesifikasi h2 { font-size: 2.5em; color: white; max-width: 500px; margin-bottom: 40px; }
         .tabel-spek { width: 100%; border-collapse: collapse; }
-        .tabel-spek td { padding: 25px 0; border-bottom: 1px solid #333; }
-        .tabel-spek tr:last-child td { border-bottom: none; }
-        .spek-kiri { width: 30%; font-family: 'Playfair Display', serif; font-size: 1.3em; color: #aaa; }
-        .spek-kanan strong { display: block; margin-bottom: 5px; font-size: 1.1em;}
+        .tabel-spek td { padding: 20px 0; border-bottom: 1px solid #222; }
+        .spek-kiri { width: 30%; font-family: 'Playfair Display', serif; font-size: 1.2em; color: #aaa; }
+        .spek-kanan strong { display: block; margin-bottom: 3px; font-size: 1em; color: #fff;}
         .spek-kanan { color: #888; font-size: 0.9em;}
+
+        /* MODAL AUTH (LOGIN / REGISTER) */
+        #modal-auth {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 999;
+        }
+        .modal-kotak {
+            background: white; padding: 35px; border-radius: 20px; width: 90%; max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2); box-sizing: border-box;
+        }
+        .modal-kotak h3 { font-size: 1.8em; margin-top: 0; margin-bottom: 5px; }
+        .modal-kotak p.sub-auth { color: var(--teks-pudar); font-size: 0.85em; margin-bottom: 25px; }
+        
+        .label-form { font-size: 0.85em; font-weight: 600; color: #444; display: block; margin-bottom: 6px; }
+        .input-auth {
+            width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd;
+            border-radius: 8px; font-size: 0.95em; box-sizing: border-box;
+        }
+        .btn-submit-auth {
+            width: 100%; background: #111; color: white; border: none;
+            padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1em; cursor: pointer; margin-top: 5px;
+        }
+        
+        .garis-pemisah {
+            text-align: center; border-bottom: 1px solid #eee; line-height: 0.1em;
+            margin: 25px 0; color: #888; font-size: 0.8em;
+        }
+        .garis-pemisah span { background: #fff; padding: 0 10px; }
+
+        .btn-telegram {
+            width: 100%; background-color: var(--telegram-color); color: white; border: none;
+            padding: 12px; border-radius: 8px; font-weight: 600; font-size: 0.95em; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; box-sizing: border-box;
+        }
+        
+        .switch-auth {
+            text-align: center; margin-top: 20px; font-size: 0.85em; color: var(--teks-pudar);
+        }
+        .switch-auth a { color: var(--ungu-utama); text-decoration: none; font-weight: 600; cursor: pointer; }
+        .btn-tutup-auth {
+            background: none; border: none; color: #aaa; width: 100%; margin-top: 15px; cursor: pointer; font-size: 0.85em;
+        }
     </style>
 </head>
 <body>
@@ -134,10 +162,10 @@
         <!-- HEADER -->
         <header>
             <a href="#" class="brand">
-                <div class="logo-k"><span>K</span></div>
+                <div class="logo-box">K</div>
                 <div class="brand-teks">KiixMotion <span class="badge-studio">STUDIO</span></div>
             </a>
-            <a href="studio.html" class="btn-masuk">&rarr; Masuk</a>
+            <button onclick="bukaAuth('login')" class="btn-masuk">Masuk</button>
         </header>
 
         <!-- HERO -->
@@ -145,7 +173,7 @@
             <h1>Kasih satu foto,<br>karaktermu yang gerak.</h1>
             <p>Satu potret dan satu klip gerakan, itu aja. Karaktermu ikut menari, ngomong, atau apa pun gerakannya, dan wajahnya nggak berubah jadi orang lain.</p>
             <div>
-                <a href="studio.html" class="btn-coba">Coba sekarang</a>
+                <button onclick="bukaAuth('register')" class="btn-coba">Coba sekarang</button>
                 <a href="#demo" class="btn-contoh">Lihat contohnya</a>
             </div>
             
@@ -190,13 +218,12 @@
             </div>
         </div>
 
-        <!-- HARGA & MESIN -->
+        <!-- HARGA -->
         <div class="harga">
             <h2>Mesin tempur, harganya kelihatan dari awal.</h2>
             <p class="sub">Tiap mesin beda rasa dan beda harga, tapi semuanya jaga wajah dari fotomu.</p>
             
             <div class="grid-harga">
-                <!-- Paket Unlimited (Prioritas) -->
                 <div class="kotak-harga kotak-vip">
                     <div class="info-harga">
                         <h3>Creator Unlimited</h3>
@@ -205,7 +232,6 @@
                     <div class="nilai-harga">Rp 35rb <span>per bulan</span></div>
                 </div>
 
-                <!-- Paket Eceran 1 -->
                 <div class="kotak-harga">
                     <div class="info-harga">
                         <h3>Wan 2.1</h3>
@@ -214,7 +240,6 @@
                     <div class="nilai-harga">0,5 <span>kredit / Rp 1.250</span></div>
                 </div>
 
-                <!-- Paket Eceran 2 -->
                 <div class="kotak-harga">
                     <div class="info-harga">
                         <h3>Kling V2.6</h3>
@@ -226,7 +251,7 @@
         </div>
     </div>
 
-    <!-- SPESIFIKASI GELAP -->
+    <!-- SPESIFIKASI -->
     <div class="spesifikasi">
         <div class="container">
             <h2>Ukurannya pas buat HP, kualitasnya nggak main-main.</h2>
@@ -251,5 +276,80 @@
         </div>
     </div>
 
+    <!-- MODAL AUTH (LOGIN / REGISTER) -->
+    <div id="modal-auth">
+        <div class="modal-kotak">
+            <h3 id="auth-title">Masuk ke akun kamu</h3>
+            <p class="sub-auth" id="auth-sub">Lanjut pakai email, atau gabung komunitas.</p>
+            
+            <label class="label-form">Email</label>
+            <input type="email" id="input-email" class="input-auth" placeholder="nama@email.com">
+            
+            <label class="label-form">Password</label>
+            <input type="password" id="input-pass" class="input-auth" placeholder="Password akunmu">
+            
+            <button onclick="prosesAuth()" class="btn-submit-auth" id="btn-action-text">Masuk</button>
+            
+            <div class="garis-pemisah"><span>atau</span></div>
+            
+            <!-- Tombol Join Komunitas Telegram (Link Grup Langsung) -->
+            <a href="https://t.me/+JS435ITO1h0xMWJl" target="_blank" class="btn-telegram">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.228-.461-1.901-.903-1.056-.693-1.653-1.124-2.678-1.8-1.185-.781-.417-1.21.258-1.911.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.023.465.141.119.098.152.228.163.331.011.103.024.337.005.522z"/></svg>
+                Join Komunitas Telegram
+            </a>
+
+            <div class="switch-auth" id="switch-text">
+                Belum punya akun? <a onclick="toggleMode('register')">Daftar gratis</a>
+            </div>
+
+            <button onclick="tutupAuth()" class="btn-tutup-auth">Batal</button>
+        </div>
+    </div>
+
+    <script>
+        let modeAktif = 'login';
+
+        function bukaAuth(mode) {
+            document.getElementById('modal-auth').style.display = 'flex';
+            toggleMode(mode);
+        }
+
+        function tutupAuth() {
+            document.getElementById('modal-auth').style.display = 'none';
+        }
+
+        function toggleMode(mode) {
+            modeAktif = mode;
+            const title = document.getElementById('auth-title');
+            const sub = document.getElementById('auth-sub');
+            const btnText = document.getElementById('btn-action-text');
+            const switchBox = document.getElementById('switch-text');
+
+            if(mode === 'login') {
+                title.innerText = "Masuk ke akun kamu";
+                sub.innerText = "Lanjut pakai email, atau gabung komunitas.";
+                btnText.innerText = "Masuk";
+                switchBox.innerHTML = `Belum punya akun? <a onclick="toggleMode('register')">Daftar gratis</a>`;
+            } else {
+                title.innerText = "Daftar akun baru";
+                sub.innerText = "Buat akun KiixMotion untuk mulai membuat video.";
+                btnText.innerText = "Daftar Sekarang";
+                switchBox.innerHTML = `Sudah punya akun? <a onclick="toggleMode('login')">Masuk di sini</a>`;
+            }
+        }
+
+        function prosesAuth() {
+            const email = document.getElementById('input-email').value;
+            const pass = document.getElementById('input-pass').value;
+
+            if(!email || !pass) {
+                alert('Isi email dan password dulu, Bree!');
+                return;
+            }
+
+            localStorage.setItem('kiix_user', email);
+            window.location.href = 'studio.html';
+        }
+    </script>
 </body>
 </html>

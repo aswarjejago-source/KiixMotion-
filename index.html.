@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Meta tag buat pancing Vercel build ulang -->
+    <meta name="updated-at" content="2026-09-13">
     <title>KiixMotion - AI Video Auto-Pilot</title>
     
     <!-- Ambil font puitis (Serif) kayak MotionFly -->
@@ -44,7 +46,7 @@
             display: flex; align-items: center; justify-content: center; font-weight: bold;
             font-size: 1.2em; border-radius: 8px; border: 1px solid #E5E7EB; transform: rotate(45deg);
         }
-        .logo-k span { transform: rotate(-45deg); } /* Benerin posisi K nya */
+        .logo-k span { transform: rotate(-45deg); } 
         .brand-teks { font-family: 'Inter', sans-serif; font-weight: 600; color: #333; font-size: 1.1em; letter-spacing: -0.5px;}
         .badge-studio {
             background-color: var(--ungu-badge); color: var(--ungu-utama);

@@ -396,21 +396,21 @@
           var promptTxt = document.getElementById('in-prompt-gerak') ? document.getElementById('in-prompt-gerak').value.trim() : "";
           var promptFinal = promptTxt || "Follow the reference video as accurately as possible. High quality, smooth movement.";
           
+          // --- MAPPING NODE ID (PROMPT KE NODE 43, FOTO 30, VIDEO 33) ---
           var nodeParams = [
             { nodeId: "43", fieldName: "text", fieldValue: promptFinal }, 
             { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
             { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
           ];
 
-          // ⚠️ ENDPOINT & PAYLOAD AI APP (WEBAPP) YANG SUDAH DI-FIX
+          // --- KEMBALI KE ENDPOINT UTAMA OPENAPI CREATE YANG TERBUKTI NYAMBUNG ---
           var payloadGenerate = {
-            webappId: RUNNINGHUB_WORKFLOW_ID,
             workflowId: RUNNINGHUB_WORKFLOW_ID,
             apiKey: akunAktif.key,
             nodeInfoList: nodeParams
           };
 
-          var res = await fetch('https://www.runninghub.ai/task/openapi/ai-app/run', {
+          var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',

@@ -396,20 +396,21 @@
           var promptTxt = document.getElementById('in-prompt-gerak') ? document.getElementById('in-prompt-gerak').value.trim() : "";
           var promptFinal = promptTxt || "Follow the reference video as accurately as possible. High quality, smooth movement.";
           
-          // --- MAPPING NODE ID (PROMPT KE NODE 43, FOTO 30, VIDEO 33) ---
           var nodeParams = [
             { nodeId: "43", fieldName: "text", fieldValue: promptFinal }, 
             { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
             { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
           ];
 
+          // ⚠️ ENDPOINT & PAYLOAD AI APP (WEBAPP) YANG SUDAH DI-FIX
           var payloadGenerate = {
+            webappId: RUNNINGHUB_WORKFLOW_ID,
             workflowId: RUNNINGHUB_WORKFLOW_ID,
             apiKey: akunAktif.key,
             nodeInfoList: nodeParams
           };
 
-          var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
+          var res = await fetch('https://www.runninghub.ai/task/openapi/ai-app/run', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
@@ -589,14 +590,9 @@
       
       var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
       
-      if (targetAkun.find(function(a) { return a.key === valKey; })) {
-        return tampilkanNotif("API Key ini sudah ada di daftar akun!", 'error');
-      }
-
       var btnSimpan = document.getElementById('btn-simpan-key');
       if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan Coin...'; btnSimpan.disabled = true; }
 
-      var namaAkun = valKey; 
       var saldoDidapat = 0;
 
       if (tabAkunAktif === 'runninghub') {
@@ -610,7 +606,6 @@
           var hasil = await res.json();
           
           if (res.ok && hasil && (hasil.code === 0 || hasil.code === 200 || hasil.data)) {
-
             var rawData = hasil.data || hasil;
             var k = rawData.totalCoins !== undefined ? rawData.totalCoins :
                     rawData.coins !== undefined ? rawData.coins :
@@ -619,11 +614,7 @@
                     rawData.balance !== undefined ? rawData.balance :
                     rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
             
-            if (k !== undefined && k !== null) {
-                saldoDidapat = Number(k);
-            } else {
-                saldoDidapat = 0; 
-            }
+            saldoDidapat = (k !== undefined && k !== null) ? Number(k) : 0;
           } else {
             if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
             var pesanError = (hasil && hasil.msg) ? hasil.msg : 'Ditolak Server RunningHub';
@@ -639,13 +630,20 @@
 
       if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
 
-      targetAkun.push({ nama: namaAkun, key: valKey, koin: Number(saldoDidapat) });
+      var indexKetemu = targetAkun.findIndex(function(a) { return a.key === valKey; });
+
+      if (indexKetemu !== -1) {
+        targetAkun[indexKetemu].koin = Number(saldoDidapat);
+        tampilkanNotif('✓ Saldo akun berhasil direfresh! Koin saat ini: ' + saldoDidapat, 'sukses');
+      } else {
+        targetAkun.push({ nama: valKey, key: valKey, koin: Number(saldoDidapat) });
+        tampilkanNotif('✓ Akun baru terhubung! Coin ditarik: ' + saldoDidapat, 'sukses');
+      }
+
       simpanStorage(); 
       tutupModalFormKey(); 
       renderListAkunDiKelola(); 
       sinkronkanDropdownAkunGenerate();
-      
-      tampilkanNotif('✓ Akun terhubung! Coin ditarik: ' + saldoDidapat, 'sukses');
     }
 
     window.onload = function() {

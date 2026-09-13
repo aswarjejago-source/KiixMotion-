@@ -1,1 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KiixMotion - AI Video Auto-Pilot</title>
+    
+    <!-- Ambil font puitis (Serif) kayak MotionFly -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Skema Warna KiixMotion: Putih, Abu, Ungu */
+        :root {
+            --bg-terang: #FAFAFA;
+            --bg-gelap: #121212;
+            --teks-utama: #1A1A1A;
+            --teks-pudar: #666666;
+            --ungu-utama: #7C3AED;
+            --ungu-hover: #6D28D9;
+            --ungu-badge: #EDE9FE;
+        }
 
+        body {
+            background-color: var(--bg-terang); color: var(--teks-utama);
+            font-family: 'Inter', sans-serif; margin: 0; padding: 0; line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* TIPOGRAFI SERIF (Ala MotionFly) */
+        h1, h2, h3, .serif { font-family: 'Playfair Display', serif; font-weight: 700; color: #111; }
+        
+        .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+        /* 1. HEADER (LOGO & TOMBOL MASUK) */
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 0; border-bottom: 1px solid #E5E7EB;
+        }
+        
+        /* Logo KiixMotion (CSS Murni meniru screenshot) */
+        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .logo-k {
+            background-color: white; color: var(--ungu-utama); width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+            font-size: 1.2em; border-radius: 8px; border: 1px solid #E5E7EB; transform: rotate(45deg);
+        }
+        .logo-k span { transform: rotate(-45deg); } /* Benerin posisi K nya */
+        .brand-teks { font-family: 'Inter', sans-serif; font-weight: 600; color: #333; font-size: 1.1em; letter-spacing: -0.5px;}
+        .badge-studio {
+            background-color: var(--ungu-badge); color: var(--ungu-utama);
+            font-size: 0.65em; font-weight: 700; padding: 3px 6px; border-radius: 4px; letter-spacing: 0.5px;
+        }
+
+        .btn-masuk {
+            background-color: var(--ungu-utama); color: white; padding: 8px 24px;
+            border-radius: 20px; text-decoration: none; font-weight: 600; font-size: 0.9em;
+        }
+
+        /* 2. HERO SECTION */
+        .hero { padding: 80px 0 60px; }
+        .hero h1 { font-size: 4em; line-height: 1.1; margin: 0 0 20px 0; max-width: 800px; }
+        .hero p { font-size: 1.1em; color: var(--teks-pudar); max-width: 600px; margin-bottom: 30px; }
+        
+        .btn-coba {
+            background-color: #222; color: white; padding: 12px 28px;
+            border-radius: 8px; text-decoration: none; font-weight: 600;
+            display: inline-block; margin-right: 15px;
+        }
+        .btn-contoh {
+            background-color: white; color: #222; padding: 12px 28px; border: 1px solid #ddd;
+            border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;
+        }
+
+        /* 3. MEDIA (FOTO & VIDEO) */
+        .media-showcase {
+            display: flex; gap: 20px; align-items: center; margin-top: 60px;
+        }
+        .media-box { flex: 1; text-align: center; }
+        .media-box img, .media-box video {
+            width: 100%; max-width: 300px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        .media-label { font-size: 0.85em; color: var(--teks-pudar); margin-top: 10px; }
+
+        /* 4. FITUR TETAP DIA */
+        .fitur-wajah { padding: 100px 0; border-bottom: 1px solid #eee; }
+        .fitur-wajah h2 { font-size: 3em; margin: 0 0 20px 0; max-width: 600px; }
+        .fitur-wajah p { font-size: 1.1em; color: var(--teks-pudar); max-width: 600px; }
+
+        /* 5. TIGA LANGKAH */
+        .langkah { padding: 100px 0; }
+        .langkah h2 { font-size: 3em; margin-bottom: 50px; }
+        .grid-langkah { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; }
+        .item-langkah { border-top: 1px solid #ccc; padding-top: 20px; }
+        .item-langkah h3 { font-size: 1.5em; margin: 0 0 10px 0; }
+        .item-langkah p { color: var(--teks-pudar); font-size: 0.95em; }
+        .angka-langkah { font-size: 0.8em; color: #888; font-weight: bold; margin-bottom: 10px; display: block;}
+
+        /* 6. HARGA (KOTAK MELENGKUNG) */
+        .harga { padding: 100px 0; }
+        .harga h2 { font-size: 3em; margin-bottom: 10px; }
+        .harga p.sub { color: var(--teks-pudar); margin-bottom: 50px; }
+        
+        .grid-harga { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .kotak-harga {
+            background: white; border: 1px solid #eee; border-radius: 16px; padding: 30px;
+            display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+        /* Kotak Spesial buat paket Unlimited lu */
+        .kotak-vip { border: 2px solid var(--ungu-utama); background: #FAF5FF; }
+        
+        .info-harga h3 { font-size: 1.6em; margin: 0 0 5px 0; font-family: 'Inter', sans-serif;}
+        .info-harga p { margin: 0; color: var(--teks-pudar); font-size: 0.9em; }
+        
+        .nilai-harga { text-align: right; font-size: 1.8em; font-weight: bold; color: #222; }
+        .nilai-harga span { display: block; font-size: 0.4em; color: #888; font-weight: normal; margin-top: 5px; }
+
+        /* 7. SPESIFIKASI (BAGIAN GELAP DI BAWAH) */
+        .spesifikasi { background-color: var(--bg-gelap); color: white; padding: 80px 0; margin-top: 50px;}
+        .spesifikasi h2 { font-size: 3em; color: white; max-width: 500px; margin-bottom: 50px; }
+        
+        .tabel-spek { width: 100%; border-collapse: collapse; }
+        .tabel-spek td { padding: 25px 0; border-bottom: 1px solid #333; }
+        .tabel-spek tr:last-child td { border-bottom: none; }
+        .spek-kiri { width: 30%; font-family: 'Playfair Display', serif; font-size: 1.3em; color: #aaa; }
+        .spek-kanan strong { display: block; margin-bottom: 5px; font-size: 1.1em;}
+        .spek-kanan { color: #888; font-size: 0.9em;}
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <a href="#" class="brand">
+                <div class="logo-k"><span>K</span></div>
+                <div class="brand-teks">KiixMotion <span class="badge-studio">STUDIO</span></div>
+            </a>
+            <a href="studio.html" class="btn-masuk">&rarr; Masuk</a>
+        </header>
+
+        <!-- HERO -->
+        <div class="hero">
+            <h1>Kasih satu foto,<br>karaktermu yang gerak.</h1>
+            <p>Satu potret dan satu klip gerakan, itu aja. Karaktermu ikut menari, ngomong, atau apa pun gerakannya, dan wajahnya nggak berubah jadi orang lain.</p>
+            <div>
+                <a href="studio.html" class="btn-coba">Coba sekarang</a>
+                <a href="#demo" class="btn-contoh">Lihat contohnya</a>
+            </div>
+            
+            <div id="demo" class="media-showcase">
+                <div class="media-box">
+                    <img src="demo-foto.jpg" alt="Foto Karakter">
+                    <div class="media-label">Foto karakter</div>
+                </div>
+                <div class="media-box" style="flex: 0.1; font-size: 1.5em; color: #ccc;">&rarr;</div>
+                <div class="media-box">
+                    <video src="demo-video.mp4" autoplay loop muted playsinline></video>
+                    <div class="media-label">Hasilnya, video HD suara audio</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FITUR WAJAH -->
+        <div class="fitur-wajah">
+            <h2>Yang gerak tetap dia, bukan kembarannya.</h2>
+            <p>Kebanyakan AI diam-diam nukar wajah pas menganimasikan, dan hasilnya cuma mirip-mirip. KiixMotion nahan wajah, rambut, sampai warna kulit dari fotomu, jadi yang gerak beneran karaktermu, bukan orang lain yang kebetulan sepintas mirip.</p>
+        </div>
+
+        <!-- TIGA LANGKAH -->
+        <div class="langkah">
+            <h2>Tiga langkah, terus tinggal nunggu.</h2>
+            <div class="grid-langkah">
+                <div class="item-langkah">
+                    <span class="angka-langkah">01</span>
+                    <h3>Pilih fotonya</h3>
+                    <p>Satu potret jelas udah cukup. Hasilnya ngikutin rasio fotomu, nggak dipaksa crop.</p>
+                </div>
+                <div class="item-langkah">
+                    <span class="angka-langkah">02</span>
+                    <h3>Kasih gerakannya</h3>
+                    <p>Punya klip sendiri? Unggah. Ngiler sama gerakan di TikTok? Tempel linknya, sisanya kami.</p>
+                </div>
+                <div class="item-langkah">
+                    <span class="angka-langkah">03</span>
+                    <h3>Ambil videonya</h3>
+                    <p>Prosesnya jalan di belakang layar. Begitu kelar, videonya nongol di Galeri. Tinggal unduh.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- HARGA & MESIN -->
+        <div class="harga">
+            <h2>Mesin tempur, harganya kelihatan dari awal.</h2>
+            <p class="sub">Tiap mesin beda rasa dan beda harga, tapi semuanya jaga wajah dari fotomu.</p>
+            
+            <div class="grid-harga">
+                <!-- Paket Unlimited (Prioritas) -->
+                <div class="kotak-harga kotak-vip">
+                    <div class="info-harga">
+                        <h3>Creator Unlimited</h3>
+                        <p>Roboneo & RunningHub. Render tanpa batas.</p>
+                    </div>
+                    <div class="nilai-harga">Rp 35rb <span>per bulan</span></div>
+                </div>
+
+                <!-- Paket Eceran 1 -->
+                <div class="kotak-harga">
+                    <div class="info-harga">
+                        <h3>Wan 2.1</h3>
+                        <p>Paling mudah, wajahnya paling nempel</p>
+                    </div>
+                    <div class="nilai-harga">0,5 <span>kredit / Rp 1.250</span></div>
+                </div>
+
+                <!-- Paket Eceran 2 -->
+                <div class="kotak-harga">
+                    <div class="info-harga">
+                        <h3>Kling V2.6</h3>
+                        <p>Geraknya paling halus buat klip panjang</p>
+                    </div>
+                    <div class="nilai-harga">1 <span>kredit / Rp 2.500</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SPESIFIKASI GELAP -->
+    <div class="spesifikasi">
+        <div class="container">
+            <h2>Ukurannya pas buat HP, kualitasnya nggak main-main.</h2>
+            <table class="tabel-spek">
+                <tr>
+                    <td class="spek-kiri">Resolusi</td>
+                    <td class="spek-kanan"><strong>1080 x 1920</strong>Potret HD penuh, langsung enak diunggah ke Reels, Shorts, dan TikTok.</td>
+                </tr>
+                <tr>
+                    <td class="spek-kiri">Gerak</td>
+                    <td class="spek-kanan"><strong>30 frame per detik</strong>Halus, nggak patah-patah.</td>
+                </tr>
+                <tr>
+                    <td class="spek-kiri">Durasi</td>
+                    <td class="spek-kanan"><strong>3 sampai 30 detik</strong>Tergantung mesin. Yang lebih panjang dari batas otomatis dipangkas.</td>
+                </tr>
+                <tr>
+                    <td class="spek-kiri">Audio</td>
+                    <td class="spek-kanan"><strong>Ikut kebawa</strong>Suara dari klip gerakan tetap ada di hasil akhir.</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

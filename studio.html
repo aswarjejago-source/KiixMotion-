@@ -61,7 +61,7 @@
     var currentView = 'workbench';
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    // --- ID WORKFLOW LAMA YANG STABIL & BERHASIL ---
+    // --- ID WORKFLOW LAMA YANG STABIL ---
     var RUNNINGHUB_WORKFLOW_ID = "2097357864233984002"; 
     
     var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
@@ -406,7 +406,8 @@
             nodeInfoList: nodeParams
           };
 
-          var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
+          // --- KEMBALI KE ENDPOINT JALUR SUKSES KITA KEMARIN ---
+          var res = await fetch('https://www.runninghub.ai/task/openapi/ai-app/run', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',

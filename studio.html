@@ -393,15 +393,18 @@
 
       if (engineProvider === 'runninghub') {
         try {
-          var promptTxt = document.getElementById('in-prompt-gerak') ? document.getElementById('in-prompt-gerak').value.trim() : "";
-          var promptFinal = promptTxt || "Follow the reference video as accurately as possible. High quality, smooth movement.";
+                    var promptTxt = document.getElementById('in-prompt-gerak') ? document.getElementById('in-prompt-gerak').value.trim() : "";
           
-          // --- MAPPING NODE ID (PROMPT KE NODE 3, FOTO 30, VIDEO 33) ---
           var nodeParams = [
-            { nodeId: "3", fieldName: "text", fieldValue: promptFinal }, 
             { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
-            { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
+            { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
+            { nodeId: "271", fieldName: "value", fieldValue: true }
           ];
+
+          if (promptTxt !== "") {
+            nodeParams.push({ nodeId: "3", fieldName: "text", fieldValue: promptTxt });
+          }
+
 
           // --- KEMBALI KE ENDPOINT UTAMA OPENAPI CREATE YANG TERBUKTI NYAMBUNG ---
           var payloadGenerate = {

@@ -393,11 +393,13 @@
 
       if (engineProvider === 'runninghub') {
         try {
-                                                  var nodeParams = [
+                                                          var nodeParams = [
           { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
           { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
-          { nodeId: "271", fieldName: "value", fieldValue: true }
+          { nodeId: "271", fieldName: "value", fieldValue: true },
+          { nodeId: "417", fieldName: "split_conds_to_windows", fieldValue: true }
         ];
+          
 
         var payloadGenerate = {
           workflowId: RUNNINGHUB_WORKFLOW_ID,

@@ -61,7 +61,9 @@
     var currentView = 'workbench';
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    var RUNNINGHUB_WORKFLOW_ID = "2097357864233984002";
+    // --- ID MASTER WORKFLOW (DURASI FULL & SAKLAR ON) ---
+    var RUNNINGHUB_WORKFLOW_ID = "2099509417535340546"; 
+    
     var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
     var urlBahanFoto = null, urlBahanVideo = null;
     var currentUserEmail = "aswar@kiixmotion.com";
@@ -393,25 +395,12 @@
 
       if (engineProvider === 'runninghub') {
         try {
-                                                          var nodeParams = [
-          { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
-          { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
-          { nodeId: "271", fieldName: "value", fieldValue: true },
-          { nodeId: "417", fieldName: "split_conds_to_windows", fieldValue: true }
-        ];
-          
+          // --- KODINGAN SUPER BERSIH (TANPA NODE 271 & 417) ---
+          var nodeParams = [
+            { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
+            { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
+          ];
 
-        var payloadGenerate = {
-          workflowId: RUNNINGHUB_WORKFLOW_ID,
-          apiKey: akunAktif.key,
-          nodeInfoList: nodeParams
-        };
-          
-          
-          
-
-
-          // --- KEMBALI KE ENDPOINT UTAMA OPENAPI CREATE YANG TERBUKTI NYAMBUNG ---
           var payloadGenerate = {
             workflowId: RUNNINGHUB_WORKFLOW_ID,
             apiKey: akunAktif.key,

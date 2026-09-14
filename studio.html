@@ -393,18 +393,20 @@
 
       if (engineProvider === 'runninghub') {
         try {
-                                var elPrompt = document.getElementById('in-prompt-gerak');
-            var promptTxt = elPrompt ? elPrompt.value.trim() : "";
+                                          var elPrompt = document.getElementById('in-prompt-gerak');
+          var promptTxt = elPrompt ? elPrompt.value.trim() : "";
+          
+          var nodeParams = [
+            { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
+            { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
+            { nodeId: "271", fieldName: "value", fieldValue: true },
+            { nodeId: "386", fieldName: "value", fieldValue: 0 }
+          ];
 
-            var nodeParams = [
-              { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
-              { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
-              { nodeId: "271", fieldName: "value", fieldValue: true }
-            ];
-
-            if (promptTxt !== "") {
-              nodeParams.push({ nodeId: "3", fieldName: "text", fieldValue: promptTxt });
-            }
+          if (promptTxt !== "") {
+            nodeParams.push({ nodeId: "3", fieldName: "text", fieldValue: promptTxt });
+          }
+          
           
 
 

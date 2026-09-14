@@ -61,8 +61,8 @@
     var currentView = 'workbench';
     var navLayarAktif = 'dashboard', engineProvider = 'runninghub', tabAkunAktif = 'runninghub', isModePilih = false;
     
-    // --- ID MASTER WORKFLOW (DURASI FULL & SAKLAR ON) ---
-    var RUNNINGHUB_WORKFLOW_ID = "2099509417535340546"; 
+    // --- ID WORKFLOW LAMA YANG STABIL & BERHASIL ---
+    var RUNNINGHUB_WORKFLOW_ID = "2097357864233984002"; 
     
     var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
     var urlBahanFoto = null, urlBahanVideo = null;
@@ -395,7 +395,7 @@
 
       if (engineProvider === 'runninghub') {
         try {
-          // --- KODINGAN SUPER BERSIH (TANPA NODE 271 & 417) ---
+          // --- MURNI HANYA MENGIRIM NODE FOTO (30) DAN VIDEO (33) TANPA TAMBAHAN APA PUN ---
           var nodeParams = [
             { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
             { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }

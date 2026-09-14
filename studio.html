@@ -263,14 +263,15 @@
           var json = JSON.parse(xhr.responseText);
           var serverFile = null;
           
-          if (json && json.code === 0 && json.data) {
-             serverFile = json.data;
-          } else if (json && json.data) {
-             serverFile = json.data;
-          }
-          
-          if (typeof serverFile === 'object' && serverFile !== null) {
-              serverFile = serverFile.fileName || serverFile.fileUrl || serverFile.url || serverFile.path;
+          // Parser aman untuk string murni maupun objek dari server RunningHub
+          if (json) {
+            if (typeof json.data === 'string') {
+              serverFile = json.data;
+            } else if (json.data && typeof json.data === 'object') {
+              serverFile = json.data.fileName || json.data.fileUrl || json.data.url || json.data.path;
+            } else if (typeof json === 'string') {
+              serverFile = json;
+            }
           }
           
           if (serverFile && typeof serverFile === 'string') {
@@ -279,7 +280,7 @@
             if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
             tampilkanNotif('File berhasil diunggah: ' + serverFile, 'sukses');
           } else {
-            throw new Error((json && json.msg) || "Format respons server tidak dikenali. Data kosong.");
+            throw new Error("Gagal parsing nama file dari server: " + xhr.responseText);
           }
         } catch (err) {
           if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
@@ -406,8 +407,8 @@
             nodeInfoList: nodeParams
           };
 
-          // --- KEMBALI KE ENDPOINT JALUR SUKSES KITA KEMARIN ---
-          var res = await fetch('https://www.runninghub.ai/task/openapi/ai-app/run', {
+          // --- KEMBALI KE ENDPOINT OPENAPI CREATE YANG BENAR UNTUK WORKFLOW ID ---
+          var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',

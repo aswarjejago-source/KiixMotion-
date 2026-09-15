@@ -164,18 +164,16 @@ function sinkronkanDropdownAkunGenerate() {
   }
 }
 
-// -------------------------------------------------------------------------
-// REVISI GUA: CUMA NGUBAH FUNGSI INI DOANG, PROGRESS REALISTIS + PARSER KEBAL
-// -------------------------------------------------------------------------
+// PEMANTAUAN TUGAS DENGAN PROGRESS PERSENTASE 0-100% & PARSER URL KEBAL
 function pantauTaskRunningHub(tugas, apiKey) {
-  if (!tugas.progress) tugas.progress = 10; 
+  if (!tugas.progress) tugas.progress = 10; // Mulai dari 10%
 
   var cekInterval = setInterval(async function() {
     try {
-      // 1. Progress naik bertahap secara halus (mentok 88%)
-      if (!tugas.selesai && tugas.progress < 88) {
-        tugas.progress += Math.floor(Math.random() * 5) + 2;
-        if (tugas.progress > 88) tugas.progress = 88;
+      // Progress naik bertahap secara halus selama belum selesai (maksimal 90% sebelum sukses)
+      if (tugas.progress < 90) {
+        tugas.progress += Math.floor(Math.random() * 12) + 5;
+        if (tugas.progress > 90) tugas.progress = 90;
         simpanStorage();
         if (navLayarAktif === 'history') renderLayarHistory();
       }
@@ -194,8 +192,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.progress = 100; // Pas 100%
           
           var vidUrl = null;
-          
-          // 2. PARSER URL SUPER KEBAL: Ambil array index paling akhir (length - 1)
+          // PARSER KEBAL: Mengambil video dari index terakhir (length - 1)
           if (src.results && src.results.length > 0) {
               var indexTerakhir = src.results.length - 1;
               vidUrl = src.results[indexTerakhir].url || src.results[indexTerakhir].fileUrl;
@@ -221,12 +218,9 @@ function pantauTaskRunningHub(tugas, apiKey) {
         }
       }
     } catch (err) { console.warn("CCTV Polling tertunda:", err); }
-  }, 7000); // 7000 ms persis dari kodingan asli lu
+  }, 7000);
 }
 
-// -------------------------------------------------------------------------
-// FUNGSI INI 100% GAK GUA UBAH, MURNI KODINGAN LU YANG SUKSES (ADA NODE 454)
-// -------------------------------------------------------------------------
 async function mulaiProsesGenerate() {
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
   if (engineProvider !== 'kiix' && targetAkun.length === 0) return tampilkanNotif('Hubungkan akun di menu Kelola Akun terlebih dahulu!', 'error');
@@ -399,13 +393,11 @@ async function simpanAkunBaruDariModal() {
   simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
 }
 
-// Inisialisasi awal saat web dimuat (Termasuk Auto-Resume Background Polling untuk tugas pending)
 window.onload = function() {
   muatStorage();
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
 
-  // AUTO-RESUME: Lanjutkan pemantauan tugas yang belum selesai jika halaman direfresh
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
     riwayatGenerateList.forEach(function(tugas) {
       if (!tugas.selesai && tugas.id && tugas.key) {

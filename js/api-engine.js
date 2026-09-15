@@ -1,7 +1,7 @@
 // ==========================================
 // PILAR 3: API ENGINE & RENDER LOGIC
 // File: js/api-engine.js
-// Fungsi: Integrasi server luar, render UI data dinamis
+// Fungsi: Integrasi server luar, render UI data dinamis + Progress 0-100% & Auto-Resume
 // ==========================================
 
 var engineProvider = 'runninghub';
@@ -164,9 +164,20 @@ function sinkronkanDropdownAkunGenerate() {
   }
 }
 
+// PEMANTAUAN TUGAS DENGAN PROGRESS PERSENTASE 0-100% & AUTO-RESUME
 function pantauTaskRunningHub(tugas, apiKey) {
+  if (!tugas.progress) tugas.progress = 10; // Mulai dari 10%
+
   var cekInterval = setInterval(async function() {
     try {
+      // Progress naik bertahap secara halus selama belum selesai (maksimal 90% sebelum sukses)
+      if (tugas.progress < 90) {
+        tugas.progress += Math.floor(Math.random() * 12) + 5;
+        if (tugas.progress > 90) tugas.progress = 90;
+        simpanStorage();
+        if (navLayarAktif === 'history') renderLayarHistory();
+      }
+
       var resStatus = await fetch('https://www.runninghub.ai/task/openapi/outputs?taskId=' + tugas.id, { headers: { 'Authorization': 'Bearer ' + apiKey } });
       var textBalasan = await resStatus.text();
       var jsonStatus = JSON.parse(textBalasan);
@@ -176,25 +187,31 @@ function pantauTaskRunningHub(tugas, apiKey) {
         var st = (src.status || src.taskStatus || "").toUpperCase();
         if (st === "SUCCESS" || st === "FINISHED" || st === "DONE") {
           clearInterval(cekInterval);
-          tugas.status = "Selesai"; tugas.selesai = true;
+          tugas.status = "Selesai"; 
+          tugas.selesai = true;
+          tugas.progress = 100; // Pas 100%
+          
           var vidUrl = null;
           if (src.results && src.results.length > 0) vidUrl = src.results[0].url || src.results[0].fileUrl;
           else if (src.outputs && src.outputs.length > 0) vidUrl = src.outputs[0].fileUrl || src.outputs[0].url || src.outputs[0].video;
           else vidUrl = src.fileUrl || src.url;
+          
           tugas.videoUrl = vidUrl;
           simpanStorage();
           if (navLayarAktif === 'history') renderLayarHistory();
-          tampilkanNotif('✓ Render selesai: ' + tugas.id, 'sukses');
+          tampilkanNotif('✓ Render video berhasil ditarik ke web! ID: ' + tugas.id, 'sukses');
         } else if (st === "FAILED" || st === "ERROR") {
           clearInterval(cekInterval);
-          tugas.status = "Gagal Dirender"; tugas.selesai = true;
+          tugas.status = "Gagal Dirender"; 
+          tugas.selesai = true;
+          tugas.progress = 100;
           simpanStorage();
           if (navLayarAktif === 'history') renderLayarHistory();
           tampilkanNotif('❌ Render gagal dari server GPU!', 'error');
         }
       }
     } catch (err) { console.warn("CCTV Polling tertunda:", err); }
-  }, 8000);
+  }, 7000);
 }
 
 async function mulaiProsesGenerate() {
@@ -213,7 +230,8 @@ async function mulaiProsesGenerate() {
       var nodeParams = [
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
-        { nodeId: "271", fieldName: "value", fieldValue: "true" }
+        { nodeId: "271", fieldName: "value", fieldValue: "true" },
+        { nodeId: "454", fieldName: "value", fieldValue: "false" }
       ];
       
       var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
@@ -248,7 +266,7 @@ async function mulaiProsesGenerate() {
     id: taskIdAsli || ("RH-" + Date.now().toString().slice(-6)),
     key: akunAktif.key, model: "Wan Motion Control", prov: "RunningHub",
     tgl: "Baru saja", biaya: "≈ 478 coin", videoUrl: null,
-    status: "Sedang Render di GPU...", selesai: false
+    status: "Sedang Render di GPU...", selesai: false, progress: 10
   };
   
   riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
@@ -256,6 +274,7 @@ async function mulaiProsesGenerate() {
   if (taskIdAsli) pantauTaskRunningHub(tugasBaru, akunAktif.key);
 }
 
+// TAMPILKAN HISTORY DENGAN PERSENTASE PROGRESS (0-100%)
 function renderLayarHistory() {
   var wadah = document.getElementById('wadah-list-history'), counter = document.getElementById('txt-counter-history');
   if (!wadah) return; wadah.innerHTML = '';
@@ -266,12 +285,14 @@ function renderLayarHistory() {
   }
   riwayatGenerateList.forEach(function(itm) {
     var isDone = (itm.selesai === true || itm.status === "Selesai"), hasVideo = Boolean(itm.videoUrl);
+    var currentProg = itm.progress !== undefined ? itm.progress : (isDone ? 100 : 15);
+    
     var card = document.createElement('div');
     card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
     card.innerHTML = '<div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-kmVioletLight text-kmViolet flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">' + (isDone ? '▶' : '⏳') + '</div><div><div class="flex items-center gap-2"><span class="text-base font-bold text-kmTextPrimary">' + itm.model + '</span><span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-semibold border border-slate-200">' + itm.prov + '</span></div><div class="text-xs sm:text-sm text-kmTextSecondary mt-1">ID: <span class="text-kmViolet font-mono font-bold">' + itm.id + '</span> • ' + itm.tgl + ' • <span class="text-amber-600 font-bold">' + itm.biaya + '</span></div></div></div><div class="flex items-center gap-2.5 shrink-0 pt-2 sm:pt-0">' +
-      (isDone ? (hasVideo ? '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai</span><button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer">Putar</button><a href="' + itm.videoUrl + '" target="_blank" download="kiixmotion-' + itm.id + '.mp4" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</a>'
-        : '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai di GPU</span>')
-        : '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">⏳ ' + itm.status + '</span>') + '</div>';
+      (isDone ? (hasVideo ? '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai (100%)</span><button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer">Putar</button><a href="' + itm.videoUrl + '" target="_blank" download="kiixmotion-' + itm.id + '.mp4" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</a>'
+        : '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai di GPU (100%)</span>')
+        : '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">⏳ Render: ' + currentProg + '%</span>') + '</div>';
     wadah.appendChild(card);
   });
 }
@@ -365,9 +386,18 @@ async function simpanAkunBaruDariModal() {
   simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
 }
 
-// Inisialisasi awal saat web dimuat
+// Inisialisasi awal saat web dimuat (Termasuk Auto-Resume Background Polling untuk tugas pending)
 window.onload = function() {
   muatStorage();
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
+
+  // AUTO-RESUME: Lanjutkan pemantauan tugas yang belum selesai jika halaman direfresh
+  if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
+    riwayatGenerateList.forEach(function(tugas) {
+      if (!tugas.selesai && tugas.id && tugas.key) {
+        pantauTaskRunningHub(tugas, tugas.key);
+      }
+    });
+  }
 };

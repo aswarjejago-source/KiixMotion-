@@ -192,14 +192,24 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.progress = 100; // Pas 100%
           
           var vidUrl = null;
-          // REVISI: Hanya bagian ini yang gua ubah untuk narik hasil akhir (length - 1)
-          if (src.results && src.results.length > 0) {
-            vidUrl = src.results[src.results.length - 1].url || src.results[src.results.length - 1].fileUrl;
-          } else if (src.outputs && src.outputs.length > 0) {
-            vidUrl = src.outputs[src.outputs.length - 1].fileUrl || src.outputs[src.outputs.length - 1].url || src.outputs[src.outputs.length - 1].video;
-          } else {
-            vidUrl = src.fileUrl || src.url;
+          
+          // REVISI: Logika filter untuk nyomot hasil video AI, BUKAN video referensi.
+          // Kita ekstrak nama file video referensi lu buat jadi pengecualian.
+          var filterRef = urlBahanVideo ? urlBahanVideo.split('/').pop().split('?')[0] : "KOSONG";
+          
+          if (src.results && Array.isArray(src.results)) {
+            for (var i = src.results.length - 1; i >= 0; i--) {
+              var u = src.results[i].url || src.results[i].fileUrl;
+              if (u && u.indexOf(filterRef) === -1) { vidUrl = u; break; }
+            }
           }
+          if (!vidUrl && src.outputs && Array.isArray(src.outputs)) {
+            for (var j = src.outputs.length - 1; j >= 0; j--) {
+              var v = src.outputs[j].fileUrl || src.outputs[j].url || src.outputs[j].video;
+              if (v && v.indexOf(filterRef) === -1) { vidUrl = v; break; }
+            }
+          }
+          if (!vidUrl) vidUrl = src.fileUrl || src.url || src.video; // Cadangan terakhir
           
           tugas.videoUrl = vidUrl;
           simpanStorage();

@@ -1,7 +1,7 @@
 // ==========================================
 // PILAR 3: API ENGINE & RENDER LOGIC
 // File: js/api-engine.js
-// Fungsi: Integrasi server luar, render UI data dinamis + Progress 0-100% Jujur & Parser URL Kebal FIX
+// Fungsi: Integrasi server luar, render UI data dinamis + Progress 0-100% & Auto-Resume
 // ==========================================
 
 var engineProvider = 'runninghub';
@@ -164,17 +164,17 @@ function sinkronkanDropdownAkunGenerate() {
   }
 }
 
-// ------------------------------------------------------------------
-// CUMA BAGIAN INI YANG GUA UBAH: PROGRESS 88% & PARSER TARIK HASIL AKHIR
-// ------------------------------------------------------------------
+// -------------------------------------------------------------------------
+// REVISI GUA: CUMA NGUBAH FUNGSI INI DOANG, PROGRESS REALISTIS + PARSER KEBAL
+// -------------------------------------------------------------------------
 function pantauTaskRunningHub(tugas, apiKey) {
-  if (!tugas.progress) tugas.progress = 5; // 1. Mulai realistis dari 5%
+  if (!tugas.progress) tugas.progress = 10; 
 
   var cekInterval = setInterval(async function() {
     try {
-      // 2. Progress naik bertahap lambat, dan bakal nyangkut maksimal di 88% selama belum sukses
+      // 1. Progress naik bertahap secara halus (mentok 88%)
       if (!tugas.selesai && tugas.progress < 88) {
-        tugas.progress += Math.floor(Math.random() * 3) + 2;
+        tugas.progress += Math.floor(Math.random() * 5) + 2;
         if (tugas.progress > 88) tugas.progress = 88;
         simpanStorage();
         if (navLayarAktif === 'history') renderLayarHistory();
@@ -187,23 +187,23 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       if (src) {
         var st = (src.status || src.taskStatus || "").toUpperCase();
-        if (st === "SUCCESS" || st === "FINISHED" || st === "DONE" || st === "COMPLETED") {
+        if (st === "SUCCESS" || st === "FINISHED" || st === "DONE") {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
-          tugas.progress = 100; // Pas beneran kelar baru jadi 100%
+          tugas.progress = 100; // Pas 100%
           
           var vidUrl = null;
           
-          // 3. PARSER KEBAL: NGAMBIL ARRAY INDEX PALING TERAKHIR BIAR GAK NYASAR KE VIDEO REFERENSI MENTAH
+          // 2. PARSER URL SUPER KEBAL: Ambil array index paling akhir (length - 1)
           if (src.results && src.results.length > 0) {
-             var lastRes = src.results[src.results.length - 1];
-             vidUrl = lastRes.url || lastRes.fileUrl;
+              var indexTerakhir = src.results.length - 1;
+              vidUrl = src.results[indexTerakhir].url || src.results[indexTerakhir].fileUrl;
           } else if (src.outputs && src.outputs.length > 0) {
-             var lastOut = src.outputs[src.outputs.length - 1];
-             vidUrl = lastOut.fileUrl || lastOut.url || lastOut.video;
+              var indexTerakhir = src.outputs.length - 1;
+              vidUrl = src.outputs[indexTerakhir].fileUrl || src.outputs[indexTerakhir].url || src.outputs[indexTerakhir].video;
           } else {
-             vidUrl = src.fileUrl || src.url;
+              vidUrl = src.fileUrl || src.url;
           }
           
           tugas.videoUrl = vidUrl;
@@ -221,10 +221,12 @@ function pantauTaskRunningHub(tugas, apiKey) {
         }
       }
     } catch (err) { console.warn("CCTV Polling tertunda:", err); }
-  }, 8000); // 4. Dibikin 8 detik biar natural kayak waktu tunggu API asli
+  }, 7000); // 7000 ms persis dari kodingan asli lu
 }
-// ------------------------------------------------------------------
 
+// -------------------------------------------------------------------------
+// FUNGSI INI 100% GAK GUA UBAH, MURNI KODINGAN LU YANG SUKSES (ADA NODE 454)
+// -------------------------------------------------------------------------
 async function mulaiProsesGenerate() {
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
   if (engineProvider !== 'kiix' && targetAkun.length === 0) return tampilkanNotif('Hubungkan akun di menu Kelola Akun terlebih dahulu!', 'error');
@@ -238,7 +240,6 @@ async function mulaiProsesGenerate() {
 
   if (engineProvider === 'runninghub') {
     try {
-      // NODE-NYA GAK GUA SENTUH SAMA SEKALI, SESUAI KODINGAN ASLI LU YAK
       var nodeParams = [
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
@@ -286,6 +287,7 @@ async function mulaiProsesGenerate() {
   if (taskIdAsli) pantauTaskRunningHub(tugasBaru, akunAktif.key);
 }
 
+// TAMPILKAN HISTORY DENGAN PERSENTASE PROGRESS (0-100%)
 function renderLayarHistory() {
   var wadah = document.getElementById('wadah-list-history'), counter = document.getElementById('txt-counter-history');
   if (!wadah) return; wadah.innerHTML = '';

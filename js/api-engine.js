@@ -1,7 +1,7 @@
 // ==========================================
 // PILAR 3: API ENGINE & RENDER LOGIC
 // File: js/api-engine.js
-// Fungsi: Integrasi server luar, render UI data dinamis + Progress 0-100% & Auto-Resume
+// Fungsi: Integrasi server backend Vercel, render UI data dinamis + Progress 0-100% & Auto-Resume
 // ==========================================
 
 var engineProvider = 'runninghub';
@@ -170,7 +170,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
 
   var cekInterval = setInterval(async function() {
     try {
-      // Progress naik bertahap secara halus selama belum selesai (maksimal 90% sebelum sukses)
       if (tugas.progress < 90) {
         tugas.progress += Math.floor(Math.random() * 12) + 5;
         if (tugas.progress > 90) tugas.progress = 90;
@@ -189,11 +188,9 @@ function pantauTaskRunningHub(tugas, apiKey) {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
-          tugas.progress = 100; // Pas 100%
+          tugas.progress = 100;
           
           var vidUrl = null;
-          
-          // PARSER URL SUPER KEBAL: Selalu ambil hasil render dari index paling belakang (length - 1)
           if (src.results && src.results.length > 0) {
               var indexTerakhir = src.results.length - 1;
               vidUrl = src.results[indexTerakhir].url || src.results[indexTerakhir].fileUrl;
@@ -242,9 +239,10 @@ async function mulaiProsesGenerate() {
         { nodeId: "454", fieldName: "value", fieldValue: "false" }
       ];
       
-      var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
+      // PERBAIKAN TARGET TEMBAK: Dialihkan ke backend Vercel (/api/create) agar lolos validasi server & anti error corporate funds
+      var res = await fetch('/api/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workflowId: RUNNINGHUB_WORKFLOW_ID, apiKey: akunAktif.key, nodeInfoList: nodeParams })
       });
       
@@ -253,7 +251,7 @@ async function mulaiProsesGenerate() {
       try {
         data = textRes ? JSON.parse(textRes) : null;
       } catch(err) {
-        throw new Error("Server RunningHub merespon dengan format yang tidak valid.");
+        throw new Error("Server Vercel merespon dengan format yang tidak valid.");
       }
 
       if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 

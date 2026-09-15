@@ -1,7 +1,7 @@
 // ==========================================
 // PILAR 3: API ENGINE & RENDER LOGIC
 // File: js/api-engine.js
-// Fungsi: Integrasi server backend Vercel, render UI data dinamis + Progress 0-100% & Auto-Resume
+// Fungsi: Integrasi server luar, render UI data dinamis + Progress 0-100% & Auto-Resume
 // ==========================================
 
 var engineProvider = 'runninghub';
@@ -164,12 +164,13 @@ function sinkronkanDropdownAkunGenerate() {
   }
 }
 
-// PEMANTAUAN TUGAS DENGAN PROGRESS 0-100% & PARSER URL KEBAL (INDEX TERAKHIR)
+// PEMANTAUAN TUGAS DENGAN PROGRESS PERSENTASE 0-100% & AUTO-RESUME
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 10; // Mulai dari 10%
 
   var cekInterval = setInterval(async function() {
     try {
+      // Progress naik bertahap secara halus selama belum selesai (maksimal 90% sebelum sukses)
       if (tugas.progress < 90) {
         tugas.progress += Math.floor(Math.random() * 12) + 5;
         if (tugas.progress > 90) tugas.progress = 90;
@@ -188,17 +189,18 @@ function pantauTaskRunningHub(tugas, apiKey) {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
-          tugas.progress = 100;
+          tugas.progress = 100; // Pas 100%
           
           var vidUrl = null;
+          // REVISI PARSER: Mengambil elemen dari array paling akhir biar hasilnya ketarik semua
           if (src.results && src.results.length > 0) {
-              var indexTerakhir = src.results.length - 1;
-              vidUrl = src.results[indexTerakhir].url || src.results[indexTerakhir].fileUrl;
-          } else if (src.outputs && src.outputs.length > 0) {
-              var indexTerakhir = src.outputs.length - 1;
-              vidUrl = src.outputs[indexTerakhir].fileUrl || src.outputs[indexTerakhir].url || src.outputs[indexTerakhir].video;
-          } else {
-              vidUrl = src.fileUrl || src.url;
+            vidUrl = src.results[src.results.length - 1].url || src.results[src.results.length - 1].fileUrl;
+          }
+          else if (src.outputs && src.outputs.length > 0) {
+            vidUrl = src.outputs[src.outputs.length - 1].fileUrl || src.outputs[src.outputs.length - 1].url || src.outputs[src.outputs.length - 1].video;
+          }
+          else {
+            vidUrl = src.fileUrl || src.url || src.video;
           }
           
           tugas.videoUrl = vidUrl;
@@ -239,10 +241,9 @@ async function mulaiProsesGenerate() {
         { nodeId: "454", fieldName: "value", fieldValue: "false" }
       ];
       
-      // PERBAIKAN TARGET TEMBAK: Dialihkan ke backend Vercel (/api/create) agar lolos validasi server & anti error corporate funds
-      var res = await fetch('/api/create', {
+      var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
         body: JSON.stringify({ workflowId: RUNNINGHUB_WORKFLOW_ID, apiKey: akunAktif.key, nodeInfoList: nodeParams })
       });
       
@@ -251,7 +252,7 @@ async function mulaiProsesGenerate() {
       try {
         data = textRes ? JSON.parse(textRes) : null;
       } catch(err) {
-        throw new Error("Server Vercel merespon dengan format yang tidak valid.");
+        throw new Error("Server RunningHub merespon dengan format yang tidak valid.");
       }
 
       if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 

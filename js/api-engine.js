@@ -192,9 +192,14 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.progress = 100; // Pas 100%
           
           var vidUrl = null;
-          if (src.results && src.results.length > 0) vidUrl = src.results[0].url || src.results[0].fileUrl;
-          else if (src.outputs && src.outputs.length > 0) vidUrl = src.outputs[0].fileUrl || src.outputs[0].url || src.outputs[0].video;
-          else vidUrl = src.fileUrl || src.url;
+          // REVISI: Hanya bagian ini yang gua ubah untuk narik hasil akhir (length - 1)
+          if (src.results && src.results.length > 0) {
+            vidUrl = src.results[src.results.length - 1].url || src.results[src.results.length - 1].fileUrl;
+          } else if (src.outputs && src.outputs.length > 0) {
+            vidUrl = src.outputs[src.outputs.length - 1].fileUrl || src.outputs[src.outputs.length - 1].url || src.outputs[src.outputs.length - 1].video;
+          } else {
+            vidUrl = src.fileUrl || src.url;
+          }
           
           tugas.videoUrl = vidUrl;
           simpanStorage();

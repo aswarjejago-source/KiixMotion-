@@ -210,21 +210,17 @@ async function mulaiProsesGenerate() {
 
   if (engineProvider === 'runninghub') {
     try {
+      // Sesuai screenshot payload sukses, node 271 wajib disertakan bersama node 30 & 33
       var nodeParams = [
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
-        { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
+        { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
+        { nodeId: "271", fieldName: "value", fieldValue: "true" }
       ];
       
-      // JALUR BYPASS: Kirim appId dan set workflowId jadi null (atau sebaliknya)
       var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
-        body: JSON.stringify({ 
-          appId: RUNNINGHUB_WORKFLOW_ID, 
-          workflowId: null, 
-          apiKey: akunAktif.key, 
-          nodeInfoList: nodeParams 
-        })
+        body: JSON.stringify({ workflowId: RUNNINGHUB_WORKFLOW_ID, apiKey: akunAktif.key, nodeInfoList: nodeParams })
       });
       
       var textRes = await res.text();

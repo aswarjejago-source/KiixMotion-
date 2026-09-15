@@ -5,7 +5,7 @@
 // ==========================================
 
 var engineProvider = 'runninghub';
-var RUNNINGHUB_WORKFLOW_ID = "2097357864233984002"; 
+var RUNNINGHUB_WORKFLOW_ID = "2099490599765630978"; 
 var urlBahanFoto = null;
 var urlBahanVideo = null;
 
@@ -210,7 +210,6 @@ async function mulaiProsesGenerate() {
 
   if (engineProvider === 'runninghub') {
     try {
-      // Sesuai screenshot payload sukses, node 271 wajib disertakan bersama node 30 & 33
       var nodeParams = [
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },

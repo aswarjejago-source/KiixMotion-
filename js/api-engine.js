@@ -215,20 +215,27 @@ async function mulaiProsesGenerate() {
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
       ];
       
-      // INI SASARAN TEMBAK BARU (Langsung ke endpoint workflow)
-      var res = await fetch('https://www.runninghub.ai/run/workflow/' + RUNNINGHUB_WORKFLOW_ID, {
+      // JALUR TIKUS: Ubah workflowId jadi appId
+      var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
-        body: JSON.stringify({ apiKey: akunAktif.key, nodeInfoList: nodeParams }) 
+        body: JSON.stringify({ appId: RUNNINGHUB_WORKFLOW_ID, apiKey: akunAktif.key, nodeInfoList: nodeParams })
       });
       
-      var data = await res.json();
+      var textRes = await res.text();
+      var data;
+      try {
+        data = textRes ? JSON.parse(textRes) : null;
+      } catch(err) {
+        throw new Error("Server RunningHub merespon dengan format yang tidak valid.");
+      }
+
       if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
         taskIdAsli = data.data?.taskId || data.taskId; 
         tampilkanNotif('Tugas berhasil dikirim ke GPU! ID: ' + taskIdAsli, 'sukses');
       } else { 
         console.log("Error dari server:", data);
-        tampilkanNotif('Gagal RunningHub: ' + (data.msg || JSON.stringify(data)), 'error');
+        tampilkanNotif('Gagal RunningHub: ' + (data ? (data.msg || JSON.stringify(data)) : 'Respon kosong'), 'error');
         if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } return; 
       }
     } catch (e) { 

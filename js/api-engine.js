@@ -164,7 +164,7 @@ function sinkronkanDropdownAkunGenerate() {
   }
 }
 
-// PEMANTAUAN TUGAS DENGAN PROGRESS PERSENTASE 0-100% & PARSER URL KEBAL
+// PEMANTAUAN TUGAS DENGAN PROGRESS 0-100% & PARSER URL KEBAL (INDEX TERAKHIR)
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 10; // Mulai dari 10%
 
@@ -192,7 +192,8 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.progress = 100; // Pas 100%
           
           var vidUrl = null;
-          // PARSER KEBAL: Mengambil video dari index terakhir (length - 1)
+          
+          // PARSER URL SUPER KEBAL: Selalu ambil hasil render dari index paling belakang (length - 1)
           if (src.results && src.results.length > 0) {
               var indexTerakhir = src.results.length - 1;
               vidUrl = src.results[indexTerakhir].url || src.results[indexTerakhir].fileUrl;

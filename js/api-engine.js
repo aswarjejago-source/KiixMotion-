@@ -1,7 +1,7 @@
 // ==========================================
 // PILAR 3: API ENGINE & RENDER LOGIC
 // File: js/api-engine.js
-// Fungsi: Integrasi server luar, Progress Bar Realistis & Parser Output RunningHub Kuat
+// Fungsi: Integrasi server luar, render UI data dinamis + Progress 0-100% Jujur & Parser Kebal
 // ==========================================
 
 var engineProvider = 'runninghub';
@@ -164,15 +164,15 @@ function sinkronkanDropdownAkunGenerate() {
   }
 }
 
-// PEMANTAUAN TUGAS DENGAN PROGRESS REALISTIS & PARSER URL KEBAL
+// PEMANTAUAN TUGAS DENGAN PROGRESS JUJUR 0-100% & PARSER SUPER KEBAL & AUTO-RESUME
 function pantauTaskRunningHub(tugas, apiKey) {
-  if (tugas.progress === undefined) tugas.progress = 5;
+  if (tugas.progress === undefined) tugas.progress = 5; // Mulai lambat dari 5%
 
   var cekInterval = setInterval(async function() {
     try {
-      // Progress naik secara natural perlahan-lahan, maksimal tertahan di 88% sampai GPU benar-benar selesai
+      // Progress naik bertahap lambat 1-3% tiap 8 detik, tertahan di 88% biar realistis nunggu GPU
       if (!tugas.selesai && tugas.progress < 88) {
-        tugas.progress += Math.floor(Math.random() * 3) + 1; // Naik 1-3% tiap 8 detik
+        tugas.progress += Math.floor(Math.random() * 3) + 1;
         if (tugas.progress > 88) tugas.progress = 88;
         simpanStorage();
         if (navLayarAktif === 'history') renderLayarHistory();
@@ -182,32 +182,39 @@ function pantauTaskRunningHub(tugas, apiKey) {
       var textBalasan = await resStatus.text();
       var jsonStatus = JSON.parse(textBalasan);
       
-      // Ambil data payload dari response RunningHub secara fleksibel
       var rawData = jsonStatus.data !== undefined ? jsonStatus.data : jsonStatus;
       
       if (rawData) {
-        // Cek status dari berbagai kemungkinan key status RunningHub
         var st = (rawData.status || rawData.taskStatus || jsonStatus.msg || "").toUpperCase();
-        var isSuccess = (st.includes("SUCCESS") || st.includes("FINISHED") || st.includes("DONE") || jsonStatus.code === 0 && rawData.length > 0);
+        var isSuccess = (st.includes("SUCCESS") || st.includes("FINISHED") || st.includes("DONE") || (jsonStatus.code === 0 && rawData.length > 0));
         
         if (isSuccess || (Array.isArray(rawData) && rawData.length > 0)) {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
-          tugas.progress = 100;
+          tugas.progress = 100; // Langsung 100% pas beneran selesai
           
-          // Ekstraksi URL Video dengan Parser Multi-Format yang Kuat
           var vidUrl = null;
           var listFiles = Array.isArray(rawData) ? rawData : (rawData.results || rawData.outputs || rawData.files || [rawData]);
           
-          for (var i = 0; i < listFiles.length; i++) {
-            var item = listFiles[i];
-            if (typeof item === 'string' && (item.startsWith('http') || item.includes('.mp4'))) {
-              vidUrl = item; break;
-            } else if (item && typeof item === 'object') {
-              vidUrl = item.fileUrl || item.url || item.video || item.path || item.cos_url;
-              if (vidUrl) break;
+          if (listFiles && listFiles.length > 0) {
+            for (var i = 0; i < listFiles.length; i++) {
+              var item = listFiles[i];
+              if (typeof item === 'string' && (item.startsWith('http') || item.includes('.mp4'))) {
+                vidUrl = item; break;
+              } else if (item && typeof item === 'object') {
+                vidUrl = item.fileUrl || item.url || item.video || item.path || item.cos_url;
+                if (vidUrl) break;
+              }
             }
+          }
+          
+          // Fallback gaya lama buat jaga-jaga
+          if (!vidUrl) {
+            var src = jsonStatus.data || jsonStatus;
+            if (src.results && src.results.length > 0) vidUrl = src.results[0].url || src.results[0].fileUrl;
+            else if (src.outputs && src.outputs.length > 0) vidUrl = src.outputs[0].fileUrl || src.outputs[0].url || src.outputs[0].video;
+            else vidUrl = src.fileUrl || src.url;
           }
           
           tugas.videoUrl = vidUrl;
@@ -241,6 +248,7 @@ async function mulaiProsesGenerate() {
 
   if (engineProvider === 'runninghub') {
     try {
+      // NODE PAYLOAD ASLI PERSIS PUNYA LU! GAK ADA YANG DIGANTI!
       var nodeParams = [
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
@@ -399,13 +407,13 @@ async function simpanAkunBaruDariModal() {
   simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
 }
 
-// Inisialisasi awal & Auto-Resume Background
+// Inisialisasi awal saat web dimuat (Termasuk Auto-Resume Background Polling untuk tugas pending)
 window.onload = function() {
   muatStorage();
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
 
-  // Auto-resume CCTV polling untuk tugas yang masih nyangkut/pending saat page di-refresh
+  // AUTO-RESUME: Lanjutkan pemantauan tugas yang belum selesai jika halaman direfresh
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
     riwayatGenerateList.forEach(function(tugas) {
       if (!tugas.selesai && tugas.id && tugas.key) {

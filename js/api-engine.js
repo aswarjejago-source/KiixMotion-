@@ -214,11 +214,15 @@ async function mulaiProsesGenerate() {
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
       ];
-      var res = await fetch('https://www.runninghub.ai/openapi/task/create', {
+      
+      // ===== BAGIAN YANG DIUBAH SESUAI DOKUMEN HIJAU =====
+      var res = await fetch('https://www.runninghub.ai/run/workflow/' + RUNNINGHUB_WORKFLOW_ID, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
-        body: JSON.stringify({ workflowId: RUNNINGHUB_WORKFLOW_ID, apiKey: akunAktif.key, nodeInfoList: nodeParams, taskType: "api" })
+        body: JSON.stringify({ apiKey: akunAktif.key, nodeInfoList: nodeParams }) // workflowId dibuang dari body
       });
+      // ====================================================
+      
       var data = await res.json();
       if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
         taskIdAsli = data.data?.taskId || data.taskId; 
@@ -340,23 +344,4 @@ async function simpanAkunBaruDariModal() {
       }
     } catch (err) {
       if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-      return tampilkanNotif('Gagal terhubung ke Vercel: ' + err.message, 'error');
-    }
-  } else { saldoDidapat = 4; }
-
-  if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-  var indexKetemu = targetAkun.findIndex(function(a) { return a.key === valKey; });
-  if (indexKetemu !== -1) {
-    targetAkun[indexKetemu].koin = Number(saldoDidapat); tampilkanNotif('✓ Saldo akun berhasil direfresh! Koin saat ini: ' + saldoDidapat, 'sukses');
-  } else {
-    targetAkun.push({ nama: valKey, key: valKey, koin: Number(saldoDidapat) }); tampilkanNotif('✓ Akun baru terhubung! Coin ditarik: ' + saldoDidapat, 'sukses');
-  }
-  simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
-}
-
-// Inisialisasi awal saat web dimuat
-window.onload = function() {
-  muatStorage();
-  setProviderUtama('runninghub');
-  aturTampilanHalamanUtama();
-};
+      return tampilkanNotif('Gagal terhubung ke Vercel: ' + err.message, 'error')

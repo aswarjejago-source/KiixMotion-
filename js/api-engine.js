@@ -215,11 +215,16 @@ async function mulaiProsesGenerate() {
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
       ];
       
-      // JALUR TIKUS: Ubah workflowId jadi appId
+      // JALUR BYPASS: Kirim appId dan set workflowId jadi null (atau sebaliknya)
       var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
-        body: JSON.stringify({ appId: RUNNINGHUB_WORKFLOW_ID, apiKey: akunAktif.key, nodeInfoList: nodeParams })
+        body: JSON.stringify({ 
+          appId: RUNNINGHUB_WORKFLOW_ID, 
+          workflowId: null, 
+          apiKey: akunAktif.key, 
+          nodeInfoList: nodeParams 
+        })
       });
       
       var textRes = await res.text();

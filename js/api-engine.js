@@ -214,16 +214,17 @@ async function mulaiProsesGenerate() {
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
       ];
-      var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
+      var res = await fetch('https://www.runninghub.ai/openapi/task/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
-        body: JSON.stringify({ workflowId: RUNNINGHUB_WORKFLOW_ID, apiKey: akunAktif.key, nodeInfoList: nodeParams })
+        body: JSON.stringify({ workflowId: RUNNINGHUB_WORKFLOW_ID, apiKey: akunAktif.key, nodeInfoList: nodeParams, taskType: "api" })
       });
       var data = await res.json();
       if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
         taskIdAsli = data.data?.taskId || data.taskId; 
         tampilkanNotif('Tugas berhasil dikirim ke GPU! ID: ' + taskIdAsli, 'sukses');
       } else { 
+        console.log("Error dari server:", data);
         tampilkanNotif('Gagal RunningHub: ' + (data.msg || JSON.stringify(data)), 'error');
         if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } return; 
       }

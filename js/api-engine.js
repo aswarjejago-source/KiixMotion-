@@ -192,16 +192,9 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.progress = 100; // Pas 100%
           
           var vidUrl = null;
-          // REVISI PARSER: Mengambil elemen dari array paling akhir biar hasilnya ketarik semua
-          if (src.results && src.results.length > 0) {
-            vidUrl = src.results[src.results.length - 1].url || src.results[src.results.length - 1].fileUrl;
-          }
-          else if (src.outputs && src.outputs.length > 0) {
-            vidUrl = src.outputs[src.outputs.length - 1].fileUrl || src.outputs[src.outputs.length - 1].url || src.outputs[src.outputs.length - 1].video;
-          }
-          else {
-            vidUrl = src.fileUrl || src.url || src.video;
-          }
+          if (src.results && src.results.length > 0) vidUrl = src.results[0].url || src.results[0].fileUrl;
+          else if (src.outputs && src.outputs.length > 0) vidUrl = src.outputs[0].fileUrl || src.outputs[0].url || src.outputs[0].video;
+          else vidUrl = src.fileUrl || src.url;
           
           tugas.videoUrl = vidUrl;
           simpanStorage();
@@ -393,11 +386,13 @@ async function simpanAkunBaruDariModal() {
   simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
 }
 
+// Inisialisasi awal saat web dimuat (Termasuk Auto-Resume Background Polling untuk tugas pending)
 window.onload = function() {
   muatStorage();
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
 
+  // AUTO-RESUME: Lanjutkan pemantauan tugas yang belum selesai jika halaman direfresh
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
     riwayatGenerateList.forEach(function(tugas) {
       if (!tugas.selesai && tugas.id && tugas.key) {

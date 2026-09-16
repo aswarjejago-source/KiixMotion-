@@ -164,35 +164,55 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// KODINGAN PENARIK VIDEO (LEWAT JEMBATAN VERCEL /api/outputs)
+// KODINGAN CCTV SINKRONISASI REAL-TIME (ALA MOTIONFLY)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
-  if (!tugas.progress) tugas.progress = 10; 
+  if (!tugas.progress) tugas.progress = 0; 
 
   var cekInterval = setInterval(async function() {
     try {
-      if (tugas.progress < 90) {
-        tugas.progress += Math.floor(Math.random() * 12) + 5;
-        if (tugas.progress > 90) tugas.progress = 90;
-        simpanStorage();
-        if (navLayarAktif === 'history') renderLayarHistory();
-      }
-
-      // TEMBAK KE JEMBATAN VERCEL (Bebas dari blokir CORS!)
+      // TEMBAK KE JEMBATAN VERCEL (YANG UDAH ANTI-CACHE)
       var resStatus = await fetch('/api/outputs', { 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
         body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
       });
       
-      var textBalasan = await resStatus.text();
-      var jsonStatus = JSON.parse(textBalasan);
+      if (!resStatus.ok) return; // Skip kalau vercel lagi sibuk
+      
+      var jsonStatus = await resStatus.json();
       var src = jsonStatus.data || jsonStatus;
       
       if (src) {
         var st = (src.status || src.taskStatus || "").toUpperCase();
         
-        if (st === "SUCCESS" || st === "FINISHED") {
+        // TARIK ANGKA PROGRESS ASLI DARI SERVER (Biasanya formatnya 0-100 atau 0.0-1.0)
+        var realProgress = src.progress || src.taskProgress || 0;
+        
+        // Konversi kalau server ngirimnya desimal (contoh: 0.5 dijadiin 50%)
+        if (realProgress > 0 && realProgress <= 1 && realProgress.toString().includes('.')) {
+          realProgress = Math.floor(realProgress * 100);
+        } else if (realProgress > 100) {
+          realProgress = 100;
+        }
+
+        // Kalau status masih jalan, kita update UI perlahan-lahan
+        if (st === "PENDING" || st === "RUNNING" || st === "IN_PROGRESS") {
+           // Kalau server beneran ngirim angka progres, pakai angka itu
+           if (realProgress > 0) {
+              tugas.progress = realProgress;
+           } else {
+              // Kalau server lagi pelit ngasih angka, jalanin pelan banget natural (maks 85%)
+              if (tugas.progress < 85) tugas.progress += 2;
+           }
+           simpanStorage();
+           if (navLayarAktif === 'history') renderLayarHistory();
+        } 
+        // JIKA STATUS SELESAI
+        else if (st === "SUCCESS" || st === "FINISHED") {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
@@ -216,22 +236,27 @@ function pantauTaskRunningHub(tugas, apiKey) {
           if (navLayarAktif === 'history') renderLayarHistory();
           
           if (vidUrl) {
-            tampilkanNotif('✓ Berhasil ditarik! Video siap diputar.', 'sukses');
+            tampilkanNotif('✓ Render sukses! Video berhasil ditarik.', 'sukses');
           } else {
-            tampilkanNotif('❌ Status SUCCESS, tapi laci results kosong/gak ada mp4!', 'error');
+            tampilkanNotif('❌ Server Success, tapi video mp4 gak ketemu.', 'error');
           }
-        } else if (st === "FAILED" || st === "ERROR") {
+        } 
+        // JIKA GAGAL DARI SERVER
+        else if (st === "FAILED" || st === "ERROR") {
           clearInterval(cekInterval);
           tugas.status = "Gagal Dirender"; 
           tugas.selesai = true;
           tugas.progress = 100;
           simpanStorage();
           if (navLayarAktif === 'history') renderLayarHistory();
-          tampilkanNotif('❌ Render gagal dari server GPU!', 'error');
+          tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
         }
       }
-    } catch (err) { console.warn("CCTV Polling tertunda:", err); }
-  }, 7000); 
+    } catch (err) { 
+      // Tetap diam kalau cuma masalah koneksi putus nyambung pas main game
+      console.warn("Koneksi CCTV terputus sesaat:", err); 
+    }
+  }, 10000); // Kita ubah polling jadi tiap 10 detik biar Vercel gak capek dan gak nge-limit request
 }
 
 // ==========================================
@@ -282,7 +307,7 @@ async function mulaiProsesGenerate() {
     id: taskIdAsli || ("RH-" + Date.now().toString().slice(-6)),
     key: akunAktif.key, model: "Wan Motion Control", prov: "RunningHub",
     tgl: "Baru saja", biaya: "≈ 478 coin", videoUrl: null,
-    status: "Sedang Render di GPU...", selesai: false, progress: 10
+    status: "Sedang Render di GPU...", selesai: false, progress: 0
   };
   
   riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
@@ -300,7 +325,7 @@ function renderLayarHistory() {
   }
   riwayatGenerateList.forEach(function(itm) {
     var isDone = (itm.selesai === true || itm.status === "Selesai"), hasVideo = Boolean(itm.videoUrl);
-    var currentProg = itm.progress !== undefined ? itm.progress : (isDone ? 100 : 15);
+    var currentProg = itm.progress !== undefined ? itm.progress : (isDone ? 100 : 0);
     
     var card = document.createElement('div');
     card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";

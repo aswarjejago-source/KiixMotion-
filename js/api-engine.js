@@ -194,7 +194,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
           
           var vidUrl = null;
           
-          // TARIKAN PRESISI: Buka laci "results" sesuai temuan JSON
+          // TARIKAN PRESISI: Buka laci "results" sesuai struktur JSON asli
           var laciResults = src.results;
           
           if (laciResults && Array.isArray(laciResults)) {
@@ -246,7 +246,6 @@ async function mulaiProsesGenerate() {
 
   if (engineProvider === 'runninghub') {
     try {
-      // HANYA NGIRIM FOTO (NODE 30) DAN VIDEO (NODE 33)
       var nodeParams = [
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }

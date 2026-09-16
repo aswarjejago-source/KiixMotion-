@@ -164,7 +164,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// KODINGAN PENARIK VIDEO
+// KODINGAN PENARIK VIDEO (PRESISI SESUAI DATA ASLI JSON)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 10; 
@@ -185,27 +185,24 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       if (src) {
         var st = (src.status || src.taskStatus || "").toUpperCase();
-        if (st === "SUCCESS" || st === "FINISHED" || st === "DONE") {
+        
+        if (st === "SUCCESS" || st === "FINISHED") {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
           tugas.progress = 100; 
           
           var vidUrl = null;
-          var namaBahanRef = urlBahanVideo ? urlBahanVideo.split('/').pop().split('?')[0] : "";
-          var outputsObj = src.outputs || (src.data && src.data.outputs);
           
-          // TARIKAN UTAMA: Node 490 (VideoHelperSuite)
-          if (outputsObj) {
-            var node490 = outputsObj["490"] || outputsObj[490];
-            if (node490) {
-              var targetItem = Array.isArray(node490) ? node490[0] : node490;
-              if (targetItem) {
-                var link490 = targetItem.fileUrl || targetItem.url || targetItem.video || targetItem.path;
-                // Pastikan link hasil BUKAN link video referensi lu
-                if (link490 && (!namaBahanRef || link490.indexOf(namaBahanRef) === -1)) {
-                  vidUrl = link490;
-                }
+          // TARIKAN PRESISI: Buka laci "results" sesuai temuan JSON
+          var laciResults = src.results;
+          
+          if (laciResults && Array.isArray(laciResults)) {
+            for (var i = 0; i < laciResults.length; i++) {
+              var item = laciResults[i];
+              if (item && item.url && item.url.includes('.mp4')) {
+                vidUrl = item.url;
+                break; 
               }
             }
           }
@@ -215,9 +212,9 @@ function pantauTaskRunningHub(tugas, apiKey) {
           if (navLayarAktif === 'history') renderLayarHistory();
           
           if (vidUrl) {
-            tampilkanNotif('✓ Render video AI berhasil ditarik ke web! ID: ' + tugas.id, 'sukses');
+            tampilkanNotif('✓ Render video AI berhasil ditarik ke web!', 'sukses');
           } else {
-            tampilkanNotif('❌ Render selesai tapi URL video AI tidak ditemukan (atau cuma video asli).', 'error');
+            tampilkanNotif('❌ Render sukses, tapi gagal narik URL dari laci results.', 'error');
           }
         } else if (st === "FAILED" || st === "ERROR") {
           clearInterval(cekInterval);
@@ -230,7 +227,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         }
       }
     } catch (err) { console.warn("CCTV Polling tertunda:", err); }
-  }, 7000);
+  }, 7000); 
 }
 
 // ==========================================
@@ -362,7 +359,6 @@ function eksekusiHapusAkun() {
   });
 }
 
-// INI FUNGSI TOMBOL TAMBAH KEY YANG KEPOTONG TADI
 async function simpanAkunBaruDariModal() {
   var inKey = document.getElementById('in-modal-key'), valKey = inKey ? inKey.value.trim() : "";
   if (!valKey) return tampilkanNotif('Masukkan API Key terlebih dahulu!', 'error');

@@ -164,7 +164,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// KODINGAN PENARIK VIDEO (STRICT FILTER)
+// KODINGAN PENARIK VIDEO
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 10; 
@@ -195,14 +195,14 @@ function pantauTaskRunningHub(tugas, apiKey) {
           var namaBahanRef = urlBahanVideo ? urlBahanVideo.split('/').pop().split('?')[0] : "";
           var outputsObj = src.outputs || (src.data && src.data.outputs);
           
-          // TARIKAN UTAMA: Langsung todong Node 490 (VideoHelperSuite) dari screenshot lu
+          // TARIKAN UTAMA: Node 490 (VideoHelperSuite)
           if (outputsObj) {
             var node490 = outputsObj["490"] || outputsObj[490];
             if (node490) {
               var targetItem = Array.isArray(node490) ? node490[0] : node490;
               if (targetItem) {
                 var link490 = targetItem.fileUrl || targetItem.url || targetItem.video || targetItem.path;
-                // FILTER MUTLAK: Pastikan link hasil BUKAN link video referensi lu
+                // Pastikan link hasil BUKAN link video referensi
                 if (link490 && (!namaBahanRef || link490.indexOf(namaBahanRef) === -1)) {
                   vidUrl = link490;
                 }
@@ -217,7 +217,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
           if (vidUrl) {
             tampilkanNotif('✓ Render video AI berhasil ditarik ke web! ID: ' + tugas.id, 'sukses');
           } else {
-            tampilkanNotif('❌ Render dibatalkan dari GPU (AI gagal ngebaca foto baru lu).', 'error');
+            tampilkanNotif('❌ Render selesai tapi URL video AI tidak ditemukan.', 'error');
           }
         } else if (st === "FAILED" || st === "ERROR") {
           clearInterval(cekInterval);
@@ -234,7 +234,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
 }
 
 // ==========================================
-// KODINGAN KIRIM KE GPU (RACIKAN NODE)
+// KODINGAN KIRIM KE GPU (MURNI FOTO & VIDEO SAJA)
 // ==========================================
 async function mulaiProsesGenerate() {
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
@@ -249,11 +249,10 @@ async function mulaiProsesGenerate() {
 
   if (engineProvider === 'runninghub') {
     try {
+      // PERBAIKAN FINAL: Dilarang ngirim node saklar (271 / 454) agar tidak bikin error Bypasser!
       var nodeParams = [
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
-        { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
-        { nodeId: "271", fieldName: "value", fieldValue: "true" },
-        { nodeId: "454", fieldName: "value", fieldValue: "false" }
+        { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
       ];
       
       var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
@@ -363,58 +362,6 @@ function eksekusiHapusAkun() {
   });
 }
 
-// ==========================================
-// KODINGAN TOMBOL SIMPAN KOIN YANG SEMPAT ERROR
-// ==========================================
 async function simpanAkunBaruDariModal() {
   var inKey = document.getElementById('in-modal-key'), valKey = inKey ? inKey.value.trim() : "";
-  if (!valKey) return tampilkanNotif('Masukkan API Key terlebih dahulu!', 'error');
-  var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
-  var btnSimpan = document.getElementById('btn-simpan-key');
-  if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan Coin...'; btnSimpan.disabled = true; }
-  var saldoDidapat = 0;
-
-  if (tabAkunAktif === 'runninghub') {
-    try {
-      var res = await fetch('/api/saldo', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: valKey })
-      });
-      var hasil = await res.json();
-      if (res.ok && hasil && (hasil.code === 0 || hasil.code === 200 || hasil.data)) {
-        var rawData = hasil.data || hasil;
-        var k = rawData.totalCoins !== undefined ? rawData.totalCoins : rawData.coins !== undefined ? rawData.coins : rawData.coin !== undefined ? rawData.coin : rawData.credit !== undefined ? rawData.credit : rawData.balance !== undefined ? rawData.balance : rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
-        saldoDidapat = (k !== undefined && k !== null) ? Number(k) : 0;
-      } else {
-        if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-        return tampilkanNotif('API Key Ditolak: ' + ((hasil && hasil.msg) ? hasil.msg : 'Ditolak Server'), 'error');
-      }
-    } catch (err) {
-      if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-      return tampilkanNotif('Gagal terhubung ke Vercel: ' + err.message, 'error');
-    }
-  } else { saldoDidapat = 4; }
-
-  if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
-  
-  var indexKetemu = targetAkun.findIndex(function(a) { return a.key === valKey; });
-  if (indexKetemu !== -1) {
-    targetAkun[indexKetemu].koin = Number(saldoDidapat); tampilkanNotif('✓ Saldo akun berhasil direfresh! Koin saat ini: ' + saldoDidapat, 'sukses');
-  } else {
-    targetAkun.push({ nama: valKey, key: valKey, koin: Number(saldoDidapat) }); tampilkanNotif('✓ Akun baru terhubung! Coin ditarik: ' + saldoDidapat, 'sukses');
-  }
-  simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
-}
-
-window.onload = function() {
-  muatStorage();
-  setProviderUtama('runninghub');
-  aturTampilanHalamanUtama();
-
-  if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
-    riwayatGenerateList.forEach(function(tugas) {
-      if (!tugas.selesai && tugas.id && tugas.key) {
-        pantauTaskRunningHub(tugas, tugas.key);
-      }
-    });
-  }
-};
+  if (!valKey) return tampi

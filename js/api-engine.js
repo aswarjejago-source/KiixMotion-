@@ -187,32 +187,26 @@ function pantauTaskRunningHub(tugas, apiKey) {
       var src = jsonStatus.data || jsonStatus;
       
       if (src) {
-        var st = (src.status || src.taskStatus || "").toUpperCase();
+        var st = (src.status || src.taskStatus || "").toString().toUpperCase();
         
-        // TARIK ANGKA PROGRESS ASLI DARI SERVER (Biasanya formatnya 0-100 atau 0.0-1.0)
-        var realProgress = src.progress || src.taskProgress || 0;
-        
-        // Konversi kalau server ngirimnya desimal (contoh: 0.5 dijadiin 50%)
-        if (realProgress > 0 && realProgress <= 1 && realProgress.toString().includes('.')) {
-          realProgress = Math.floor(realProgress * 100);
-        } else if (realProgress > 100) {
-          realProgress = 100;
-        }
+        // 1. EKSTRAKTOR ANGKA MURNI (Anti-Halu)
+        var rawProg = src.progress || src.taskProgress || 0;
+        var realProg = 0;
 
-        // Kalau status masih jalan, kita update UI perlahan-lahan
-        if (st === "PENDING" || st === "RUNNING" || st === "IN_PROGRESS") {
-           // Kalau server beneran ngirim angka progres, pakai angka itu
-           if (realProgress > 0) {
-              tugas.progress = realProgress;
-           } else {
-              // Kalau server lagi pelit ngasih angka, jalanin pelan banget natural (maks 85%)
-              if (tugas.progress < 85) tugas.progress += 2;
-           }
-           simpanStorage();
-           if (navLayarAktif === 'history') renderLayarHistory();
-        } 
-        // JIKA STATUS SELESAI
-        else if (st === "SUCCESS" || st === "FINISHED") {
+        if (typeof rawProg === 'string') {
+          // Kalau dikirim "45%", buang simbol % nya ambil 45
+          realProg = parseInt(rawProg.replace(/[^0-9]/g, '')) || 0;
+        } else if (typeof rawProg === 'number') {
+          realProg = rawProg;
+          // Kalau dikirim desimal 0.45, jadiin 45
+          if (realProg > 0 && realProg <= 1 && rawProg.toString().includes('.')) {
+            realProg = Math.floor(realProg * 100);
+          }
+        }
+        if (realProg > 100) realProg = 100;
+
+        // 2. CEK STATUS SELESAI (Sapu Jagat)
+        if (st === "SUCCESS" || st === "FINISHED" || st === "0" || st === "DONE") {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
@@ -241,8 +235,8 @@ function pantauTaskRunningHub(tugas, apiKey) {
             tampilkanNotif('❌ Server Success, tapi video mp4 gak ketemu.', 'error');
           }
         } 
-        // JIKA GAGAL DARI SERVER
-        else if (st === "FAILED" || st === "ERROR") {
+        // 3. CEK STATUS GAGAL DARI SERVER
+        else if (st === "FAILED" || st === "ERROR" || st === "-1") {
           clearInterval(cekInterval);
           tugas.status = "Gagal Dirender"; 
           tugas.selesai = true;
@@ -251,12 +245,19 @@ function pantauTaskRunningHub(tugas, apiKey) {
           if (navLayarAktif === 'history') renderLayarHistory();
           tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
         }
+        // 4. MASIH DIPROSES (PENDING / RUNNING)
+        else {
+          // Baca angka murni, web gak ngarang-ngarang angka lagi
+          tugas.progress = realProg;
+          simpanStorage();
+          if (navLayarAktif === 'history') renderLayarHistory();
+        }
       }
     } catch (err) { 
-      // Tetap diam kalau cuma masalah koneksi putus nyambung pas main game
+      // Tetap diam kalau cuma masalah koneksi putus nyambung
       console.warn("Koneksi CCTV terputus sesaat:", err); 
     }
-  }, 10000); // Kita ubah polling jadi tiap 10 detik biar Vercel gak capek dan gak nge-limit request
+  }, 10000); // Polling tiap 10 detik
 }
 
 // ==========================================

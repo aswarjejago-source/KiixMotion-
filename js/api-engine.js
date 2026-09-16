@@ -164,12 +164,13 @@ function sinkronkanDropdownAkunGenerate() {
   }
 }
 
-// PEMANTAUAN TUGAS DENGAN TARGET NODE 490 & AUTO-RESUME
+// PEMANTAUAN TUGAS DENGAN PROGRESS PERSENTASE 0-100% & AUTO-RESUME
 function pantauTaskRunningHub(tugas, apiKey) {
-  if (!tugas.progress) tugas.progress = 10; 
+  if (!tugas.progress) tugas.progress = 10; // Mulai dari 10%
 
   var cekInterval = setInterval(async function() {
     try {
+      // Progress naik bertahap secara halus selama belum selesai (maksimal 90% sebelum sukses)
       if (tugas.progress < 90) {
         tugas.progress += Math.floor(Math.random() * 12) + 5;
         if (tugas.progress > 90) tugas.progress = 90;
@@ -188,57 +189,17 @@ function pantauTaskRunningHub(tugas, apiKey) {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
-          tugas.progress = 100; 
+          tugas.progress = 100; // Pas 100%
           
           var vidUrl = null;
-          var outputsObj = src.outputs || (src.data && src.data.outputs);
-          
-          // 1. Target Utama: Ambil langsung dari Node 490 (FINAL HD OUTPUT)
-          if (outputsObj) {
-            var node490 = outputsObj["490"] || outputsObj[490];
-            if (node490) {
-              if (Array.isArray(node490) && node490.length > 0) {
-                vidUrl = node490[0].fileUrl || node490[0].url || node490[0].video || node490[0].path;
-              } else if (typeof node490 === 'object') {
-                vidUrl = node490.fileUrl || node490.url || node490.video || node490.path;
-              }
-            }
-          }
-          
-          // 2. Pengaman: Jika node 490 formatnya beda, cari node lain yang BUKAN video referensi
-          if (!vidUrl && outputsObj) {
-            var namaBahanRef = urlBahanVideo ? urlBahanVideo.split('/').pop().split('?')[0] : "";
-            for (var key in outputsObj) {
-              if (outputsObj.hasOwnProperty(key)) {
-                var item = outputsObj[key];
-                var list = Array.isArray(item) ? item : [item];
-                for (var i = 0; i < list.length; i++) {
-                  var candidate = list[i].fileUrl || list[i].url || list[i].video || list[i].path;
-                  if (candidate && typeof candidate === 'string') {
-                    if (!namaBahanRef || candidate.indexOf(namaBahanRef) === -1) {
-                      vidUrl = candidate;
-                      break;
-                    }
-                  }
-                }
-              }
-              if (vidUrl) break;
-            }
-          }
-
-          // 3. Cadangan Terakhir
-          if (!vidUrl) {
-            if (src.results && Array.isArray(src.results) && src.results.length > 0) {
-              vidUrl = src.results[src.results.length - 1].url || src.results[src.results.length - 1].fileUrl;
-            } else {
-              vidUrl = src.fileUrl || src.url || src.video;
-            }
-          }
+          if (src.results && src.results.length > 0) vidUrl = src.results[0].url || src.results[0].fileUrl;
+          else if (src.outputs && src.outputs.length > 0) vidUrl = src.outputs[0].fileUrl || src.outputs[0].url || src.outputs[0].video;
+          else vidUrl = src.fileUrl || src.url;
           
           tugas.videoUrl = vidUrl;
           simpanStorage();
           if (navLayarAktif === 'history') renderLayarHistory();
-          tampilkanNotif('✓ Render video AI berhasil ditarik ke web! ID: ' + tugas.id, 'sukses');
+          tampilkanNotif('✓ Render video berhasil ditarik ke web! ID: ' + tugas.id, 'sukses');
         } else if (st === "FAILED" || st === "ERROR") {
           clearInterval(cekInterval);
           tugas.status = "Gagal Dirender"; 
@@ -425,11 +386,13 @@ async function simpanAkunBaruDariModal() {
   simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
 }
 
+// Inisialisasi awal saat web dimuat (Termasuk Auto-Resume Background Polling untuk tugas pending)
 window.onload = function() {
   muatStorage();
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
 
+  // AUTO-RESUME: Lanjutkan pemantauan tugas yang belum selesai jika halaman direfresh
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
     riwayatGenerateList.forEach(function(tugas) {
       if (!tugas.selesai && tugas.id && tugas.key) {

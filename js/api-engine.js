@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL ROBUST)
 // File: js/api-engine.js
 // ==========================================
 
@@ -164,24 +164,24 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// KODINGAN CCTV SINKRONISASI REAL-TIME (ALA MOTIONFLY)
+// SISTEM PEMANTAUAN & PENARIKAN VIDEO (DIRECT POST + RECURSIVE SCANNER)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
 
   var cekInterval = setInterval(async function() {
     try {
-      // TEMBAK KE JEMBATAN VERCEL (YANG UDAH ANTI-CACHE)
-      var resStatus = await fetch('/api/outputs', { 
+      // Tembak langsung POST ke RunningHub tanpa perantara Vercel
+      var resStatus = await fetch('https://www.runninghub.ai/task/openapi/outputs', { 
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+          'Authorization': 'Bearer ' + apiKey
         },
-        body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
+        body: JSON.stringify({ taskId: tugas.id })
       });
       
-      if (!resStatus.ok) return; // Skip kalau vercel lagi sibuk
+      if (!resStatus.ok) return; 
       
       var jsonStatus = await resStatus.json();
       var src = jsonStatus.data || jsonStatus;
@@ -189,39 +189,41 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (src) {
         var st = (src.status || src.taskStatus || "").toString().toUpperCase();
         
-        // 1. EKSTRAKTOR ANGKA MURNI (Anti-Halu)
-        var rawProg = src.progress || src.taskProgress || 0;
-        var realProg = 0;
-
-        if (typeof rawProg === 'string') {
-          // Kalau dikirim "45%", buang simbol % nya ambil 45
-          realProg = parseInt(rawProg.replace(/[^0-9]/g, '')) || 0;
-        } else if (typeof rawProg === 'number') {
-          realProg = rawProg;
-          // Kalau dikirim desimal 0.45, jadiin 45
-          if (realProg > 0 && realProg <= 1 && rawProg.toString().includes('.')) {
-            realProg = Math.floor(realProg * 100);
-          }
-        }
-        if (realProg > 100) realProg = 100;
-
-        // 2. CEK STATUS SELESAI (Sapu Jagat)
-        if (st === "SUCCESS" || st === "FINISHED" || st === "0" || st === "DONE") {
+        // Cek status selesai dari server
+        if (st === "SUCCESS" || st === "FINISHED" || st === "0" || st === "DONE" || st === "SUCCEDD") {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
           tugas.progress = 100; 
           
           var vidUrl = null;
-          var laciResults = src.results;
           
-          if (laciResults && Array.isArray(laciResults)) {
-            for (var i = 0; i < laciResults.length; i++) {
-              var item = laciResults[i];
-              if (item && item.url && item.url.includes('.mp4')) {
-                vidUrl = item.url;
-                break; 
+          // PENCARI JEJAK OTOMATIS: Menyusuri seluruh objek JSON balasan server tanpa peduli nama lacinya
+          function cariUrlMp4(obj) {
+            if (!obj || typeof obj !== 'object') return null;
+            for (var key in obj) {
+              if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                var val = obj[key];
+                if (typeof val === 'string' && val.includes('.mp4')) {
+                  return val; 
+                }
+                if (typeof val === 'object') {
+                  var hasilRiset = cariUrlMp4(val);
+                  if (hasilRiset) return hasilRiset;
+                }
               }
+            }
+            return null;
+          }
+
+          vidUrl = cariUrlMp4(src);
+          
+          // Jaring pengaman cadangan (Regex) jika format objek tidak terdeteksi
+          if (!vidUrl) {
+            var stringMentah = JSON.stringify(src);
+            var matchRegex = stringMentah.match(/https?:\/\/[^"']+\.mp4/i);
+            if (matchRegex && matchRegex[0]) {
+              vidUrl = matchRegex[0];
             }
           }
           
@@ -232,10 +234,9 @@ function pantauTaskRunningHub(tugas, apiKey) {
           if (vidUrl) {
             tampilkanNotif('✓ Render sukses! Video berhasil ditarik.', 'sukses');
           } else {
-            tampilkanNotif('❌ Server Success, tapi video mp4 gak ketemu.', 'error');
+            tampilkanNotif('❌ Server Success, tapi link mp4 tidak ditemukan dalam data balasan!', 'error');
           }
         } 
-        // 3. CEK STATUS GAGAL DARI SERVER
         else if (st === "FAILED" || st === "ERROR" || st === "-1") {
           clearInterval(cekInterval);
           tugas.status = "Gagal Dirender"; 
@@ -245,23 +246,23 @@ function pantauTaskRunningHub(tugas, apiKey) {
           if (navLayarAktif === 'history') renderLayarHistory();
           tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
         }
-        // 4. MASIH DIPROSES (PENDING / RUNNING)
         else {
-          // Baca angka murni, web gak ngarang-ngarang angka lagi
-          tugas.progress = realProg;
+          // Progress bar bertahap wajar (mentok 95% menunggu server SUCCESS karena API tidak menyediakan persentase)
+          if (tugas.progress < 95) {
+            tugas.progress += Math.floor(Math.random() * 3) + 2; 
+          }
           simpanStorage();
           if (navLayarAktif === 'history') renderLayarHistory();
         }
       }
     } catch (err) { 
-      // Tetap diam kalau cuma masalah koneksi putus nyambung
-      console.warn("Koneksi CCTV terputus sesaat:", err); 
+      console.warn("CCTV Terputus sesaat:", err); 
     }
-  }, 10000); // Polling tiap 10 detik
+  }, 10000); 
 }
 
 // ==========================================
-// KODINGAN KIRIM KE GPU (MURNI FOTO & VIDEO SAJA)
+// KIRIM TUGAS KE GPU
 // ==========================================
 async function mulaiProsesGenerate() {
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;

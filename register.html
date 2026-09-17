@@ -1,4 +1,4 @@
-        <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -13,132 +13,151 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%);
-            color: #1F2937;
-            min-height: 100vh;
+            background-color: #FBFBFA;
+            color: #111111;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            min-height: 100vh;
             overflow-x: hidden;
+        }
+
+        /* SISI KIRI: PANEL HITAM ESTETIK */
+        .left-side {
+            flex: 1.1;
+            background-color: #111113;
+            color: #FFFFFF;
+            padding: 50px 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
             position: relative;
         }
 
-        /* CAHAYA LATAR BELAKANG TERANG ESTETIK (MASA DEPAN CERAH) */
-        body::before {
-            content: '';
-            position: absolute;
-            width: 450px;
-            height: 450px;
-            background: radial-gradient(circle, rgba(124, 58, 237, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
-            top: 5%;
-            left: 15%;
-            z-index: 0;
-            filter: blur(60px);
-        }
-
-        body::after {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
-            bottom: 5%;
-            right: 15%;
-            z-index: 0;
-            filter: blur(60px);
-        }
-
-        /* KARTU 3D LIGHT MODE MELAYANG */
-        .card-3d-wrapper {
-            position: relative;
-            z-index: 10;
-            width: 100%;
-            max-width: 440px;
-            padding: 20px;
-        }
-
-        .auth-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            border-radius: 28px;
-            padding: 40px 35px;
-            /* Bayangan 3D timbul yang bersih dan mewah */
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08),
-                        0 0 30px rgba(124, 58, 237, 0.06);
-        }
-
-        .card-brand {
+        .brand-logo {
+            font-weight: 500;
+            font-size: 0.95em;
             display: flex;
             align-items: center;
             gap: 10px;
             text-decoration: none;
-            color: #111827;
-            margin-bottom: 25px;
-            font-weight: 600;
-            font-size: 0.95em;
+            color: #FFFFFF;
+            letter-spacing: -0.3px;
         }
+        
         .logo-box {
-            background: #EDE9FE;
-            color: #7C3AED;
-            width: 34px; height: 34px;
+            background-color: #FFFFFF;
+            color: #111113;
+            width: 26px; height: 26px;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; border-radius: 10px;
-            border: 1px solid #DDD6FE;
+            font-weight: bold; border-radius: 6px;
+            font-size: 0.8em;
         }
 
-        .form-header {
-            margin-bottom: 25px;
+        .left-content {
+            max-width: 420px;
+            margin-bottom: 40px;
         }
+
+        .left-content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.8em;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+            font-weight: 700;
+        }
+
+        .left-content p {
+            color: #9CA3AF;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .left-footer {
+            color: #6B7280;
+            font-size: 0.8em;
+        }
+
+        /* SISI KANAN: PANEL FORM TERANG BERSIH */
+        .right-side {
+            flex: 1;
+            background-color: #FBFBFA;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 30px;
+        }
+
+        .form-box {
+            width: 100%;
+            max-width: 360px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #6B7280;
+            text-decoration: none;
+            font-size: 0.8em;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+        .back-link:hover { color: #111; }
+
+        .form-header {
+            margin-bottom: 24px;
+        }
+
         .form-header h1 {
             font-family: 'Playfair Display', serif;
-            font-size: 2.2em;
+            font-size: 2em;
             margin-bottom: 6px;
-            color: #111827;
-            letter-spacing: -0.5px;
+            color: #111111;
+            letter-spacing: -0.3px;
         }
+
         .form-header p {
             color: #6B7280;
-            font-size: 0.88em;
+            font-size: 0.85em;
         }
 
         .input-group {
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
+
         .input-group label {
             display: block;
-            font-size: 0.82em;
+            font-size: 0.8em;
             font-weight: 600;
             color: #374151;
             margin-bottom: 6px;
         }
+
         .input-wrapper {
             position: relative;
             display: flex;
             align-items: center;
         }
+
         .input-field {
             width: 100%;
-            padding: 14px 16px;
-            padding-right: 45px;
-            border: 1px solid #D1D5DB;
-            border-radius: 14px;
-            font-size: 0.95em;
+            padding: 12px 14px;
+            padding-right: 42px;
+            border: 1px solid #E5E7EB;
+            border-radius: 10px;
+            font-size: 0.9em;
             background: #FFFFFF;
-            color: #1F2937;
-            transition: all 0.2s ease;
+            color: #111;
             outline: none;
+            transition: border-color 0.2s;
         }
+
         .input-field:focus {
             border-color: #7C3AED;
-            background: #FFFFFF;
-            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
         }
 
         .toggle-password {
             position: absolute;
-            right: 15px;
+            right: 14px;
             background: none;
             border: none;
             cursor: pointer;
@@ -151,30 +170,26 @@
 
         .btn-submit {
             width: 100%;
-            background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+            background-color: #111111;
             color: white;
             border: none;
-            padding: 14px;
-            border-radius: 14px;
+            padding: 13px;
+            border-radius: 10px;
             font-weight: 600;
-            font-size: 1em;
+            font-size: 0.95em;
             cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+            transition: background 0.2s;
+            margin-top: 6px;
         }
-        .btn-submit:hover { 
-            opacity: 0.92;
-            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
-            transform: translateY(-1px);
-        }
+        .btn-submit:hover { background-color: #333333; }
 
         .form-footer-link {
             text-align: center;
-            margin-top: 25px;
-            font-size: 0.85em;
+            margin-top: 22px;
+            font-size: 0.82em;
             color: #6B7280;
         }
+
         .form-footer-link a {
             color: #7C3AED;
             text-decoration: none;
@@ -183,28 +198,38 @@
         }
         .form-footer-link a:hover { text-decoration: underline; }
 
-        .back-home {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #6B7280;
-            text-decoration: none;
-            font-size: 0.82em;
-            font-weight: 500;
-            transition: color 0.2s;
+        /* RESPONSIF KHUSUS HP */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .left-side { padding: 30px 20px; }
+            .left-content h2 { font-size: 2.2em; }
+            .right-side { padding: 35px 20px; }
         }
-        .back-home:hover { color: #111827; }
     </style>
 </head>
 <body>
 
-    <div class="card-3d-wrapper">
-        <div class="auth-card">
-            <a href="index.html" class="card-brand">
-                <div class="logo-box">K</div>
-                KiixMotion Studio
-            </a>
+    <!-- SISI KIRI -->
+    <div class="left-side">
+        <a href="index.html" class="brand-logo">
+            <div class="logo-box">K</div>
+            KiixMotion
+        </a>
+        
+        <div class="left-content">
+            <h2>Foto diam, jadi gerak yang meyakinkan.</h2>
+            <p>Masuk untuk mulai membuat video karakter dari satu foto dengan identitas wajah yang tetap terjaga utuh.</p>
+        </div>
 
-            <a href="index.html" class="back-home">&larr; Kembali ke Beranda</a>
+        <div class="left-footer">
+            Karakter-ke-video AI Studio
+        </div>
+    </div>
+
+    <!-- SISI KANAN -->
+    <div class="right-side">
+        <div class="form-box">
+            <a href="index.html" class="back-link">&larr; Kembali ke Beranda</a>
             
             <div class="form-header">
                 <h1 id="form-heading">Masuk ke akun kamu</h1>
@@ -222,8 +247,22 @@
                 <label>Password</label>
                 <div class="input-wrapper">
                     <input type="password" id="input-pass" class="input-field" placeholder="Minimal 6 karakter">
-                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
-                        <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('input-pass', 'eye-icon-1')">
+                        <svg id="eye-icon-1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- KOLOM TAMBAHAN: Ulangi Password (Hanya muncul pas mode register) -->
+            <div class="input-group" id="group-confirm-pass" style="display: none;">
+                <label>Ulangi password</label>
+                <div class="input-wrapper">
+                    <input type="password" id="input-confirm-pass" class="input-field" placeholder="Ketik ulang passwordmu">
+                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility('input-confirm-pass', 'eye-icon-2')">
+                        <svg id="eye-icon-2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                             <circle cx="12" cy="12" r="3"></circle>
                         </svg>
@@ -267,25 +306,28 @@
             const subheading = document.getElementById('form-subheading');
             const btnText = document.getElementById('btn-text');
             const switchBox = document.getElementById('switch-mode-box');
+            const confirmPassGroup = document.getElementById('group-confirm-pass');
 
             if(mode === 'register') {
                 title.innerText = "Daftar Akun Baru - KiixMotion Studio";
                 heading.innerText = "Buat akun baru";
                 subheading.innerText = "Buat akun KiixMotion untuk mulai membuat video.";
-                btnText.innerText = "Daftar Sekarang";
-                switchBox.innerHTML = `Sudah punya akun? <a onclick="switchMode('login')">Masuk di sini</a>`;
+                btnText.innerText = "Daftar";
+                switchBox.innerHTML = `Sudah punya akun? <a onclick="switchMode('login')">Masuk</a>`;
+                confirmPassGroup.style.display = 'block'; // Munculin kolom ulangi password
             } else {
                 title.innerText = "Masuk - KiixMotion Studio";
                 heading.innerText = "Masuk ke akun kamu";
                 subheading.innerText = "Lanjut pakai email untuk mengakses studio.";
                 btnText.innerText = "Masuk";
                 switchBox.innerHTML = `Belum punya akun? <a onclick="switchMode('register')">Daftar gratis</a>`;
+                confirmPassGroup.style.display = 'none'; // Sembunyiin kolom ulangi password pas login
             }
         }
 
-        function togglePasswordVisibility() {
-            const passInput = document.getElementById('input-pass');
-            const eyeIcon = document.getElementById('eye-icon');
+        function togglePasswordVisibility(fieldId, iconId) {
+            const passInput = document.getElementById(fieldId);
+            const eyeIcon = document.getElementById(iconId);
             
             if (passInput.type === 'password') {
                 passInput.type = 'text';
@@ -312,6 +354,15 @@
                 return;
             }
 
+            // Kalau lagi mode register, cek dulu apakah password pertama dan kedua sama persis
+            if (modeAktif === 'register') {
+                const confirmPass = document.getElementById('input-confirm-pass').value;
+                if (pass !== confirmPass) {
+                    alert('Waduh, kata sandi yang diulangi tidak sama, Bree! Cek lagi.');
+                    return;
+                }
+            }
+
             const teksAsli = btnSubmit.innerText;
             btnSubmit.innerText = 'Memproses...';
             btnSubmit.disabled = true;
@@ -324,6 +375,7 @@
                     alert('Akun berhasil dibuat! Silakan Masuk.');
                     switchMode('login');
                     document.getElementById('input-pass').value = '';
+                    document.getElementById('input-confirm-pass').value = '';
                 } else {
                     const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
                     if (error) throw error;

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -13,8 +13,8 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #08080A;
-            color: #FAFAFA;
+            background: linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%);
+            color: #1F2937;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -23,71 +23,69 @@
             position: relative;
         }
 
-        /* LATAR BELAKANG CAHAYA NEON ESTETIK (EFEK 3D DEPTH) */
+        /* CAHAYA LATAR BELAKANG TERANG ESTETIK (MASA DEPAN CERAH) */
         body::before {
+            content: '';
+            position: absolute;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
+            top: 5%;
+            left: 15%;
+            z-index: 0;
+            filter: blur(60px);
+        }
+
+        body::after {
             content: '';
             position: absolute;
             width: 400px;
             height: 400px;
-            background: radial-gradient(circle, rgba(124, 58, 237, 0.18) 0%, rgba(8, 8, 10, 0) 70%);
-            top: 10%;
-            left: 20%;
-            z-index: 0;
-            filter: blur(60px);
-        }
-        body::after {
-            content: '';
-            position: absolute;
-            width: 350px;
-            height: 350px;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(8, 8, 10, 0) 70%);
-            bottom: 10%;
-            right: 20%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+            bottom: 5%;
+            right: 15%;
             z-index: 0;
             filter: blur(60px);
         }
 
-        /* KARTU UTAMA DENGAN EFEK 3D KACA MELAYANG */
+        /* KARTU 3D LIGHT MODE MELAYANG */
         .card-3d-wrapper {
             position: relative;
             z-index: 10;
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             padding: 20px;
-            perspective: 1000px; /* Kunci efek 3D */
         }
 
         .auth-card {
-            background: rgba(18, 18, 24, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
-            padding: 40px 32px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7),
-                        0 0 30px rgba(124, 58, 237, 0.15);
-            transition: transform 0.1s ease-out, box-shadow 0.2s ease;
-            transform-style: preserve-3d;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            border-radius: 28px;
+            padding: 40px 35px;
+            /* Bayangan 3D timbul yang bersih dan mewah */
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08),
+                        0 0 30px rgba(124, 58, 237, 0.06);
         }
 
-        /* BRAND LOGO DI DALAM KARTU */
         .card-brand {
             display: flex;
             align-items: center;
             gap: 10px;
             text-decoration: none;
-            color: white;
-            margin-bottom: 30px;
+            color: #111827;
+            margin-bottom: 25px;
             font-weight: 600;
             font-size: 0.95em;
         }
         .logo-box {
-            background-color: rgba(124, 58, 237, 0.2);
-            color: #A78BFA;
-            width: 32px; height: 32px;
+            background: #EDE9FE;
+            color: #7C3AED;
+            width: 34px; height: 34px;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; border-radius: 9px;
-            border: 1px solid rgba(124, 58, 237, 0.4);
+            font-weight: bold; border-radius: 10px;
+            border: 1px solid #DDD6FE;
         }
 
         .form-header {
@@ -95,13 +93,13 @@
         }
         .form-header h1 {
             font-family: 'Playfair Display', serif;
-            font-size: 2.1em;
+            font-size: 2.2em;
             margin-bottom: 6px;
-            color: #FFFFFF;
+            color: #111827;
             letter-spacing: -0.5px;
         }
         .form-header p {
-            color: #9CA3AF;
+            color: #6B7280;
             font-size: 0.88em;
         }
 
@@ -111,8 +109,8 @@
         .input-group label {
             display: block;
             font-size: 0.82em;
-            font-weight: 500;
-            color: #D1D5DB;
+            font-weight: 600;
+            color: #374151;
             margin-bottom: 6px;
         }
         .input-wrapper {
@@ -122,20 +120,20 @@
         }
         .input-field {
             width: 100%;
-            padding: 13px 16px;
+            padding: 14px 16px;
             padding-right: 45px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            border: 1px solid #D1D5DB;
+            border-radius: 14px;
             font-size: 0.95em;
-            background: rgba(0, 0, 0, 0.4);
-            color: #FFFFFF;
+            background: #FFFFFF;
+            color: #1F2937;
             transition: all 0.2s ease;
             outline: none;
         }
         .input-field:focus {
             border-color: #7C3AED;
-            background: rgba(0, 0, 0, 0.6);
-            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.25);
+            background: #FFFFFF;
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
         }
 
         .toggle-password {
@@ -149,7 +147,7 @@
             align-items: center;
             padding: 0;
         }
-        .toggle-password:hover { color: #FFFFFF; }
+        .toggle-password:hover { color: #374151; }
 
         .btn-submit {
             width: 100%;
@@ -157,17 +155,17 @@
             color: white;
             border: none;
             padding: 14px;
-            border-radius: 12px;
+            border-radius: 14px;
             font-weight: 600;
-            font-size: 0.98em;
+            font-size: 1em;
             cursor: pointer;
             transition: all 0.2s;
             margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
         }
         .btn-submit:hover { 
-            opacity: 0.95;
-            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6);
+            opacity: 0.92;
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
             transform: translateY(-1px);
         }
 
@@ -175,10 +173,10 @@
             text-align: center;
             margin-top: 25px;
             font-size: 0.85em;
-            color: #9CA3AF;
+            color: #6B7280;
         }
         .form-footer-link a {
-            color: #A78BFA;
+            color: #7C3AED;
             text-decoration: none;
             font-weight: 600;
             cursor: pointer;
@@ -188,19 +186,19 @@
         .back-home {
             display: inline-block;
             margin-bottom: 20px;
-            color: #9CA3AF;
+            color: #6B7280;
             text-decoration: none;
             font-size: 0.82em;
             font-weight: 500;
             transition: color 0.2s;
         }
-        .back-home:hover { color: #FFFFFF; }
+        .back-home:hover { color: #111827; }
     </style>
 </head>
 <body>
 
-    <div class="card-3d-wrapper" id="cardWrapper">
-        <div class="auth-card" id="authCard">
+    <div class="card-3d-wrapper">
+        <div class="auth-card">
             <a href="index.html" class="card-brand">
                 <div class="logo-box">K</div>
                 KiixMotion Studio
@@ -339,30 +337,6 @@
                 btnSubmit.disabled = false;
             }
         }
-
-        /* EFEK 3D TILT (IKUT GERAKAN JARI / MOUSE) */
-        const card = document.getElementById('authCard');
-        const wrapper = document.getElementById('cardWrapper');
-
-        wrapper.addEventListener('mousemove', (e) => {
-            const rect = wrapper.getBoundingClientRect();
-            const x = e.clientX - rect.left - rect.width / 2;
-            const y = e.clientY - rect.top - rect.height / 2;
-            
-            const rotateX = (-y / 15).toFixed(2);
-            const rotateY = (x / 15).toFixed(2);
-            
-            card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-        });
-
-        wrapper.addEventListener('mouseleave', () => {
-            card.style.transform = `rotateX(0deg) rotateY(0deg)`;
-            card.style.transition = 'transform 0.5s ease';
-        });
-
-        wrapper.addEventListener('mouseenter', () => {
-            card.style.transition = 'none';
-        });
     </script>
 </body>
 </html>

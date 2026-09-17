@@ -19,6 +19,9 @@
             --telegram-color: #229ED9;
         }
 
+        /* Fitur Auto-Scroll Mulus */
+        html { scroll-behavior: smooth; }
+
         body {
             background-color: var(--bg-terang); color: var(--teks-utama);
             font-family: 'Inter', sans-serif; margin: 0; padding: 0; line-height: 1.6;
@@ -47,14 +50,26 @@
             font-size: 0.6em; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 4px;
         }
 
-        /* MENU COMPLIANCE IPAYMU DI ATAS */
+        /* MENU UTAMA (Tengah) */
+        .nav-tengah {
+            display: flex; gap: 20px; align-items: center; font-size: 0.9em; font-weight: 500;
+        }
+        .nav-tengah a {
+            color: var(--teks-pudar); text-decoration: none; transition: 0.2s; font-family: 'Inter', sans-serif;
+        }
+        .nav-tengah a:hover { color: var(--ungu-utama); }
+
+        /* MENU COMPLIANCE IPAYMU (Kanan) */
         .compliance-menu {
-            display: flex; gap: 15px; align-items: center; font-size: 0.85em; font-weight: 500;
+            display: flex; gap: 12px; align-items: center; font-size: 0.8em; font-weight: 600;
+            background: #F3F4F6; padding: 6px 14px; border-radius: 20px; border: 1px solid #E5E7EB;
         }
         .compliance-menu button {
-            background: none; border: none; color: var(--teks-pudar); cursor: pointer; padding: 0; font-family: 'Inter', sans-serif; font-size: 1em;
+            background: none; border: none; color: #4B5563; cursor: pointer; padding: 0; font-family: 'Inter', sans-serif;
         }
         .compliance-menu button:hover { color: var(--ungu-utama); }
+
+        .header-kanan { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
 
         .btn-masuk {
             background-color: var(--ungu-utama); color: white; padding: 8px 22px;
@@ -78,7 +93,7 @@
         }
 
         /* MEDIA SHOWCASE */
-        .media-showcase { display: flex; gap: 20px; align-items: center; margin-top: 60px; }
+        .media-showcase { display: flex; gap: 20px; align-items: center; margin-top: 60px; scroll-margin-top: 80px; }
         .media-box { flex: 1; text-align: center; }
         .media-box img, .media-box video {
             width: 100%; max-width: 280px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
@@ -86,11 +101,11 @@
         .media-label { font-size: 0.85em; color: var(--teks-pudar); margin-top: 10px; }
 
         /* FITUR, LANGKAH, HARGA */
-        .fitur-wajah { padding: 90px 0; border-bottom: 1px solid #eee; }
+        .fitur-wajah { padding: 90px 0; border-bottom: 1px solid #eee; scroll-margin-top: 80px; }
         .fitur-wajah h2 { font-size: 2.5em; margin: 0 0 20px 0; max-width: 600px; }
         .fitur-wajah p { font-size: 1.1em; color: var(--teks-pudar); max-width: 600px; }
 
-        .langkah { padding: 90px 0; }
+        .langkah { padding: 90px 0; scroll-margin-top: 80px; }
         .langkah h2 { font-size: 2.5em; margin-bottom: 40px; }
         .grid-langkah { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
         .item-langkah { border-top: 1px solid #ccc; padding-top: 20px; }
@@ -98,7 +113,7 @@
         .item-langkah p { color: var(--teks-pudar); font-size: 0.95em; }
         .angka-langkah { font-size: 0.8em; color: #888; font-weight: bold; margin-bottom: 10px; display: block;}
 
-        .harga { padding: 90px 0; }
+        .harga { padding: 90px 0; scroll-margin-top: 80px; }
         .harga h2 { font-size: 2.5em; margin-bottom: 10px; }
         .harga p.sub { color: var(--teks-pudar); margin-bottom: 40px; }
         
@@ -168,22 +183,36 @@
 <body>
 
     <div class="container">
-        <!-- HEADER DENGAN MENU COMPLIANCE IPAYMU DI ATAS -->
+        <!-- HEADER -->
         <header>
             <a href="#" class="brand">
                 <div class="logo-box">K</div>
                 <div class="brand-teks">KiixMotion <span class="badge-studio">STUDIO</span></div>
             </a>
             
-            <!-- Tombol Compliance di Atas untuk Reviewer iPaymu -->
-            <div class="compliance-menu">
-                <button onclick="bukaModal('modal-syarat')">Syarat & Ketentuan</button>
-                <button onclick="bukaModal('modal-refund')">Refund</button>
-                <button onclick="bukaModal('modal-faq')">FAQ</button>
-                <button onclick="bukaModal('modal-kontak')">Kontak</button>
+            <!-- Link Navigasi Scrolling (Tengah) -->
+            <div class="nav-tengah">
+                <a href="#cara-kerja">Cara Kerja</a>
+                <a href="#mesin">Mesin</a>
+                <a href="#harga">Harga</a>
+                <a href="#demo">Contoh Hasil</a>
             </div>
 
-            <button onclick="bukaAuth('login')" class="btn-masuk">Masuk</button>
+            <!-- Bagian Kanan Header -->
+            <div class="header-kanan">
+                <!-- Tombol Compliance untuk Reviewer iPaymu -->
+                <div class="compliance-menu">
+                    <button onclick="bukaModal('modal-syarat')">Syarat & Ketentuan</button>
+                    <span>•</span>
+                    <button onclick="bukaModal('modal-refund')">Refund</button>
+                    <span>•</span>
+                    <button onclick="bukaModal('modal-faq')">FAQ</button>
+                    <span>•</span>
+                    <button onclick="bukaModal('modal-kontak')">Kontak</button>
+                </div>
+
+                <button onclick="bukaAuth('login')" class="btn-masuk">Masuk</button>
+            </div>
         </header>
 
         <!-- HERO -->
@@ -195,6 +224,7 @@
                 <a href="#demo" class="btn-contoh">Lihat contohnya</a>
             </div>
             
+            <!-- TARGET ID: #demo -->
             <div id="demo" class="media-showcase">
                 <div class="media-box">
                     <img src="demo-foto.jpg" alt="Foto Karakter">
@@ -208,14 +238,14 @@
             </div>
         </div>
 
-        <!-- FITUR WAJAH -->
-        <div class="fitur-wajah">
+        <!-- TARGET ID: #mesin -->
+        <div id="mesin" class="fitur-wajah">
             <h2>Yang gerak tetap dia, bukan kembarannya.</h2>
             <p>Kebanyakan AI diam-diam nukar wajah pas menganimasikan, dan hasilnya cuma mirip-mirip. KiixMotion nahan wajah, rambut, sampai warna kulit dari fotomu, jadi yang gerak beneran karaktermu, bukan orang lain yang kebetulan sepintas mirip.</p>
         </div>
 
-        <!-- TIGA LANGKAH -->
-        <div class="langkah">
+        <!-- TARGET ID: #cara-kerja -->
+        <div id="cara-kerja" class="langkah">
             <h2>Tiga langkah, terus tinggal nunggu.</h2>
             <div class="grid-langkah">
                 <div class="item-langkah">
@@ -236,8 +266,8 @@
             </div>
         </div>
 
-        <!-- HARGA -->
-        <div class="harga">
+        <!-- TARGET ID: #harga -->
+        <div id="harga" class="harga">
             <h2>Mesin tempur, harganya kelihatan dari awal.</h2>
             <p class="sub">Tiap mesin beda rasa dan beda harga, tapi semuanya jaga wajah dari fotomu.</p>
             

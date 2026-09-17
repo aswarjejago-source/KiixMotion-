@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (MODE DEBUGGING)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI)
 // File: js/api-engine.js
 // ==========================================
 
@@ -164,12 +164,11 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (MODE DEBUGGING)
+// CCTV PEMANTAUAN (TARGET MURNI BERDASARKAN SURAT)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
 
-  // Dipercepat jadi 3 detik biar langsung ketahuan hasilnya
   var cekInterval = setInterval(async function() {
     try {
       var resStatus = await fetch('/api/outputs', { 
@@ -184,20 +183,67 @@ function pantauTaskRunningHub(tugas, apiKey) {
         })
       });
       
-      // SPEAKER PENGERAS SUARA
-      var teksMentah = await resStatus.text(); 
+      if (!resStatus.ok) return; 
       
-      // MUNCULKAN POP-UP DI LAYAR HP
-      alert("🚨 SURAT BALASAN SERVER (ID: " + tugas.id + "):\n\n" + teksMentah);
-
-      // LANGSUNG MATIKAN CCTV BIAR GAK SPAM
-      clearInterval(cekInterval);
-
+      var jsonStatus = await resStatus.json();
+      
+      // BACA SURAT CINTA!
+      var msg = (jsonStatus.msg || "").toString().toLowerCase();
+      var code = jsonStatus.code;
+      var stringData = JSON.stringify(jsonStatus);
+      
+      // Jika code 0 atau msg success, DAN di dalamnya ada tulisan .mp4
+      if ((code === 0 || msg === "success") && stringData.includes(".mp4")) {
+        clearInterval(cekInterval);
+        tugas.status = "Selesai"; 
+        tugas.selesai = true;
+        tugas.progress = 100; 
+        
+        var vidUrl = null;
+        
+        // Target langsung ke laci data[0].fileUrl sesuai screenshot!
+        if (jsonStatus.data && Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
+          vidUrl = jsonStatus.data[0].fileUrl;
+        }
+        
+        // Kalau ternyata meleset sedikit, pakai jaring harimau (Regex)
+        if (!vidUrl) {
+          var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
+          if (match) vidUrl = match[0];
+        }
+        
+        tugas.videoUrl = vidUrl;
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        
+        if (vidUrl) {
+          tampilkanNotif('✓ Render sukses! Video berhasil ditarik.', 'sukses');
+        } else {
+          tampilkanNotif('❌ Status sukses, tapi link mp4 kosong!', 'error');
+        }
+      } 
+      // Jika statusnya gagal dari server
+      else if (msg === "failed" || msg === "error" || code === -1) {
+        clearInterval(cekInterval);
+        tugas.status = "Gagal Dirender"; 
+        tugas.selesai = true;
+        tugas.progress = 100;
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
+      }
+      else {
+        // Masih RUNNING, naikin progress pelan-pelan
+        if (tugas.progress < 95) {
+          tugas.progress += Math.floor(Math.random() * 3) + 2; 
+        }
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+      }
     } catch (err) { 
-      alert("🚨 ERROR JARINGAN:\n\n" + err.message);
-      clearInterval(cekInterval);
+      // Abaikan error jaringan
     }
-  }, 3000); 
+  }, 10000); 
 }
 
 // ==========================================
@@ -248,7 +294,7 @@ async function mulaiProsesGenerate() {
     id: taskIdAsli || ("RH-" + Date.now().toString().slice(-6)),
     key: akunAktif.key, model: "Wan Motion Control", prov: "RunningHub",
     tgl: "Baru saja", biaya: "≈ 478 coin", videoUrl: null,
-    status: "Mengecek ke server...", selesai: false, progress: 0
+    status: "Sedang Render di GPU...", selesai: false, progress: 0
   };
   
   riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
@@ -375,6 +421,7 @@ window.onload = function() {
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
 
+  // Ini balikin ke interval normal 10 detik lagi
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
     riwayatGenerateList.forEach(function(tugas) {
       if (!tugas.selesai && tugas.id && tugas.key) {

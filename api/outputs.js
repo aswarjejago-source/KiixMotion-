@@ -15,17 +15,21 @@ export default async function handler(req, res) {
     // 2. URL bersih menuju API RunningHub
     const urlRunningHub = `https://www.runninghub.ai/task/openapi/outputs`;
 
-    // 3. Ketok server RunningHub pakai POST dan kirim ID di dalam "amplop" (body)
+    // 3. Ketok server RunningHub pakai POST dan kirim ID + API KEY di dalam "amplop" (body)
     const response = await fetch(urlRunningHub, {
       method: 'POST', 
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json', // Wajib ada kalau POST
+        'Content-Type': 'application/json',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache'
       },
-      body: JSON.stringify({ taskId: taskId }), // Ini amplop rahasianya, Bos!
-      cache: 'no-store' // Anti-cache Vercel
+      // INI TITIK MATINYA BREE: Wajib kirim apiKey bareng taskId di dalam body!
+      body: JSON.stringify({ 
+        taskId: taskId,
+        apiKey: apiKey 
+      }), 
+      cache: 'no-store' 
     });
 
     const data = await response.json();
@@ -35,6 +39,7 @@ export default async function handler(req, res) {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     
+    // Kembalikan data murni dari RunningHub ke web lu
     return res.status(200).json(data);
   } catch (err) {
     return res.status(500).json({ code: 500, msg: err.message });

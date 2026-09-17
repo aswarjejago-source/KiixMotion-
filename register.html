@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Masuk - KiixMotion Studio</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FAFAFA;
+            color: #1A1A1A;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* BAGIAN KIRI: BANNER ESTETIS */
+        .left-banner {
+            flex: 1;
+            background-color: #121212;
+            color: white;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+        @media (max-width: 768px) {
+            .left-banner { display: none; }
+        }
+        .banner-logo {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 1.2em;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: white;
+        }
+        .logo-box {
+            background-color: #EDE9FE; color: #7C3AED; width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+            border-radius: 8px; font-size: 0.9em;
+        }
+        .banner-content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3em;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            max-width: 450px;
+        }
+        .banner-content p {
+            color: #888;
+            font-size: 1em;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+        .banner-footer {
+            color: #555;
+            font-size: 0.85em;
+        }
+
+        /* BAGIAN KANAN: FORM AUTH */
+        .right-form {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            background-color: #FAFAFA;
+        }
+        .form-container {
+            width: 100%;
+            max-width: 380px;
+        }
+        .form-header {
+            margin-bottom: 30px;
+        }
+        .form-header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            color: #111;
+        }
+        .form-header p {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-field {
+            width: 100%;
+            padding: 14px 16px;
+            padding-right: 45px;
+            border: 1px solid #E5E7EB;
+            border-radius: 10px;
+            font-size: 0.95em;
+            background: #FFF;
+            transition: 0.2s;
+            outline: none;
+        }
+        .input-field:focus {
+            border-color: #7C3AED;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        /* TOMBOL MATA SHOW/HIDE PASSWORD */
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #888;
+            display: flex;
+            align-items: center;
+            padding: 0;
+        }
+        .toggle-password:hover { color: #333; }
+
+        .btn-submit {
+            width: 100%;
+            background-color: #111;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+        .btn-submit:hover { background-color: #333; }
+
+        .form-footer-link {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 0.85em;
+            color: #666;
+        }
+        .form-footer-link a {
+            color: #7C3AED;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .form-footer-link a:hover { text-decoration: underline; }
+
+        .back-home {
+            display: inline-block;
+            margin-bottom: 25px;
+            color: #666;
+            text-decoration: none;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        .back-home:hover { color: #111; }
+    </style>
+</head>
+<body>
+
+    <!-- SISI KIRI: BANNER ESTETIS -->
+    <div class="left-banner">
+        <a href="index.html" class="banner-logo">
+            <div class="logo-box">K</div>
+            KiixMotion Studio
+        </a>
+        <div class="banner-content">
+            <h2>Foto diam, jadi gerak yang meyakinkan.</h2>
+            <p>Masuk untuk mulai membuat video karakter dari satu foto dengan identitas wajah yang tetap terjaga utuh.</p>
+        </div>
+        <div class="banner-footer">
+            &copy; 2026 KiixMotion Studio. All rights reserved.
+        </div>
+    </div>
+
+    <!-- SISI KANAN: FORM LOGIN / REGISTER -->
+    <div class="right-form">
+        <div class="form-container">
+            <a href="index.html" class="back-home">&larr; Kembali ke Beranda</a>
+            
+            <div class="form-header">
+                <h1 id="form-heading">Masuk ke akun kamu</h1>
+                <p id="form-subheading">Lanjut pakai email untuk mengakses studio.</p>
+            </div>
+
+            <div class="input-group">
+                <label>Email</label>
+                <div class="input-wrapper">
+                    <input type="email" id="input-email" class="input-field" placeholder="nama@email.com">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Password</label>
+                <div class="input-wrapper">
+                    <input type="password" id="input-pass" class="input-field" placeholder="Minimal 6 karakter">
+                    <!-- Tombol Ikon Mata -->
+                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
+                        <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" onclick="prosesAuthSupabase()" class="btn-submit" id="btn-text">Masuk</button>
+
+            <div class="form-footer-link" id="switch-mode-box">
+                Belum punya akun? <a onclick="switchMode('register')">Daftar gratis</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- SDK SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        const supabaseUrl = 'https://fybyupwcburndxulqqnn.supabase.co';
+        const supabaseAnonKey = 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
+        const supa = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let modeAktif = urlParams.get('mode') === 'register' ? 'register' : 'login';
+
+        window.onload = function() {
+            aturTampilanMode(modeAktif);
+        };
+
+        function switchMode(mode) {
+            modeAktif = mode;
+            aturTampilanMode(mode);
+            const newUrl = mode === 'register' ? '?mode=register' : '?mode=login';
+            window.history.pushState({}, '', newUrl);
+        }
+
+        function aturTampilanMode(mode) {
+            const title = document.getElementById('page-title');
+            const heading = document.getElementById('form-heading');
+            const subheading = document.getElementById('form-subheading');
+            const btnText = document.getElementById('btn-text');
+            const switchBox = document.getElementById('switch-mode-box');
+
+            if(mode === 'register') {
+                title.innerText = "Daftar Akun Baru - KiixMotion Studio";
+                heading.innerText = "Buat akun baru";
+                subheading.innerText = "Buat akun KiixMotion untuk mulai membuat video.";
+                btnText.innerText = "Daftar Sekarang";
+                switchBox.innerHTML = `Sudah punya akun? <a onclick="switchMode('login')">Masuk di sini</a>`;
+            } else {
+                title.innerText = "Masuk - KiixMotion Studio";
+                heading.innerText = "Masuk ke akun kamu";
+                subheading.innerText = "Lanjut pakai email untuk mengakses studio.";
+                btnText.innerText = "Masuk";
+                switchBox.innerHTML = `Belum punya akun? <a onclick="switchMode('register')">Daftar gratis</a>`;
+            }
+        }
+
+        function togglePasswordVisibility() {
+            const passInput = document.getElementById('input-pass');
+            const eyeIcon = document.getElementById('eye-icon');
+            
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                eyeIcon.innerHTML = `
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                `;
+            } else {
+                passInput.type = 'password';
+                eyeIcon.innerHTML = `
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                `;
+            }
+        }
+
+        async function prosesAuthSupabase() {
+            const email = document.getElementById('input-email').value;
+            const pass = document.getElementById('input-pass').value;
+            const btnSubmit = document.getElementById('btn-text');
+
+            if(!email || !pass) {
+                alert('Isi email dan password dulu dong, Bree!');
+                return;
+            }
+
+            const teksAsli = btnSubmit.innerText;
+            btnSubmit.innerText = 'Memproses...';
+            btnSubmit.disabled = true;
+
+            try {
+                if (modeAktif === 'register') {
+                    const { data, error } = await supa.auth.signUp({ email, password: pass });
+                    if (error) throw error;
+                    
+                    alert('Akun berhasil dibuat! Silakan Masuk.');
+                    switchMode('login');
+                    document.getElementById('input-pass').value = '';
+                } else {
+                    const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
+                    if (error) throw error;
+                    
+                    window.location.href = 'studio.html';
+                }
+            } catch (error) {
+                alert('Gagal: ' + error.message);
+            } finally {
+                btnSubmit.innerText = teksAsli;
+                btnSubmit.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

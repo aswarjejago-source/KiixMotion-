@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL)
+// PILAR 3: API ENGINE & RENDER LOGIC (MODE DEBUGGING)
 // File: js/api-engine.js
 // ==========================================
 
@@ -164,11 +164,12 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (VIA VERCEL PROXY)
+// CCTV PEMANTAUAN (MODE DEBUGGING)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
 
+  // Dipercepat jadi 3 detik biar langsung ketahuan hasilnya
   var cekInterval = setInterval(async function() {
     try {
       var resStatus = await fetch('/api/outputs', { 
@@ -183,66 +184,20 @@ function pantauTaskRunningHub(tugas, apiKey) {
         })
       });
       
-      if (!resStatus.ok) return; 
+      // SPEAKER PENGERAS SUARA
+      var teksMentah = await resStatus.text(); 
       
-      var jsonStatus = await resStatus.json();
-      
-      // Ambil inti data, kadang dibungkus di dalam "data", kadang langsung di luar
-      var coreData = jsonStatus.data ? jsonStatus.data : jsonStatus;
-      
-      // Tembak lurus ke tulisan status berdasarkan susunan aslinya
-      var st = (coreData.status || "").toString().toUpperCase();
+      // MUNCULKAN POP-UP DI LAYAR HP
+      alert("🚨 SURAT BALASAN SERVER (ID: " + tugas.id + "):\n\n" + teksMentah);
 
-      if (st === "SUCCESS") {
-        clearInterval(cekInterval);
-        tugas.status = "Selesai"; 
-        tugas.selesai = true;
-        tugas.progress = 100; 
-        
-        var vidUrl = null;
-        
-        // Tembak lurus ke laci "results" > "url" sesuai yang di screenshot lu
-        if (coreData.results && coreData.results.url) {
-          vidUrl = coreData.results.url;
-        } 
-        // Lapis ke-2: Kalau bentuknya string mentah
-        else {
-          var str = JSON.stringify(coreData);
-          var match = str.match(/https?:\/\/[^"']+\.mp4/i);
-          if (match) vidUrl = match[0];
-        }
-        
-        tugas.videoUrl = vidUrl;
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-        
-        if (vidUrl) {
-          tampilkanNotif('✓ Render sukses! Video berhasil ditarik.', 'sukses');
-        } else {
-          tampilkanNotif('❌ Server Success, tapi link mp4 kosong!', 'error');
-        }
-      } 
-      else if (st === "FAILED" || st === "ERROR") {
-        clearInterval(cekInterval);
-        tugas.status = "Gagal Dirender"; 
-        tugas.selesai = true;
-        tugas.progress = 100;
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-        tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
-      }
-      else {
-        // Status masih RUNNING atau antre
-        if (tugas.progress < 95) {
-          tugas.progress += Math.floor(Math.random() * 3) + 2; 
-        }
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-      }
+      // LANGSUNG MATIKAN CCTV BIAR GAK SPAM
+      clearInterval(cekInterval);
+
     } catch (err) { 
-      // Abaikan error jaringan sesaat, interval jalan terus
+      alert("🚨 ERROR JARINGAN:\n\n" + err.message);
+      clearInterval(cekInterval);
     }
-  }, 10000); 
+  }, 3000); 
 }
 
 // ==========================================
@@ -293,7 +248,7 @@ async function mulaiProsesGenerate() {
     id: taskIdAsli || ("RH-" + Date.now().toString().slice(-6)),
     key: akunAktif.key, model: "Wan Motion Control", prov: "RunningHub",
     tgl: "Baru saja", biaya: "≈ 478 coin", videoUrl: null,
-    status: "Sedang Render di GPU...", selesai: false, progress: 0
+    status: "Mengecek ke server...", selesai: false, progress: 0
   };
   
   riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');

@@ -93,6 +93,7 @@ function unggahBahanLangsung(input, tipe) {
   formData.append("apiKey", akunAktif.key);
   formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
 
+  // Khusus upload memang langsung tembak ke RunningHub (karena endpoint ini gak digembok CORS)
   var xhr = new XMLHttpRequest();
   xhr.open("POST", "https://www.runninghub.ai/task/openapi/upload");
   xhr.setRequestHeader("Authorization", "Bearer " + akunAktif.key);
@@ -117,7 +118,7 @@ function unggahBahanLangsung(input, tipe) {
         if (tipe === 'foto') urlBahanFoto = serverFile; else urlBahanVideo = serverFile;
         var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
         if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-        tampilkanNotif('File berhasil diunggah: ' + serverFile, 'sukses');
+        tampilkanNotif('File berhasil diunggah!', 'sukses');
       } else throw new Error("Gagal parsing dari server");
     } catch (err) {
       if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
@@ -164,21 +165,24 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// SISTEM PEMANTAUAN & PENARIKAN VIDEO (DIRECT POST + RECURSIVE SCANNER)
+// CCTV PEMANTAUAN (VIA VERCEL PROXY)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
 
   var cekInterval = setInterval(async function() {
     try {
-      // Tembak langsung POST ke RunningHub tanpa perantara Vercel
-      var resStatus = await fetch('https://www.runninghub.ai/task/openapi/outputs', { 
+      // 1. KITA NEMBAK KE VERCEL (PROXY) KITA SENDIRI! Bukan langsung ke RunningHub.
+      var resStatus = await fetch('/api/outputs', { 
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + apiKey
         },
-        body: JSON.stringify({ taskId: tugas.id })
+        body: JSON.stringify({ 
+          taskId: tugas.id,
+          apiKey: apiKey
+        })
       });
       
       if (!resStatus.ok) return; 
@@ -189,7 +193,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (src) {
         var st = (src.status || src.taskStatus || "").toString().toUpperCase();
         
-        // Cek status selesai dari server
         if (st === "SUCCESS" || st === "FINISHED" || st === "0" || st === "DONE" || st === "SUCCEDD") {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
@@ -198,15 +201,13 @@ function pantauTaskRunningHub(tugas, apiKey) {
           
           var vidUrl = null;
           
-          // PENCARI JEJAK OTOMATIS: Menyusuri seluruh objek JSON balasan server tanpa peduli nama lacinya
+          // 2. PENCARI JEJAK OTOMATIS: Bedah semua laci cari file .mp4
           function cariUrlMp4(obj) {
             if (!obj || typeof obj !== 'object') return null;
             for (var key in obj) {
               if (Object.prototype.hasOwnProperty.call(obj, key)) {
                 var val = obj[key];
-                if (typeof val === 'string' && val.includes('.mp4')) {
-                  return val; 
-                }
+                if (typeof val === 'string' && val.includes('.mp4')) return val; 
                 if (typeof val === 'object') {
                   var hasilRiset = cariUrlMp4(val);
                   if (hasilRiset) return hasilRiset;
@@ -218,23 +219,21 @@ function pantauTaskRunningHub(tugas, apiKey) {
 
           vidUrl = cariUrlMp4(src);
           
-          // Jaring pengaman cadangan (Regex) jika format objek tidak terdeteksi
+          // Lapis ke-2: Regex Mentah
           if (!vidUrl) {
             var stringMentah = JSON.stringify(src);
             var matchRegex = stringMentah.match(/https?:\/\/[^"']+\.mp4/i);
-            if (matchRegex && matchRegex[0]) {
-              vidUrl = matchRegex[0];
-            }
+            if (matchRegex && matchRegex[0]) vidUrl = matchRegex[0];
           }
           
           tugas.videoUrl = vidUrl;
           simpanStorage();
-          if (navLayarAktif === 'history') renderLayarHistory();
+          if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
           
           if (vidUrl) {
             tampilkanNotif('✓ Render sukses! Video berhasil ditarik.', 'sukses');
           } else {
-            tampilkanNotif('❌ Server Success, tapi link mp4 tidak ditemukan dalam data balasan!', 'error');
+            tampilkanNotif('❌ Server Success, tapi link mp4 tidak ditemukan dalam balasan!', 'error');
           }
         } 
         else if (st === "FAILED" || st === "ERROR" || st === "-1") {
@@ -243,20 +242,20 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.selesai = true;
           tugas.progress = 100;
           simpanStorage();
-          if (navLayarAktif === 'history') renderLayarHistory();
+          if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
           tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
         }
         else {
-          // Progress bar bertahap wajar (mentok 95% menunggu server SUCCESS karena API tidak menyediakan persentase)
+          // Progress perlahan melambat mentok di 95%
           if (tugas.progress < 95) {
             tugas.progress += Math.floor(Math.random() * 3) + 2; 
           }
           simpanStorage();
-          if (navLayarAktif === 'history') renderLayarHistory();
+          if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
         }
       }
     } catch (err) { 
-      console.warn("CCTV Terputus sesaat:", err); 
+      // Error jaringan diam-diam, interval jalan terus sampai dapat koneksi
     }
   }, 10000); 
 }
@@ -282,6 +281,7 @@ async function mulaiProsesGenerate() {
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
       ];
       
+      // Kirim Task juga gak kena blokir dari sana, jadi pakai jalur langsung
       var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
@@ -290,7 +290,7 @@ async function mulaiProsesGenerate() {
       
       var textRes = await res.text();
       var data;
-      try { data = textRes ? JSON.parse(textRes) : null; } catch(err) { throw new Error("Format server gak valid."); }
+      try { data = textRes ? JSON.parse(textRes) : null; } catch(err) { throw new Error("Format server rusak."); }
 
       if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
         taskIdAsli = data.data?.taskId || data.taskId; 
@@ -314,7 +314,10 @@ async function mulaiProsesGenerate() {
   
   riwayatGenerateList.unshift(tugasBaru); simpanStorage(); gantiLayarNav('history');
   if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-  if (taskIdAsli) pantauTaskRunningHub(tugasBaru, akunAktif.key);
+  
+  if (taskIdAsli) {
+    pantauTaskRunningHub(tugasBaru, akunAktif.key);
+  }
 }
 
 function renderLayarHistory() {

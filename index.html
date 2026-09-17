@@ -408,7 +408,15 @@
         </div>
     </div>
 
+    <!-- Tambahkan library Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
+        // Masukin kunci rahasia yang tadi ke dalem kodingan ini juga
+        const supabaseUrl = 'https://fybyupwcburndxulqqnn.supabase.co';
+        const supabaseAnonKey = 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
+        const supa = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
         let modeAktif = 'login';
 
         function bukaAuth(mode) {
@@ -444,17 +452,53 @@
             }
         }
 
-        function prosesAuth() {
+        async function prosesAuth() {
             const email = document.getElementById('input-email').value;
             const pass = document.getElementById('input-pass').value;
+            const btnSubmit = document.getElementById('btn-action-text');
 
             if(!email || !pass) {
-                alert('Isi email dan password dulu, Bree!');
+                alert('Isi email dan password dulu dong, Bree!');
                 return;
             }
 
-            localStorage.setItem('kiix_user', email);
-            window.location.href = 'studio.html';
+            // Ganti teks tombol jadi loading biar kelihatan pro
+            const teksAsli = btnSubmit.innerText;
+            btnSubmit.innerText = 'Loading bentar...';
+            btnSubmit.disabled = true;
+
+            try {
+                if (modeAktif === 'register') {
+                    // Nyuruh Supabase bikin akun baru
+                    const { data, error } = await supa.auth.signUp({
+                        email: email,
+                        password: pass,
+                    });
+
+                    if (error) throw error;
+                    
+                    alert('Akun berhasil dibuat! Silakan Masuk pakai akun barusan.');
+                    toggleMode('login'); // Otomatis balik ke tampilan login
+                    document.getElementById('input-pass').value = ''; // Kosongin form password
+                } else {
+                    // Nyuruh Supabase ngecek akun buat login
+                    const { data, error } = await supa.auth.signInWithPassword({
+                        email: email,
+                        password: pass,
+                    });
+
+                    if (error) throw error;
+                    
+                    // Kalau sukses login, langsung gas ke studio
+                    window.location.href = 'studio.html';
+                }
+            } catch (error) {
+                alert('Waduh gagal: ' + error.message);
+            } finally {
+                // Balikin tombolnya ke semula
+                btnSubmit.innerText = teksAsli;
+                btnSubmit.disabled = false;
+            }
         }
     </script>
 </body>

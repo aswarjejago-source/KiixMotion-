@@ -10,99 +10,110 @@
     
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #FAFAFA;
-            color: #1A1A1A;
-            display: flex;
+            background-color: #08080A;
+            color: #FAFAFA;
             min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* BAGIAN KIRI: BANNER ESTETIS */
-        .left-banner {
-            flex: 1;
-            background-color: #121212;
-            color: white;
-            padding: 60px;
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
             position: relative;
         }
-        @media (max-width: 768px) {
-            .left-banner { display: none; }
+
+        /* LATAR BELAKANG CAHAYA NEON ESTETIK (EFEK 3D DEPTH) */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.18) 0%, rgba(8, 8, 10, 0) 70%);
+            top: 10%;
+            left: 20%;
+            z-index: 0;
+            filter: blur(60px);
         }
-        .banner-logo {
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
-            font-size: 1.2em;
-            letter-spacing: -0.5px;
+        body::after {
+            content: '';
+            position: absolute;
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(8, 8, 10, 0) 70%);
+            bottom: 10%;
+            right: 20%;
+            z-index: 0;
+            filter: blur(60px);
+        }
+
+        /* KARTU UTAMA DENGAN EFEK 3D KACA MELAYANG */
+        .card-3d-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+            perspective: 1000px; /* Kunci efek 3D */
+        }
+
+        .auth-card {
+            background: rgba(18, 18, 24, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 40px 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7),
+                        0 0 30px rgba(124, 58, 237, 0.15);
+            transition: transform 0.1s ease-out, box-shadow 0.2s ease;
+            transform-style: preserve-3d;
+        }
+
+        /* BRAND LOGO DI DALAM KARTU */
+        .card-brand {
             display: flex;
             align-items: center;
             gap: 10px;
             text-decoration: none;
             color: white;
+            margin-bottom: 30px;
+            font-weight: 600;
+            font-size: 0.95em;
         }
         .logo-box {
-            background-color: #EDE9FE; color: #7C3AED; width: 32px; height: 32px;
-            display: flex; align-items: center; justify-content: center; font-weight: bold;
-            border-radius: 8px; font-size: 0.9em;
-        }
-        .banner-content h2 {
-            font-family: 'Playfair Display', serif;
-            font-size: 3em;
-            line-height: 1.2;
-            margin-bottom: 20px;
-            max-width: 450px;
-        }
-        .banner-content p {
-            color: #888;
-            font-size: 1em;
-            max-width: 400px;
-            line-height: 1.6;
-        }
-        .banner-footer {
-            color: #555;
-            font-size: 0.85em;
+            background-color: rgba(124, 58, 237, 0.2);
+            color: #A78BFA;
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; border-radius: 9px;
+            border: 1px solid rgba(124, 58, 237, 0.4);
         }
 
-        /* BAGIAN KANAN: FORM AUTH */
-        .right-form {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-            background-color: #FAFAFA;
-        }
-        .form-container {
-            width: 100%;
-            max-width: 380px;
-        }
         .form-header {
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         .form-header h1 {
             font-family: 'Playfair Display', serif;
-            font-size: 2.2em;
-            margin-bottom: 8px;
-            color: #111;
+            font-size: 2.1em;
+            margin-bottom: 6px;
+            color: #FFFFFF;
+            letter-spacing: -0.5px;
         }
         .form-header p {
-            color: #666;
-            font-size: 0.9em;
+            color: #9CA3AF;
+            font-size: 0.88em;
         }
 
         .input-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
         .input-group label {
             display: block;
-            font-size: 0.85em;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
+            font-size: 0.82em;
+            font-weight: 500;
+            color: #D1D5DB;
+            margin-bottom: 6px;
         }
         .input-wrapper {
             position: relative;
@@ -111,57 +122,63 @@
         }
         .input-field {
             width: 100%;
-            padding: 14px 16px;
+            padding: 13px 16px;
             padding-right: 45px;
-            border: 1px solid #E5E7EB;
-            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
             font-size: 0.95em;
-            background: #FFF;
-            transition: 0.2s;
+            background: rgba(0, 0, 0, 0.4);
+            color: #FFFFFF;
+            transition: all 0.2s ease;
             outline: none;
         }
         .input-field:focus {
             border-color: #7C3AED;
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+            background: rgba(0, 0, 0, 0.6);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.25);
         }
 
-        /* TOMBOL MATA SHOW/HIDE PASSWORD */
         .toggle-password {
             position: absolute;
             right: 15px;
             background: none;
             border: none;
             cursor: pointer;
-            color: #888;
+            color: #9CA3AF;
             display: flex;
             align-items: center;
             padding: 0;
         }
-        .toggle-password:hover { color: #333; }
+        .toggle-password:hover { color: #FFFFFF; }
 
         .btn-submit {
             width: 100%;
-            background-color: #111;
+            background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
             color: white;
             border: none;
             padding: 14px;
-            border-radius: 10px;
+            border-radius: 12px;
             font-weight: 600;
-            font-size: 1em;
+            font-size: 0.98em;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
             margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
         }
-        .btn-submit:hover { background-color: #333; }
+        .btn-submit:hover { 
+            opacity: 0.95;
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.6);
+            transform: translateY(-1px);
+        }
 
         .form-footer-link {
             text-align: center;
             margin-top: 25px;
             font-size: 0.85em;
-            color: #666;
+            color: #9CA3AF;
         }
         .form-footer-link a {
-            color: #7C3AED;
+            color: #A78BFA;
             text-decoration: none;
             font-weight: 600;
             cursor: pointer;
@@ -170,35 +187,25 @@
 
         .back-home {
             display: inline-block;
-            margin-bottom: 25px;
-            color: #666;
+            margin-bottom: 20px;
+            color: #9CA3AF;
             text-decoration: none;
-            font-size: 0.85em;
+            font-size: 0.82em;
             font-weight: 500;
+            transition: color 0.2s;
         }
-        .back-home:hover { color: #111; }
+        .back-home:hover { color: #FFFFFF; }
     </style>
 </head>
 <body>
 
-    <!-- SISI KIRI: BANNER ESTETIS -->
-    <div class="left-banner">
-        <a href="index.html" class="banner-logo">
-            <div class="logo-box">K</div>
-            KiixMotion Studio
-        </a>
-        <div class="banner-content">
-            <h2>Foto diam, jadi gerak yang meyakinkan.</h2>
-            <p>Masuk untuk mulai membuat video karakter dari satu foto dengan identitas wajah yang tetap terjaga utuh.</p>
-        </div>
-        <div class="banner-footer">
-            &copy; 2026 KiixMotion Studio. All rights reserved.
-        </div>
-    </div>
+    <div class="card-3d-wrapper" id="cardWrapper">
+        <div class="auth-card" id="authCard">
+            <a href="index.html" class="card-brand">
+                <div class="logo-box">K</div>
+                KiixMotion Studio
+            </a>
 
-    <!-- SISI KANAN: FORM LOGIN / REGISTER -->
-    <div class="right-form">
-        <div class="form-container">
             <a href="index.html" class="back-home">&larr; Kembali ke Beranda</a>
             
             <div class="form-header">
@@ -217,7 +224,6 @@
                 <label>Password</label>
                 <div class="input-wrapper">
                     <input type="password" id="input-pass" class="input-field" placeholder="Minimal 6 karakter">
-                    <!-- Tombol Ikon Mata -->
                     <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
                         <svg id="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -333,6 +339,30 @@
                 btnSubmit.disabled = false;
             }
         }
+
+        /* EFEK 3D TILT (IKUT GERAKAN JARI / MOUSE) */
+        const card = document.getElementById('authCard');
+        const wrapper = document.getElementById('cardWrapper');
+
+        wrapper.addEventListener('mousemove', (e) => {
+            const rect = wrapper.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+            
+            const rotateX = (-y / 15).toFixed(2);
+            const rotateY = (x / 15).toFixed(2);
+            
+            card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+
+        wrapper.addEventListener('mouseleave', () => {
+            card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+            card.style.transition = 'transform 0.5s ease';
+        });
+
+        wrapper.addEventListener('mouseenter', () => {
+            card.style.transition = 'none';
+        });
     </script>
 </body>
 </html>

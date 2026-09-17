@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL ROBUST)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL)
 // File: js/api-engine.js
 // ==========================================
 
@@ -93,7 +93,6 @@ function unggahBahanLangsung(input, tipe) {
   formData.append("apiKey", akunAktif.key);
   formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
 
-  // Khusus upload memang langsung tembak ke RunningHub (karena endpoint ini gak digembok CORS)
   var xhr = new XMLHttpRequest();
   xhr.open("POST", "https://www.runninghub.ai/task/openapi/upload");
   xhr.setRequestHeader("Authorization", "Bearer " + akunAktif.key);
@@ -172,7 +171,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
 
   var cekInterval = setInterval(async function() {
     try {
-      // 1. KITA NEMBAK KE VERCEL (PROXY) KITA SENDIRI! Bukan langsung ke RunningHub.
       var resStatus = await fetch('/api/outputs', { 
         method: 'POST',
         headers: { 
@@ -188,74 +186,61 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (!resStatus.ok) return; 
       
       var jsonStatus = await resStatus.json();
-      var src = jsonStatus.data || jsonStatus;
       
-      if (src) {
-        var st = (src.status || src.taskStatus || "").toString().toUpperCase();
-        
-        if (st === "SUCCESS" || st === "FINISHED" || st === "0" || st === "DONE" || st === "SUCCEDD") {
-          clearInterval(cekInterval);
-          tugas.status = "Selesai"; 
-          tugas.selesai = true;
-          tugas.progress = 100; 
-          
-          var vidUrl = null;
-          
-          // 2. PENCARI JEJAK OTOMATIS: Bedah semua laci cari file .mp4
-          function cariUrlMp4(obj) {
-            if (!obj || typeof obj !== 'object') return null;
-            for (var key in obj) {
-              if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                var val = obj[key];
-                if (typeof val === 'string' && val.includes('.mp4')) return val; 
-                if (typeof val === 'object') {
-                  var hasilRiset = cariUrlMp4(val);
-                  if (hasilRiset) return hasilRiset;
-                }
-              }
-            }
-            return null;
-          }
+      // Ambil inti data, kadang dibungkus di dalam "data", kadang langsung di luar
+      var coreData = jsonStatus.data ? jsonStatus.data : jsonStatus;
+      
+      // Tembak lurus ke tulisan status berdasarkan susunan aslinya
+      var st = (coreData.status || "").toString().toUpperCase();
 
-          vidUrl = cariUrlMp4(src);
-          
-          // Lapis ke-2: Regex Mentah
-          if (!vidUrl) {
-            var stringMentah = JSON.stringify(src);
-            var matchRegex = stringMentah.match(/https?:\/\/[^"']+\.mp4/i);
-            if (matchRegex && matchRegex[0]) vidUrl = matchRegex[0];
-          }
-          
-          tugas.videoUrl = vidUrl;
-          simpanStorage();
-          if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-          
-          if (vidUrl) {
-            tampilkanNotif('✓ Render sukses! Video berhasil ditarik.', 'sukses');
-          } else {
-            tampilkanNotif('❌ Server Success, tapi link mp4 tidak ditemukan dalam balasan!', 'error');
-          }
+      if (st === "SUCCESS") {
+        clearInterval(cekInterval);
+        tugas.status = "Selesai"; 
+        tugas.selesai = true;
+        tugas.progress = 100; 
+        
+        var vidUrl = null;
+        
+        // Tembak lurus ke laci "results" > "url" sesuai yang di screenshot lu
+        if (coreData.results && coreData.results.url) {
+          vidUrl = coreData.results.url;
         } 
-        else if (st === "FAILED" || st === "ERROR" || st === "-1") {
-          clearInterval(cekInterval);
-          tugas.status = "Gagal Dirender"; 
-          tugas.selesai = true;
-          tugas.progress = 100;
-          simpanStorage();
-          if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-          tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
-        }
+        // Lapis ke-2: Kalau bentuknya string mentah
         else {
-          // Progress perlahan melambat mentok di 95%
-          if (tugas.progress < 95) {
-            tugas.progress += Math.floor(Math.random() * 3) + 2; 
-          }
-          simpanStorage();
-          if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+          var str = JSON.stringify(coreData);
+          var match = str.match(/https?:\/\/[^"']+\.mp4/i);
+          if (match) vidUrl = match[0];
         }
+        
+        tugas.videoUrl = vidUrl;
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        
+        if (vidUrl) {
+          tampilkanNotif('✓ Render sukses! Video berhasil ditarik.', 'sukses');
+        } else {
+          tampilkanNotif('❌ Server Success, tapi link mp4 kosong!', 'error');
+        }
+      } 
+      else if (st === "FAILED" || st === "ERROR") {
+        clearInterval(cekInterval);
+        tugas.status = "Gagal Dirender"; 
+        tugas.selesai = true;
+        tugas.progress = 100;
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
+      }
+      else {
+        // Status masih RUNNING atau antre
+        if (tugas.progress < 95) {
+          tugas.progress += Math.floor(Math.random() * 3) + 2; 
+        }
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
       }
     } catch (err) { 
-      // Error jaringan diam-diam, interval jalan terus sampai dapat koneksi
+      // Abaikan error jaringan sesaat, interval jalan terus
     }
   }, 10000); 
 }
@@ -281,7 +266,6 @@ async function mulaiProsesGenerate() {
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
       ];
       
-      // Kirim Task juga gak kena blokir dari sana, jadi pakai jalur langsung
       var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },

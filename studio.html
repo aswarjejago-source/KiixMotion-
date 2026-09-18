@@ -49,7 +49,7 @@
       box-shadow: 0 10px 30px -5px rgba(26, 24, 22, 0.04), 0 4px 6px -2px rgba(26, 24, 22, 0.02);
     }
     .violet-glow {
-      box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.25);
+      box-shadow: 0 8px 20px -4px rgba(124, 58, 237, 0.2);
     }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -104,13 +104,13 @@
       <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
         <i class="ph ph-clock-counter-clockwise text-lg"></i> History
       </button>
-      <button id="menu-nav-gale" onclick="gantiLayarNav('galeri')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+      <button id="menu-nav-galeri" onclick="gantiLayarNav('galeri')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
         <i class="ph ph-images text-lg"></i> Galeri <span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-md font-bold">Maks 50</span>
       </button>
       
       <div class="w-full mt-3 mb-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Kelola akun</p></div>
 
-      <button id="menu-nav-kelo" onclick="gantiLayarNav('kelola-akun')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+      <button id="menu-nav-kelola-akun" onclick="gantiLayarNav('kelola-akun')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
         <i class="ph ph-key text-lg"></i> Add Apikey
       </button>
       <button onclick="alert('Fitur Beli Akun Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
@@ -153,7 +153,7 @@
     </div>
 
     <!-- DASHBOARD VIEW -->
-    <div id="layar-dashboard" style="display: none;" class="space-y-6 pt-10 md:pt-0">
+    <div id="layar-dashboard" class="space-y-6 pt-10 md:pt-0">
       <div class="mb-4">
           <h1 class="text-2xl sm:text-3xl font-black text-kmTextPrimary tracking-tight">Halo, <span id="user-greeting-name" class="capitalize">Member</span></h1>
           <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Ringkasan akun dan aktivitas generate kamu.</p>
@@ -200,7 +200,7 @@
           </div>
       </div>
 
-      <!-- BANNER KOMUNITAS TELEGRAM (KEMBALI MUNCUL) -->
+      <!-- BANNER KOMUNITAS TELEGRAM -->
       <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
         <div class="flex items-center gap-3.5">
           <div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30">
@@ -230,7 +230,7 @@
     </div>
 
     <!-- GENERATE VIEW -->
-    <div id="layar-generate" class="space-y-6">
+    <div id="layar-generate" style="display: none;" class="space-y-6">
       <div>
         <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -357,7 +357,6 @@
 
     <!-- GALERI VIEW (GAYA MOTIONFLY) -->
     <div id="layar-galeri" style="display: none;" class="space-y-6">
-      <!-- Header Kotak Informasi Ala MotionFly -->
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Foto & video referensi</h2>
@@ -374,7 +373,6 @@
         </div>
       </div>
 
-      <!-- Kotak Area Upload & Kosong / Grid File -->
       <div class="bg-white border border-kmBorder rounded-3xl p-8 text-center modern-shadow space-y-4">
         <label class="block border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-10 cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/10 group">
           <div class="w-12 h-12 rounded-2xl bg-violet-100 text-kmViolet flex items-center justify-center mx-auto text-xl mb-3 group-hover:scale-110 transition">🖼️</div>
@@ -383,15 +381,13 @@
           <input type="file" accept="image/*,video/*" class="hidden" onchange="unggahKeGaleri(this)" />
         </label>
 
-        <!-- Wadah Grid Media Galeri -->
         <div id="wadah-grid-galeri" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-2"></div>
       </div>
     </div>
 
-    <!-- ADD APIKEY VIEW (KELOLA AKUN ALA MOTIONFLY) -->
+    <!-- ADD APIKEY VIEW -->
     <div id="layar-kelola-akun" style="display: none;" class="space-y-6">
       
-      <!-- HEADER KARTU UTAMA -->
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -399,12 +395,11 @@
             <p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub dan Roboneo kamu untuk proses generate.</p>
           </div>
           <!-- Tombol Add Apikey (Warna Lembut / Tidak Terlalu Pekat) -->
-          <button onclick="bukaModalFormKey()" class="px-5 py-3 bg-violet-500/90 hover:bg-violet-600 text-white text-xs sm:text-sm font-bold rounded-2xl violet-glow transition cursor-pointer flex items-center justify-center gap-2">
-            <i class="ph ph-key text-base">+ Add Apikey</i>
+          <button onclick="bukaModalFormKey()" class="px-5 py-3 bg-[#7C3AED]/80 hover:bg-[#7C3AED] text-white text-xs sm:text-sm font-bold rounded-2xl violet-glow transition cursor-pointer flex items-center justify-center gap-2">
+            <i class="ph ph-key text-base"></i> + Add Apikey
           </button>
         </div>
 
-        <!-- TAB PILIHAN PROVIDER DENGAN LOGO -->
         <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-kmBorder">
           <button onclick="gantiTabAkunProvider('runninghub')" id="tab-pilih-rh" class="px-4 py-2 rounded-xl bg-violet-50 border border-violet-200 text-kmViolet text-xs font-bold flex items-center gap-2 transition cursor-pointer">
             <span class="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">R</span>
@@ -421,7 +416,6 @@
         </div>
       </div>
 
-      <!-- KOTAK PANDUAN BUKA-TUTUP (ACCORDION) -->
       <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow">
         <button onclick="togglePanduanKey()" class="w-full px-5 py-4 flex items-center justify-between text-left bg-slate-50/70 hover:bg-slate-100/80 transition cursor-pointer">
           <div class="flex items-center gap-2.5">
@@ -442,7 +436,6 @@
         </div>
       </div>
 
-      <!-- STATISTIK KECIL & DAFTAR AKUN -->
       <div class="flex flex-wrap items-center justify-between gap-4 bg-white border border-kmBorder p-5 rounded-2xl modern-shadow text-xs sm:text-sm font-mono">
         <div class="flex items-center gap-5">
           <div><span class="text-slate-400 font-sans">Total Akun: </span><span id="txt-stat-akun" class="font-bold text-slate-800">0</span></div>
@@ -451,7 +444,6 @@
         </div>
       </div>
 
-      <!-- WADAH LIST AKUN -->
       <div id="wadah-kartu-akun-list" class="space-y-3"></div>
     </div>
   </main>
@@ -472,7 +464,7 @@
       </div>
       <div class="flex gap-3 pt-3">
         <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold rounded-2xl hover:bg-slate-200 transition cursor-pointer">Batal</button>
-        <button onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-violet-500 hover:bg-violet-600 text-white text-xs sm:text-sm font-bold rounded-2xl violet-glow transition cursor-pointer">Tambah</button>
+        <button onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-[#7C3AED]/80 hover:bg-[#7C3AED] text-white text-xs sm:text-sm font-bold rounded-2xl violet-glow transition cursor-pointer">Tambah</button>
       </div>
     </div>
   </div>
@@ -516,7 +508,7 @@
       ambilDataLoginAsli();
   </script>
 
-  <!-- SKRIP FITUR GALERI & PANDUAN -->
+  <!-- SKRIP LOGIKA NAVIGASI & GALERI (ANTI LAYAR PUTIH KOSONG) -->
   <script>
       function togglePanduanKey() {
           var konten = document.getElementById('konten-panduan-key');
@@ -530,6 +522,32 @@
           }
       }
 
+      // Overriding fungsi gantiLayarNav agar mendukung Galeri & Add Apikey
+      window.gantiLayarNav = function(layar) {
+          var daftarLayar = ['dashboard', 'generate', 'history', 'galeri', 'kelola-akun'];
+          daftarLayar.forEach(function(id) {
+              var el = document.getElementById('layar-' + id);
+              if (el) {
+                  el.style.display = (layar === id) ? 'block' : 'none';
+              }
+              var btnId = 'menu-nav-' + id;
+              var btn = document.getElementById(btnId);
+              if (btn) {
+                  if (layar === id) {
+                      btn.className = "nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED]";
+                  } else {
+                      btn.className = "nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800";
+                  }
+              }
+          });
+
+          if (layar === 'dashboard' && typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
+          if (layar === 'history' && typeof renderLayarHistory === 'function') renderLayarHistory();
+          if (layar === 'galeri') renderGaleri();
+          if (layar === 'kelola-akun' && typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
+      };
+
+      // Sistem Galeri Referensi (Maks 50 File)
       var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
 
       function unggahKeGaleri(input) {
@@ -574,7 +592,7 @@
 
           if (galeriList.length === 0) {
               wadah.innerHTML = `
-              <div class="col-span-full py-12 text-center text-slate-400 space-y-1">
+              <div class="col-span-full py-8 text-center text-slate-400">
                  <p class="text-xs font-semibold">Belum ada file media yang diunggah.</p>
               </div>`;
               return;
@@ -598,16 +616,6 @@
           });
           wadah.innerHTML = html;
       }
-
-      var oldGantiLayar = window.gantiLayarNav;
-      window.gantiLayarNav = function(layar) {
-          if(typeof oldGantiLayar === 'function') oldGantiLayar(layar);
-          var elGaleri = document.getElementById('layar-galeri');
-          if(elGaleri) elGaleri.style.display = (layar === 'galeri') ? 'block' : 'none';
-          if(layar === 'galeri') renderGaleri();
-      };
-      
-      setTimeout(renderGaleri, 500);
   </script>
 
   <!-- SKRIP UTAMA RENDER VIDEO GRID -->

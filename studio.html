@@ -40,7 +40,7 @@
     .nav-btn-smooth { display: flex; align-items: center; gap: 12px; transition: all 0.2s ease-in-out; }
   </style>
 
-  <!-- PANGGIL FILE JAVASCRIPT LU SECARA RAPI -->
+  <!-- PANGGIL FILE JAVASCRIPT LU -->
   <script src="js/database.js" defer></script>
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
@@ -68,22 +68,22 @@
     <div class="w-full mt-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 pl-2">Meja Kerja</p></div>
 
     <nav class="flex md:flex-col items-center md:items-stretch gap-1 bg-slate-50 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-kmBorder md:border-none w-full overflow-x-auto hide-scrollbar">
-      <button data-target="dashboard" onclick="gantiLayarNav('dashboard')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED] cursor-pointer whitespace-nowrap">
+      <button id="nav-btn-dashboard" onclick="gantiLayarNav('dashboard')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED] cursor-pointer whitespace-nowrap">
         <i class="ph ph-squares-four text-lg"></i> Dashboard
       </button>
-      <button data-target="generate" onclick="gantiLayarNav('generate')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button id="nav-btn-generate" onclick="gantiLayarNav('generate')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-magic-wand text-lg"></i> Generate
       </button>
-      <button data-target="history" onclick="gantiLayarNav('history')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button id="nav-btn-history" onclick="gantiLayarNav('history')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-clock-counter-clockwise text-lg"></i> History
       </button>
-      <button data-target="galeri" onclick="gantiLayarNav('galeri')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button id="nav-btn-galeri" onclick="gantiLayarNav('galeri')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-images text-lg"></i> Galeri <span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-md font-bold">Maks 50</span>
       </button>
       
       <div class="w-full mt-3 mb-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Kelola akun</p></div>
 
-      <button data-target="kelola-akun" onclick="gantiLayarNav('kelola-akun')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button id="nav-btn-kelola-akun" onclick="gantiLayarNav('kelola-akun')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-key text-lg"></i> Add Apikey
       </button>
       <button onclick="alert('Fitur Beli Akun Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
@@ -142,7 +142,7 @@
 
       <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
         <div class="flex items-center gap-3.5"><div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30"><svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg></div><div><div class="flex items-center gap-2"><h4 class="text-sm font-bold text-slate-900">Join Komunitas Kreator</h4><span class="text-[10px] bg-[#229ED9]/10 text-[#229ED9] px-2 py-0.5 rounded-full font-bold">TELEGRAM RESMI</span></div><p class="text-xs text-slate-500 mt-0.5">Sharing trik affiliate dan info event.</p></div></div>
-        <button onclick="window.open('https://t.me/+JS435ITO1h0xMWJl', '_blank')" class="px-5 py-2.5 bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs sm:text-sm font-bold rounded-xl transition shadow-sm">Gabung Komunitas</button>
+        <button onclick="bukaGrupTelegram()" class="px-5 py-2.5 bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs sm:text-sm font-bold rounded-xl transition shadow-sm">Gabung Komunitas</button>
       </div>
 
       <div class="pt-2">
@@ -239,6 +239,18 @@
       <p class="text-xs text-slate-500">Tempel API key dari halaman <span class="text-kmViolet font-bold">API Key RunningHub</span>.</p>
       <div class="space-y-3 pt-1"><label class="text-[11px] font-bold uppercase text-slate-400 block">API KEY</label><input id="in-modal-key" type="password" placeholder="Paste RunningHub API key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-xs sm:text-sm text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" /></div>
       <div class="flex gap-3 pt-3"><button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold rounded-2xl hover:bg-slate-200 transition">Batal</button><button onclick="alert('Tersimpan!')" class="flex-1 py-3.5 bg-[#7C3AED]/80 hover:bg-[#7C3AED] text-white text-xs sm:text-sm font-bold rounded-2xl transition">Tambah</button></div>
+    </div>
+  </div>
+
+  <!-- MODAL KONFIRMASI -->
+  <div id="modal-konfirmasi-box" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-kmBorder max-w-sm w-full p-6 rounded-3xl space-y-4 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold">❓</div>
+      <p id="modal-konfirmasi-teks" class="text-sm font-semibold text-slate-700 leading-relaxed">Apakah Anda yakin ingin melanjutkan?</p>
+      <div class="flex gap-2.5 pt-2">
+        <button onclick="tutupModalKonfirmasi(false)" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Batal</button>
+        <button onclick="tutupModalKonfirmasi(true)" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Ya, Lanjutkan</button>
+      </div>
     </div>
   </div>
 

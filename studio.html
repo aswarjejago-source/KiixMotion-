@@ -1,312 +1,368 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - KiixMotion Studio</title>
-    
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Phosphor Icons -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>KiixMotion Studio — AI Video & Image Generation Platform</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif']
+          },
+          colors: {
+            kmBg: '#FBF9F5',
+            kmCard: '#FFFFFF',
+            kmBorder: '#EFECE6',
+            kmTextPrimary: '#1A1816',
+            kmTextSecondary: '#736B63',
+            kmViolet: '#7C3AED',
+            kmVioletHover: '#6D28D9',
+            kmVioletLight: '#F3EEFF',
+            kmAccent: '#D97706'
+          }
+        }
+      }
+    };
+  </script>
+  
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      background-color: #FBF9F5;
+      color: #1A1816;
+    }
+    .modern-shadow {
+      box-shadow: 0 10px 30px -5px rgba(26, 24, 22, 0.04), 0 4px 6px -2px rgba(26, 24, 22, 0.02);
+    }
+    .violet-glow {
+      box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.35);
+    }
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-toast {
+      animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    /* Sembunyikan scrollbar di navigasi HP biar rapi */
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
 
-    <style>
-        /* TEMA KIIXMOTION (GELAP & UNGU) */
-        :root {
-            --bg-app: #08080A; /* Latar gelap KiiXMotion */
-            --bg-card: #121218; /* Latar kotak/kartu */
-            --text-main: #FFFFFF;
-            --text-muted: #9CA3AF;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --primary: #7C3AED; /* Ungu KiiXMotion */
-            --primary-hover: #6D28D9;
-        }
+  <!-- SCRIPT BAWAAN LU AMAN SENTOSA -->
+  <script src="js/database.js" defer></script>
+  <script src="js/ui-controller.js" defer></script>
+  <script src="js/api-engine.js" defer></script>
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-app);
-            color: var(--text-main);
-            display: flex;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* --- TATA LETAK: SIDEBAR KIRI --- */
-        .sidebar {
-            width: 250px;
-            background-color: var(--bg-card);
-            border-right: 1px solid var(--border-color);
-            padding: 24px 16px;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-        }
-
-        .brand {
-            display: flex; align-items: center; gap: 10px;
-            font-family: 'Playfair Display', serif;
-            font-weight: 700; font-size: 1.3em;
-            margin-bottom: 30px; padding-left: 8px;
-            color: var(--text-main);
-        }
-        .logo-box {
-            background: rgba(124, 58, 237, 0.2); color: #A78BFA;
-            width: 28px; height: 28px; border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-family: 'Inter', sans-serif; font-size: 0.8em; font-weight: bold;
-        }
-
-        .menu-label {
-            font-size: 0.7em; font-weight: 600; color: var(--text-muted);
-            letter-spacing: 1px; margin: 15px 0 8px 8px;
-        }
-
-        .nav-link {
-            display: flex; align-items: center; gap: 12px;
-            padding: 10px 12px; border-radius: 8px;
-            color: var(--text-muted); text-decoration: none;
-            font-size: 0.9em; font-weight: 500; cursor: pointer;
-            transition: all 0.2s;
-        }
-        .nav-link i { font-size: 1.2em; }
-        .nav-link:hover { background-color: rgba(255,255,255,0.05); color: var(--text-main); }
-        .nav-link.active {
-            background-color: rgba(124, 58, 237, 0.15);
-            color: #A78BFA; font-weight: 600;
-            border-left: 3px solid var(--primary);
-        }
-
-        /* --- TATA LETAK: KONTEN KANAN --- */
-        .main-content {
-            margin-left: 250px;
-            flex: 1; display: flex; flex-direction: column; min-height: 100vh;
-        }
-
-        /* TOP BAR */
-        .topbar {
-            height: 60px; display: flex; align-items: center; justify-content: space-between;
-            padding: 0 40px; border-bottom: 1px solid var(--border-color);
-            background-color: rgba(8, 8, 10, 0.8);
-            backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 50;
-        }
-        
-        .topbar-title { font-weight: 600; font-size: 1em; }
-        .topbar-actions { display: flex; align-items: center; gap: 16px; position: relative; }
-
-        .profile-btn {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-            width: 32px; height: 32px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 600; font-size: 0.85em; cursor: pointer; border: none; color: white;
-        }
-
-        /* DROPDOWN PROFIL */
-        .dropdown-menu {
-            position: absolute; top: 45px; right: 0;
-            background: var(--bg-card); border: 1px solid var(--border-color);
-            border-radius: 12px; width: 220px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            display: none; flex-direction: column; padding: 8px 0; z-index: 100;
-        }
-        .dropdown-menu.show { display: flex; }
-        .dropdown-header { padding: 8px 16px 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 8px; }
-        .dropdown-email { font-size: 0.85em; font-weight: 600; color: var(--text-main); word-break: break-all; }
-        .dropdown-badge { font-size: 0.7em; background: rgba(124, 58, 237, 0.2); color: #A78BFA; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px; }
-        
-        .dropdown-item { padding: 8px 16px; display: flex; align-items: center; gap: 10px; font-size: 0.85em; color: var(--text-muted); text-decoration: none; cursor: pointer; }
-        .dropdown-item:hover { background-color: rgba(255,255,255,0.05); color: var(--text-main); }
-        .text-red { color: #F87171 !important; }
-
-        /* AREA TENGAH */
-        .dashboard-body { padding: 30px 40px; max-width: 1000px; width: 100%; margin: 0 auto; }
-        .overview-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-        .greeting h1 { font-family: 'Playfair Display', serif; font-size: 2em; margin-bottom: 6px; }
-        .greeting p { font-size: 0.9em; color: var(--text-muted); }
-        
-        .btn-generate-main {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-            color: white; border: none; padding: 10px 20px; border-radius: 8px;
-            font-weight: 600; font-size: 0.9em; cursor: pointer; display: flex; align-items: center; gap: 8px;
-        }
-        .btn-generate-main:hover { box-shadow: 0 0 15px rgba(124, 58, 237, 0.4); }
-
-        /* GRID AKSI CEPAT */
-        .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 40px; }
-        .action-card {
-            background-color: var(--bg-card); border: 1px solid var(--border-color);
-            border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px;
-            cursor: pointer; transition: all 0.2s; text-decoration: none; color: inherit;
-        }
-        .action-card:hover { border-color: rgba(124, 58, 237, 0.5); background-color: rgba(255,255,255,0.02); }
-        .action-icon {
-            width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.4em;
-            background: rgba(124, 58, 237, 0.15); color: #A78BFA;
-        }
-        .action-text h4 { font-size: 0.9em; font-weight: 600; margin-bottom: 2px; }
-        .action-text p { font-size: 0.75em; color: var(--text-muted); }
-
-        /* GALERI VIDEO */
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .section-header h3 { font-size: 1.1em; font-weight: 600; }
-        .view-all { font-size: 0.85em; color: #A78BFA; text-decoration: none; display: flex; align-items: center; gap: 4px; }
-        
-        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .video-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; }
-        .video-player-area { background-color: #000; aspect-ratio: 16 / 9; position: relative; display: flex; align-items: center; justify-content: center; }
-        .video-player-area img { height: 100%; width: auto; object-fit: cover; opacity: 0.7; }
-        
-        .video-info { padding: 14px 16px; }
-        .video-title { display: flex; align-items: center; gap: 8px; font-size: 0.85em; font-weight: 600; margin-bottom: 10px; }
-        .status-dot { width: 8px; height: 8px; background-color: #A78BFA; border-radius: 50%; box-shadow: 0 0 8px #A78BFA; }
-        
-        .video-meta { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 10px; }
-        .meta-left { display: flex; align-items: center; gap: 12px; font-size: 0.8em; color: var(--text-muted); }
-        .meta-right { display: flex; align-items: center; gap: 8px; font-size: 1.1em; color: var(--text-muted); }
-
-    </style>
 </head>
-<body>
+<!-- TATA LETAK DIUBAH DI BODY: Tambah md:flex md:h-screen biar bisa sidebar di PC -->
+<body class="selection:bg-kmViolet selection:text-white pb-14 md:pb-0 md:flex md:h-screen md:overflow-hidden">
+  
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
-    <!-- SIDEBAR KIRI (TATA LETAK RAPI) -->
-    <aside class="sidebar">
-        <div class="brand">
-            <div class="logo-box">K</div> KiiXMotion
+  <!-- TATA LETAK HEADER DIUBAH: Jadi sidebar ke bawah saat layar desktop (md:flex-col) -->
+  <header id="main-header-nav" class="border-b md:border-b-0 md:border-r border-kmBorder bg-kmBg/90 md:bg-kmBg backdrop-blur-md px-4 sm:px-6 md:px-5 py-3.5 md:py-6 flex md:flex-col flex-wrap items-center md:items-start justify-between md:justify-start sticky top-0 z-40 gap-3 md:gap-8 md:w-64 shrink-0 h-auto md:h-screen transition-all">
+    <div class="flex items-center gap-3 w-full">
+      <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
+        <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="14" fill="#F3EEFF"/><path d="M14 10L22 22L14 34V10Z" fill="#7C3AED"/><path d="M22 22L30 10H22V22Z" fill="#A78BFA"/><path d="M22 22L30 34H22V22Z" fill="#6D28D9"/></svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-base font-black tracking-tight text-kmTextPrimary">KiixMotion</span>
+          <span class="text-[9px] uppercase font-bold tracking-widest bg-violet-100 text-kmViolet px-2 py-0.5 rounded-full border border-violet-200">Studio</span>
+        </div>
+        <p class="text-[11px] text-kmTextSecondary font-medium">AI Motion Control Workbench</p>
+      </div>
+    </div>
+    
+    <!-- TATA LETAK NAV: Jadi nyusun ke bawah di Desktop (md:flex-col) -->
+    <nav class="flex md:flex-col items-center md:items-stretch gap-1 sm:gap-2 bg-white/60 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-kmBorder md:border-none w-full overflow-x-auto hide-scrollbar">
+      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl md:rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer md:text-left whitespace-nowrap">Dashboard</button>
+      <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl md:rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer md:text-left whitespace-nowrap">Generate</button>
+      <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl md:rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer md:text-left whitespace-nowrap">History</button>
+      <button id="menu-nav-kelo" onclick="gantiLayarNav('kelola-akun')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl md:rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer md:text-left whitespace-nowrap">Kelola Akun</button>
+    </nav>
+  </header>
+
+  <!-- KONTEN UTAMA: Ditambahin scroll buat desktop biar kepisah dari sidebar -->
+  <main id="view-workbench" class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6 md:overflow-y-auto md:h-screen">
+    
+    <!-- DASHBOARD VIEW -->
+    <div id="layar-dashboard" style="display: none;" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-black text-kmTextPrimary">Overview Studio</h2>
+          <p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Akun aktif: <span id="label-current-user-email" class="font-bold text-kmViolet"></span></p>
+        </div>
+        <button onclick="gantiLayarNav('generate')" class="px-5 py-3 bg-kmViolet hover:bg-kmVioletHover text-white font-bold text-sm rounded-2xl violet-glow transition cursor-pointer flex items-center justify-center gap-2">
+          <span>⚡ Mulai Generate Video</span>
+        </button>
+      </div>
+
+      <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+        <div class="flex items-center gap-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30">
+            <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h4 class="text-sm font-bold text-slate-900">Join Komunitas Kreator</h4>
+              <span class="text-[10px] bg-[#229ED9]/10 text-[#229ED9] px-2 py-0.5 rounded-full font-bold">TELEGRAM RESMI</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Sharing prompt motion, trik affiliate TikTok, dan info event kuota.</p>
+          </div>
+        </div>
+        <button onclick="bukaGrupTelegram()" class="w-full sm:w-auto px-5 py-2.5 bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer shadow-sm text-center">Gabung Komunitas</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-white border border-kmBorder p-5 rounded-3xl modern-shadow space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs">R</div>
+              <div><h3 class="text-sm font-bold text-kmTextPrimary">RunningHub</h3><p class="text-[11px] text-slate-400">Motion Control (Wan) — BYOK</p></div>
+            </div>
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          </div>
+          <div class="grid grid-cols-3 gap-2 border-y border-kmBorder py-3 text-center">
+            <div><div id="dash-rh-total-koin" class="text-xl font-black text-kmViolet font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Total Coin</div></div>
+            <div><div id="dash-rh-total-akun" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div></div>
+            <div><div id="dash-rh-max-koin" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Terbesar</div></div>
+          </div>
         </div>
 
-        <div class="menu-label">MEJA KERJA</div>
-        <!-- Conto: tambahin URL/fungsi lu di href atau onclick -->
-        <a href="#" class="nav-link active"><i class="ph ph-squares-four"></i> Dashboard</a>
-        <a href="generate.html" class="nav-link"><i class="ph ph-magic-wand"></i> Generate Video</a>
-        <a href="history.html" class="nav-link"><i class="ph ph-clock-counter-clockwise"></i> History</a>
-
-        <div class="menu-label">AKUN & SALDO</div>
-        <a href="#" class="nav-link"><i class="ph ph-user-gear"></i> Kelola Akun</a>
-        <a href="#" class="nav-link"><i class="ph ph-lightning"></i> Beli Kredit / VIP</a>
-    </aside>
-
-    <!-- AREA KONTEN UTAMA -->
-    <main class="main-content">
-        <!-- TOP BAR -->
-        <header class="topbar">
-            <div class="topbar-title">Studio Dashboard</div>
-            <div class="topbar-actions">
-                <button class="profile-btn" onclick="toggleDropdown()" id="user-initial">U</button>
-                <div class="dropdown-menu" id="profileDropdown">
-                    <div class="dropdown-header">
-                        <div class="dropdown-email" id="display-email">Memuat...</div>
-                        <div class="dropdown-badge">Member Aktif</div>
-                    </div>
-                    <a href="profil.html" class="dropdown-item"><i class="ph ph-user"></i> Profil Saya</a>
-                    <a href="#" class="dropdown-item text-red" onclick="prosesLogout()"><i class="ph ph-sign-out"></i> Keluar</a>
-                </div>
+        <div class="bg-white border border-kmBorder p-5 rounded-3xl modern-shadow space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-xs">🥕</div>
+              <div><h3 class="text-sm font-bold text-kmTextPrimary">Roboneo</h3><p class="text-[11px] text-slate-400">Motion Control Kling 2.6</p></div>
             </div>
-        </header>
-
-        <!-- ISI DASHBOARD -->
-        <div class="dashboard-body">
-            
-            <div class="overview-header">
-                <div class="greeting">
-                    <h1>Halo, <span id="display-name">Member</span></h1>
-                    <p>Selamat datang kembali di KiiXMotion Studio.</p>
-                </div>
-                <!-- Tombol Generate: Tinggal ubah alert jadi fungsi asli web lu -->
-                <button class="btn-generate-main" onclick="alert('Ini nanti lu sambungin ke fungsi Generate lu, Boss!')">
-                    <i class="ph ph-plus"></i> Generate Baru
-                </button>
-            </div>
-
-            <!-- MENU AKSI CEPAT -->
-            <div class="action-grid">
-                <!-- Ganti alert() dengan URL halaman lu -->
-                <a href="#" onclick="alert('Arahin ke halaman generate video!')" class="action-card">
-                    <div class="action-icon"><i class="ph ph-video-camera"></i></div>
-                    <div class="action-text">
-                        <h4>Generate Video</h4>
-                        <p>Buat video dari foto AI</p>
-                    </div>
-                </a>
-                <a href="#" onclick="alert('Arahin ke halaman kelola langganan!')" class="action-card">
-                    <div class="action-icon"><i class="ph ph-crown"></i></div>
-                    <div class="action-text">
-                        <h4>Status VIP</h4>
-                        <p>Perpanjang masa aktif</p>
-                    </div>
-                </a>
-            </div>
-
-            <!-- GALERI VIDEO (JOB TERBARU) -->
-            <div class="section-header">
-                <h3>Job Terbaru Kamu</h3>
-                <a href="history.html" class="view-all">Lihat Semua <i class="ph ph-arrow-right"></i></a>
-            </div>
-
-            <div class="video-grid">
-                <!-- Kartu Hasil Video (Statis buat contoh tata letak) -->
-                <div class="video-card">
-                    <div class="video-player-area">
-                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" alt="Video Thumb">
-                    </div>
-                    <div class="video-info">
-                        <div class="video-title"><span class="status-dot"></span> Render Selesai</div>
-                        <div class="video-meta">
-                            <div class="meta-left"><span><i class="ph ph-clock"></i> Hari ini</span></div>
-                            <div class="meta-right">
-                                <!-- Tombol aksi di video -->
-                                <i class="ph ph-download-simple meta-btn" onclick="alert('Download video!')" style="cursor:pointer"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          </div>
+          <div class="grid grid-cols-3 gap-2 border-y border-kmBorder py-3 text-center">
+            <div><div id="dash-rb-total-carrots" class="text-xl font-black text-amber-600 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Total Carrots</div></div>
+            <div><div id="dash-rb-total-akun" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div></div>
+            <div><div id="dash-rb-max-carrots" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Terbesar</div></div>
+          </div>
         </div>
-    </main>
+      </div>
 
-    <!-- SDK SUPABASE -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        // Logika Supabase persis sama kayak tadi (nggak diubah fungsi aslinya)
-        const supabaseUrl = 'https://fybyupwcburndxulqqnn.supabase.co';
-        const supabaseAnonKey = 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
-        const supa = supabase.createClient(supabaseUrl, supabaseAnonKey);
+      <!-- TATA LETAK BARU: WADAH JOB TERBARU DI DASHBOARD (Kotak-kotak Grid ala MotionFly) -->
+      <div class="pt-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> Job Terbaru
+          </h2>
+          <button onclick="gantiLayarNav('history')" class="text-xs sm:text-sm font-bold text-kmViolet hover:text-kmVioletHover cursor-pointer">Lihat Riwayat &rarr;</button>
+        </div>
+        <!-- Wadah Grid untuk Video Terbaru -->
+        <div id="wadah-job-terbaru-dashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+           <!-- Placeholder ini akan tampil kalau JS belum sempet ngisi / masih kosong -->
+           <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
+              <span class="text-2xl">🎬</span>
+              Belum ada video yang di-generate.
+           </div>
+        </div>
+      </div>
+    </div>
 
-        function toggleDropdown() {
-            document.getElementById("profileDropdown").classList.toggle("show");
-        }
-        window.onclick = function(event) {
-            if (!event.target.matches('.profile-btn')) {
-                var dropdowns = document.getElementsByClassName("dropdown-menu");
-                for (var i = 0; i < dropdowns.length; i++) {
-                    if (dropdowns[i].classList.contains('show')) {
-                        dropdowns[i].classList.remove('show');
-                    }
-                }
-            }
-        }
+    <!-- GENERATE VIEW (UTUH) -->
+    <div id="layar-generate" class="space-y-6">
+      <div>
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div id="c-prov-runninghub" onclick="setProviderUtama('runninghub')" class="bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-base font-bold text-kmTextPrimary">WAN 1080HD</span>
+              <span id="b-prov-runninghub" class="text-xs bg-kmViolet text-white font-extrabold px-2.5 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs sm:text-sm text-kmTextSecondary font-medium">RunningHub Engine (BYOK)</p>
+            <p class="text-xs sm:text-sm text-kmViolet mt-3 font-mono font-bold">≈ 478 coin / render</p>
+          </div>
 
-        async function cekSesiUser() {
-            const { data: { session } } = await supa.auth.getSession();
-            if (!session) {
-                window.location.href = 'register.html';
-                return;
-            }
-            const userEmail = session.user.email;
-            document.getElementById('display-email').innerText = userEmail;
-            const namaPanggilan = userEmail.split('@')[0];
-            document.getElementById('display-name').innerText = namaPanggilan;
-            document.getElementById('user-initial').innerText = namaPanggilan.charAt(0).toUpperCase();
-        }
+          <div id="c-prov-roboneo" onclick="setProviderUtama('roboneo')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-base font-bold text-kmTextPrimary">KLING 2.6</span>
+              <span id="b-prov-roboneo" style="display:none;" class="text-xs bg-kmViolet text-white font-extrabold px-2.5 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs sm:text-sm text-kmTextSecondary font-medium">Roboneo Engine</p>
+            <p class="text-xs sm:text-sm text-amber-600 mt-3 font-mono font-bold">≈ 4 carrots / render</p>
+          </div>
 
-        async function prosesLogout() {
-            await supa.auth.signOut();
-            window.location.href = 'register.html';
-        }
-        window.onload = cekSesiUser;
-    </script>
+          <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-base font-bold text-kmTextPrimary">DIRECT CLOUD</span>
+              <span id="b-prov-kiix" style="display:none;" class="text-xs bg-kmViolet text-white font-extrabold px-2.5 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs sm:text-sm text-kmTextSecondary font-medium">Kiix Cloud VIP</p>
+            <p class="text-xs sm:text-sm text-emerald-600 mt-3 font-mono font-bold">1 Coin VIP / render</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
+            </h2>
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-xl border border-kmBorder">
+              <span class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm">File Upload</span>
+            </div>
+          </div>
+
+          <div id="v-mode-upload" class="grid grid-cols-2 gap-4">
+            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+              <span class="text-4xl mb-2 group-hover:scale-105 transition">🖼️</span>
+              <span id="txt-file-foto" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Foto Karakter</span>
+              <span id="st-file-foto" class="text-[11px] text-slate-400 mt-1">JPG / PNG</span>
+              <input id="input-file-foto" type="file" accept="image/*" class="hidden" onchange="unggahBahanLangsung(this, 'foto')" />
+            </label>
+
+            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+              <span class="text-4xl mb-2 group-hover:scale-105 transition">🎬</span>
+              <span id="txt-file-video" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Video Gerakan</span>
+              <span id="st-file-video" class="text-[11px] text-slate-400 mt-1">MP4 (Maks 10s)</span>
+              <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
+            </label>
+          </div>
+
+          <div>
+            <label class="text-xs font-bold uppercase tracking-wide text-slate-400 block mb-2">Prompt Gerakan Tambahan (Opsional)</label>
+            <textarea id="in-prompt-gerak" placeholder="Contoh: cinematic dancing, smooth fluid motion, high details..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs sm:text-sm text-kmTextPrimary focus:outline-none focus:border-kmViolet focus:bg-white h-24 resize-none leading-relaxed"></textarea>
+          </div>
+        </div>
+
+        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
+          <div class="space-y-5">
+            <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
+            </h2>
+
+            <div id="box-wrap-dropdown-akun" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Pilih Akun Pemotong Saldo</label>
+                <span id="badge-total-saldo-gen" class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">0 coin</span>
+              </div>
+              <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
+                <option value="">Belum ada akun terhubung</option>
+              </select>
+            </div>
+
+            <div class="bg-slate-50 border border-kmBorder rounded-2xl p-5 space-y-3.5">
+              <div class="flex justify-between items-center text-xs sm:text-sm">
+                <span class="text-kmTextSecondary font-medium">Model Engine:</span>
+                <span id="t-engine-title" class="font-bold text-kmTextPrimary font-mono">WAN MOTION CONTROL 1080HD</span>
+              </div>
+              <div class="border-t border-kmBorder pt-3 flex justify-between items-center">
+                <span class="text-xs sm:text-sm font-bold text-kmTextPrimary">Total Terpotong:</span>
+                <span id="t-engine-total" class="text-lg sm:text-xl font-black text-kmViolet font-mono">≈ 478 coin</span>
+              </div>
+            </div>
+          </div>
+
+          <button id="btn-submit-generate" onclick="mulaiProsesGenerate()" class="w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer">
+            GENERATE VIDEO
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY VIEW -->
+    <div id="layar-history" style="display: none;" class="space-y-6">
+      <div class="flex items-center justify-between bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Riwayat Generate Video</h2>
+          <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Daftar render motion control yang pernah kamu buat.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="txt-counter-history" class="text-xs sm:text-sm font-mono font-bold text-kmViolet bg-violet-50 px-3.5 py-1.5 rounded-xl border border-violet-100">0 tugas</span>
+          <button onclick="bersihkanSemuaHistory()" class="text-xs sm:text-sm text-rose-500 hover:text-rose-700 font-bold cursor-pointer">Hapus Semua</button>
+        </div>
+      </div>
+      <!-- TATA LETAK DIUBAH: Tadinya numpuk ke bawah (space-y-3), sekarang Grid Layout Kotak-kotak -->
+      <div id="wadah-list-history" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    </div>
+
+    <!-- KELOLA AKUN VIEW (UTUH) -->
+    <div id="layar-kelola-akun" style="display: none;" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
+        <div>
+          <h2 id="txt-head-akun" class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2>
+          <p id="txt-sub-akun" class="text-xs sm:text-sm text-kmTextSecondary mt-1">Kelola API key RunningHub dan Roboneo kamu.</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="tab-pilih-rh" onclick="gantiTabAkunProvider('runninghub')" class="px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow">RunningHub</button>
+          <button id="tab-pilih-roboneo" onclick="gantiTabAkunProvider('roboneo')" class="px-5 py-2.5 rounded-xl bg-white border border-kmBorder text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold">Roboneo</button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-white border border-kmBorder p-6 rounded-3xl modern-shadow">
+        <div class="flex items-center gap-6 text-xs sm:text-sm font-mono">
+          <div><span class="text-kmTextSecondary font-sans">Akun: </span><span id="txt-stat-akun" class="text-kmTextPrimary font-bold text-sm sm:text-base">0</span></div>
+          <div><span class="text-kmTextSecondary font-sans">Aktif: </span><span id="txt-stat-aktif" class="text-emerald-600 font-bold text-sm sm:text-base">0</span></div>
+          <div><span class="text-kmTextSecondary font-sans">Total Coin: </span><span id="txt-stat-kredit" class="text-kmViolet font-bold text-sm sm:text-base">0</span></div>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <button id="btn-toggle-pilih" onclick="toggleModePilihHapus()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Pilih</button>
+          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-kmViolet hover:bg-kmVioletHover text-white text-xs sm:text-sm font-bold rounded-xl violet-glow transition cursor-pointer flex items-center gap-1.5">
+            <span id="txt-btn-tambah-label">+ Tambah API Key</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="bar-aksi-hapus" style="display: none;" class="flex items-center justify-between bg-rose-50 border border-rose-200 p-4 rounded-2xl">
+        <label class="flex items-center gap-2 text-xs sm:text-sm font-bold text-rose-700 cursor-pointer">
+          <input id="chk-pilih-semua" type="checkbox" onchange="centangSemuaAkun(this)" class="w-5 h-5 rounded-lg accent-rose-600 cursor-pointer" />
+          Pilih Semua Akun
+        </label>
+        <button onclick="eksekusiHapusAkun()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Hapus Terpilih</button>
+      </div>
+
+      <div id="wadah-kartu-akun-list" class="space-y-3"></div>
+    </div>
+  </main>
+
+  <!-- MODAL TAMBAH API KEY -->
+  <div id="modal-popup-key" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-kmBorder max-w-lg w-full p-6 sm:p-8 rounded-3xl space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Tambah API Key Baru</h3>
+        <button onclick="tutupModalFormKey()" class="text-slate-400 hover:text-slate-700 font-bold text-2xl cursor-pointer p-1">✕</button>
+      </div>
+      <div class="space-y-4 pt-2">
+        <div>
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">API KEY / TOKEN</label>
+          <input id="in-modal-key" type="password" placeholder="Tempel API Key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" />
+        </div>
+      </div>
+      <div class="flex gap-3 pt-3">
+        <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-sm sm:text-base font-bold rounded-2xl hover:bg-slate-200 transition cursor-pointer">Batal</button>
+        <button id="btn-simpan-key" onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-kmViolet hover:bg-kmVioletHover text-white text-sm sm:text-base font-bold rounded-2xl violet-glow transition cursor-pointer">Simpan API Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KONFIRMASI -->
+  <div id="modal-konfirmasi-box" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-kmBorder max-w-sm w-full p-6 rounded-3xl space-y-4 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold">❓</div>
+      <p id="modal-konfirmasi-teks" class="text-sm font-semibold text-slate-700 leading-relaxed">Apakah Anda yakin ingin melanjutkan?</p>
+      <div class="flex gap-2.5 pt-2">
+        <button onclick="tutupModalKonfirmasi(false)" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Batal</button>
+        <button onclick="tutupModalKonfirmasi(true)" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

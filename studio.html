@@ -6,21 +6,21 @@
     <title>Dashboard - KiixMotion Studio</title>
     
     <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Phosphor Icons (Buat ikon-ikon UI estetik) -->
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <style>
+        /* TEMA KIIXMOTION (GELAP & UNGU) */
         :root {
-            --bg-app: #F5F4F0;
-            --bg-card: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --border-color: #E5E7EB;
-            --primary-dark: #273C2C; /* Hijau gelap elegan ala referensi */
-            --primary-light: #E8F0EA;
-            --accent-blue: #3B82F6;
+            --bg-app: #08080A; /* Latar gelap KiiXMotion */
+            --bg-card: #121218; /* Latar kotak/kartu */
+            --text-main: #FFFFFF;
+            --text-muted: #9CA3AF;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --primary: #7C3AED; /* Ungu KiiXMotion */
+            --primary-hover: #6D28D9;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,10 +34,10 @@
             overflow-x: hidden;
         }
 
-        /* --- SIDEBAR KIRI --- */
+        /* --- TATA LETAK: SIDEBAR KIRI --- */
         .sidebar {
             width: 250px;
-            background-color: var(--bg-app);
+            background-color: var(--bg-card);
             border-right: 1px solid var(--border-color);
             padding: 24px 16px;
             display: flex;
@@ -48,311 +48,160 @@
         }
 
         .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 700;
-            font-size: 1.1em;
-            margin-bottom: 30px;
-            padding-left: 8px;
-            color: #4F46E5;
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'Playfair Display', serif;
+            font-weight: 700; font-size: 1.3em;
+            margin-bottom: 30px; padding-left: 8px;
+            color: var(--text-main);
         }
-        .brand i { font-size: 1.4em; }
+        .logo-box {
+            background: rgba(124, 58, 237, 0.2); color: #A78BFA;
+            width: 28px; height: 28px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Inter', sans-serif; font-size: 0.8em; font-weight: bold;
+        }
 
         .menu-label {
-            font-size: 0.7em;
-            font-weight: 600;
-            color: var(--text-muted);
-            letter-spacing: 1px;
-            margin: 15px 0 8px 8px;
+            font-size: 0.7em; font-weight: 600; color: var(--text-muted);
+            letter-spacing: 1px; margin: 15px 0 8px 8px;
         }
 
         .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 0.9em;
-            font-weight: 500;
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 12px; border-radius: 8px;
+            color: var(--text-muted); text-decoration: none;
+            font-size: 0.9em; font-weight: 500; cursor: pointer;
             transition: all 0.2s;
-            cursor: pointer;
         }
         .nav-link i { font-size: 1.2em; }
-        
-        .nav-link:hover {
-            background-color: rgba(0,0,0,0.04);
-            color: var(--text-main);
-        }
+        .nav-link:hover { background-color: rgba(255,255,255,0.05); color: var(--text-main); }
         .nav-link.active {
-            background-color: var(--primary-light);
-            color: var(--primary-dark);
-            font-weight: 600;
+            background-color: rgba(124, 58, 237, 0.15);
+            color: #A78BFA; font-weight: 600;
+            border-left: 3px solid var(--primary);
         }
 
-        /* --- MAIN CONTENT (KANAN) --- */
+        /* --- TATA LETAK: KONTEN KANAN --- */
         .main-content {
             margin-left: 250px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            flex: 1; display: flex; flex-direction: column; min-height: 100vh;
         }
 
         /* TOP BAR */
         .topbar {
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 40px;
-            border-bottom: 1px solid var(--border-color);
-            background-color: var(--bg-app);
-            position: sticky;
-            top: 0;
-            z-index: 50;
+            height: 60px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 40px; border-bottom: 1px solid var(--border-color);
+            background-color: rgba(8, 8, 10, 0.8);
+            backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 50;
         }
         
-        .topbar-title {
-            font-weight: 600;
-            font-size: 1em;
-        }
-
-        .topbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            position: relative;
-        }
-
-        .icon-btn {
-            background: none; border: none; font-size: 1.2em;
-            color: var(--text-muted); cursor: pointer;
-        }
+        .topbar-title { font-weight: 600; font-size: 1em; }
+        .topbar-actions { display: flex; align-items: center; gap: 16px; position: relative; }
 
         .profile-btn {
-            background-color: #E5E7EB;
-            width: 32px; height: 32px;
-            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            width: 32px; height: 32px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-weight: 600; font-size: 0.85em; cursor: pointer;
-            border: none;
-            color: var(--text-main);
+            font-weight: 600; font-size: 0.85em; cursor: pointer; border: none; color: white;
         }
 
         /* DROPDOWN PROFIL */
         .dropdown-menu {
-            position: absolute;
-            top: 45px;
-            right: 0;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            width: 220px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            display: none;
-            flex-direction: column;
-            padding: 8px 0;
-            z-index: 100;
+            position: absolute; top: 45px; right: 0;
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; width: 220px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: none; flex-direction: column; padding: 8px 0; z-index: 100;
         }
         .dropdown-menu.show { display: flex; }
+        .dropdown-header { padding: 8px 16px 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 8px; }
+        .dropdown-email { font-size: 0.85em; font-weight: 600; color: var(--text-main); word-break: break-all; }
+        .dropdown-badge { font-size: 0.7em; background: rgba(124, 58, 237, 0.2); color: #A78BFA; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px; }
         
-        .dropdown-header {
-            padding: 8px 16px 12px;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 8px;
-        }
-        .dropdown-email {
-            font-size: 0.85em; font-weight: 600; color: var(--text-main);
-            word-break: break-all;
-        }
-        .dropdown-badge {
-            font-size: 0.7em; background: #FEF3C7; color: #D97706;
-            padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;
-        }
+        .dropdown-item { padding: 8px 16px; display: flex; align-items: center; gap: 10px; font-size: 0.85em; color: var(--text-muted); text-decoration: none; cursor: pointer; }
+        .dropdown-item:hover { background-color: rgba(255,255,255,0.05); color: var(--text-main); }
+        .text-red { color: #F87171 !important; }
 
-        .dropdown-item {
-            padding: 8px 16px;
-            display: flex; align-items: center; gap: 10px;
-            font-size: 0.85em; color: var(--text-muted); text-decoration: none;
-            cursor: pointer;
-        }
-        .dropdown-item:hover { background-color: var(--bg-app); color: var(--text-main); }
-        .dropdown-divider { border-top: 1px solid var(--border-color); margin: 4px 0; }
-        .text-red { color: #DC2626 !important; }
-
-        /* KONTEN DASHBOARD */
-        .dashboard-body {
-            padding: 30px 40px;
-            max-width: 1000px;
-            width: 100%;
-            margin: 0 auto;
-        }
-
-        .overview-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 24px;
-        }
-        .greeting h1 { font-size: 1.8em; font-weight: 700; margin-bottom: 6px; }
+        /* AREA TENGAH */
+        .dashboard-body { padding: 30px 40px; max-width: 1000px; width: 100%; margin: 0 auto; }
+        .overview-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+        .greeting h1 { font-family: 'Playfair Display', serif; font-size: 2em; margin-bottom: 6px; }
         .greeting p { font-size: 0.9em; color: var(--text-muted); }
         
         .btn-generate-main {
-            background-color: var(--primary-dark);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
             color: white; border: none; padding: 10px 20px; border-radius: 8px;
-            font-weight: 600; font-size: 0.9em; cursor: pointer;
-            display: flex; align-items: center; gap: 8px;
+            font-weight: 600; font-size: 0.9em; cursor: pointer; display: flex; align-items: center; gap: 8px;
         }
-        .btn-generate-main:hover { opacity: 0.9; }
-
-        /* BANNER TELEGRAM */
-        .telegram-banner {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 12px 16px;
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 30px;
-        }
-        .telegram-info { display: flex; align-items: center; gap: 10px; font-size: 0.9em; font-weight: 500; }
-        .btn-join {
-            background-color: var(--accent-blue); color: white; border: none;
-            padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 0.85em; cursor: pointer;
-        }
+        .btn-generate-main:hover { box-shadow: 0 0 15px rgba(124, 58, 237, 0.4); }
 
         /* GRID AKSI CEPAT */
-        .action-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
-            margin-bottom: 40px;
-        }
+        .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 40px; }
         .action-card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex; align-items: center; gap: 14px;
-            cursor: pointer; transition: box-shadow 0.2s;
+            background-color: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px;
+            cursor: pointer; transition: all 0.2s; text-decoration: none; color: inherit;
         }
-        .action-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .action-card:hover { border-color: rgba(124, 58, 237, 0.5); background-color: rgba(255,255,255,0.02); }
         .action-icon {
-            width: 40px; height: 40px; border-radius: 8px;
-            display: flex; align-items: center; justify-content: center; font-size: 1.4em;
+            width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.4em;
+            background: rgba(124, 58, 237, 0.15); color: #A78BFA;
         }
-        .icon-green { background: #E8F0EA; color: #273C2C; }
-        .icon-blue { background: #E0F2FE; color: #0284C7; }
         .action-text h4 { font-size: 0.9em; font-weight: 600; margin-bottom: 2px; }
         .action-text p { font-size: 0.75em; color: var(--text-muted); }
 
-        /* JOB TERBARU (GALERI VIDEO) */
-        .section-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 16px;
-        }
+        /* GALERI VIDEO */
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .section-header h3 { font-size: 1.1em; font-weight: 600; }
-        .view-all { font-size: 0.85em; color: var(--text-muted); text-decoration: none; display: flex; align-items: center; gap: 4px; }
+        .view-all { font-size: 0.85em; color: #A78BFA; text-decoration: none; display: flex; align-items: center; gap: 4px; }
         
-        .video-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        .video-card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            overflow: hidden;
-            transition: box-shadow 0.2s;
-        }
-        .video-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .video-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; }
+        .video-player-area { background-color: #000; aspect-ratio: 16 / 9; position: relative; display: flex; align-items: center; justify-content: center; }
+        .video-player-area img { height: 100%; width: auto; object-fit: cover; opacity: 0.7; }
         
-        .video-player-area {
-            background-color: #000000;
-            aspect-ratio: 16 / 9;
-            position: relative;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .video-player-area img {
-            height: 100%; width: auto; object-fit: contain; opacity: 0.8;
-        }
-        .play-btn {
-            position: absolute;
-            background: rgba(255,255,255,0.2); backdrop-filter: blur(4px);
-            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 1.2em; cursor: pointer; border: 1px solid rgba(255,255,255,0.4);
-        }
-
         .video-info { padding: 14px 16px; }
         .video-title { display: flex; align-items: center; gap: 8px; font-size: 0.85em; font-weight: 600; margin-bottom: 10px; }
-        .status-dot { width: 8px; height: 8px; background-color: #10B981; border-radius: 50%; }
+        .status-dot { width: 8px; height: 8px; background-color: #A78BFA; border-radius: 50%; box-shadow: 0 0 8px #A78BFA; }
         
-        .video-meta {
-            display: flex; justify-content: space-between; align-items: center;
-            border-top: 1px solid var(--border-color);
-            padding-top: 10px;
-        }
+        .video-meta { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 10px; }
         .meta-left { display: flex; align-items: center; gap: 12px; font-size: 0.8em; color: var(--text-muted); }
         .meta-right { display: flex; align-items: center; gap: 8px; font-size: 1.1em; color: var(--text-muted); }
-        .meta-btn { cursor: pointer; }
-        .meta-btn:hover { color: var(--text-main); }
 
-        /* Responsif HP */
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); transition: 0.3s; z-index: 1000; }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; }
-            .topbar { padding: 0 20px; }
-            .dashboard-body { padding: 20px; }
-            .overview-header { flex-direction: column; gap: 16px; }
-        }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR KIRI -->
-    <aside class="sidebar" id="sidebar">
+    <!-- SIDEBAR KIRI (TATA LETAK RAPI) -->
+    <aside class="sidebar">
         <div class="brand">
-            <i class="ph-fill ph-aperture"></i> KiiXMotion
+            <div class="logo-box">K</div> KiiXMotion
         </div>
 
         <div class="menu-label">MEJA KERJA</div>
-        <a class="nav-link active"><i class="ph ph-squares-four"></i> Dashboard</a>
-        <a class="nav-link"><i class="ph ph-magic-wand"></i> Generate</a>
-        <a class="nav-link"><i class="ph ph-clock-counter-clockwise"></i> History</a>
-        <a class="nav-link"><i class="ph ph-image"></i> Galeri</a>
+        <!-- Conto: tambahin URL/fungsi lu di href atau onclick -->
+        <a href="#" class="nav-link active"><i class="ph ph-squares-four"></i> Dashboard</a>
+        <a href="generate.html" class="nav-link"><i class="ph ph-magic-wand"></i> Generate Video</a>
+        <a href="history.html" class="nav-link"><i class="ph ph-clock-counter-clockwise"></i> History</a>
 
         <div class="menu-label">AKUN & SALDO</div>
-        <a class="nav-link"><i class="ph ph-users"></i> Pool Akun</a>
-        <a class="nav-link"><i class="ph ph-shopping-cart"></i> Beli Akun</a>
-        <a class="nav-link"><i class="ph ph-lightning"></i> Beli Kredit</a>
+        <a href="#" class="nav-link"><i class="ph ph-user-gear"></i> Kelola Akun</a>
+        <a href="#" class="nav-link"><i class="ph ph-lightning"></i> Beli Kredit / VIP</a>
     </aside>
 
     <!-- AREA KONTEN UTAMA -->
     <main class="main-content">
         <!-- TOP BAR -->
         <header class="topbar">
-            <div class="topbar-title">Dashboard</div>
+            <div class="topbar-title">Studio Dashboard</div>
             <div class="topbar-actions">
-                <button class="icon-btn"><i class="ph ph-moon"></i></button>
-                
-                <!-- Profil & Dropdown -->
                 <button class="profile-btn" onclick="toggleDropdown()" id="user-initial">U</button>
-                
                 <div class="dropdown-menu" id="profileDropdown">
                     <div class="dropdown-header">
                         <div class="dropdown-email" id="display-email">Memuat...</div>
-                        <div class="dropdown-badge">Free / VIP Expired</div>
+                        <div class="dropdown-badge">Member Aktif</div>
                     </div>
-                    <a class="dropdown-item"><i class="ph ph-crown"></i> Langganan</a>
-                    <a class="dropdown-item"><i class="ph ph-code"></i> API Developer</a>
-                    <a class="dropdown-item"><i class="ph ph-newspaper"></i> Berita & Info</a>
-                    <a class="dropdown-item"><i class="ph ph-user"></i> Profil Saya</a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item text-red" onclick="prosesLogout()"><i class="ph ph-sign-out"></i> Keluar</a>
+                    <a href="profil.html" class="dropdown-item"><i class="ph ph-user"></i> Profil Saya</a>
+                    <a href="#" class="dropdown-item text-red" onclick="prosesLogout()"><i class="ph ph-sign-out"></i> Keluar</a>
                 </div>
             </div>
         </header>
@@ -363,103 +212,52 @@
             <div class="overview-header">
                 <div class="greeting">
                     <h1>Halo, <span id="display-name">Member</span></h1>
-                    <p>Ringkasan akun dan aktivitas generate kamu.</p>
+                    <p>Selamat datang kembali di KiiXMotion Studio.</p>
                 </div>
-                <button class="btn-generate-main"><i class="ph ph-plus"></i> Generate Baru</button>
-            </div>
-
-            <!-- BANNER INFO -->
-            <div class="telegram-banner">
-                <div class="telegram-info">
-                    <i class="ph-fill ph-telegram-logo" style="color: #0088cc; font-size: 1.5em;"></i>
-                    Gabung grup Telegram untuk info & update terbaru.
-                </div>
-                <button class="btn-join">Gabung</button>
+                <!-- Tombol Generate: Tinggal ubah alert jadi fungsi asli web lu -->
+                <button class="btn-generate-main" onclick="alert('Ini nanti lu sambungin ke fungsi Generate lu, Boss!')">
+                    <i class="ph ph-plus"></i> Generate Baru
+                </button>
             </div>
 
             <!-- MENU AKSI CEPAT -->
             <div class="action-grid">
-                <div class="action-card">
-                    <div class="action-icon icon-green"><i class="ph ph-video-camera"></i></div>
+                <!-- Ganti alert() dengan URL halaman lu -->
+                <a href="#" onclick="alert('Arahin ke halaman generate video!')" class="action-card">
+                    <div class="action-icon"><i class="ph ph-video-camera"></i></div>
                     <div class="action-text">
                         <h4>Generate Video</h4>
                         <p>Buat video dari foto AI</p>
                     </div>
-                </div>
-                <div class="action-card">
-                    <div class="action-icon icon-blue"><i class="ph ph-stack"></i></div>
+                </a>
+                <a href="#" onclick="alert('Arahin ke halaman kelola langganan!')" class="action-card">
+                    <div class="action-icon"><i class="ph ph-crown"></i></div>
                     <div class="action-text">
-                        <h4>Generate Massal</h4>
-                        <p>Banyak video sekaligus</p>
+                        <h4>Status VIP</h4>
+                        <p>Perpanjang masa aktif</p>
                     </div>
-                </div>
-                <div class="action-card">
-                    <div class="action-icon icon-green"><i class="ph ph-lightning"></i></div>
-                    <div class="action-text">
-                        <h4>Beli Kredit</h4>
-                        <p>Isi saldo untuk generate</p>
-                    </div>
-                </div>
-                <div class="action-card">
-                    <div class="action-icon icon-blue"><i class="ph ph-lock-key-open"></i></div>
-                    <div class="action-text">
-                        <h4>Upgrade ke Pro</h4>
-                        <p>Pakai akses fitur VIP</p>
-                    </div>
-                </div>
+                </a>
             </div>
 
             <!-- GALERI VIDEO (JOB TERBARU) -->
             <div class="section-header">
-                <h3>Job Terbaru</h3>
-                <a href="#" class="view-all"><i class="ph ph-list-dashes"></i> Lihat semua</a>
+                <h3>Job Terbaru Kamu</h3>
+                <a href="history.html" class="view-all">Lihat Semua <i class="ph ph-arrow-right"></i></a>
             </div>
 
             <div class="video-grid">
-                <!-- Kartu Video 1 -->
+                <!-- Kartu Hasil Video (Statis buat contoh tata letak) -->
                 <div class="video-card">
                     <div class="video-player-area">
-                        <!-- Placeholder gambar cewek ala referensi -->
                         <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" alt="Video Thumb">
-                        <div class="play-btn"><i class="ph-fill ph-play"></i></div>
                     </div>
                     <div class="video-info">
-                        <div class="video-title">
-                            <span class="status-dot"></span>
-                            Wan Motion Control
-                        </div>
+                        <div class="video-title"><span class="status-dot"></span> Render Selesai</div>
                         <div class="video-meta">
-                            <div class="meta-left">
-                                <span><i class="ph-fill ph-tiktok-logo"></i> TikTok</span>
-                                <span><i class="ph ph-eye"></i> 1.2k</span>
-                            </div>
+                            <div class="meta-left"><span><i class="ph ph-clock"></i> Hari ini</span></div>
                             <div class="meta-right">
-                                <i class="ph ph-download-simple meta-btn"></i>
-                                <i class="ph ph-trash meta-btn"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Kartu Video 2 -->
-                <div class="video-card">
-                    <div class="video-player-area">
-                        <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80" alt="Video Thumb">
-                        <div class="play-btn"><i class="ph-fill ph-play"></i></div>
-                    </div>
-                    <div class="video-info">
-                        <div class="video-title">
-                            <span class="status-dot"></span>
-                            KiiX Character Animate
-                        </div>
-                        <div class="video-meta">
-                            <div class="meta-left">
-                                <span><i class="ph-fill ph-tiktok-logo"></i> TikTok</span>
-                                <span><i class="ph ph-eye"></i> 856</span>
-                            </div>
-                            <div class="meta-right">
-                                <i class="ph ph-download-simple meta-btn"></i>
-                                <i class="ph ph-trash meta-btn"></i>
+                                <!-- Tombol aksi di video -->
+                                <i class="ph ph-download-simple meta-btn" onclick="alert('Download video!')" style="cursor:pointer"></i>
                             </div>
                         </div>
                     </div>
@@ -471,62 +269,43 @@
 
     <!-- SDK SUPABASE -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script>
-        // Inisialisasi Supabase
+        // Logika Supabase persis sama kayak tadi (nggak diubah fungsi aslinya)
         const supabaseUrl = 'https://fybyupwcburndxulqqnn.supabase.co';
         const supabaseAnonKey = 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
         const supa = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-        // Fungsi buka/tutup menu profil
         function toggleDropdown() {
             document.getElementById("profileDropdown").classList.toggle("show");
         }
-
-        // Tutup dropdown kalau klik di luar
         window.onclick = function(event) {
             if (!event.target.matches('.profile-btn')) {
                 var dropdowns = document.getElementsByClassName("dropdown-menu");
                 for (var i = 0; i < dropdowns.length; i++) {
-                    var openDropdown = dropdowns[i];
-                    if (openDropdown.classList.contains('show')) {
-                        openDropdown.classList.remove('show');
+                    if (dropdowns[i].classList.contains('show')) {
+                        dropdowns[i].classList.remove('show');
                     }
                 }
             }
         }
 
-        // Cek sesi user saat halaman dimuat
         async function cekSesiUser() {
             const { data: { session } } = await supa.auth.getSession();
-            
-            // Kalau belum login, tendang balik ke register/login
             if (!session) {
                 window.location.href = 'register.html';
                 return;
             }
-
-            // Ambil email dari data session
             const userEmail = session.user.email;
-            
-            // Tampilkan email di dropdown profil
             document.getElementById('display-email').innerText = userEmail;
-            
-            // Tampilkan nama sapaan (ambil kata sebelum @ di email)
             const namaPanggilan = userEmail.split('@')[0];
             document.getElementById('display-name').innerText = namaPanggilan;
-            
-            // Set huruf awal di tombol bulat profil
             document.getElementById('user-initial').innerText = namaPanggilan.charAt(0).toUpperCase();
         }
 
-        // Fungsi Logout
         async function prosesLogout() {
             await supa.auth.signOut();
             window.location.href = 'register.html';
         }
-
-        // Jalankan fungsi cek sesi pas web kebuka
         window.onload = cekSesiUser;
     </script>
 </body>

@@ -9,7 +9,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Ikon Phosphor (Biar menu sidebar lu nggak kaku/flat lagi) -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
   
   <script>
     tailwind.config = {
@@ -19,7 +23,7 @@
             sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif']
           },
           colors: {
-            kmBg: '#FBF9F5',     /* Warna dasar main area */
+            kmBg: '#FBF9F5',     
             kmCard: '#FFFFFF',
             kmBorder: '#EFECE6',
             kmTextPrimary: '#1A1816',
@@ -47,15 +51,21 @@
     .violet-glow {
       box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.35);
     }
-    @keyframes slideDown {
-      from { transform: translateY(-100%); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    .animate-toast {
-      animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* Efek menu sidebar biar smooth */
+    .nav-btn-smooth {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease-in-out;
+    }
+    .nav-btn-smooth:hover {
+      background-color: #F3EEFF;
+      color: #7C3AED;
+      transform: translateX(4px);
+    }
   </style>
 
   <!-- JS INTI LU TETAP AMAN -->
@@ -68,7 +78,7 @@
   
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
-  <!-- SIDEBAR (Beda tipis warnanya: bg-white di desktop) -->
+  <!-- SIDEBAR DENGAN IKON & DESAIN BARU -->
   <header id="main-header-nav" class="bg-white/90 backdrop-blur-md md:bg-white border-b md:border-b-0 md:border-r border-kmBorder px-4 sm:px-6 md:px-5 py-3.5 md:py-6 flex md:flex-col flex-wrap items-center md:items-start justify-between md:justify-start sticky top-0 z-40 gap-3 md:gap-8 md:w-[260px] shrink-0 h-auto md:h-screen transition-all shadow-[2px_0_15px_rgba(0,0,0,0.02)]">
     <div class="flex items-center gap-3 w-full">
       <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
@@ -79,45 +89,59 @@
           <span class="text-base font-black tracking-tight text-kmTextPrimary">KiixMotion</span>
           <span class="text-[9px] uppercase font-bold tracking-widest bg-violet-100 text-kmViolet px-2 py-0.5 rounded-full border border-violet-200">Studio</span>
         </div>
-        <p class="text-[11px] text-kmTextSecondary font-medium">AI Motion Control Workbench</p>
+        <p class="text-[11px] text-kmTextSecondary font-medium">AI Motion Control</p>
       </div>
     </div>
     
+    <div class="w-full mt-2 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-2">Meja Kerja</p></div>
+
     <nav class="flex md:flex-col items-center md:items-stretch gap-1 sm:gap-2 bg-slate-50 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-kmBorder md:border-none w-full overflow-x-auto hide-scrollbar">
-      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl md:rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer md:text-left whitespace-nowrap hover:bg-slate-50">Dashboard</button>
-      <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl md:rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer md:text-left whitespace-nowrap hover:bg-slate-50">Generate</button>
-      <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl md:rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer md:text-left whitespace-nowrap hover:bg-slate-50">History</button>
-      <button id="menu-nav-kelo" onclick="gantiLayarNav('kelola-akun')" class="px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl md:rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer md:text-left whitespace-nowrap hover:bg-slate-50">Kelola Akun</button>
+      
+      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-squares-four text-lg md:text-xl"></i> Dashboard
+      </button>
+      
+      <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-magic-wand text-lg md:text-xl"></i> Generate
+      </button>
+      
+      <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-clock-counter-clockwise text-lg md:text-xl"></i> History
+      </button>
+      
+      <div class="w-full mt-4 mb-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Pengaturan</p></div>
+
+      <button id="menu-nav-kelo" onclick="gantiLayarNav('kelola-akun')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-user-gear text-lg md:text-xl"></i> Kelola Akun
+      </button>
+
     </nav>
   </header>
 
   <!-- KONTEN UTAMA -->
   <main id="view-workbench" class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6 md:overflow-y-auto md:h-screen relative">
     
-    <!-- TOP BAR PROFIL & TEMA (Di Pojok Kanan Atas Konten) -->
+    <!-- TOP BAR PROFIL -->
     <div class="absolute top-4 right-4 sm:top-6 sm:right-8 flex items-center gap-3 z-50">
-        <!-- Tombol Mode Gelap/Terang -->
-        <button onclick="alert('Fitur Dark Mode coming soon, Berlian!')" class="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-kmBorder hover:bg-slate-50 shadow-sm transition cursor-pointer text-slate-500 hover:text-slate-800">
+        <button onclick="alert('Fitur Dark Mode coming soon!')" class="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-kmBorder hover:bg-slate-50 shadow-sm transition cursor-pointer text-slate-500 hover:text-slate-800">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
         </button>
         
-        <!-- Dropdown Profil -->
         <div class="relative group">
             <button class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-200 border border-kmBorder font-bold text-slate-700 text-sm shadow-sm hover:ring-2 hover:ring-kmViolet transition cursor-pointer">
                 <span id="profil-inisial">U</span>
             </button>
             
-            <!-- Menu Melayang Dropdown -->
             <div class="absolute right-0 mt-2 w-48 bg-white border border-kmBorder rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 origin-top-right">
                 <div class="px-4 py-2 border-b border-kmBorder mb-1">
-                    <p class="text-xs font-bold text-slate-800 truncate" id="profil-email-drop">user@email.com</p>
-                    <p class="text-[10px] text-kmViolet font-bold mt-0.5">Free Plan</p>
+                    <p class="text-xs font-bold text-slate-800 truncate" id="profil-email-drop">Memuat...</p>
+                    <p class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
                 </div>
                 <a href="#" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro</a>
                 <a href="#" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙️ API Setting</a>
                 <a href="#" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👤 Profil Saya</a>
                 <div class="border-t border-kmBorder mt-1 pt-1">
-                    <a href="#" onclick="alert('Keluar dari KiiXMotion!')" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a>
+                    <a href="#" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a>
                 </div>
             </div>
         </div>
@@ -126,15 +150,14 @@
     <!-- DASHBOARD VIEW -->
     <div id="layar-dashboard" style="display: none;" class="space-y-6 pt-10 md:pt-0">
       
-      <!-- Greeting ala MotionFly -->
       <div class="mb-4">
           <h1 class="text-2xl sm:text-3xl font-black text-kmTextPrimary tracking-tight">Halo, <span id="user-greeting-name" class="capitalize">Member</span></h1>
           <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Ringkasan akun dan aktivitas generate kamu.</p>
-          <!-- Hidden label ID asli lu biar script lu gak error pas nyari element ini -->
+          <!-- Sengaja disembunyikan biar JS asli lu tetep bisa nyimpen log data -->
           <span id="label-current-user-email" style="display:none;"></span>
       </div>
 
-      <!-- KARTU AKSI CEPAT (Generate, Beli Kredit, Upgrade Pro) -->
+      <!-- KARTU AKSI CEPAT -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer">
               <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div>
@@ -158,7 +181,7 @@
           </button>
       </div>
 
-      <!-- KOTAK REFERRAL (Bagi Link) -->
+      <!-- KOTAK REFERRAL -->
       <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 modern-shadow">
           <div class="flex items-center gap-3.5">
               <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-xl shrink-0">🎁</div>
@@ -169,12 +192,12 @@
           </div>
           <div class="flex items-center gap-2 bg-white px-4 py-2.5 rounded-xl border border-kmBorder shadow-sm w-full sm:w-auto justify-between group cursor-copy" onclick="alert('Kode Referral Disalin!')">
               <span class="text-xs font-bold text-slate-400 mr-1">KODE:</span>
-              <code class="text-sm font-black text-kmViolet tracking-wider">KIIX-R26</code>
+              <code id="kode-referral-user" class="text-sm font-black text-kmViolet tracking-wider">KIIX-R26</code>
               <svg class="w-4 h-4 text-slate-400 group-hover:text-kmViolet ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
           </div>
       </div>
 
-      <!-- Banner Komunitas (Asli bawaan lu) -->
+      <!-- Banner Komunitas -->
       <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
         <div class="flex items-center gap-3.5">
           <div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30">
@@ -224,7 +247,7 @@
         </div>
       </div>
 
-      <!-- WADAH JOB TERBARU DI DASHBOARD (Kotak-kotak Grid) -->
+      <!-- WADAH JOB TERBARU DI DASHBOARD -->
       <div class="pt-4">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
@@ -233,7 +256,6 @@
           <button onclick="gantiLayarNav('history')" class="text-xs sm:text-sm font-bold text-kmViolet hover:text-kmVioletHover cursor-pointer">Lihat Semua &rarr;</button>
         </div>
         <div id="wadah-job-terbaru-dashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-           <!-- Placeholder kosong -->
            <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
               <span class="text-2xl">🎬</span>
               Belum ada video yang di-generate.
@@ -242,7 +264,7 @@
       </div>
     </div>
 
-    <!-- GENERATE VIEW (UTUH Bawaan Lu) -->
+    <!-- GENERATE VIEW -->
     <div id="layar-generate" class="space-y-6">
       <div>
         <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
@@ -344,7 +366,7 @@
       </div>
     </div>
 
-    <!-- HISTORY VIEW (Tampilan Kotak Grid) -->
+    <!-- HISTORY VIEW -->
     <div id="layar-history" style="display: none;" class="space-y-6">
       <div class="flex items-center justify-between bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
         <div>
@@ -359,7 +381,7 @@
       <div id="wadah-list-history" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </div>
 
-    <!-- KELOLA AKUN VIEW (UTUH Bawaan Lu) -->
+    <!-- KELOLA AKUN VIEW -->
     <div id="layar-kelola-akun" style="display: none;" class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
         <div>
@@ -430,24 +452,39 @@
     </div>
   </div>
 
-  <!-- SCRIPT KECIL BUAT AUTO-TARIK NAMA DARI EMAIL LU -->
+  <!-- SKRIP SUPABASE OTOMATIS: Biar Email yang Muncul Benar-benar Punya Member yang Login -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-      setInterval(() => {
-          const emailLabel = document.getElementById('label-current-user-email');
-          const greetingLabel = document.getElementById('user-greeting-name');
-          const profilEmailDrop = document.getElementById('profil-email-drop');
-          const profilInisial = document.getElementById('profil-inisial');
+      const supabaseUrl = 'https://fybyupwcburndxulqqnn.supabase.co';
+      const supabaseAnonKey = 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
+      const supa = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-          // Kalau JS sistem lu udah nampilin email, kita pecah namanya otomatis!
-          if(emailLabel && emailLabel.innerText) {
-              let emailTxt = emailLabel.innerText;
-              if(profilEmailDrop) profilEmailDrop.innerText = emailTxt;
+      async function ambilDataLoginAsli() {
+          const { data: { session }, error } = await supa.auth.getSession();
+          
+          if (session && session.user) {
+              const emailAsli = session.user.email;
+              // Ngambil nama dari sebelum '@' misal anggraingki@gmail.com -> anggraingki
+              const namaAsli = emailAsli.split('@')[0];
               
-              let name = emailTxt.split('@')[0];
-              if(greetingLabel) greetingLabel.innerText = name;
-              if(profilInisial) profilInisial.innerText = name.charAt(0).toUpperCase();
+              // Ganti teks di Dashboard dan Profil
+              document.getElementById('user-greeting-name').innerText = namaAsli;
+              document.getElementById('profil-email-drop').innerText = emailAsli;
+              document.getElementById('profil-inisial').innerText = namaAsli.charAt(0).toUpperCase();
+
+              // Bikin kode referral otomatis berdasarkan nama + ID (Contoh: ANGGRA-739)
+              const randomNum = Math.floor(Math.random() * 900) + 100; 
+              document.getElementById('kode-referral-user').innerText = namaAsli.toUpperCase().substring(0,6) + '-' + randomNum;
           }
-      }, 1000); // Ngecek tiap 1 detik secara halus
+      }
+
+      async function prosesLogout() {
+          await supa.auth.signOut();
+          window.location.href = 'register.html';
+      }
+
+      // Jalankan fungsi saat web kebuka
+      ambilDataLoginAsli();
   </script>
 
 </body>

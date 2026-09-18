@@ -475,21 +475,19 @@
       ambilDataLoginAsli();
   </script>
 
-  <!-- SKRIP SAPU JAGAT: Maksa Render Video Asli Biar Nggak Kaku -->
+  <!-- SKRIP SAPU JAGAT (Bebas Kedip, Nyambung ke Data Asli) -->
   <script>
-      // Kita override fungsi bawaan api-engine.js lu di sini
-      function renderLayarHistory() {
+      window.renderLayarHistory = function() {
           renderVideoAsliKeGrid();
-      }
-      function updateStatistikDashboard() {
+      };
+      window.updateStatistikDashboard = function() {
           renderVideoAsliKeGrid();
-      }
+      };
 
       function renderVideoAsliKeGrid() {
           var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
           var wadahHist = document.getElementById('wadah-list-history');
           
-          // Pastiin riwayatGenerateList dari database.js udah ke-load
           if (typeof riwayatGenerateList === 'undefined' || !riwayatGenerateList || riwayatGenerateList.length === 0) {
               var htmlKosong = `
                  <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
@@ -507,14 +505,11 @@
           var counter = document.getElementById('txt-counter-history');
           if (counter) counter.innerText = riwayatGenerateList.length + ' tugas';
 
-          // Balik array biar video terbaru di urutan atas
           var dataTerbaru = [...riwayatGenerateList].reverse();
 
           function bikinKartu(video) {
-              // Ambil parameter video sesuai API lu
               var linkVideo = video.url || video.video_url || video.hasil_url || video.videoUrl || '';
               var namaEngine = video.engine || video.provider || 'Wan Motion Control';
-              var statusGen = video.status || 'selesai'; 
               
               var areaMedia = '';
               if (linkVideo) {
@@ -566,12 +561,9 @@
           dataTerbaru.slice(0, 3).forEach(function(v) { htmlDash += bikinKartu(v); });
           if(wadahDash) wadahDash.innerHTML = htmlDash;
       }
-
-      // Hack anti-kalah: maksa refresh tampilan tiap 2 detik biar kode lama lu ketimpa terus
-      setInterval(renderVideoAsliKeGrid, 2000);
       
-      // Render sekali pas web kelar loading
-      setTimeout(renderVideoAsliKeGrid, 300);
+      // Load sekali doang, bye-bye kedip!
+      setTimeout(renderVideoAsliKeGrid, 500);
   </script>
 
 </body>

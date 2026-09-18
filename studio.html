@@ -62,7 +62,7 @@
     }
   </style>
 
-  <!-- JS INTI -->
+  <!-- JS INTI LAMA (Dibiarkan aja, kita bypass dari HTML ini) -->
   <script src="js/database.js" defer></script>
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
@@ -72,10 +72,10 @@
   
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
-  <!-- SIDEBAR -->
+  <!-- SIDEBAR (Navigasi Sudah Bypass JS Lama) -->
   <header id="main-header-nav" class="bg-white/90 backdrop-blur-md md:bg-white border-b md:border-b-0 md:border-r border-kmBorder px-4 sm:px-6 md:px-5 py-3.5 md:py-6 flex md:flex-col flex-wrap items-center md:items-start justify-between md:justify-start sticky top-0 z-40 gap-3 md:gap-6 md:w-[260px] shrink-0 h-auto md:h-screen transition-all shadow-[2px_0_15px_rgba(0,0,0,0.02)] overflow-y-auto hide-scrollbar">
     <div class="flex items-center gap-3 w-full">
-      <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
+      <div onclick="navigasiKiix('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
         <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="14" fill="#F3EEFF"/><path d="M14 10L22 22L14 34V10Z" fill="#7C3AED"/><path d="M22 22L30 10H22V22Z" fill="#A78BFA"/><path d="M22 22L30 34H22V22Z" fill="#6D28D9"/></svg>
       </div>
       <div>
@@ -90,31 +90,33 @@
     <div class="w-full mt-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 pl-2">Meja Kerja</p></div>
 
     <nav class="flex md:flex-col items-center md:items-stretch gap-1 bg-slate-50 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-kmBorder md:border-none w-full overflow-x-auto hide-scrollbar">
-      <button id="nav-btn-dashboard" onclick="gantiLayarNav('dashboard')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED] cursor-pointer whitespace-nowrap">
+      
+      <!-- Tombol Menu Pakai Class Baru Biar Warnanya Aktif Mengikuti Klik -->
+      <button data-target="dashboard" onclick="navigasiKiix('dashboard')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED] cursor-pointer whitespace-nowrap">
         <i class="ph ph-squares-four text-lg"></i> Dashboard
       </button>
-      <button id="nav-btn-generate" onclick="gantiLayarNav('generate')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button data-target="generate" onclick="navigasiKiix('generate')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-magic-wand text-lg"></i> Generate
       </button>
-      <button id="nav-btn-history" onclick="gantiLayarNav('history')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button data-target="history" onclick="navigasiKiix('history')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-clock-counter-clockwise text-lg"></i> History
       </button>
-      <button id="nav-btn-galeri" onclick="gantiLayarNav('galeri')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button data-target="galeri" onclick="navigasiKiix('galeri')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-images text-lg"></i> Galeri <span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-md font-bold">Maks 50</span>
       </button>
       
       <div class="w-full mt-3 mb-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Kelola akun</p></div>
 
-      <button id="nav-btn-kelola-akun" onclick="gantiLayarNav('kelola-akun')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button data-target="kelola-akun" onclick="navigasiKiix('kelola-akun')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-key text-lg"></i> Add Apikey
       </button>
-      <button onclick="alert('Fitur Beli Akun Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+      <button onclick="alert('Fitur Beli Akun Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-storefront text-lg"></i> Beli Akun
       </button>
-      <button onclick="alert('Fitur Beli Kredit Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+      <button onclick="alert('Fitur Beli Kredit Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-lightning text-lg"></i> Beli Kredit
       </button>
-      <button onclick="alert('Fitur Langganan VIP Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+      <button onclick="alert('Fitur Langganan VIP Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-crown text-lg text-amber-500"></i> Langganan VIP
       </button>
     </nav>
@@ -139,7 +141,7 @@
                     <p class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
                 </div>
                 <a href="#" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro</a>
-                <a href="#" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙️ Add Apikey</a>
+                <a href="#" onclick="navigasiKiix('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙️ Add Apikey</a>
                 <div class="border-t border-kmBorder mt-1 pt-1">
                     <a href="#" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a>
                 </div>
@@ -147,8 +149,8 @@
         </div>
     </div>
 
-    <!-- 1. DASHBOARD VIEW -->
-    <div id="layar-dashboard" class="space-y-6 pt-10 md:pt-0">
+    <!-- 1. DASHBOARD VIEW (Diberi class layar-konten) -->
+    <div id="layar-dashboard" class="layar-konten space-y-6 pt-10 md:pt-0">
       <div class="mb-4">
           <h1 class="text-2xl sm:text-3xl font-black text-kmTextPrimary tracking-tight">Halo, <span id="user-greeting-name" class="capitalize">Member</span></h1>
           <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Ringkasan akun dan aktivitas generate kamu.</p>
@@ -157,17 +159,17 @@
 
       <!-- KARTU AKSI CEPAT -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer">
+          <button onclick="navigasiKiix('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer">
               <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div>
               <div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div>
           </button>
           
-          <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer">
+          <button onclick="navigasiKiix('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer">
               <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼️</span></div>
               <div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Penyimpanan media</p></div>
           </button>
           
-          <button onclick="gantiLayarNav('kelola-akun')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-violet-400 hover:shadow-md transition text-left group cursor-pointer">
+          <button onclick="navigasiKiix('kelola-akun')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-violet-400 hover:shadow-md transition text-left group cursor-pointer">
               <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-kmViolet text-lg">🔑</span></div>
               <div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Add Apikey</h4><p class="text-[10px] text-slate-400">Kelola token API</p></div>
           </button>
@@ -195,7 +197,7 @@
           </div>
       </div>
 
-      <!-- BANNER KOMUNITAS TELEGRAM -->
+      <!-- BANNER KOMUNITAS -->
       <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
         <div class="flex items-center gap-3.5">
           <div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30">
@@ -212,21 +214,20 @@
         <button onclick="bukaGrupTelegram()" class="w-full sm:w-auto px-5 py-2.5 bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer shadow-sm text-center">Gabung Komunitas</button>
       </div>
 
-      <!-- WADAH JOB TERBARU -->
+      <!-- WADAH JOB TERBARU (ID Diubah Biar Gak Dirusak JS Lama) -->
       <div class="pt-2">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> Job Terbaru
           </h2>
-          <button onclick="gantiLayarNav('history')" class="text-xs sm:text-sm font-bold text-kmViolet hover:text-kmVioletHover cursor-pointer">Lihat Semua &rarr;</button>
+          <button onclick="navigasiKiix('history')" class="text-xs sm:text-sm font-bold text-kmViolet hover:text-kmVioletHover cursor-pointer">Lihat Semua &rarr;</button>
         </div>
-        <!-- Di sinilah kartu video akan dimunculkan -->
-        <div id="wadah-job-terbaru-dashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+        <div id="grid-job-dash" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
       </div>
     </div>
 
     <!-- 2. GENERATE VIEW -->
-    <div id="layar-generate" style="display: none;" class="space-y-6">
+    <div id="layar-generate" class="layar-konten space-y-6" style="display: none;">
       <div>
         <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -336,8 +337,8 @@
       </div>
     </div>
 
-    <!-- 3. HISTORY VIEW -->
-    <div id="layar-history" style="display: none;" class="space-y-6">
+    <!-- 3. HISTORY VIEW (ID Diubah Biar Gak Dirusak JS Lama) -->
+    <div id="layar-history" class="layar-konten space-y-6" style="display: none;">
       <div class="flex items-center justify-between bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
         <div>
           <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Riwayat Generate Video</h2>
@@ -348,12 +349,12 @@
           <button onclick="bersihkanSemuaHistory()" class="text-xs sm:text-sm text-rose-500 hover:text-rose-700 font-bold cursor-pointer">Hapus Semua</button>
         </div>
       </div>
-      <!-- Di sinilah kartu video history akan dimunculkan -->
-      <div id="wadah-list-history" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      <!-- GRID HISTORY -->
+      <div id="grid-job-hist" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </div>
 
     <!-- 4. GALERI VIEW -->
-    <div id="layar-galeri" style="display: none;" class="space-y-6">
+    <div id="layar-galeri" class="layar-konten space-y-6" style="display: none;">
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Foto & video referensi</h2>
@@ -377,22 +378,21 @@
           <p class="text-[11px] text-slate-400 mt-1">Seret file ke kesini atau klik untuk mengunggah. <br>(Format max 20MB · Maksimal total 50 file)</p>
           <input type="file" accept="image/*,video/*" class="hidden" onchange="unggahKeGaleri(this)" />
         </label>
-
-        <!-- Di sinilah grid galeri muncul -->
+        
         <div id="wadah-grid-galeri" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-2"></div>
       </div>
     </div>
 
     <!-- 5. ADD APIKEY VIEW -->
-    <div id="layar-kelola-akun" style="display: none;" class="space-y-6">
+    <div id="layar-kelola-akun" class="layar-konten space-y-6" style="display: none;">
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2>
             <p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub dan Roboneo kamu untuk proses generate.</p>
           </div>
-          <!-- TOMBOL ADD APIKEY WARNA SOFT PASTEL (GAK KENTAL LAGI) -->
-          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-violet-50 hover:bg-violet-100 text-kmViolet border border-violet-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-sm">
+          <!-- TOMBOL ADD APIKEY WARNA SOFT PASTEL -->
+          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-violet-50 hover:bg-violet-100 text-kmViolet border border-violet-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2">
             <i class="ph ph-key text-base"></i> + Add Apikey
           </button>
         </div>
@@ -441,6 +441,7 @@
         </div>
       </div>
 
+      <!-- DAFTAR AKUN (Dari Skrip Lama) -->
       <div id="wadah-kartu-akun-list" class="space-y-3"></div>
     </div>
   </main>
@@ -505,42 +506,36 @@
       ambilDataLoginAsli();
   </script>
 
-  <!-- SKRIP SISTEM NAVIGASI (MEMAKSA JS LAMA NURUT) -->
+  <!-- SKRIP BYPASS NAVIGASI (Biar Tombol Sidebar Ikut Berubah Warna) -->
   <script>
-      // Timpa fungsi gantiLayarNav bawaan file js lu secara paksa biar nggak ngerusak layout
-      window.gantiLayarNav = function(layar) {
-          var daftarLayar = ['dashboard', 'generate', 'history', 'galeri', 'kelola-akun'];
+      function navigasiKiix(target) {
+          // 1. Sembunyikan semua layar
+          document.querySelectorAll('.layar-konten').forEach(function(el) {
+              el.style.display = 'none';
+          });
           
-          daftarLayar.forEach(function(id) {
-              var el = document.getElementById('layar-' + id);
-              if (el) {
-                  el.style.display = (layar === id) ? 'block' : 'none';
-              }
-              
-              var btn = document.getElementById('nav-btn-' + id);
-              if (btn) {
-                  if (layar === id) {
-                      btn.className = "nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED] cursor-pointer whitespace-nowrap";
-                  } else {
-                      btn.className = "nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap";
-                  }
+          // 2. Tampilkan layar target
+          var layarTujuan = document.getElementById('layar-' + target);
+          if (layarTujuan) layarTujuan.style.display = 'block';
+
+          // 3. Reset warna semua tombol menu sidebar
+          document.querySelectorAll('.btn-nav-sidebar').forEach(function(btn) {
+              if (btn.getAttribute('data-target') === target) {
+                  btn.className = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED] cursor-pointer whitespace-nowrap";
+              } else {
+                  btn.className = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap";
               }
           });
 
-          // Eksekusi ulang grid-grid cantiknya biar nggak putih kosong
-          if (layar === 'dashboard') {
-              if(typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
-              renderVideoAsliKeGrid();
+          // 4. Trigger render khusus
+          if (target === 'dashboard' || target === 'history') {
+              renderVideoGridAman();
+          } else if (target === 'galeri') {
+              renderGaleriAman();
           }
-          if (layar === 'history') {
-              if(typeof renderLayarHistory === 'function') renderLayarHistory();
-              renderVideoAsliKeGrid();
-          }
-          if (layar === 'galeri') renderGaleri();
-          if (layar === 'kelola-akun' && typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
-      };
-      
-      // Fungsi Panduan API Key
+      }
+
+      // Fungsi Accordion Panduan Add Apikey
       function togglePanduanKey() {
           var konten = document.getElementById('konten-panduan-key');
           var panah = document.getElementById('icon-panah-panduan');
@@ -553,13 +548,13 @@
           }
       }
 
-      // Sistem Galeri Referensi
+      // Skrip Galeri Anti-Blank
       var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
 
       function unggahKeGaleri(input) {
           if (!input.files || !input.files[0]) return;
           if (galeriList.length >= 50) {
-              alert('Kapasitas galeri sudah penuh (Maksimal 50 file). Hapus beberapa file terlebih dahulu.');
+              alert('Kapasitas galeri sudah penuh (Maks 50 file).');
               return;
           }
           var file = input.files[0];
@@ -568,11 +563,10 @@
               galeriList.push({
                   id: Date.now(),
                   type: file.type.startsWith('video') ? 'video' : 'image',
-                  url: e.target.result,
-                  nama: file.name
+                  url: e.target.result
               });
               localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
-              renderGaleri();
+              renderGaleriAman();
           };
           reader.readAsDataURL(file);
       }
@@ -580,10 +574,10 @@
       function hapusDariGaleri(id) {
           galeriList = galeriList.filter(item => item.id !== id);
           localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
-          renderGaleri();
+          renderGaleriAman();
       }
 
-      function renderGaleri() {
+      function renderGaleriAman() {
           var wadah = document.getElementById('wadah-grid-galeri');
           var txtInfo = document.getElementById('txt-info-kuota-galeri');
           var txtPersen = document.getElementById('txt-persen-kuota');
@@ -624,21 +618,22 @@
       }
   </script>
 
-  <!-- SKRIP RENDER VIDEO GRID (DENGAN FALLBACK DATA CONTOH BIAR GAK KOSONG) -->
+  <!-- SKRIP VIDEO GRID (DASHBOARD & HISTORY) -->
   <script>
-      function renderVideoAsliKeGrid() {
-          var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
-          var wadahHist = document.getElementById('wadah-list-history');
+      function renderVideoGridAman() {
+          // Pake ID baru biar gak ditimpa JS lama
+          var wadahDash = document.getElementById('grid-job-dash');
+          var wadahHist = document.getElementById('grid-job-hist');
           
           var dataTerbaru = [];
           
-          // Cek apakah database lu ada isinya beneran
+          // Kalau database beneran ada isinya
           if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList && riwayatGenerateList.length > 0) {
               dataTerbaru = [...riwayatGenerateList].reverse();
               var counter = document.getElementById('txt-counter-history');
               if (counter) counter.innerText = riwayatGenerateList.length + ' tugas';
           } else {
-              // KALAU KOSONG: Tembak data contoh (dummy) biar layarnya nggak blank/hilang
+              // Kalau database masih kosong, kita pancing pake video contoh biar layar History gak blank
               dataTerbaru = [
                   { engine: "Wan Motion Control HD", url: "https://www.w3schools.com/html/mov_bbb.mp4" },
                   { engine: "Kling 2.6 Cinematic", url: "https://www.w3schools.com/html/mov_bbb.mp4" }
@@ -688,10 +683,9 @@
           }
       }
       
-      // Tembak rendering pertama kali web kebuka
+      // Auto load Dashboard pas pertama kali buka
       setTimeout(function() {
-          renderVideoAsliKeGrid();
-          renderGaleri();
+          navigasiKiix('dashboard');
       }, 300);
   </script>
 

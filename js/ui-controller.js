@@ -11,6 +11,7 @@ var isModePilih = false;
 var pendingKonfirmasiFn = null;
 var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
 
+// Notifikasi Popup (Toast)
 function tampilkanNotif(pesan, jenis) {
   var wadah = document.getElementById('toast-container');
   if (!wadah) return;
@@ -35,6 +36,7 @@ function aturTampilanHalamanUtama() {
   gantiLayarNav(navLayarAktif);
 }
 
+// Modal Konfirmasi
 function mintaKonfirmasi(pesan, callbackYa) {
   var modal = document.getElementById('modal-konfirmasi-box');
   var txt = document.getElementById('modal-konfirmasi-teks');
@@ -53,6 +55,7 @@ function tutupModalKonfirmasi(apakahYa) {
   pendingKonfirmasiFn = null;
 }
 
+// Ganti Layar & Menu Sidebar Estetik
 function gantiLayarNav(layar) {
   navLayarAktif = layar;
   var ids = ['dashboard', 'generate', 'history', 'kelola-akun'];
@@ -63,21 +66,19 @@ function gantiLayarNav(layar) {
     
     if (el) el.style.display = (layar === id) ? 'block' : 'none';
     
-    // UPDATE PENTING: Class CSS disesuaikan biar Ikon Sidebar tetep estetik dan gak kaku
     if (btn) {
       var baseClass = "nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
       if (layar === id) {
-        // Mode Aktif (Warna Violet KiiXMotion)
         btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]"; 
       } else {
-        // Mode Standar
         btn.className = baseClass + "text-slate-600 hover:bg-slate-50 hover:text-slate-800"; 
       }
     }
   });
   
-  if (typeof updateStatistikDashboard === 'function' && layar === 'dashboard') updateStatistikDashboard();
-  if (typeof renderLayarHistory === 'function' && layar === 'history') renderLayarHistory();
+  // Panggil fungsi render tiap layar
+  if (layar === 'dashboard') updateStatistikDashboard();
+  if (layar === 'history') renderLayarHistory();
   if (typeof renderListAkunDiKelola === 'function' && layar === 'kelola-akun') renderListAkunDiKelola();
 }
 
@@ -116,48 +117,65 @@ function centangSemuaAkun(master) {
 }
 
 // ==========================================
-// TAMBAHAN: FUNGSI RENDER KARTU VIDEO ESTETIK
+// RENDER VIDEO ASLI (DASHBOARD & HISTORY)
 // ==========================================
-function renderKumpulanVideoKeGrid(dataVideoArray, targetElementId) {
-  var wadah = document.getElementById(targetElementId);
-  if (!wadah) return;
+
+function renderVideoAsliKeGrid() {
+  var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
+  var wadahHistory = document.getElementById('wadah-list-history');
   
-  // Kalau history-nya masih kosong
-  if (!dataVideoArray || dataVideoArray.length === 0) {
-      wadah.innerHTML = `
+  // Update konter jumlah history di pojok kanan atas layar History
+  var txtCounter = document.getElementById('txt-counter-history');
+  if (txtCounter && typeof riwayatGenerateList !== 'undefined') {
+      txtCounter.innerText = riwayatGenerateList.length + ' tugas';
+  }
+  
+  // Jika riwayat kosong
+  if (typeof riwayatGenerateList === 'undefined' || !riwayatGenerateList || riwayatGenerateList.length === 0) {
+      var htmlKosong = `
          <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
             <span class="text-2xl">🎬</span>
             Belum ada video yang di-generate.
          </div>`;
+      if (wadahDashboard) wadahDashboard.innerHTML = htmlKosong;
+      if (wadahHistory) wadahHistory.innerHTML = htmlKosong;
       return;
   }
 
-  var htmlCard = '';
-  // Looping bikin kartu satu-satu sesuai jumlah data history lu
-  dataVideoArray.forEach(function(video) {
-      // Ambil data asli (Fallback ke default kalau kosong)
-      var namaEngine = video.engine || video.provider || 'Wan Motion Control';
-      var urlThumb = video.thumbnail || 'https://images.unsplash.com/photo-1618172193763-c511deb635ca?q=80&w=400&auto=format&fit=crop';
-      var statusTxt = video.status === 'processing' ? 'Memproses' : 'Selesai';
-      var statusWarna = video.status === 'processing' ? 'bg-amber-500/90' : 'bg-emerald-500/90';
-      var iconStatus = video.status === 'processing' ? 'ph-spinner animate-spin' : 'ph-check-circle';
+  // Balik urutan array biar video terbaru di paling atas
+  var dataTerbaru = [...riwayatGenerateList].reverse();
 
-      htmlCard += `
+  // Template Kartu HTML
+  function bikinKartuHTML(video) {
+      // Menyesuaikan penamaan parameter sesuai standar API/database (url / video_url / dll)
+      var linkVideo = video.url || video.video_url || video.hasil_url || video.videoUrl || '';
+      var namaEngine = video.engine || video.provider || 'Wan Motion Control';
+      
+      var areaMedia = '';
+      if (linkVideo) {
+          // Kalau link video ada, tampilkan pemutar <video>
+          areaMedia = `
+          <video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata" playsinline></video>
+          <div class="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm z-10 pointer-events-none">
+             <i class="ph ph-check-circle"></i> Selesai
+          </div>`;
+      } else {
+          // Kalau masih proses atau gagal
+          areaMedia = `
+          <div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400">
+             <i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i>
+             <span class="text-xs font-bold">Sedang Diproses...</span>
+          </div>`;
+      }
+
+      return `
       <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow hover:shadow-lg transition flex flex-col group">
-        <!-- Area Thumbnail -->
-        <div class="bg-black aspect-video relative flex items-center justify-center cursor-pointer overflow-hidden">
-           <img src="${urlThumb}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition duration-500" />
-           
-           <div class="absolute w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/40 rounded-full flex items-center justify-center text-white group-hover:scale-110 transition duration-300 shadow-lg">
-              <i class="ph-fill ph-play text-xl ml-1"></i>
-           </div>
-           
-           <div class="absolute top-3 right-3 ${statusWarna} backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-              <i class="ph ${iconStatus}"></i> ${statusTxt}
-           </div>
+        <!-- Area Pemutar Video -->
+        <div class="bg-black aspect-video relative flex items-center justify-center overflow-hidden">
+           ${areaMedia}
         </div>
         
-        <!-- Area Info & Tombol Bawah -->
+        <!-- Area Info -->
         <div class="p-4 space-y-3">
            <div class="flex items-center gap-2.5">
               <span class="w-2 h-2 rounded-full bg-kmViolet shadow-[0_0_8px_#7C3AED]"></span>
@@ -169,18 +187,36 @@ function renderKumpulanVideoKeGrid(dataVideoArray, targetElementId) {
                  <i class="ph-fill ph-tiktok-logo text-sm text-slate-800"></i> Auto TikTok
               </div>
               <div class="flex items-center gap-4">
-                 <button onclick="alert('Mendownload Video: ${video.id || 'N/A'}')" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download">
+                 <a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download">
                     <i class="ph ph-download-simple text-lg hover:scale-110"></i>
-                 </button>
-                 <button onclick="alert('Menghapus Video: ${video.id || 'N/A'}')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
+                 </a>
+                 <button onclick="alert('Fitur Hapus masih dikembangkan!')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
                     <i class="ph ph-trash text-lg hover:scale-110"></i>
                  </button>
               </div>
            </div>
         </div>
-      </div>
-      `;
-  });
-  
-  wadah.innerHTML = htmlCard;
+      </div>`;
+  }
+
+  // Tampilkan semua di halaman History
+  var htmlHistory = '';
+  dataTerbaru.forEach(function(v) { htmlHistory += bikinKartuHTML(v); });
+  if (wadahHistory) wadahHistory.innerHTML = htmlHistory;
+
+  // Tampilkan max 3 di halaman Dashboard
+  var htmlDashboard = '';
+  dataTerbaru.slice(0, 3).forEach(function(v) { htmlDashboard += bikinKartuHTML(v); });
+  if (wadahDashboard) wadahDashboard.innerHTML = htmlDashboard;
+}
+
+// Pastikan fungsi ini dipanggil tiap buka layar yang bersangkutan
+function renderLayarHistory() {
+    renderVideoAsliKeGrid();
+}
+
+function updateStatistikDashboard() {
+    renderVideoAsliKeGrid();
+    
+    // (Bisa tambahin fungsi update angka saldo di sini kalau ada)
 }

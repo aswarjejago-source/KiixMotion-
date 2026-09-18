@@ -12,10 +12,8 @@ var pendingKonfirmasiFn = null;
 var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
 
 // ------------------------------------------
-// FITUR LAMA (AMAN 100%)
+// FITUR LAMA BAWAAN LU (AMAN 100%)
 // ------------------------------------------
-
-// Notifikasi Popup (Toast)
 function tampilkanNotif(pesan, jenis) {
   var wadah = document.getElementById('toast-container');
   if (!wadah) return;
@@ -40,7 +38,6 @@ function aturTampilanHalamanUtama() {
   gantiLayarNav(navLayarAktif);
 }
 
-// Modal Konfirmasi
 function mintaKonfirmasi(pesan, callbackYa) {
   var modal = document.getElementById('modal-konfirmasi-box');
   var txt = document.getElementById('modal-konfirmasi-teks');
@@ -94,24 +91,22 @@ function centangSemuaAkun(master) {
 }
 
 // ------------------------------------------
-// FITUR BARU: NAVIGASI ESTETIK + TAB WARNA
+// FITUR BARU: NAVIGASI BARU ANTI-BENTROK
 // ------------------------------------------
-
 function gantiLayarNav(layar) {
   navLayarAktif = layar;
-  // Ditambahin 'galeri' ke dalam array menu
   var ids = ['dashboard', 'generate', 'history', 'galeri', 'kelola-akun'];
   
   ids.forEach(function(id) {
     var el = document.getElementById('layar-' + id);
-    var btn = document.getElementById('nav-btn-' + id); // Pake ID HTML terbaru
+    var btn = document.getElementById('nav-btn-' + id); 
     
     // Sembunyi/Tampilkan Layar
     if (el) el.style.display = (layar === id) ? 'block' : 'none';
     
-    // Ganti Warna Tombol
+    // Ganti Warna Tombol Sidebar
     if (btn) {
-      var baseClass = "nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
+      var baseClass = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
       if (layar === id) {
         btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]"; 
       } else {
@@ -120,16 +115,13 @@ function gantiLayarNav(layar) {
     }
   });
   
-  // Panggil fungsi render tiap layar pas diklik
+  // Panggil fungsi render tiap layar
   if (layar === 'dashboard') updateStatistikDashboard();
   if (layar === 'history') renderLayarHistory();
   if (layar === 'galeri') renderGaleri();
   if (layar === 'kelola-akun' && typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
 }
 
-// ------------------------------------------
-// FITUR BARU: ACCORDION PANDUAN API KEY
-// ------------------------------------------
 function togglePanduanKey() {
     var konten = document.getElementById('konten-panduan-key');
     var panah = document.getElementById('icon-panah-panduan');
@@ -149,10 +141,10 @@ function togglePanduanKey() {
 // ------------------------------------------
 var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
 
-function unggahKeGaleri(input) {
+window.unggahKeGaleri = function(input) {
     if (!input.files || !input.files[0]) return;
     if (galeriList.length >= 50) {
-        tampilkanNotif('Kapasitas galeri sudah penuh (Maksimal 50 file). Hapus beberapa file terlebih dahulu.', 'error');
+        tampilkanNotif('Kapasitas galeri sudah penuh (Maksimal 50 file).', 'error');
         return;
     }
     var file = input.files[0];
@@ -171,8 +163,7 @@ function unggahKeGaleri(input) {
     reader.readAsDataURL(file);
 }
 
-function hapusDariGaleri(id) {
-    // Dipadukan sama pop-up konfirmasi bawaan lu!
+window.hapusDariGaleri = function(id) {
     mintaKonfirmasi("Apakah Anda yakin ingin menghapus media ini dari galeri?", function() {
         galeriList = galeriList.filter(item => item.id !== id);
         localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
@@ -181,7 +172,7 @@ function hapusDariGaleri(id) {
     });
 }
 
-function renderGaleri() {
+window.renderGaleri = function() {
     var wadah = document.getElementById('wadah-grid-galeri');
     var txtInfo = document.getElementById('txt-info-kuota-galeri');
     var txtPersen = document.getElementById('txt-persen-kuota');
@@ -222,26 +213,31 @@ function renderGaleri() {
 }
 
 // ------------------------------------------
-// FITUR BARU: RENDER VIDEO GRID (DENGAN FALLBACK)
+// FITUR BARU: RENDER VIDEO KE GRID CANTIK (PAKE ID ASLI DATABASE)
 // ------------------------------------------
-function renderVideoAsliKeGrid() {
-  var wadahDashboard = document.getElementById('grid-job-dash');
-  var wadahHistory = document.getElementById('grid-job-hist');
+window.renderVideoAsliKeGrid = function() {
+  // PAKE ID ASLI SUPAYA DATABASE BISA KONEK LAGI
+  var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
+  var wadahHistory = document.getElementById('wadah-list-history');
   var txtCounter = document.getElementById('txt-counter-history');
   
   var dataTerbaru = [];
 
-  // Kalau History beneran ada isinya
+  // MENGAMBIL DATA DATABASE LU
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList && riwayatGenerateList.length > 0) {
       dataTerbaru = [...riwayatGenerateList].reverse();
       if (txtCounter) txtCounter.innerText = riwayatGenerateList.length + ' tugas';
   } else {
-      // DATA CONTOH (Dummy) kalau masih kosong, biar layar gak putih blank!
-      dataTerbaru = [
-          { engine: "Wan Motion Control HD", url: "https://www.w3schools.com/html/mov_bbb.mp4" },
-          { engine: "Kling 2.6 Cinematic", url: "https://www.w3schools.com/html/mov_bbb.mp4" }
-      ];
-      if (txtCounter) txtCounter.innerText = '2 tugas (Contoh)';
+      // KALAU DATABASE BUKA/KOSONG
+      var htmlKosong = `
+         <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
+            <span class="text-2xl">🎬</span>
+            Belum ada video yang di-generate.
+         </div>`;
+      if (wadahDashboard) wadahDashboard.innerHTML = htmlKosong;
+      if (wadahHistory) wadahHistory.innerHTML = htmlKosong;
+      if (txtCounter) txtCounter.innerText = '0 tugas';
+      return;
   }
 
   function bikinKartuHTML(video) {
@@ -276,7 +272,7 @@ function renderVideoAsliKeGrid() {
                  <a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download">
                     <i class="ph ph-download-simple text-lg hover:scale-110"></i>
                  </a>
-                 <button onclick="tampilkanNotif('Fitur Hapus belum aktif!', 'error')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
+                 <button onclick="tampilkanNotif('Fitur Hapus sedang dalam perbaikan', 'error')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
                     <i class="ph ph-trash text-lg hover:scale-110"></i>
                  </button>
               </div>
@@ -285,7 +281,7 @@ function renderVideoAsliKeGrid() {
       </div>`;
   }
 
-  // Tampilkan di History
+  // Tampilkan semua di History
   if (wadahHistory) {
       var htmlHistory = '';
       dataTerbaru.forEach(function(v) { htmlHistory += bikinKartuHTML(v); });
@@ -300,16 +296,11 @@ function renderVideoAsliKeGrid() {
   }
 }
 
-// Render Ulang Saat Pindah Layar
-function renderLayarHistory() {
-    renderVideoAsliKeGrid();
-}
+// BIKIN JS LAMA NURUT SAMA TAMPILAN BARU
+window.renderLayarHistory = function() { renderVideoAsliKeGrid(); };
+window.updateStatistikDashboard = function() { renderVideoAsliKeGrid(); };
 
-function updateStatistikDashboard() {
-    renderVideoAsliKeGrid();
-}
-
-// Inisialisasi awal pas web kebuka
+// Inisialisasi awal
 setTimeout(function() {
     gantiLayarNav('dashboard');
 }, 300);

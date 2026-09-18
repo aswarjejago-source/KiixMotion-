@@ -1,7 +1,6 @@
 // ==========================================
 // PILAR 2: UI CONTROLLER (Sistem Saraf Antarmuka)
 // File: js/ui-controller.js
-// Fungsi: Mengatur navigasi, modal, notifikasi, dan animasi
 // ==========================================
 
 var currentView = 'workbench';
@@ -116,8 +115,13 @@ function gantiLayarNav(layar) {
   });
   
   // Panggil fungsi render tiap layar
-  if (layar === 'dashboard') updateStatistikDashboard();
-  if (layar === 'history') renderLayarHistory();
+  if (layar === 'dashboard') {
+      if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
+      setTimeout(renderVideoAsliKeGrid, 100);
+  }
+  if (layar === 'history') {
+      setTimeout(renderVideoAsliKeGrid, 100);
+  }
   if (layar === 'galeri') renderGaleri();
   if (layar === 'kelola-akun' && typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
 }
@@ -213,10 +217,9 @@ window.renderGaleri = function() {
 }
 
 // ------------------------------------------
-// FITUR BARU: RENDER VIDEO KE GRID CANTIK (PAKE ID ASLI DATABASE)
+// FITUR BARU: RENDER VIDEO KE GRID (BYPASS API-ENGINE)
 // ------------------------------------------
 window.renderVideoAsliKeGrid = function() {
-  // PAKE ID ASLI SUPAYA DATABASE BISA KONEK LAGI
   var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
   var wadahHistory = document.getElementById('wadah-list-history');
   var txtCounter = document.getElementById('txt-counter-history');
@@ -228,7 +231,6 @@ window.renderVideoAsliKeGrid = function() {
       dataTerbaru = [...riwayatGenerateList].reverse();
       if (txtCounter) txtCounter.innerText = riwayatGenerateList.length + ' tugas';
   } else {
-      // KALAU DATABASE BUKA/KOSONG
       var htmlKosong = `
          <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
             <span class="text-2xl">🎬</span>
@@ -241,6 +243,7 @@ window.renderVideoAsliKeGrid = function() {
   }
 
   function bikinKartuHTML(video) {
+      // Nyari link di semua kemungkinan struktur database
       var linkVideo = video.url || video.video_url || video.hasil_url || video.videoUrl || '';
       var namaEngine = video.engine || video.provider || 'Wan Motion Control';
       
@@ -296,11 +299,36 @@ window.renderVideoAsliKeGrid = function() {
   }
 }
 
-// BIKIN JS LAMA NURUT SAMA TAMPILAN BARU
-window.renderLayarHistory = function() { renderVideoAsliKeGrid(); };
-window.updateStatistikDashboard = function() { renderVideoAsliKeGrid(); };
+// =========================================================================
+// KODE SAKTI: PENCEGAT FUNGSI RENDER LAMA DARI FILE API-ENGINE.JS
+// =========================================================================
+// Kita nimpa fungsi asli dari file api-engine lu, jadi desain lama ga bakal muncul lagi!
+window.renderLayarHistory = function() { 
+    renderVideoAsliKeGrid(); 
+};
 
-// Inisialisasi awal
-setTimeout(function() {
-    gantiLayarNav('dashboard');
-}, 300);
+// Mencegah file api-engine lu nimpa HTML History pakai innerHTML desain putih lama
+const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.target.id === 'wadah-list-history' || mutation.target.id === 'wadah-job-terbaru-dashboard') {
+            // Kalau api-engine lu ketahuan ngedit kontennya pake kode lama...
+            if(mutation.target.innerHTML.includes('text-slate-700 font-bold')) {
+                // ...kita hantam balik pake fungsi desain Grid estetik kita!
+                renderVideoAsliKeGrid();
+            }
+        }
+    });
+});
+
+// Jalankan pengawas ini pas web kebuka
+document.addEventListener("DOMContentLoaded", function() {
+    var wadahHist = document.getElementById('wadah-list-history');
+    var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
+    if(wadahHist) observer.observe(wadahHist, { childList: true, subtree: true });
+    if(wadahDash) observer.observe(wadahDash, { childList: true, subtree: true });
+    
+    // Tembak navigasi awal
+    setTimeout(function() {
+        gantiLayarNav('dashboard');
+    }, 500);
+});

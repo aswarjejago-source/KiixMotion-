@@ -54,7 +54,6 @@
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-    /* Efek menu sidebar */
     .nav-btn-smooth {
       display: flex;
       align-items: center;
@@ -68,7 +67,7 @@
     }
   </style>
 
-  <!-- JS INTI LU TETAP AMAN -->
+  <!-- JS INTI -->
   <script src="js/database.js" defer></script>
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
@@ -249,9 +248,7 @@
           </h2>
           <button onclick="gantiLayarNav('history')" class="text-xs sm:text-sm font-bold text-kmViolet hover:text-kmVioletHover cursor-pointer">Lihat Semua &rarr;</button>
         </div>
-        <!-- Wadah yang bakal diisi sama script di bawah -->
-        <div id="wadah-job-terbaru-dashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        </div>
+        <div id="wadah-job-terbaru-dashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
       </div>
     </div>
 
@@ -369,7 +366,6 @@
           <button onclick="bersihkanSemuaHistory()" class="text-xs sm:text-sm text-rose-500 hover:text-rose-700 font-bold cursor-pointer">Hapus Semua</button>
         </div>
       </div>
-      <!-- Wadah yang bakal diisi sama script di bawah -->
       <div id="wadah-list-history" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </div>
 
@@ -444,7 +440,7 @@
     </div>
   </div>
 
-  <!-- SKRIP SUPABASE OTOMATIS -->
+  <!-- SKRIP SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
       const supabaseUrl = 'https://fybyupwcburndxulqqnn.supabase.co';
@@ -475,7 +471,7 @@
       ambilDataLoginAsli();
   </script>
 
-  <!-- SKRIP SAPU JAGAT (Bebas Kedip, Nyambung ke Data Asli) -->
+  <!-- SKRIP PENGHUBUNG GRID VIDEO (Dashboard & History) -->
   <script>
       window.renderLayarHistory = function() {
           renderVideoAsliKeGrid();
@@ -544,7 +540,7 @@
                          <a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download">
                             <i class="ph ph-download-simple text-lg hover:scale-110"></i>
                          </a>
-                         <button onclick="alert('Fitur Hapus bakal masuk sini!')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
+                         <button onclick="alert('Fitur Hapus!')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
                             <i class="ph ph-trash text-lg hover:scale-110"></i>
                          </button>
                       </div>
@@ -553,17 +549,24 @@
               </div>`;
           }
 
+          // Render Grid di History
           var htmlHist = '';
           dataTerbaru.forEach(function(v) { htmlHist += bikinKartu(v); });
           if(wadahHist) wadahHist.innerHTML = htmlHist;
 
+          // Render Max 3 Grid di Dashboard
           var htmlDash = '';
           dataTerbaru.slice(0, 3).forEach(function(v) { htmlDash += bikinKartu(v); });
           if(wadahDash) wadahDash.innerHTML = htmlDash;
       }
       
-      // Load sekali doang, bye-bye kedip!
-      setTimeout(renderVideoAsliKeGrid, 500);
+      // Panggil fungsi saat halaman selesai dimuat atau menu diklik
+      setTimeout(renderVideoAsliKeGrid, 300);
+      document.addEventListener('click', function(e) {
+          if(e.target && (e.target.id === 'menu-nav-hist' || e.target.id === 'menu-nav-dash')) {
+              setTimeout(renderVideoAsliKeGrid, 100);
+          }
+      });
   </script>
 
 </body>

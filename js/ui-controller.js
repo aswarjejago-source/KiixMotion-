@@ -56,17 +56,26 @@ function tutupModalKonfirmasi(apakahYa) {
 function gantiLayarNav(layar) {
   navLayarAktif = layar;
   var ids = ['dashboard', 'generate', 'history', 'kelola-akun'];
+  
   ids.forEach(function(id) {
     var el = document.getElementById('layar-' + id);
     var btn = document.getElementById('menu-nav-' + id.slice(0, 4));
+    
     if (el) el.style.display = (layar === id) ? 'block' : 'none';
+    
+    // UPDATE PENTING: Class CSS disesuaikan biar Ikon Sidebar tetep estetik dan gak kaku
     if (btn) {
-      btn.className = "px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer " +
-        ((layar === id) ? "bg-kmViolet text-white violet-glow" : "text-kmTextSecondary hover:text-kmViolet hover:bg-white/80");
+      var baseClass = "nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
+      if (layar === id) {
+        // Mode Aktif (Warna Violet KiiXMotion)
+        btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]"; 
+      } else {
+        // Mode Standar
+        btn.className = baseClass + "text-slate-600 hover:bg-slate-50 hover:text-slate-800"; 
+      }
     }
   });
   
-  // Panggil fungsi render jika ada (Fungsi ini nanti ada di file logic utama)
   if (typeof updateStatistikDashboard === 'function' && layar === 'dashboard') updateStatistikDashboard();
   if (typeof renderLayarHistory === 'function' && layar === 'history') renderLayarHistory();
   if (typeof renderListAkunDiKelola === 'function' && layar === 'kelola-akun') renderListAkunDiKelola();
@@ -104,4 +113,74 @@ function toggleModePilihHapus() {
 
 function centangSemuaAkun(master) {
   document.querySelectorAll('.chk-seleksi-akun').forEach(function(c) { c.checked = master.checked; });
+}
+
+// ==========================================
+// TAMBAHAN: FUNGSI RENDER KARTU VIDEO ESTETIK
+// ==========================================
+function renderKumpulanVideoKeGrid(dataVideoArray, targetElementId) {
+  var wadah = document.getElementById(targetElementId);
+  if (!wadah) return;
+  
+  // Kalau history-nya masih kosong
+  if (!dataVideoArray || dataVideoArray.length === 0) {
+      wadah.innerHTML = `
+         <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
+            <span class="text-2xl">🎬</span>
+            Belum ada video yang di-generate.
+         </div>`;
+      return;
+  }
+
+  var htmlCard = '';
+  // Looping bikin kartu satu-satu sesuai jumlah data history lu
+  dataVideoArray.forEach(function(video) {
+      // Ambil data asli (Fallback ke default kalau kosong)
+      var namaEngine = video.engine || video.provider || 'Wan Motion Control';
+      var urlThumb = video.thumbnail || 'https://images.unsplash.com/photo-1618172193763-c511deb635ca?q=80&w=400&auto=format&fit=crop';
+      var statusTxt = video.status === 'processing' ? 'Memproses' : 'Selesai';
+      var statusWarna = video.status === 'processing' ? 'bg-amber-500/90' : 'bg-emerald-500/90';
+      var iconStatus = video.status === 'processing' ? 'ph-spinner animate-spin' : 'ph-check-circle';
+
+      htmlCard += `
+      <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow hover:shadow-lg transition flex flex-col group">
+        <!-- Area Thumbnail -->
+        <div class="bg-black aspect-video relative flex items-center justify-center cursor-pointer overflow-hidden">
+           <img src="${urlThumb}" class="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition duration-500" />
+           
+           <div class="absolute w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/40 rounded-full flex items-center justify-center text-white group-hover:scale-110 transition duration-300 shadow-lg">
+              <i class="ph-fill ph-play text-xl ml-1"></i>
+           </div>
+           
+           <div class="absolute top-3 right-3 ${statusWarna} backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm">
+              <i class="ph ${iconStatus}"></i> ${statusTxt}
+           </div>
+        </div>
+        
+        <!-- Area Info & Tombol Bawah -->
+        <div class="p-4 space-y-3">
+           <div class="flex items-center gap-2.5">
+              <span class="w-2 h-2 rounded-full bg-kmViolet shadow-[0_0_8px_#7C3AED]"></span>
+              <h4 class="text-sm font-bold text-slate-800 truncate">${namaEngine}</h4>
+           </div>
+           
+           <div class="flex items-center justify-between border-t border-kmBorder pt-3 mt-2">
+              <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                 <i class="ph-fill ph-tiktok-logo text-sm text-slate-800"></i> Auto TikTok
+              </div>
+              <div class="flex items-center gap-4">
+                 <button onclick="alert('Mendownload Video: ${video.id || 'N/A'}')" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download">
+                    <i class="ph ph-download-simple text-lg hover:scale-110"></i>
+                 </button>
+                 <button onclick="alert('Menghapus Video: ${video.id || 'N/A'}')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
+                    <i class="ph ph-trash text-lg hover:scale-110"></i>
+                 </button>
+              </div>
+           </div>
+        </div>
+      </div>
+      `;
+  });
+  
+  wadah.innerHTML = htmlCard;
 }

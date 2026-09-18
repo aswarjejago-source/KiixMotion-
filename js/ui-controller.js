@@ -11,6 +11,10 @@ var isModePilih = false;
 var pendingKonfirmasiFn = null;
 var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
 
+// ------------------------------------------
+// FITUR LAMA (AMAN 100%)
+// ------------------------------------------
+
 // Notifikasi Popup (Toast)
 function tampilkanNotif(pesan, jenis) {
   var wadah = document.getElementById('toast-container');
@@ -55,33 +59,6 @@ function tutupModalKonfirmasi(apakahYa) {
   pendingKonfirmasiFn = null;
 }
 
-// Ganti Layar & Menu Sidebar Estetik
-function gantiLayarNav(layar) {
-  navLayarAktif = layar;
-  var ids = ['dashboard', 'generate', 'history', 'kelola-akun'];
-  
-  ids.forEach(function(id) {
-    var el = document.getElementById('layar-' + id);
-    var btn = document.getElementById('menu-nav-' + id.slice(0, 4));
-    
-    if (el) el.style.display = (layar === id) ? 'block' : 'none';
-    
-    if (btn) {
-      var baseClass = "nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
-      if (layar === id) {
-        btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]"; 
-      } else {
-        btn.className = baseClass + "text-slate-600 hover:bg-slate-50 hover:text-slate-800"; 
-      }
-    }
-  });
-  
-  // Panggil fungsi render tiap layar
-  if (layar === 'dashboard') updateStatistikDashboard();
-  if (layar === 'history') renderLayarHistory();
-  if (typeof renderListAkunDiKelola === 'function' && layar === 'kelola-akun') renderListAkunDiKelola();
-}
-
 function bukaGrupTelegram() {
   window.open(linkTelegramResmi, '_blank');
 }
@@ -116,72 +93,181 @@ function centangSemuaAkun(master) {
   document.querySelectorAll('.chk-seleksi-akun').forEach(function(c) { c.checked = master.checked; });
 }
 
-// ==========================================
-// RENDER VIDEO ASLI (DASHBOARD & HISTORY)
-// ==========================================
+// ------------------------------------------
+// FITUR BARU: NAVIGASI ESTETIK + TAB WARNA
+// ------------------------------------------
 
+function gantiLayarNav(layar) {
+  navLayarAktif = layar;
+  // Ditambahin 'galeri' ke dalam array menu
+  var ids = ['dashboard', 'generate', 'history', 'galeri', 'kelola-akun'];
+  
+  ids.forEach(function(id) {
+    var el = document.getElementById('layar-' + id);
+    var btn = document.getElementById('nav-btn-' + id); // Pake ID HTML terbaru
+    
+    // Sembunyi/Tampilkan Layar
+    if (el) el.style.display = (layar === id) ? 'block' : 'none';
+    
+    // Ganti Warna Tombol
+    if (btn) {
+      var baseClass = "nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
+      if (layar === id) {
+        btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]"; 
+      } else {
+        btn.className = baseClass + "text-slate-600 hover:bg-slate-50 hover:text-slate-800"; 
+      }
+    }
+  });
+  
+  // Panggil fungsi render tiap layar pas diklik
+  if (layar === 'dashboard') updateStatistikDashboard();
+  if (layar === 'history') renderLayarHistory();
+  if (layar === 'galeri') renderGaleri();
+  if (layar === 'kelola-akun' && typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
+}
+
+// ------------------------------------------
+// FITUR BARU: ACCORDION PANDUAN API KEY
+// ------------------------------------------
+function togglePanduanKey() {
+    var konten = document.getElementById('konten-panduan-key');
+    var panah = document.getElementById('icon-panah-panduan');
+    if (!konten || !panah) return;
+    
+    if (konten.style.display === 'none') {
+        konten.style.display = 'block';
+        panah.style.transform = 'rotate(180deg)';
+    } else {
+        konten.style.display = 'none';
+        panah.style.transform = 'rotate(0deg)';
+    }
+}
+
+// ------------------------------------------
+// FITUR BARU: GALERI MAKS 50 FILE
+// ------------------------------------------
+var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
+
+function unggahKeGaleri(input) {
+    if (!input.files || !input.files[0]) return;
+    if (galeriList.length >= 50) {
+        tampilkanNotif('Kapasitas galeri sudah penuh (Maksimal 50 file). Hapus beberapa file terlebih dahulu.', 'error');
+        return;
+    }
+    var file = input.files[0];
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        galeriList.push({
+            id: Date.now(),
+            type: file.type.startsWith('video') ? 'video' : 'image',
+            url: e.target.result,
+            nama: file.name
+        });
+        localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
+        renderGaleri();
+        tampilkanNotif('Media berhasil diunggah ke Galeri!', 'sukses');
+    };
+    reader.readAsDataURL(file);
+}
+
+function hapusDariGaleri(id) {
+    // Dipadukan sama pop-up konfirmasi bawaan lu!
+    mintaKonfirmasi("Apakah Anda yakin ingin menghapus media ini dari galeri?", function() {
+        galeriList = galeriList.filter(item => item.id !== id);
+        localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
+        renderGaleri();
+        tampilkanNotif('File berhasil dihapus.', 'sukses');
+    });
+}
+
+function renderGaleri() {
+    var wadah = document.getElementById('wadah-grid-galeri');
+    var txtInfo = document.getElementById('txt-info-kuota-galeri');
+    var txtPersen = document.getElementById('txt-persen-kuota');
+    
+    var totalFoto = galeriList.filter(i => i.type === 'image').length;
+    var totalVideo = galeriList.filter(i => i.type === 'video').length;
+    
+    if(txtInfo) txtInfo.innerText = totalFoto + ' foto · ' + totalVideo + ' video';
+    if(txtPersen) txtPersen.innerText = Math.round((galeriList.length / 50) * 100) + '%';
+
+    if (!wadah) return;
+
+    if (galeriList.length === 0) {
+        wadah.innerHTML = `
+        <div class="col-span-full py-8 text-center text-slate-400">
+           <p class="text-xs font-semibold">Belum ada file media yang diunggah.</p>
+        </div>`;
+        return;
+    }
+
+    var html = '';
+    galeriList.forEach(function(item) {
+        if (item.type === 'video') {
+            html += `
+            <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden relative group aspect-square modern-shadow">
+               <video src="${item.url}" class="w-full h-full object-cover"></video>
+               <button onclick="hapusDariGaleri(${item.id})" class="absolute top-2 right-2 w-7 h-7 bg-rose-600/90 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-md">✕</button>
+            </div>`;
+        } else {
+            html += `
+            <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden relative group aspect-square modern-shadow">
+               <img src="${item.url}" class="w-full h-full object-cover" />
+               <button onclick="hapusDariGaleri(${item.id})" class="absolute top-2 right-2 w-7 h-7 bg-rose-600/90 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-md">✕</button>
+            </div>`;
+        }
+    });
+    wadah.innerHTML = html;
+}
+
+// ------------------------------------------
+// FITUR BARU: RENDER VIDEO GRID (DENGAN FALLBACK)
+// ------------------------------------------
 function renderVideoAsliKeGrid() {
-  var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
-  var wadahHistory = document.getElementById('wadah-list-history');
-  
-  // Update konter jumlah history di pojok kanan atas layar History
+  var wadahDashboard = document.getElementById('grid-job-dash');
+  var wadahHistory = document.getElementById('grid-job-hist');
   var txtCounter = document.getElementById('txt-counter-history');
-  if (txtCounter && typeof riwayatGenerateList !== 'undefined') {
-      txtCounter.innerText = riwayatGenerateList.length + ' tugas';
-  }
   
-  // Jika riwayat kosong
-  if (typeof riwayatGenerateList === 'undefined' || !riwayatGenerateList || riwayatGenerateList.length === 0) {
-      var htmlKosong = `
-         <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
-            <span class="text-2xl">🎬</span>
-            Belum ada video yang di-generate.
-         </div>`;
-      if (wadahDashboard) wadahDashboard.innerHTML = htmlKosong;
-      if (wadahHistory) wadahHistory.innerHTML = htmlKosong;
-      return;
+  var dataTerbaru = [];
+
+  // Kalau History beneran ada isinya
+  if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList && riwayatGenerateList.length > 0) {
+      dataTerbaru = [...riwayatGenerateList].reverse();
+      if (txtCounter) txtCounter.innerText = riwayatGenerateList.length + ' tugas';
+  } else {
+      // DATA CONTOH (Dummy) kalau masih kosong, biar layar gak putih blank!
+      dataTerbaru = [
+          { engine: "Wan Motion Control HD", url: "https://www.w3schools.com/html/mov_bbb.mp4" },
+          { engine: "Kling 2.6 Cinematic", url: "https://www.w3schools.com/html/mov_bbb.mp4" }
+      ];
+      if (txtCounter) txtCounter.innerText = '2 tugas (Contoh)';
   }
 
-  // Balik urutan array biar video terbaru di paling atas
-  var dataTerbaru = [...riwayatGenerateList].reverse();
-
-  // Template Kartu HTML
   function bikinKartuHTML(video) {
-      // Menyesuaikan penamaan parameter sesuai standar API/database (url / video_url / dll)
       var linkVideo = video.url || video.video_url || video.hasil_url || video.videoUrl || '';
       var namaEngine = video.engine || video.provider || 'Wan Motion Control';
       
-      var areaMedia = '';
-      if (linkVideo) {
-          // Kalau link video ada, tampilkan pemutar <video>
-          areaMedia = `
-          <video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata" playsinline></video>
+      var areaMedia = linkVideo ? 
+          `<video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata" playsinline></video>
           <div class="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm z-10 pointer-events-none">
              <i class="ph ph-check-circle"></i> Selesai
-          </div>`;
-      } else {
-          // Kalau masih proses atau gagal
-          areaMedia = `
-          <div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400">
+          </div>` : 
+          `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400">
              <i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i>
              <span class="text-xs font-bold">Sedang Diproses...</span>
           </div>`;
-      }
 
       return `
       <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow hover:shadow-lg transition flex flex-col group">
-        <!-- Area Pemutar Video -->
         <div class="bg-black aspect-video relative flex items-center justify-center overflow-hidden">
            ${areaMedia}
         </div>
-        
-        <!-- Area Info -->
         <div class="p-4 space-y-3">
            <div class="flex items-center gap-2.5">
               <span class="w-2 h-2 rounded-full bg-kmViolet shadow-[0_0_8px_#7C3AED]"></span>
               <h4 class="text-sm font-bold text-slate-800 truncate">${namaEngine}</h4>
            </div>
-           
            <div class="flex items-center justify-between border-t border-kmBorder pt-3 mt-2">
               <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
                  <i class="ph-fill ph-tiktok-logo text-sm text-slate-800"></i> Auto TikTok
@@ -190,7 +276,7 @@ function renderVideoAsliKeGrid() {
                  <a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download">
                     <i class="ph ph-download-simple text-lg hover:scale-110"></i>
                  </a>
-                 <button onclick="alert('Fitur Hapus masih dikembangkan!')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
+                 <button onclick="tampilkanNotif('Fitur Hapus belum aktif!', 'error')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
                     <i class="ph ph-trash text-lg hover:scale-110"></i>
                  </button>
               </div>
@@ -199,24 +285,31 @@ function renderVideoAsliKeGrid() {
       </div>`;
   }
 
-  // Tampilkan semua di halaman History
-  var htmlHistory = '';
-  dataTerbaru.forEach(function(v) { htmlHistory += bikinKartuHTML(v); });
-  if (wadahHistory) wadahHistory.innerHTML = htmlHistory;
+  // Tampilkan di History
+  if (wadahHistory) {
+      var htmlHistory = '';
+      dataTerbaru.forEach(function(v) { htmlHistory += bikinKartuHTML(v); });
+      wadahHistory.innerHTML = htmlHistory;
+  }
 
-  // Tampilkan max 3 di halaman Dashboard
-  var htmlDashboard = '';
-  dataTerbaru.slice(0, 3).forEach(function(v) { htmlDashboard += bikinKartuHTML(v); });
-  if (wadahDashboard) wadahDashboard.innerHTML = htmlDashboard;
+  // Tampilkan max 3 di Dashboard
+  if (wadahDashboard) {
+      var htmlDashboard = '';
+      dataTerbaru.slice(0, 3).forEach(function(v) { htmlDashboard += bikinKartuHTML(v); });
+      wadahDashboard.innerHTML = htmlDashboard;
+  }
 }
 
-// Pastikan fungsi ini dipanggil tiap buka layar yang bersangkutan
+// Render Ulang Saat Pindah Layar
 function renderLayarHistory() {
     renderVideoAsliKeGrid();
 }
 
 function updateStatistikDashboard() {
     renderVideoAsliKeGrid();
-    
-    // (Bisa tambahin fungsi update angka saldo di sini kalau ada)
 }
+
+// Inisialisasi awal pas web kebuka
+setTimeout(function() {
+    gantiLayarNav('dashboard');
+}, 300);

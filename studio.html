@@ -77,8 +77,8 @@
   
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
-  <!-- SIDEBAR -->
-  <header id="main-header-nav" class="bg-white/90 backdrop-blur-md md:bg-white border-b md:border-b-0 md:border-r border-kmBorder px-4 sm:px-6 md:px-5 py-3.5 md:py-6 flex md:flex-col flex-wrap items-center md:items-start justify-between md:justify-start sticky top-0 z-40 gap-3 md:gap-8 md:w-[260px] shrink-0 h-auto md:h-screen transition-all shadow-[2px_0_15px_rgba(0,0,0,0.02)]">
+  <!-- SIDEBAR ALA MOTIONFLY & KIIXMOTION -->
+  <header id="main-header-nav" class="bg-white/90 backdrop-blur-md md:bg-white border-b md:border-b-0 md:border-r border-kmBorder px-4 sm:px-6 md:px-5 py-3.5 md:py-6 flex md:flex-col flex-wrap items-center md:items-start justify-between md:justify-start sticky top-0 z-40 gap-3 md:gap-6 md:w-[260px] shrink-0 h-auto md:h-screen transition-all shadow-[2px_0_15px_rgba(0,0,0,0.02)] overflow-y-auto hide-scrollbar">
     <div class="flex items-center gap-3 w-full">
       <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
         <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="14" fill="#F3EEFF"/><path d="M14 10L22 22L14 34V10Z" fill="#7C3AED"/><path d="M22 22L30 10H22V22Z" fill="#A78BFA"/><path d="M22 22L30 34H22V22Z" fill="#6D28D9"/></svg>
@@ -92,23 +92,35 @@
       </div>
     </div>
     
-    <div class="w-full mt-2 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-2">Meja Kerja</p></div>
+    <div class="w-full mt-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 pl-2">Meja Kerja</p></div>
 
-    <nav class="flex md:flex-col items-center md:items-stretch gap-1 sm:gap-2 bg-slate-50 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-kmBorder md:border-none w-full overflow-x-auto hide-scrollbar">
-      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
-        <i class="ph ph-squares-four text-lg md:text-xl"></i> Dashboard
+    <nav class="flex md:flex-col items-center md:items-stretch gap-1 bg-slate-50 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-kmBorder md:border-none w-full overflow-x-auto hide-scrollbar">
+      <button id="menu-nav-dash" onclick="gantiLayarNav('dashboard')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-squares-four text-lg"></i> Dashboard
       </button>
-      <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
-        <i class="ph ph-magic-wand text-lg md:text-xl"></i> Generate
+      <button id="menu-nav-gene" onclick="gantiLayarNav('generate')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-magic-wand text-lg"></i> Generate
       </button>
-      <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
-        <i class="ph ph-clock-counter-clockwise text-lg md:text-xl"></i> History
+      <button id="menu-nav-hist" onclick="gantiLayarNav('history')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-clock-counter-clockwise text-lg"></i> History
+      </button>
+      <button id="menu-nav-gale" onclick="gantiLayarNav('galeri')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-images text-lg"></i> Galeri <span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-md font-bold">Maks 50</span>
       </button>
       
-      <div class="w-full mt-4 mb-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Pengaturan</p></div>
+      <div class="w-full mt-3 mb-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Kelola akun</p></div>
 
-      <button id="menu-nav-kelo" onclick="gantiLayarNav('kelola-akun')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
-        <i class="ph ph-user-gear text-lg md:text-xl"></i> Kelola Akun
+      <button id="menu-nav-kelo" onclick="gantiLayarNav('kelola-akun')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-key text-lg"></i> Add Apikey
+      </button>
+      <button onclick="alert('Fitur Beli Akun Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-storefront text-lg"></i> Beli Akun
+      </button>
+      <button onclick="alert('Fitur Beli Kredit Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-lightning text-lg"></i> Beli Kredit
+      </button>
+      <button onclick="alert('Fitur Langganan VIP Segera Hadir!')" class="nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-crown text-lg text-amber-500"></i> Langganan VIP
       </button>
     </nav>
   </header>
@@ -132,8 +144,7 @@
                     <p class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
                 </div>
                 <a href="#" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro</a>
-                <a href="#" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙️ API Setting</a>
-                <a href="#" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👤 Profil Saya</a>
+                <a href="#" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙️ Add Apikey</a>
                 <div class="border-t border-kmBorder mt-1 pt-1">
                     <a href="#" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a>
                 </div>
@@ -143,7 +154,6 @@
 
     <!-- DASHBOARD VIEW -->
     <div id="layar-dashboard" style="display: none;" class="space-y-6 pt-10 md:pt-0">
-      
       <div class="mb-4">
           <h1 class="text-2xl sm:text-3xl font-black text-kmTextPrimary tracking-tight">Halo, <span id="user-greeting-name" class="capitalize">Member</span></h1>
           <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Ringkasan akun dan aktivitas generate kamu.</p>
@@ -157,17 +167,17 @@
               <div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div>
           </button>
           
-          <button onclick="alert('Fitur Generate Massal segera hadir!')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-blue-400 hover:shadow-md transition text-left group cursor-pointer">
-              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-blue-500 text-lg">📚</span></div>
-              <div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Massal</h4><p class="text-[10px] text-slate-400">Banyak sekaligus</p></div>
+          <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼️</span></div>
+              <div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Penyimpanan media</p></div>
           </button>
           
-          <button onclick="alert('Arahin ke form Top Up Kredit')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer">
-              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">⚡</span></div>
-              <div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Kredit</h4><p class="text-[10px] text-slate-400">Isi saldo koin</p></div>
+          <button onclick="gantiLayarNav('kelola-akun')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-violet-400 hover:shadow-md transition text-left group cursor-pointer">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-kmViolet text-lg">🔑</span></div>
+              <div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Add Apikey</h4><p class="text-[10px] text-slate-400">Kelola token API</p></div>
           </button>
           
-          <button onclick="alert('Arahin ke halaman Upgrade VIP Pro')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden">
+          <button onclick="alert('Fitur Upgrade VIP Pro Segera Hadir!')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden">
               <div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div>
               <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div>
               <div class="relative z-10"><h4 class="text-xs sm:text-sm font-bold text-slate-800">Pro Plan</h4><p class="text-[10px] text-slate-400">Akses full fitur</p></div>
@@ -190,58 +200,8 @@
           </div>
       </div>
 
-      <!-- Banner Komunitas -->
-      <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-        <div class="flex items-center gap-3.5">
-          <div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30">
-            <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg>
-          </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h4 class="text-sm font-bold text-slate-900">Join Komunitas Kreator</h4>
-              <span class="text-[10px] bg-[#229ED9]/10 text-[#229ED9] px-2 py-0.5 rounded-full font-bold">TELEGRAM RESMI</span>
-            </div>
-            <p class="text-xs text-slate-500 mt-0.5">Sharing prompt motion, trik affiliate TikTok, dan info event kuota.</p>
-          </div>
-        </div>
-        <button onclick="bukaGrupTelegram()" class="w-full sm:w-auto px-5 py-2.5 bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer shadow-sm text-center">Gabung Komunitas</button>
-      </div>
-
-      <!-- Kotak Statistik API -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="bg-white border border-kmBorder p-5 rounded-3xl modern-shadow space-y-4 hover:border-violet-200 transition">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs">R</div>
-              <div><h3 class="text-sm font-bold text-kmTextPrimary">RunningHub</h3><p class="text-[11px] text-slate-400">Motion Control (Wan) — BYOK</p></div>
-            </div>
-            <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
-          </div>
-          <div class="grid grid-cols-3 gap-2 border-y border-kmBorder py-3 text-center">
-            <div><div id="dash-rh-total-koin" class="text-xl font-black text-kmViolet font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Total Coin</div></div>
-            <div><div id="dash-rh-total-akun" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div></div>
-            <div><div id="dash-rh-max-koin" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Terbesar</div></div>
-          </div>
-        </div>
-
-        <div class="bg-white border border-kmBorder p-5 rounded-3xl modern-shadow space-y-4 hover:border-amber-200 transition">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-xs">🥕</div>
-              <div><h3 class="text-sm font-bold text-kmTextPrimary">Roboneo</h3><p class="text-[11px] text-slate-400">Motion Control Kling 2.6</p></div>
-            </div>
-            <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10B981]"></span>
-          </div>
-          <div class="grid grid-cols-3 gap-2 border-y border-kmBorder py-3 text-center">
-            <div><div id="dash-rb-total-carrots" class="text-xl font-black text-amber-600 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Total Carrots</div></div>
-            <div><div id="dash-rb-total-akun" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Akun Aktif</div></div>
-            <div><div id="dash-rb-max-carrots" class="text-xl font-bold text-slate-800 font-mono">0</div><div class="text-[10px] text-slate-400 uppercase font-semibold">Terbesar</div></div>
-          </div>
-        </div>
-      </div>
-
       <!-- WADAH JOB TERBARU DI DASHBOARD -->
-      <div class="pt-4">
+      <div class="pt-2">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> Job Terbaru
@@ -252,36 +212,48 @@
       </div>
     </div>
 
-    <!-- GENERATE VIEW -->
+    <!-- GENERATE VIEW (DENGAN LOGO PROVIDER) -->
     <div id="layar-generate" class="space-y-6">
       <div>
         <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- RunningHub -->
           <div id="c-prov-runninghub" onclick="setProviderUtama('runninghub')" class="bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-base font-bold text-kmTextPrimary">WAN 1080HD</span>
-              <span id="b-prov-runninghub" class="text-xs bg-kmViolet text-white font-extrabold px-2.5 py-0.5 rounded-full">AKTIF</span>
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">R</div>
+                <span class="text-sm font-bold text-kmTextPrimary">RunningHub</span>
+              </div>
+              <span id="b-prov-runninghub" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
             </div>
-            <p class="text-xs sm:text-sm text-kmTextSecondary font-medium">RunningHub Engine (BYOK)</p>
-            <p class="text-xs sm:text-sm text-kmViolet mt-3 font-mono font-bold">≈ 478 coin / render</p>
+            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p>
+            <p class="text-xs text-kmViolet mt-3 font-mono font-bold">≈ 478 coin / render</p>
           </div>
 
+          <!-- Roboneo -->
           <div id="c-prov-roboneo" onclick="setProviderUtama('roboneo')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-base font-bold text-kmTextPrimary">KLING 2.6</span>
-              <span id="b-prov-roboneo" style="display:none;" class="text-xs bg-kmViolet text-white font-extrabold px-2.5 py-0.5 rounded-full">AKTIF</span>
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">🥕</div>
+                <span class="text-sm font-bold text-kmTextPrimary">Roboneo</span>
+              </div>
+              <span id="b-prov-roboneo" style="display:none;" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
             </div>
-            <p class="text-xs sm:text-sm text-kmTextSecondary font-medium">Roboneo Engine</p>
-            <p class="text-xs sm:text-sm text-amber-600 mt-3 font-mono font-bold">≈ 4 carrots / render</p>
+            <p class="text-xs text-kmTextSecondary">Motion Control Kling</p>
+            <p class="text-xs text-amber-600 mt-3 font-mono font-bold">≈ 4 carrots / render</p>
           </div>
 
-          <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+          <!-- Kling 2.6 -->
+          <div id="c-prov-kling" onclick="setProviderUtama('kling')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-base font-bold text-kmTextPrimary">DIRECT CLOUD</span>
-              <span id="b-prov-kiix" style="display:none;" class="text-xs bg-kmViolet text-white font-extrabold px-2.5 py-0.5 rounded-full">AKTIF</span>
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">K</div>
+                <span class="text-sm font-bold text-kmTextPrimary">Kling 2.6</span>
+              </div>
+              <span id="b-prov-kling" style="display:none;" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
             </div>
-            <p class="text-xs sm:text-sm text-kmTextSecondary font-medium">Kiix Cloud VIP</p>
-            <p class="text-xs sm:text-sm text-emerald-600 mt-3 font-mono font-bold">1 Coin VIP / render</p>
+            <p class="text-xs text-kmTextSecondary">Cinematic Motion Engine</p>
+            <p class="text-xs text-indigo-600 mt-3 font-mono font-bold">1 Coin VIP / render</p>
           </div>
         </div>
       </div>
@@ -369,61 +341,108 @@
       <div id="wadah-list-history" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </div>
 
-    <!-- KELOLA AKUN VIEW -->
-    <div id="layar-kelola-akun" style="display: none;" class="space-y-6">
+    <!-- GALERI VIEW (PENYIMPANAN MAKS 50 FILE) -->
+    <div id="layar-galeri" style="display: none;" class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
         <div>
-          <h2 id="txt-head-akun" class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2>
-          <p id="txt-sub-akun" class="text-xs sm:text-sm text-kmTextSecondary mt-1">Kelola API key RunningHub dan Roboneo kamu.</p>
+          <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Galeri Referensi Member</h2>
+          <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Simpan foto & video referensi Anda di sini (Maksimal total 50 file).</p>
         </div>
-        <div class="flex gap-2">
-          <button id="tab-pilih-rh" onclick="gantiTabAkunProvider('runninghub')" class="px-5 py-2.5 rounded-xl bg-kmViolet text-white font-bold cursor-pointer text-sm violet-glow">RunningHub</button>
-          <button id="tab-pilih-roboneo" onclick="gantiTabAkunProvider('roboneo')" class="px-5 py-2.5 rounded-xl bg-white border border-kmBorder text-slate-600 hover:text-slate-900 transition cursor-pointer text-sm font-semibold">Roboneo</button>
-        </div>
+        <label class="px-5 py-3 bg-kmViolet hover:bg-kmVioletHover text-white text-xs sm:text-sm font-bold rounded-xl violet-glow transition cursor-pointer flex items-center gap-2 w-fit">
+          <i class="ph ph-upload-simple text-base">+ Upload Media</i>
+          <input type="file" accept="image/*,video/*" class="hidden" onchange="unggahKeGaleri(this)" />
+        </label>
       </div>
+      <div id="wadah-grid-galeri" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <!-- Konten galeri akan muncul di sini -->
+      </div>
+    </div>
 
-      <div class="flex flex-wrap items-center justify-between gap-4 bg-white border border-kmBorder p-6 rounded-3xl modern-shadow">
-        <div class="flex items-center gap-6 text-xs sm:text-sm font-mono">
-          <div><span class="text-kmTextSecondary font-sans">Akun: </span><span id="txt-stat-akun" class="text-kmTextPrimary font-bold text-sm sm:text-base">0</span></div>
-          <div><span class="text-kmTextSecondary font-sans">Aktif: </span><span id="txt-stat-aktif" class="text-emerald-600 font-bold text-sm sm:text-base">0</span></div>
-          <div><span class="text-kmTextSecondary font-sans">Total Coin: </span><span id="txt-stat-kredit" class="text-kmViolet font-bold text-sm sm:text-base">0</span></div>
+    <!-- ADD APIKEY VIEW (KELOLA AKUN ALA MOTIONFLY) -->
+    <div id="layar-kelola-akun" style="display: none;" class="space-y-6">
+      
+      <!-- HEADER KARTU UTAMA -->
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2>
+            <p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub dan Roboneo kamu untuk proses generate.</p>
+          </div>
+          <!-- Tombol Tambah API Key ala MotionFly -->
+          <button onclick="bukaModalFormKey()" class="px-5 py-3 bg-kmViolet hover:bg-kmVioletHover text-white text-xs sm:text-sm font-bold rounded-2xl violet-glow transition cursor-pointer flex items-center justify-center gap-2">
+            <i class="ph ph-key text-base">+ Tambah API Key</i>
+          </button>
         </div>
-        <div class="flex items-center gap-2.5">
-          <button id="btn-toggle-pilih" onclick="toggleModePilihHapus()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Pilih</button>
-          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-kmViolet hover:bg-kmVioletHover text-white text-xs sm:text-sm font-bold rounded-xl violet-glow transition cursor-pointer flex items-center gap-1.5">
-            <span id="txt-btn-tambah-label">+ Tambah API Key</span>
+
+        <!-- TAB PILIHAN PROVIDER DENGAN LOGO -->
+        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-kmBorder">
+          <button onclick="gantiTabAkunProvider('runninghub')" id="tab-pilih-rh" class="px-4 py-2 rounded-xl bg-violet-50 border border-violet-200 text-kmViolet text-xs font-bold flex items-center gap-2 transition cursor-pointer">
+            <span class="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">R</span>
+            Akun RunningHub
+          </button>
+          <button onclick="alert('Provider Roboneo Coming Soon!')" class="px-4 py-2 rounded-xl bg-white border border-kmBorder text-slate-500 hover:text-slate-800 text-xs font-semibold flex items-center gap-2 transition cursor-pointer">
+            <span class="w-5 h-5 rounded-md bg-amber-500 text-white flex items-center justify-center text-[10px]">🥕</span>
+            Akun Roboneo
+          </button>
+          <button onclick="alert('Provider Kling 2.6 Coming Soon!')" class="px-4 py-2 rounded-xl bg-white border border-kmBorder text-slate-500 hover:text-slate-800 text-xs font-semibold flex items-center gap-2 transition cursor-pointer">
+            <span class="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[10px]">K</span>
+            Akun Kling 2.6
           </button>
         </div>
       </div>
 
-      <div id="bar-aksi-hapus" style="display: none;" class="flex items-center justify-between bg-rose-50 border border-rose-200 p-4 rounded-2xl">
-        <label class="flex items-center gap-2 text-xs sm:text-sm font-bold text-rose-700 cursor-pointer">
-          <input id="chk-pilih-semua" type="checkbox" onchange="centangSemuaAkun(this)" class="w-5 h-5 rounded-lg accent-rose-600 cursor-pointer" />
-          Pilih Semua Akun
-        </label>
-        <button onclick="eksekusiHapusAkun()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Hapus Terpilih</button>
+      <!-- KOTAK PANDUAN BUKA-TUTUP (ACCORDION) -->
+      <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow">
+        <button onclick="togglePanduanKey()" class="w-full px-5 py-4 flex items-center justify-between text-left bg-slate-50/70 hover:bg-slate-100/80 transition cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">📖</span>
+            <span class="text-xs sm:text-sm font-bold text-slate-800">Cara Ambil API Key RunningHub</span>
+          </div>
+          <i id="icon-panah-panduan" class="ph ph-caret-down text-slate-500 text-base transition-transform duration-200"></i>
+        </button>
+        <div id="konten-panduan-key" style="display: none;" class="p-5 border-t border-kmBorder text-xs sm:text-sm text-slate-600 space-y-2 bg-white leading-relaxed">
+          <div class="flex items-start gap-2">
+            <span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">1</span>
+            <p>Login ke situs RunningHub, lalu buka halaman <span class="font-bold text-slate-800">APIKey</span> dan salin key-nya.</p>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">2</span>
+            <p>Klik tombol <span class="font-bold text-slate-800">+ Tambah API Key</span> di atas, lalu *paste* token API Anda untuk mengecek saldo koin secara otomatis.</p>
+          </div>
+        </div>
       </div>
 
+      <!-- STATISTIK KECIL & DAFTAR AKUN -->
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-white border border-kmBorder p-5 rounded-2xl modern-shadow text-xs sm:text-sm font-mono">
+        <div class="flex items-center gap-5">
+          <div><span class="text-slate-400 font-sans">Total Akun: </span><span id="txt-stat-akun" class="font-bold text-slate-800">0</span></div>
+          <div><span class="text-slate-400 font-sans">Aktif: </span><span id="txt-stat-aktif" class="font-bold text-emerald-600">0</span></div>
+          <div><span class="text-slate-400 font-sans">Total Coin: </span><span id="txt-stat-kredit" class="font-bold text-kmViolet">0</span></div>
+        </div>
+      </div>
+
+      <!-- WADAH LIST AKUN -->
       <div id="wadah-kartu-akun-list" class="space-y-3"></div>
     </div>
   </main>
 
-  <!-- MODAL TAMBAH API KEY -->
+  <!-- POP-UP MODAL TAMBAH API KEY (ALA MOTIONFLY) -->
   <div id="modal-popup-key" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white border border-kmBorder max-w-lg w-full p-6 sm:p-8 rounded-3xl space-y-5 shadow-2xl">
+    <div class="bg-white border border-kmBorder max-w-lg w-full p-6 sm:p-8 rounded-3xl space-y-5 shadow-2xl animate-in fade-in zoom-in duration-200">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Tambah API Key Baru</h3>
-        <button onclick="tutupModalFormKey()" class="text-slate-400 hover:text-slate-700 font-bold text-2xl cursor-pointer p-1">✕</button>
+        <h3 class="text-lg font-bold text-kmTextPrimary">Tambah API Key RunningHub</h3>
+        <button onclick="tutupModalFormKey()" class="text-slate-400 hover:text-slate-700 font-bold text-xl cursor-pointer p-1">✕</button>
       </div>
-      <div class="space-y-4 pt-2">
-        <div>
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">API KEY / TOKEN</label>
-          <input id="in-modal-key" type="password" placeholder="Tempel API Key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" />
-        </div>
+      <p class="text-xs text-slate-500 leading-relaxed">
+        Tempel API key dari halaman <span class="text-kmViolet font-bold">API Key RunningHub</span>. Generate memakai koin di key tersebut — bukan kredit MotionFly.
+      </p>
+      <div class="space-y-3 pt-1">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">API KEY</label>
+        <input id="in-modal-key" type="password" placeholder="Paste RunningHub API key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-xs sm:text-sm text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" />
       </div>
       <div class="flex gap-3 pt-3">
-        <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-sm sm:text-base font-bold rounded-2xl hover:bg-slate-200 transition cursor-pointer">Batal</button>
-        <button id="btn-simpan-key" onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-kmViolet hover:bg-kmVioletHover text-white text-sm sm:text-base font-bold rounded-2xl violet-glow transition cursor-pointer">Simpan API Key</button>
+        <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold rounded-2xl hover:bg-slate-200 transition cursor-pointer">Batal</button>
+        <button onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-kmViolet hover:bg-kmVioletHover text-white text-xs sm:text-sm font-bold rounded-2xl violet-glow transition cursor-pointer">Tambah</button>
       </div>
     </div>
   </div>
@@ -448,16 +467,13 @@
       const supa = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
       async function ambilDataLoginAsli() {
-          const { data: { session }, error } = await supa.auth.getSession();
-          
+          const { data: { session } } = await supa.auth.getSession();
           if (session && session.user) {
               const emailAsli = session.user.email;
               const namaAsli = emailAsli.split('@')[0];
-              
               document.getElementById('user-greeting-name').innerText = namaAsli;
               document.getElementById('profil-email-drop').innerText = emailAsli;
               document.getElementById('profil-inisial').innerText = namaAsli.charAt(0).toUpperCase();
-
               const randomNum = Math.floor(Math.random() * 900) + 100; 
               document.getElementById('kode-referral-user').innerText = namaAsli.toUpperCase().substring(0,6) + '-' + randomNum;
           }
@@ -467,18 +483,101 @@
           await supa.auth.signOut();
           window.location.href = 'register.html';
       }
-
       ambilDataLoginAsli();
   </script>
 
-  <!-- SKRIP PENGHUBUNG GRID VIDEO (Dashboard & History) -->
+  <!-- SKRIP TAMBAHAN: PANDUAN BUKA-TUTUP & GALERI MAKS 50 -->
   <script>
-      window.renderLayarHistory = function() {
-          renderVideoAsliKeGrid();
+      function togglePanduanKey() {
+          var konten = document.getElementById('konten-panduan-key');
+          var panah = document.getElementById('icon-panah-panduan');
+          if(konten.style.display === 'none') {
+              konten.style.display = 'block';
+              panah.style.transform = 'rotate(180deg)';
+          } else {
+              konten.style.display = 'none';
+              panah.style.transform = 'rotate(0deg)';
+          }
+      }
+
+      // Sistem Galeri Referensi (Maks 50 File)
+      var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
+
+      function unggahKeGaleri(input) {
+          if (!input.files || !input.files[0]) return;
+          if (galeriList.length >= 50) {
+              alert('Kapasitas galeri sudah penuh (Maksimal 50 file). Hapus beberapa file terlebih dahulu.');
+              return;
+          }
+          var file = input.files[0];
+          var reader = new FileReader();
+          reader.onload = function(e) {
+              galeriList.push({
+                  id: Date.now(),
+                  type: file.type.startsWith('video') ? 'video' : 'image',
+                  url: e.target.result,
+                  nama: file.name
+              });
+              localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
+              renderGaleri();
+          };
+          reader.readAsDataURL(file);
+      }
+
+      function hapusDariGaleri(id) {
+          galeriList = galeriList.filter(item => item.id !== id);
+          localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
+          renderGaleri();
+      }
+
+      function renderGaleri() {
+          var wadah = document.getElementById('wadah-grid-galeri');
+          if (!wadah) return;
+
+          if (galeriList.length === 0) {
+              wadah.innerHTML = `
+              <div class="col-span-full py-16 text-center text-slate-400 border border-dashed border-kmBorder rounded-3xl bg-white/50 space-y-2">
+                 <span class="text-3xl">📂</span>
+                 <p class="text-xs font-semibold">Belum ada foto atau video di galeri Anda.</p>
+              </div>`;
+              return;
+          }
+
+          var html = '';
+          galeriList.forEach(function(item) {
+              if (item.type === 'video') {
+                  html += `
+                  <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden relative group aspect-square modern-shadow">
+                     <video src="${item.url}" class="w-full h-full object-cover"></video>
+                     <button onclick="hapusDariGaleri(${item.id})" class="absolute top-2 right-2 w-7 h-7 bg-rose-600/90 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-md">✕</button>
+                  </div>`;
+              } else {
+                  html += `
+                  <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden relative group aspect-square modern-shadow">
+                     <img src="${item.url}" class="w-full h-full object-cover" />
+                     <button onclick="hapusDariGaleri(${item.id})" class="absolute top-2 right-2 w-7 h-7 bg-rose-600/90 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-md">✕</button>
+                  </div>`;
+              }
+          });
+          wadah.innerHTML = html;
+      }
+
+      // Hook menu navigasi galeri
+      var oldGantiLayar = window.gantiLayarNav;
+      window.gantiLayarNav = function(layar) {
+          if(typeof oldGantiLayar === 'function') oldGantiLayar(layar);
+          var elGaleri = document.getElementById('layar-galeri');
+          if(elGaleri) elGaleri.style.display = (layar === 'galeri') ? 'block' : 'none';
+          if(layar === 'galeri') renderGaleri();
       };
-      window.updateStatistikDashboard = function() {
-          renderVideoAsliKeGrid();
-      };
+      
+      setTimeout(renderGaleri, 500);
+  </script>
+
+  <!-- SKRIP UTAMA RENDER VIDEO GRID -->
+  <script>
+      window.renderLayarHistory = function() { renderVideoAsliKeGrid(); };
+      window.updateStatistikDashboard = function() { renderVideoAsliKeGrid(); };
 
       function renderVideoAsliKeGrid() {
           var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
@@ -492,7 +591,6 @@
                  </div>`;
               if(wadahDash) wadahDash.innerHTML = htmlKosong;
               if(wadahHist) wadahHist.innerHTML = htmlKosong;
-              
               var counter = document.getElementById('txt-counter-history');
               if (counter) counter.innerText = '0 tugas';
               return;
@@ -506,27 +604,13 @@
           function bikinKartu(video) {
               var linkVideo = video.url || video.video_url || video.hasil_url || video.videoUrl || '';
               var namaEngine = video.engine || video.provider || 'Wan Motion Control';
-              
-              var areaMedia = '';
-              if (linkVideo) {
-                  areaMedia = `
-                  <video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata"></video>
-                  <div class="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm z-10 pointer-events-none">
-                     <i class="ph ph-check-circle"></i> Selesai
-                  </div>`;
-              } else {
-                  areaMedia = `
-                  <div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400">
-                     <i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i>
-                     <span class="text-xs font-bold">Sedang Diproses...</span>
-                  </div>`;
-              }
+              var areaMedia = linkVideo ? 
+                  `<video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata"></video><div class="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm z-10 pointer-events-none"><i class="ph ph-check-circle"></i> Selesai</div>` : 
+                  `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400"><i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i><span class="text-xs font-bold">Sedang Diproses...</span></div>`;
 
               return `
               <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow hover:shadow-lg transition flex flex-col group">
-                <div class="bg-black aspect-video relative flex items-center justify-center overflow-hidden">
-                   ${areaMedia}
-                </div>
+                <div class="bg-black aspect-video relative flex items-center justify-center overflow-hidden">${areaMedia}</div>
                 <div class="p-4 space-y-3">
                    <div class="flex items-center gap-2.5">
                       <span class="w-2 h-2 rounded-full bg-kmViolet shadow-[0_0_8px_#7C3AED]"></span>
@@ -537,36 +621,24 @@
                          <i class="ph-fill ph-tiktok-logo text-sm text-slate-800"></i> Auto TikTok
                       </div>
                       <div class="flex items-center gap-4">
-                         <a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download">
-                            <i class="ph ph-download-simple text-lg hover:scale-110"></i>
-                         </a>
-                         <button onclick="alert('Fitur Hapus!')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
-                            <i class="ph ph-trash text-lg hover:scale-110"></i>
-                         </button>
+                         <a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download"><i class="ph ph-download-simple text-lg hover:scale-110"></i></a>
+                         <button onclick="alert('Fitur Hapus!')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus"><i class="ph ph-trash text-lg hover:scale-110"></i></button>
                       </div>
                    </div>
                 </div>
               </div>`;
           }
 
-          // Render Grid di History
           var htmlHist = '';
           dataTerbaru.forEach(function(v) { htmlHist += bikinKartu(v); });
           if(wadahHist) wadahHist.innerHTML = htmlHist;
 
-          // Render Max 3 Grid di Dashboard
           var htmlDash = '';
           dataTerbaru.slice(0, 3).forEach(function(v) { htmlDash += bikinKartu(v); });
           if(wadahDash) wadahDash.innerHTML = htmlDash;
       }
       
-      // Panggil fungsi saat halaman selesai dimuat atau menu diklik
       setTimeout(renderVideoAsliKeGrid, 300);
-      document.addEventListener('click', function(e) {
-          if(e.target && (e.target.id === 'menu-nav-hist' || e.target.id === 'menu-nav-dash')) {
-              setTimeout(renderVideoAsliKeGrid, 100);
-          }
-      });
   </script>
 
 </body>

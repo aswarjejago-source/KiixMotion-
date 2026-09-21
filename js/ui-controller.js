@@ -90,11 +90,11 @@ function centangSemuaAkun(master) {
 }
 
 // ------------------------------------------
-// FITUR BARU: NAVIGASI BARU ANTI-BENTROK
+// FITUR BARU: NAVIGASI LENGKAP DENGAN LANGGANAN
 // ------------------------------------------
 function gantiLayarNav(layar) {
   navLayarAktif = layar;
-  var ids = ['dashboard', 'generate', 'history', 'galeri', 'kelola-akun'];
+  var ids = ['dashboard', 'generate', 'history', 'galeri', 'kelola-akun', 'langganan'];
   
   ids.forEach(function(id) {
     var el = document.getElementById('layar-' + id);

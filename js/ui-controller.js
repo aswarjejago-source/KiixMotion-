@@ -332,3 +332,85 @@ document.addEventListener("DOMContentLoaded", function() {
         gantiLayarNav('dashboard');
     }, 500);
 });
+
+// =========================================================================
+// INTEGRASI API IPAYMU - LANGGANAN VIP (UNTUK LOLOS VERIFIKASI)
+// =========================================================================
+window.prosesBeliVIP = function() {
+    tampilkanNotif("Menyiapkan link pembayaran iPaymu...", "info");
+    
+    // Pastikan library kriptografi dari HTML (CryptoJS) udah jalan
+    if (typeof CryptoJS === 'undefined') {
+        tampilkanNotif("Memuat sistem keamanan... Silakan klik sekali lagi.", "error");
+        return;
+    }
+
+    // Data dari iPaymu Integrasi Lu
+    var va = "1179002188898353";
+    var apikey = "6A9E222F-9973-44FE-A657-83D1AC7DD74B";
+    
+    // Data produk yg mau dibeli
+    var body = {
+        product: ["Langganan VIP KiiXMotion 1 Bulan"],
+        qty: ["1"],
+        price: ["50000"], // Set harga jadi Rp 50.000 (bebas lu atur)
+        description: ["Akses penuh fitur premium motion control AI"],
+        returnUrl: "https://kiix-motion.vercel.app/studio.html",
+        cancelUrl: "https://kiix-motion.vercel.app/studio.html",
+        notifyUrl: "https://kiix-motion.vercel.app/studio.html" // Harusnya ke webhook backend, tp gpp sementara ke sini
+    };
+    
+    var jsonBody = JSON.stringify(body);
+    
+    // 1. Hash isi request pakai SHA-256
+    var bodyHash = CryptoJS.SHA256(jsonBody).toString(CryptoJS.enc.Hex).toLowerCase();
+    
+    // 2. Susun rumus rahasia (String to Sign)
+    var stringToSign = "POST:" + va + ":" + bodyHash + ":" + apikey;
+    
+    // 3. Gabungin rumus sama API Key pakai HMAC-SHA256
+    var signature = CryptoJS.HmacSHA256(stringToSign, apikey).toString(CryptoJS.enc.Hex).toLowerCase();
+    
+    // 4. Bikin Timestamp Waktu Sekarang (Format: YYYYMMDDHHMMSS)
+    var d = new Date();
+    var timestamp = d.getFullYear().toString() + 
+        ("0" + (d.getMonth() + 1)).slice(-2) + 
+        ("0" + d.getDate()).slice(-2) + 
+        ("0" + d.getHours()).slice(-2) + 
+        ("0" + d.getMinutes()).slice(-2) + 
+        ("0" + d.getSeconds()).slice(-2);
+
+    // Kirim request ke iPaymu! 
+    // (Karena Vercel murni frontend, kita butuh jembatan CorsProxy biar gak diblokir keamanan Chrome)
+    var url = "https://my.ipaymu.com/api/v2/payment";
+    var proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
+    
+    fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'va': va,
+            'signature': signature,
+            'timestamp': timestamp
+        },
+        body: jsonBody
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        // Kalau iPaymu ngasih lampu ijo
+        if (data.Success === true || data.Status === 200) {
+            tampilkanNotif("Berhasil! Mengarahkan ke kasir iPaymu...", "sukses");
+            // Lempar ke halaman kasir iPaymu!
+            setTimeout(function() {
+                window.location.href = data.Data.Url;
+            }, 1000);
+        } else {
+            tampilkanNotif("Gagal bikin transaksi: " + (data.Message || "Kesalahan iPaymu"), "error");
+            console.error("Detail Error iPaymu:", data);
+        }
+    })
+    .catch(function(err) {
+        tampilkanNotif("Gagal koneksi ke server iPaymu. Cek internet lu.", "error");
+        console.error("Proxy/Jaringan Error:", err);
+    });
+};

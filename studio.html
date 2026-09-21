@@ -40,6 +40,9 @@
     .nav-btn-smooth { display: flex; align-items: center; gap: 12px; transition: all 0.2s ease-in-out; }
   </style>
 
+  <!-- LIBRARY KRIPTOGRAFI UNTUK GENERATE SIGNATURE IPAYMU -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
   <!-- PANGGIL FILE JAVASCRIPT LU -->
   <script src="js/database.js" defer></script>
   <script src="js/ui-controller.js" defer></script>
@@ -92,7 +95,7 @@
       <button onclick="alert('Fitur Beli Kredit Segera Hadir!')" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-lightning text-lg"></i> Beli Kredit
       </button>
-      <button onclick="alert('Fitur Langganan VIP Segera Hadir!')" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button onclick="prosesBeliVIP()" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-crown text-lg text-amber-500"></i> Langganan VIP
       </button>
     </nav>
@@ -114,7 +117,7 @@
                     <p class="text-xs font-bold text-slate-800 truncate" id="profil-email-drop">Memuat...</p>
                     <p class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
                 </div>
-                <a href="#" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro</a>
+                <a href="#" onclick="prosesBeliVIP()" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro</a>
                 <a href="#" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙️ Add Apikey</a>
                 <div class="border-t border-kmBorder mt-1 pt-1"><a href="#" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a></div>
             </div>
@@ -132,7 +135,7 @@
           <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div></button>
           <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼️</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Simpan media</p></div></button>
           <button onclick="gantiLayarNav('kelola-akun')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-violet-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-kmViolet text-lg">🔑</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Add Apikey</h4><p class="text-[10px] text-slate-400">Kelola token</p></div></button>
-          <button onclick="alert('Fitur VIP Segera Hadir!')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden"><div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div><div class="relative z-10"><h4 class="text-xs sm:text-sm font-bold text-slate-800">Pro Plan</h4><p class="text-[10px] text-slate-400">Akses full fitur</p></div></button>
+          <button onclick="prosesBeliVIP()" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden"><div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div><div class="relative z-10"><h4 class="text-xs sm:text-sm font-bold text-slate-800">Pro Plan</h4><p class="text-[10px] text-slate-400">Akses full fitur</p></div></button>
       </div>
 
       <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 modern-shadow">

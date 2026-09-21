@@ -11,10 +11,10 @@ export default async function handler(req, res) {
     const url = "https://sandbox.ipaymu.com/api/v2/payment";
 
     const body = {
-        product: ["Langganan VIP KiiXMotion 1 Bulan"],
+        product: ["Langganan VIP KiiXMotion 25 Hari"],
         qty: ["1"],
-        price: ["35000"], // Harga sudah diubah jadi Rp 35.000
-        description: ["Akses penuh fitur premium motion control AI"],
+        price: ["35000"], // Rp 35.000 untuk durasi 25 hari
+        description: ["Akses penuh fitur premium motion control AI selama 25 hari"],
         returnUrl: "https://kiix-motion.vercel.app/studio.html",
         cancelUrl: "https://kiix-motion.vercel.app/studio.html",
         notifyUrl: "https://kiix-motion.vercel.app/studio.html"

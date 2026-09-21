@@ -1,33 +1,55 @@
-module.exports = async (req, res) => {
-  // Cegah blokir CORS dari browser
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+const crypto = require('crypto');
 
-  // Tangkap API key dari URL web lu atau body request
-  const apiKey = req.query.apiKey || (req.body && req.body.apiKey);
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ success: false, message: 'Method not allowed' });
+    }
 
-  if (!apiKey) {
-    return res.status(400).json({ code: 1, msg: "API Key kosong, Bree!" });
-  }
+    // Kunci Sandbox iPaymu Lu
+    const va = "0000002188898353";
+    const apikey = "SANDBOX79FD0BF5-B4DD-4C98-9AD2-D040EE45D52A";
+    const url = "https://sandbox.ipaymu.com/api/v2/payment";
 
-  try {
-    // Tembak endpoint sakti RunningHub pakai metode POST
-    const response = await fetch("https://www.runninghub.ai/uc/openapi/accountStatus", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + apiKey
-      },
-      body: JSON.stringify({ apiKey: apiKey })
-    });
+    const body = {
+        product: ["Langganan VIP KiiXMotion 1 Bulan"],
+        qty: ["1"],
+        price: ["50000"],
+        description: ["Akses penuh fitur premium motion control AI"],
+        returnUrl: "https://kiix-motion.vercel.app/studio.html",
+        cancelUrl: "https://kiix-motion.vercel.app/studio.html",
+        notifyUrl: "https://kiix-motion.vercel.app/studio.html"
+    };
 
-    const data = await response.json();
+    const jsonBody = JSON.stringify(body);
+    
+    // Bikin Signature aman di Server Vercel
+    const bodyHash = crypto.createHash('sha256').update(jsonBody).digest('hex').toLowerCase();
+    const stringToSign = `POST:${va}:${bodyHash}:${apikey}`;
+    const signature = crypto.createHmac('sha256', apikey).update(stringToSign).digest('hex').toLowerCase();
 
-    // Balikan data coin-nya ke index html lu
-    return res.status(200).json(data);
+    const d = new Date();
+    const timestamp = d.getFullYear().toString() + 
+        ("0" + (d.getMonth() + 1)).slice(-2) + 
+        ("0" + d.getDate()).slice(-2) + 
+        ("0" + d.getHours()).slice(-2) + 
+        ("0" + d.getMinutes()).slice(-2) + 
+        ("0" + d.getSeconds()).slice(-2);
 
-  } catch (error) {
-    return res.status(500).json({ code: 1, msg: "Gagal narik coin: " + error.message });
-  }
-};
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'va': va,
+                'signature': signature,
+                'timestamp': timestamp
+            },
+            body: jsonBody
+        });
+
+        const data = await response.json();
+        return res.status(200).json(data);
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+}

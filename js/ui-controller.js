@@ -243,7 +243,6 @@ window.renderVideoAsliKeGrid = function() {
   }
 
   function bikinKartuHTML(video) {
-      // Nyari link di semua kemungkinan struktur database
       var linkVideo = video.url || video.video_url || video.hasil_url || video.videoUrl || '';
       var namaEngine = video.engine || video.provider || 'Wan Motion Control';
       
@@ -284,14 +283,12 @@ window.renderVideoAsliKeGrid = function() {
       </div>`;
   }
 
-  // Tampilkan semua di History
   if (wadahHistory) {
       var htmlHistory = '';
       dataTerbaru.forEach(function(v) { htmlHistory += bikinKartuHTML(v); });
       wadahHistory.innerHTML = htmlHistory;
   }
 
-  // Tampilkan max 3 di Dashboard
   if (wadahDashboard) {
       var htmlDashboard = '';
       dataTerbaru.slice(0, 3).forEach(function(v) { htmlDashboard += bikinKartuHTML(v); });
@@ -299,79 +296,62 @@ window.renderVideoAsliKeGrid = function() {
   }
 }
 
-// =========================================================================
-// KODE SAKTI: PENCEGAT FUNGSI RENDER LAMA DARI FILE API-ENGINE.JS
-// =========================================================================
-// Kita nimpa fungsi asli dari file api-engine lu, jadi desain lama ga bakal muncul lagi!
 window.renderLayarHistory = function() { 
     renderVideoAsliKeGrid(); 
 };
 
-// Mencegah file api-engine lu nimpa HTML History pakai innerHTML desain putih lama
 const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mutation) {
         if (mutation.target.id === 'wadah-list-history' || mutation.target.id === 'wadah-job-terbaru-dashboard') {
-            // Kalau api-engine lu ketahuan ngedit kontennya pake kode lama...
             if(mutation.target.innerHTML.includes('text-slate-700 font-bold')) {
-                // ...kita hantam balik pake fungsi desain Grid estetik kita!
                 renderVideoAsliKeGrid();
             }
         }
     });
 });
 
-// Jalankan pengawas ini pas web kebuka
 document.addEventListener("DOMContentLoaded", function() {
     var wadahHist = document.getElementById('wadah-list-history');
     var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
     if(wadahHist) observer.observe(wadahHist, { childList: true, subtree: true });
     if(wadahDash) observer.observe(wadahDash, { childList: true, subtree: true });
     
-    // Tembak navigasi awal
     setTimeout(function() {
         gantiLayarNav('dashboard');
     }, 500);
 });
 
 // =========================================================================
-// INTEGRASI API IPAYMU - LANGGANAN VIP (UNTUK LOLOS VERIFIKASI)
+// INTEGRASI API IPAYMU - SANDBOX MODE (UNTUK LOLOS VERIFIKASI)
 // =========================================================================
 window.prosesBeliVIP = function() {
-    tampilkanNotif("Menyiapkan link pembayaran iPaymu...", "info");
+    tampilkanNotif("Menyiapkan link pembayaran iPaymu Sandbox...", "info");
     
-    // Pastikan library kriptografi dari HTML (CryptoJS) udah jalan
     if (typeof CryptoJS === 'undefined') {
         tampilkanNotif("Memuat sistem keamanan... Silakan klik sekali lagi.", "error");
         return;
     }
 
-    // Data dari iPaymu Integrasi Lu
-    var va = "1179002188898353";
-    var apikey = "6A9E222F-9973-44FE-A657-83D1AC7DD74B";
+    // KUNCI SANDBOX AKUN LU YANG BARU
+    var va = "0000002188898353";
+    var apikey = "SANDBOX79FD0BF5-B4DD-4C98-9AD2-D040EE45D52A";
     
-    // Data produk yg mau dibeli
     var body = {
         product: ["Langganan VIP KiiXMotion 1 Bulan"],
         qty: ["1"],
-        price: ["50000"], // Set harga jadi Rp 50.000 (bebas lu atur)
+        price: ["50000"],
         description: ["Akses penuh fitur premium motion control AI"],
         returnUrl: "https://kiix-motion.vercel.app/studio.html",
         cancelUrl: "https://kiix-motion.vercel.app/studio.html",
-        notifyUrl: "https://kiix-motion.vercel.app/studio.html" // Harusnya ke webhook backend, tp gpp sementara ke sini
+        notifyUrl: "https://kiix-motion.vercel.app/studio.html"
     };
     
     var jsonBody = JSON.stringify(body);
     
-    // 1. Hash isi request pakai SHA-256
     var bodyHash = CryptoJS.SHA256(jsonBody).toString(CryptoJS.enc.Hex).toLowerCase();
-    
-    // 2. Susun rumus rahasia (String to Sign)
     var stringToSign = "POST:" + va + ":" + bodyHash + ":" + apikey;
-    
-    // 3. Gabungin rumus sama API Key pakai HMAC-SHA256
     var signature = CryptoJS.HmacSHA256(stringToSign, apikey).toString(CryptoJS.enc.Hex).toLowerCase();
     
-    // 4. Bikin Timestamp Waktu Sekarang (Format: YYYYMMDDHHMMSS)
     var d = new Date();
     var timestamp = d.getFullYear().toString() + 
         ("0" + (d.getMonth() + 1)).slice(-2) + 
@@ -380,9 +360,8 @@ window.prosesBeliVIP = function() {
         ("0" + d.getMinutes()).slice(-2) + 
         ("0" + d.getSeconds()).slice(-2);
 
-    // Kirim request ke iPaymu! 
-    // (Karena Vercel murni frontend, kita butuh jembatan CorsProxy biar gak diblokir keamanan Chrome)
-    var url = "https://my.ipaymu.com/api/v2/payment";
+    // ENDPOINT SANDBOX + CORS PROXY BUAT FRONTEND VERCEL
+    var url = "https://sandbox.ipaymu.com/api/v2/payment";
     var proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
     
     fetch(proxyUrl, {
@@ -397,10 +376,8 @@ window.prosesBeliVIP = function() {
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {
-        // Kalau iPaymu ngasih lampu ijo
         if (data.Success === true || data.Status === 200) {
-            tampilkanNotif("Berhasil! Mengarahkan ke kasir iPaymu...", "sukses");
-            // Lempar ke halaman kasir iPaymu!
+            tampilkanNotif("Berhasil! Mengarahkan ke kasir iPaymu Sandbox...", "sukses");
             setTimeout(function() {
                 window.location.href = data.Data.Url;
             }, 1000);

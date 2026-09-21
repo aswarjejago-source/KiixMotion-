@@ -95,7 +95,7 @@
       <button onclick="alert('Fitur Beli Kredit Segera Hadir!')" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-lightning text-lg"></i> Beli Kredit
       </button>
-      <button onclick="prosesBeliVIP()" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button id="nav-btn-langganan" onclick="gantiLayarNav('langganan')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-crown text-lg text-amber-500"></i> Langganan VIP
       </button>
     </nav>
@@ -117,7 +117,7 @@
                     <p class="text-xs font-bold text-slate-800 truncate" id="profil-email-drop">Memuat...</p>
                     <p class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
                 </div>
-                <a href="#" onclick="prosesBeliVIP()" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro</a>
+                <a href="#" onclick="gantiLayarNav('langganan')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro</a>
                 <a href="#" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙️ Add Apikey</a>
                 <div class="border-t border-kmBorder mt-1 pt-1"><a href="#" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a></div>
             </div>
@@ -135,7 +135,7 @@
           <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div></button>
           <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼️</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Simpan media</p></div></button>
           <button onclick="gantiLayarNav('kelola-akun')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-violet-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-kmViolet text-lg">🔑</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Add Apikey</h4><p class="text-[10px] text-slate-400">Kelola token</p></div></button>
-          <button onclick="prosesBeliVIP()" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden"><div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div><div class="relative z-10"><h4 class="text-xs sm:text-sm font-bold text-slate-800">Pro Plan</h4><p class="text-[10px] text-slate-400">Akses full fitur</p></div></button>
+          <button onclick="gantiLayarNav('langganan')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden"><div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div><div class="relative z-10"><h4 class="text-xs sm:text-sm font-bold text-slate-800">Pro Plan</h4><p class="text-[10px] text-slate-400">Akses full fitur</p></div></button>
       </div>
 
       <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 modern-shadow">
@@ -157,9 +157,8 @@
       </div>
     </div>
 
-    <!-- 2. GENERATE VIEW (YANG TADI BUNTUNG, SEKARANG UDAH LENGKAP!) -->
+    <!-- 2. GENERATE VIEW -->
     <div id="layar-generate" class="layar-konten space-y-6" style="display: none;">
-      <!-- Bagian 1: Pilih Engine -->
       <div>
         <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -178,7 +177,6 @@
         </div>
       </div>
 
-      <!-- Bagian 2: Form Upload & Prompt (GUA BALIKIN) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
           <div class="flex items-center justify-between">
@@ -212,7 +210,6 @@
           </div>
         </div>
 
-        <!-- Bagian 3: Akun & Tombol Submit (GUA BALIKIN) -->
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
           <div class="space-y-5">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
@@ -303,6 +300,95 @@
       
       <div id="wadah-kartu-akun-list" class="space-y-3"></div>
     </div>
+
+    <!-- 6. LAYAR LANGGANAN (MOTIONFLY STYLE) -->
+    <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-800">Langganan</h1>
+            <p class="text-xs sm:text-sm text-slate-500">Kelola plan subscription kamu</p>
+        </div>
+
+        <!-- 1. PLAN SAAT INI -->
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Plan Saat Ini</span>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-extrabold text-slate-900">Free</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Generator: Server Standar · Akun: 0 (Khusus Pro)</p>
+                </div>
+                <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">Aktif</span>
+            </div>
+        </div>
+
+        <!-- 2. UPGRADE KE PRO -->
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 text-base">Upgrade ke Pro</h3>
+                <span class="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg">Rp 35.000 / 25 hari, generate & akun unlimited</span>
+            </div>
+            
+            <div class="space-y-2 pt-2">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Metode Pembayaran</span>
+                <div class="flex items-center gap-2">
+                    <button class="px-4 py-2 bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer">
+                        <span>💳</span> QRIS
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-100 text-xs text-slate-600">
+                <div class="flex justify-between">
+                    <span>Langganan Pro (25 Hari)</span>
+                    <span class="font-bold text-slate-800">Rp 35.000</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-200 pb-2">
+                    <span>Payment Gateway Fee (1.8%)</span>
+                    <span class="font-bold text-slate-800">Rp 630</span>
+                </div>
+                <div class="flex justify-between pt-1 text-sm font-extrabold text-slate-900">
+                    <span>Total Bayar</span>
+                    <span class="text-violet-600">Rp 35.630</span>
+                </div>
+            </div>
+
+            <button onclick="prosesBeliVIP()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-2xl transition shadow-lg cursor-pointer">
+                Bayar Sekarang via QRIS
+            </button>
+        </div>
+
+        <!-- 3. KODE PROMO SPESIAL -->
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+            <h3 class="font-bold text-slate-800 text-sm">Kode Promo Spesial</h3>
+            <p class="text-xs text-slate-500">Punya kode promo? Masukkan di sini untuk aktifkan atau perpanjang plan.</p>
+            <div class="flex gap-2">
+                <input type="text" placeholder="PRO-XXXXXXX" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 font-mono" />
+                <button onclick="tampilkanNotif('Kode promo tidak valid', 'error')" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                    Gunakan
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. RIWAYAT TRANSAKSI -->
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+            <h3 class="font-bold text-slate-800 text-sm">Riwayat Transaksi</h3>
+            <div class="space-y-2">
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
+                    <div class="flex items-center gap-3">
+                        <span class="text-base">📦</span>
+                        <div>
+                            <p class="font-bold text-slate-800">Langganan Pro (25 Hari)</p>
+                            <p class="text-[10px] text-slate-400">iPaymu Sandbox · QRIS</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-md">Selesai</span>
+                        <p class="font-bold text-slate-800 mt-1">Rp 35.630</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
   </main>
 
   <!-- POP-UP MODAL ADD APIKEY -->

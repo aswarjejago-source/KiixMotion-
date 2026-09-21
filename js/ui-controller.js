@@ -100,10 +100,8 @@ function gantiLayarNav(layar) {
     var el = document.getElementById('layar-' + id);
     var btn = document.getElementById('nav-btn-' + id); 
     
-    // Sembunyi/Tampilkan Layar
     if (el) el.style.display = (layar === id) ? 'block' : 'none';
     
-    // Ganti Warna Tombol Sidebar
     if (btn) {
       var baseClass = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
       if (layar === id) {
@@ -114,7 +112,6 @@ function gantiLayarNav(layar) {
     }
   });
   
-  // Panggil fungsi render tiap layar
   if (layar === 'dashboard') {
       if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
       setTimeout(renderVideoAsliKeGrid, 100);
@@ -217,7 +214,7 @@ window.renderGaleri = function() {
 }
 
 // ------------------------------------------
-// FITUR BARU: RENDER VIDEO KE GRID (BYPASS API-ENGINE)
+// FITUR BARU: RENDER VIDEO KE GRID
 // ------------------------------------------
 window.renderVideoAsliKeGrid = function() {
   var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
@@ -226,7 +223,6 @@ window.renderVideoAsliKeGrid = function() {
   
   var dataTerbaru = [];
 
-  // MENGAMBIL DATA DATABASE LU
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList && riwayatGenerateList.length > 0) {
       dataTerbaru = [...riwayatGenerateList].reverse();
       if (txtCounter) txtCounter.innerText = riwayatGenerateList.length + ' tugas';
@@ -322,60 +318,21 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 // =========================================================================
-// INTEGRASI API IPAYMU - SANDBOX MODE (UNTUK LOLOS VERIFIKASI)
+// INTEGRASI API IPAYMU - VERCEL BACKEND ROUTE (/api/bayar)
 // =========================================================================
 window.prosesBeliVIP = function() {
-    tampilkanNotif("Menyiapkan link pembayaran iPaymu Sandbox...", "info");
+    tampilkanNotif("Menghubungkan ke secure payment iPaymu...", "info");
     
-    if (typeof CryptoJS === 'undefined') {
-        tampilkanNotif("Memuat sistem keamanan... Silakan klik sekali lagi.", "error");
-        return;
-    }
-
-    // KUNCI SANDBOX AKUN LU YANG BARU
-    var va = "0000002188898353";
-    var apikey = "SANDBOX79FD0BF5-B4DD-4C98-9AD2-D040EE45D52A";
-    
-    var body = {
-        product: ["Langganan VIP KiiXMotion 1 Bulan"],
-        qty: ["1"],
-        price: ["50000"],
-        description: ["Akses penuh fitur premium motion control AI"],
-        returnUrl: "https://kiix-motion.vercel.app/studio.html",
-        cancelUrl: "https://kiix-motion.vercel.app/studio.html",
-        notifyUrl: "https://kiix-motion.vercel.app/studio.html"
-    };
-    
-    var jsonBody = JSON.stringify(body);
-    
-    var bodyHash = CryptoJS.SHA256(jsonBody).toString(CryptoJS.enc.Hex).toLowerCase();
-    var stringToSign = "POST:" + va + ":" + bodyHash + ":" + apikey;
-    var signature = CryptoJS.HmacSHA256(stringToSign, apikey).toString(CryptoJS.enc.Hex).toLowerCase();
-    
-    var d = new Date();
-    var timestamp = d.getFullYear().toString() + 
-        ("0" + (d.getMonth() + 1)).slice(-2) + 
-        ("0" + d.getDate()).slice(-2) + 
-        ("0" + d.getHours()).slice(-2) + 
-        ("0" + d.getMinutes()).slice(-2) + 
-        ("0" + d.getSeconds()).slice(-2);
-
-    // ENDPOINT SANDBOX + CORS PROXY BUAT FRONTEND VERCEL
-    var url = "https://sandbox.ipaymu.com/api/v2/payment";
-    var proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(url);
-    
-    fetch(proxyUrl, {
+    // Nembak ke backend Vercel aman tanpa bocorin API Key di browser
+    fetch('/api/bayar', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'va': va,
-            'signature': signature,
-            'timestamp': timestamp
-        },
-        body: jsonBody
+            'Content-Type': 'application/json'
+        }
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {
+        // Cek struktur respons sukses iPaymu
         if (data.Success === true || data.Status === 200) {
             tampilkanNotif("Berhasil! Mengarahkan ke kasir iPaymu Sandbox...", "sukses");
             setTimeout(function() {
@@ -387,7 +344,7 @@ window.prosesBeliVIP = function() {
         }
     })
     .catch(function(err) {
-        tampilkanNotif("Gagal koneksi ke server iPaymu. Cek internet lu.", "error");
-        console.error("Proxy/Jaringan Error:", err);
+        tampilkanNotif("Gagal koneksi ke server Vercel/iPaymu.", "error");
+        console.error("Error Fetch:", err);
     });
 };

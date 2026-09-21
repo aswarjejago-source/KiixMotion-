@@ -131,11 +131,23 @@
           <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Ringkasan akun dan aktivitas generate kamu.</p>
       </div>
 
+      <!-- GRID TOMBOL SHORTCUT DASHBOARD (TERMASUK UPGRADE KE PRO) -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div></button>
           <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼️</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Simpan media</p></div></button>
           <button onclick="gantiLayarNav('kelola-akun')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-violet-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-kmViolet text-lg">🔑</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Add Apikey</h4><p class="text-[10px] text-slate-400">Kelola token</p></div></button>
-          <button onclick="gantiLayarNav('langganan')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden"><div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div><div class="relative z-10"><h4 class="text-xs sm:text-sm font-bold text-slate-800">Pro Plan</h4><p class="text-[10px] text-slate-400">Akses full fitur</p></div></button>
+          
+          <!-- Tombol Shortcut Langsung ke Halaman Langganan VIP -->
+          <button onclick="gantiLayarNav('langganan')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden">
+              <div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div>
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10">
+                  <span class="text-kmViolet text-lg">👑</span>
+              </div>
+              <div class="relative z-10">
+                  <h4 class="text-xs sm:text-sm font-bold text-slate-800">Upgrade ke Pro</h4>
+                  <p class="text-[10px] text-slate-400">Pakai akses sendiri</p>
+              </div>
+          </button>
       </div>
 
       <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 modern-shadow">
@@ -301,7 +313,7 @@
       <div id="wadah-kartu-akun-list" class="space-y-3"></div>
     </div>
 
-    <!-- 6. LAYAR LANGGANAN (MOTIONFLY STYLE) -->
+    <!-- 6. LAYAR LANGGANAN (MOTIONFLY STYLE & REALISTIC) -->
     <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
         <div>
             <h1 class="text-xl sm:text-2xl font-bold text-slate-800">Langganan</h1>
@@ -320,12 +332,13 @@
             </div>
         </div>
 
-        <!-- 2. UPGRADE KE PRO -->
+        <!-- 2. UPGRADE KE PRO (35K / 25 HARI UNLIMITED) -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
             <div class="flex items-center justify-between">
                 <h3 class="font-bold text-slate-800 text-base">Upgrade ke Pro</h3>
-                <span class="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg">Rp 35.000 / 25 hari, generate & akun unlimited</span>
+                <span class="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg">Rp 35.000 / 25 hari, Unlimited</span>
             </div>
+            <p class="text-xs text-slate-500">Buka akses penuh generate video AI dan kelola akun sepuasnya.</p>
             
             <div class="space-y-2 pt-2">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Metode Pembayaran</span>
@@ -338,7 +351,7 @@
 
             <div class="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-100 text-xs text-slate-600">
                 <div class="flex justify-between">
-                    <span>Langganan Pro (25 Hari)</span>
+                    <span>Langganan Pro (35k / 25 Hari)</span>
                     <span class="font-bold text-slate-800">Rp 35.000</span>
                 </div>
                 <div class="flex justify-between border-b border-slate-200 pb-2">
@@ -368,23 +381,11 @@
             </div>
         </div>
 
-        <!-- 4. RIWAYAT TRANSAKSI -->
+        <!-- 4. RIWAYAT TRANSAKSI (REALISTIS KOSONG) -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <h3 class="font-bold text-slate-800 text-sm">Riwayat Transaksi</h3>
-            <div class="space-y-2">
-                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
-                    <div class="flex items-center gap-3">
-                        <span class="text-base">📦</span>
-                        <div>
-                            <p class="font-bold text-slate-800">Langganan Pro (25 Hari)</p>
-                            <p class="text-[10px] text-slate-400">iPaymu Sandbox · QRIS</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-md">Selesai</span>
-                        <p class="font-bold text-slate-800 mt-1">Rp 35.630</p>
-                    </div>
-                </div>
+            <div class="p-6 border border-slate-200 border-dashed rounded-2xl text-center text-slate-400 text-xs font-medium">
+                Belum ada riwayat transaksi.
             </div>
         </div>
     </div>

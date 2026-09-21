@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     const body = {
         product: ["Langganan VIP KiiXMotion 1 Bulan"],
         qty: ["1"],
-        price: ["50000"],
+        price: ["35000"], // Harga sudah diubah jadi Rp 35.000
         description: ["Akses penuh fitur premium motion control AI"],
         returnUrl: "https://kiix-motion.vercel.app/studio.html",
         cancelUrl: "https://kiix-motion.vercel.app/studio.html",

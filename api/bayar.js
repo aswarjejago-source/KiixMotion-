@@ -5,10 +5,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 
-    // Kunci Sandbox iPaymu Lu
-    const va = "0000002188898353";
-    const apikey = "SANDBOX79FD0BF5-B4DD-4C98-9AD2-D040EE45D52A";
-    const url = "https://sandbox.ipaymu.com/api/v2/payment";
+    // --- MULAI PERUBAHAN PRODUCTION ---
+    // Kunci Production iPaymu Lu (Udah Diganti)
+    const va = "1179002188898353";
+    const apikey = "6A9E222F-9973-44FE-A657-83D1AC7DD74B";
+    const url = "https://my.ipaymu.com/api/v2/payment";
+    // --- AKHIR PERUBAHAN PRODUCTION ---
 
     const body = {
         product: ["Langganan VIP KiiXMotion 25 Hari"],

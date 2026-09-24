@@ -334,7 +334,7 @@ window.prosesBeliVIP = function() {
     .then(function(data) {
         // Cek struktur respons sukses iPaymu
         if (data.Success === true || data.Status === 200) {
-            tampilkanNotif("Berhasil! Mengarahkan ke kasir iPaymu Sandbox...", "sukses");
+            tampilkanNotif("Berhasil! Mengarahkan ke secure payment...", "sukses");
             setTimeout(function() {
                 window.location.href = data.Data.Url;
             }, 1000);

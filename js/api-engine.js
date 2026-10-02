@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (TRANSPARAN VIP)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI + GEMBOK VIP)
 // File: js/api-engine.js
 // ==========================================
 
@@ -8,9 +8,58 @@ var RUNNINGHUB_WORKFLOW_ID = "2099490599765630978";
 var urlBahanFoto = null;
 var urlBahanVideo = null;
 
-// KUNCI DAN ALAMAT SUPABASE KIIXMOTION
-var SUPABASE_URL = "https://fybyupwcburndxulqqnn.supabase.co";
-var SUPABASE_KEY = "sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o";
+// ==========================================
+// FUNGSI CEK STATUS VIP (GEMBOK DATABASE)
+// ==========================================
+async function cekStatusVipUser() {
+  try {
+    // 1. Ambil email user aktif
+    var email = (typeof currentUserEmail !== 'undefined' && currentUserEmail) 
+      ? currentUserEmail 
+      : (localStorage.getItem('currentUserEmail') || localStorage.getItem('user_email') || '');
+      
+    // 2. Cek lewat client Supabase jika tersedia dari database.js
+    if (typeof supabase !== 'undefined' && supabase.from) {
+      if (!email && supabase.auth) {
+        var ses = await supabase.auth.getSession();
+        if (ses && ses.data && ses.data.session && ses.data.session.user) {
+          email = ses.data.session.user.email;
+        }
+      }
+      if (email) {
+        var res = await supabase.from('users').select('is_vip, vip_expires_at').eq('email', email).maybeSingle();
+        if (res && res.data) {
+          var now = new Date();
+          var exp = res.data.vip_expires_at ? new Date(res.data.vip_expires_at) : null;
+          return Boolean(res.data.is_vip && exp && exp > now);
+        }
+      }
+    }
+    
+    // 3. Cadangan: Cek langsung via REST API Supabase
+    if (email) {
+      var sbUrl = 'https://fybrupwcburndxulqqnn.supabase.co';
+      var anonKey = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
+      if (anonKey) {
+        var resp = await fetch(sbUrl + '/rest/v1/users?email=eq.' + encodeURIComponent(email) + '&select=is_vip,vip_expires_at', {
+          headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey }
+        });
+        if (resp.ok) {
+          var rows = await resp.json();
+          if (rows && rows.length > 0) {
+            var row = rows[0];
+            var now = new Date();
+            var exp = row.vip_expires_at ? new Date(row.vip_expires_at) : null;
+            return Boolean(row.is_vip && exp && exp > now);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error verifikasi VIP:', err);
+  }
+  return false;
+}
 
 function updateStatistikDashboard() {
   var totalRhKoin = 0, maxRhKoin = 0, totalRbCarrots = 0, maxRbCarrots = 0;
@@ -37,7 +86,7 @@ function updateStatistikDashboard() {
   setTxt('dash-stat-video-selesai', riwayatGenerateList.filter(function(r) { return r.selesai; }).length);
   
   var emailDisp = document.getElementById('label-current-user-email');
-  if (emailDisp) emailDisp.innerText = (typeof currentUserEmail !== 'undefined' && currentUserEmail) ? currentUserEmail : "anggraingki@gmail.com";
+  if (emailDisp && currentUserEmail) emailDisp.innerText = currentUserEmail;
 }
 
 function setProviderUtama(p) {
@@ -167,6 +216,9 @@ function sinkronkanDropdownAkunGenerate() {
   }
 }
 
+// ==========================================
+// CCTV PEMANTAUAN (TARGET MURNI BERDASARKAN SURAT)
+// ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
 
@@ -187,6 +239,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (!resStatus.ok) return; 
       
       var jsonStatus = await resStatus.json();
+      
       var msg = (jsonStatus.msg || "").toString().toLowerCase();
       var code = jsonStatus.code;
       var stringData = JSON.stringify(jsonStatus);
@@ -240,73 +293,34 @@ function pantauTaskRunningHub(tugas, apiKey) {
 }
 
 // ==========================================
-// PROSES GENERATE (DENGAN BUKTI VERIFIKASI SUPABASE)
+// KIRIM TUGAS KE GPU (SUDAH DIGEMBOK VIP)
 // ==========================================
 async function mulaiProsesGenerate() {
-  var userEmail = (typeof currentUserEmail !== 'undefined' && currentUserEmail && !currentUserEmail.includes('aswar')) 
-    ? currentUserEmail 
-    : (localStorage.getItem('currentUserEmail') || 'anggraingki@gmail.com');
-
   var btn = document.getElementById('btn-submit-generate');
-  if (btn) { btn.disabled = true; btn.innerText = "🔒 MEMERIKSA VIP SUPABASE..."; }
+  if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA VIP..."; }
 
-  var isVipActive = false;
-  var expiredTglStr = "";
-
-  try {
-    var checkUrl = SUPABASE_URL + "/rest/v1/users?email=eq." + encodeURIComponent(userEmail) + "&select=is_vip,vip_expires_at";
-    var resCheck = await fetch(checkUrl, {
-      method: 'GET',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (resCheck.ok) {
-      var rows = await resCheck.json();
-      if (rows && rows.length > 0) {
-        var userRow = rows[0];
-        var now = new Date();
-        if (userRow.is_vip === true && userRow.vip_expires_at && (new Date(userRow.vip_expires_at) > now)) {
-          isVipActive = true;
-          expiredTglStr = new Date(userRow.vip_expires_at).toLocaleDateString('id-ID', {
-            day: 'numeric', month: 'short', year: 'numeric'
-          });
-        }
-      }
-    }
-  } catch (errVip) {
-    console.error("Gagal memeriksa Supabase:", errVip);
+  // 1. CEK GEMBOK VIP KIIXMOTION
+  var isVipAktif = await cekStatusVipUser();
+  if (!isVipAktif) {
+    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+    return tampilkanNotif('🔒 Akses Terkunci! Fitur generate khusus member VIP 25 Hari (Rp 35.000).', 'error');
   }
 
-  // JIKA BUKAN VIP AKTIF DI SUPABASE: TOLAK
-  if (!isVipActive) {
-    if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
-    tampilkanNotif('⛔ Khusus Member VIP. Akun belum aktif di Supabase! (' + userEmail + ')', 'error');
-    if (typeof bukaModalLangganan === 'function') bukaModalLangganan();
-    return;
-  }
-
-  // BUKTI NYATA: BERHASIL DIVERIFIKASI DARI SUPABASE
-  tampilkanNotif('✓ Status VIP Sah! (' + userEmail + ' aktif s.d. ' + expiredTglStr + ')', 'sukses');
-
-  // LANJUT PROSES KE GPU
+  // 2. CEK AKUN ENGINE
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
   if (engineProvider !== 'kiix' && targetAkun.length === 0) {
-    if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
+    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
     return tampilkanNotif('Hubungkan akun di menu Kelola Akun terlebih dahulu!', 'error');
   }
-  
   var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
   var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
   
   if (!urlBahanFoto || !urlBahanVideo) {
-    if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
+    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
     return tampilkanNotif('Foto dan Video keduanya harus selesai diunggah!', 'error');
   }
-  
-  if (btn) { btn.disabled = true; btn.innerText = "⚡ MENGIRIM KE GPU..."; }
+
+  if (btn) { btn.innerText = "⚡ MENGIRIM KE GPU..."; }
   var taskIdAsli = null;
 
   if (engineProvider === 'runninghub') {

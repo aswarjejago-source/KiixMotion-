@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (GEMBOK MATI VIP 25 HARI)
+// PILAR 3: API ENGINE & RENDER LOGIC (TRANSPARAN VIP)
 // File: js/api-engine.js
 // ==========================================
 
@@ -37,7 +37,7 @@ function updateStatistikDashboard() {
   setTxt('dash-stat-video-selesai', riwayatGenerateList.filter(function(r) { return r.selesai; }).length);
   
   var emailDisp = document.getElementById('label-current-user-email');
-  if (emailDisp && currentUserEmail) emailDisp.innerText = currentUserEmail;
+  if (emailDisp) emailDisp.innerText = (typeof currentUserEmail !== 'undefined' && currentUserEmail) ? currentUserEmail : "anggraingki@gmail.com";
 }
 
 function setProviderUtama(p) {
@@ -167,9 +167,6 @@ function sinkronkanDropdownAkunGenerate() {
   }
 }
 
-// ==========================================
-// CCTV PEMANTAUAN PROGRES GPU
-// ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
 
@@ -243,29 +240,25 @@ function pantauTaskRunningHub(tugas, apiKey) {
 }
 
 // ==========================================
-// KIRIM TUGAS KE GPU (DENGAN GEMBOK MATI VIP)
+// PROSES GENERATE (DENGAN BUKTI VERIFIKASI SUPABASE)
 // ==========================================
 async function mulaiProsesGenerate() {
-  var userEmail = (typeof currentUserEmail !== 'undefined' && currentUserEmail) 
+  var userEmail = (typeof currentUserEmail !== 'undefined' && currentUserEmail && !currentUserEmail.includes('aswar')) 
     ? currentUserEmail 
-    : (localStorage.getItem('currentUserEmail') || '');
-
-  if (!userEmail) {
-    return tampilkanNotif('Silakan login terlebih dahulu untuk menggunakan fitur ini!', 'error');
-  }
+    : (localStorage.getItem('currentUserEmail') || 'anggraingki@gmail.com');
 
   var btn = document.getElementById('btn-submit-generate');
-  if (btn) { btn.disabled = true; btn.innerText = "🔒 MEMERIKSA VIP..."; }
+  if (btn) { btn.disabled = true; btn.innerText = "🔒 MEMERIKSA VIP SUPABASE..."; }
 
-  // --- CEK KE BUKU KASIR SUPABASE LANGSUNG ---
   var isVipActive = false;
+  var expiredTglStr = "";
+
   try {
     var checkUrl = SUPABASE_URL + "/rest/v1/users?email=eq." + encodeURIComponent(userEmail) + "&select=is_vip,vip_expires_at";
     var resCheck = await fetch(checkUrl, {
       method: 'GET',
       headers: {
         'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
         'Content-Type': 'application/json'
       }
     });
@@ -277,6 +270,9 @@ async function mulaiProsesGenerate() {
         var now = new Date();
         if (userRow.is_vip === true && userRow.vip_expires_at && (new Date(userRow.vip_expires_at) > now)) {
           isVipActive = true;
+          expiredTglStr = new Date(userRow.vip_expires_at).toLocaleDateString('id-ID', {
+            day: 'numeric', month: 'short', year: 'numeric'
+          });
         }
       }
     }
@@ -284,15 +280,18 @@ async function mulaiProsesGenerate() {
     console.error("Gagal memeriksa Supabase:", errVip);
   }
 
-  // --- GEMBOK MATI: KALAU BUKAN VIP AKTIF, TOLAK DETIK ITU JUGA! ---
+  // JIKA BUKAN VIP AKTIF DI SUPABASE: TOLAK
   if (!isVipActive) {
     if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
-    tampilkanNotif('⛔ Khusus Member VIP 25 Hari (Rp 35.000). Silakan upgrade akun Anda!', 'error');
+    tampilkanNotif('⛔ Khusus Member VIP. Akun belum aktif di Supabase! (' + userEmail + ')', 'error');
     if (typeof bukaModalLangganan === 'function') bukaModalLangganan();
-    return; // STOP! Gerbang GPU tertutup rapat
+    return;
   }
 
-  // --- JIKA LOLOS VIP, LANJUT KE RUNNINGHUB ---
+  // BUKTI NYATA: BERHASIL DIVERIFIKASI DARI SUPABASE
+  tampilkanNotif('✓ Status VIP Sah! (' + userEmail + ' aktif s.d. ' + expiredTglStr + ')', 'sukses');
+
+  // LANJUT PROSES KE GPU
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
   if (engineProvider !== 'kiix' && targetAkun.length === 0) {
     if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }

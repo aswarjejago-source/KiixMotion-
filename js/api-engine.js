@@ -32,8 +32,14 @@ function updateStatistikDashboard() {
   setTxt('dash-rb-max-carrots', maxRbCarrots);
   setTxt('dash-stat-video-selesai', riwayatGenerateList.filter(function(r) { return r.selesai; }).length);
   
-  var emailDisp = document.getElementById('label-current-user-email');
-  if (emailDisp && currentUserEmail) emailDisp.innerText = currentUserEmail;
+  // Ambil email real-time untuk ditampilkan di dashboard
+  if (typeof supa !== 'undefined') {
+    supa.auth.getSession().then(function(res) {
+      var emailReal = res?.data?.session?.user?.email;
+      var emailDisp = document.getElementById('label-current-user-email');
+      if (emailDisp && emailReal) emailDisp.innerText = emailReal;
+    });
+  }
 }
 
 function setProviderUtama(p) {
@@ -247,16 +253,85 @@ function pantauTaskRunningHub(tugas, apiKey) {
 }
 
 // ==========================================
-// KIRIM TUGAS KE GPU
+// KIRIM TUGAS KE GPU (DIAMANKAN DARI EMAIL NYANGKUT)
 // ==========================================
 async function mulaiProsesGenerate() {
+  var btn = document.getElementById('btn-submit-generate');
+  
+  // 1. AMBIL SESI USER REAL-TIME LANGSUNG DARI SUPABASE (Mencegah email nyangkut)
+  var realEmail = null;
+  if (typeof supa !== 'undefined') {
+    if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA SESI & VIP..."; }
+    try {
+      var sessionRes = await supa.auth.getSession();
+      var sessionUser = sessionRes?.data?.session?.user;
+      if (sessionUser && sessionUser.email) {
+        realEmail = sessionUser.email;
+      }
+    } catch (err) {
+      console.log('Gagal ambil session Supabase:', err.message);
+    }
+  }
+
+  // Fallback jika session kosong, ambil dari variabel global
+  if (!realEmail && typeof currentUserEmail !== 'undefined' && currentUserEmail) {
+    realEmail = currentUserEmail;
+  }
+
+  if (!realEmail) {
+    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+    return tampilkanNotif('Sesi login tidak terdeteksi, silakan login ulang!', 'error');
+  }
+
+  // 2. CEK STATUS VIP KE SUPABASE BERDASARKAN EMAIL REAL-TIME YANG BENAR
+  if (typeof supa !== 'undefined') {
+    try {
+      var { data: profile, error } = await supa
+        .from('users') // Ganti dengan nama tabel 'profiles' jika database Paduka menggunakan itu
+        .select('is_vip, vip_expires_at')
+        .eq('email', realEmail)
+        .single();
+
+      var isVipActive = false;
+      if (profile && profile.is_vip === true) {
+        if (profile.vip_expires_at) {
+          var expiredTime = new Date(profile.vip_expires_at).getTime();
+          var nowTime = new Date().getTime();
+          if (expiredTime > nowTime) {
+            isVipActive = true;
+          }
+        } else {
+          isVipActive = true; // VIP Permanen
+        }
+      }
+
+      if (!isVipActive) {
+        tampilkanNotif('Akses ditolak! Akun ' + realEmail + ' belum VIP Pro.', 'error');
+        if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+        if (typeof gantiLayarNav === 'function') {
+          gantiLayarNav('langganan');
+        }
+        return;
+      }
+    } catch (e) {
+      console.log('Catatan query VIP:', e.message);
+    }
+  }
+
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
-  if (engineProvider !== 'kiix' && targetAkun.length === 0) return tampilkanNotif('Hubungkan akun di menu Kelola Akun terlebih dahulu!', 'error');
+  if (engineProvider !== 'kiix' && targetAkun.length === 0) {
+    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+    return tampilkanNotif('Hubungkan akun di menu Kelola Akun terlebih dahulu!', 'error');
+  }
+  
   var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
   var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
   
-  if (!urlBahanFoto || !urlBahanVideo) return tampilkanNotif('Foto dan Video keduanya harus selesai diunggah!', 'error');
-  var btn = document.getElementById('btn-submit-generate');
+  if (!urlBahanFoto || !urlBahanVideo) {
+    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+    return tampilkanNotif('Foto dan Video keduanya harus selesai diunggah!', 'error');
+  }
+
   if (btn) { btn.disabled = true; btn.innerText = "⚡ MENGIRIM KE GPU..."; }
   var taskIdAsli = null;
 

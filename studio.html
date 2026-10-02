@@ -43,7 +43,7 @@
   <!-- LIBRARY KRIPTOGRAFI UNTUK GENERATE SIGNATURE IPAYMU -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
-  <!-- PANGGIL FILE JAVASCRIPT LU -->
+  <!-- PANGGIL FILE JAVASCRIPT -->
   <script src="js/database.js" defer></script>
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
@@ -131,13 +131,12 @@
           <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Ringkasan akun dan aktivitas generate kamu.</p>
       </div>
 
-      <!-- GRID TOMBOL SHORTCUT DASHBOARD (TERMASUK UPGRADE KE PRO) -->
+      <!-- GRID TOMBOL SHORTCUT DASHBOARD -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div></button>
-          <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼️️</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Simpan media</p></div></button>
+          <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Simpan media</p></div></button>
           <button onclick="gantiLayarNav('kelola-akun')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-violet-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-kmViolet text-lg">🔑</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Add Apikey</h4><p class="text-[10px] text-slate-400">Kelola token</p></div></button>
           
-          <!-- Tombol Shortcut Langsung ke Halaman Langganan VIP -->
           <button onclick="gantiLayarNav('langganan')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden">
               <div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div>
               <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10">
@@ -150,9 +149,21 @@
           </button>
       </div>
 
+      <!-- PROGRAM REFERRAL DENGAN TOMBOL SALIN LINK -->
       <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 modern-shadow">
-          <div class="flex items-center gap-3.5"><div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-xl shrink-0">🎁</div><div><h4 class="text-sm font-bold text-slate-900">Program Referral KiiXMotion</h4><p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Sebar kodemu, dapat bonus VIP +7 Hari tiap ada yang gabung!</p></div></div>
-          <div class="flex items-center gap-2 bg-white px-4 py-2.5 rounded-xl border border-kmBorder shadow-sm cursor-copy"><span class="text-xs font-bold text-slate-400 mr-1">KODE:</span><code id="kode-referral-user" class="text-sm font-black text-kmViolet tracking-wider">KIIX-R26</code></div>
+          <div class="flex items-center gap-3.5">
+              <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-xl shrink-0">🎁</div>
+              <div>
+                  <h4 class="text-sm font-bold text-slate-900">Program Referral KiiXMotion</h4>
+                  <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Sebar link-mu, dapat reward VIP ketika teman upgrade!</p>
+              </div>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+              <span id="kode-referral-user" class="hidden"></span>
+              <button type="button" onclick="salinLinkReferral()" class="w-full sm:w-auto px-5 py-2.5 bg-kmViolet hover:bg-kmVioletHover text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer flex items-center justify-center gap-2">
+                  <i class="ph ph-copy text-base"></i> Salin Link Referral
+              </button>
+          </div>
       </div>
 
       <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
@@ -277,7 +288,7 @@
       </div>
       <div class="bg-white border border-kmBorder rounded-3xl p-8 text-center modern-shadow space-y-4">
         <label class="block border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-10 cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/10 group">
-          <div class="w-12 h-12 rounded-2xl bg-violet-100 text-kmViolet flex items-center justify-center mx-auto text-xl mb-3 group-hover:scale-110 transition">🖼️️</div>
+          <div class="w-12 h-12 rounded-2xl bg-violet-100 text-kmViolet flex items-center justify-center mx-auto text-xl mb-3 group-hover:scale-110 transition">🖼</div>
           <p class="text-xs sm:text-sm font-bold text-slate-800">Klik atau seret file ke sini untuk mengunggah</p>
           <p class="text-[11px] text-slate-400 mt-1">(Maksimal total 50 file)</p>
           <input type="file" accept="image/*,video/*" class="hidden" onchange="unggahKeGaleri(this)" />
@@ -313,14 +324,13 @@
       <div id="wadah-kartu-akun-list" class="space-y-3"></div>
     </div>
 
-    <!-- 6. LAYAR LANGGANAN (MOTIONFLY STYLE & REALISTIC) -->
+    <!-- 6. LAYAR LANGGANAN -->
     <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
         <div>
             <h1 class="text-xl sm:text-2xl font-bold text-slate-800">Langganan</h1>
             <p class="text-xs sm:text-sm text-slate-500">Kelola plan subscription kamu</p>
         </div>
 
-        <!-- 1. PLAN SAAT INI -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Plan Saat Ini</span>
             <div class="flex items-center justify-between">
@@ -332,7 +342,6 @@
             </div>
         </div>
 
-        <!-- 2. UPGRADE KE PRO (35K / 25 HARI UNLIMITED) -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
             <div class="flex items-center justify-between">
                 <h3 class="font-bold text-slate-800 text-base">Upgrade ke Pro</h3>
@@ -369,7 +378,6 @@
             </button>
         </div>
 
-        <!-- 3. KODE PROMO SPESIAL -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <h3 class="font-bold text-slate-800 text-sm">Kode Promo Spesial</h3>
             <p class="text-xs text-slate-500">Punya kode promo? Masukkan di sini untuk aktifkan atau perpanjang plan.</p>
@@ -381,7 +389,6 @@
             </div>
         </div>
 
-        <!-- 4. RIWAYAT TRANSAKSI (REALISTIS KOSONG) -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <h3 class="font-bold text-slate-800 text-sm">Riwayat Transaksi</h3>
             <div class="p-6 border border-slate-200 border-dashed rounded-2xl text-center text-slate-400 text-xs font-medium">
@@ -400,7 +407,6 @@
       <div class="space-y-3 pt-1"><label class="text-[11px] font-bold uppercase text-slate-400 block">API KEY</label><input id="in-modal-key" type="password" placeholder="Paste RunningHub API key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-xs sm:text-sm text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" /></div>
       <div class="flex gap-3 pt-3">
         <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold rounded-2xl hover:bg-slate-200 transition">Batal</button>
-        <!-- INI BAGIAN YANG DIGANTI BANG, PERHATIKAN ID DAN ONCLICK-NYA -->
         <button id="btn-simpan-key" onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-[#7C3AED]/80 hover:bg-[#7C3AED] text-white text-xs sm:text-sm font-bold rounded-2xl transition cursor-pointer">Tambah</button>
       </div>
     </div>
@@ -418,23 +424,64 @@
     </div>
   </div>
 
-  <!-- SKRIP SUPABASE -->
+  <!-- SKRIP SUPABASE & REFERRAL PROPER -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
       const supabaseUrl = 'https://fybyupwcburndxulqqnn.supabase.co';
       const supabaseAnonKey = 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
       const supa = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
       async function ambilDataLoginAsli() {
           const { data: { session } } = await supa.auth.getSession();
           if (session && session.user) {
-              const namaAsli = session.user.email.split('@')[0];
+              const emailUser = session.user.email;
+              const namaAsli = emailUser.split('@')[0];
+              
               document.getElementById('user-greeting-name').innerText = namaAsli;
-              document.getElementById('profil-email-drop').innerText = session.user.email;
+              document.getElementById('profil-email-drop').innerText = emailUser;
               document.getElementById('profil-inisial').innerText = namaAsli.charAt(0).toUpperCase();
-              document.getElementById('kode-referral-user').innerText = namaAsli.toUpperCase().substring(0,6) + '-' + (Math.floor(Math.random() * 900) + 100);
+              
+              // Sistem Referral Permanen per Akun
+              let storageKey = 'km_referral_code_' + emailUser;
+              let kodeReferral = localStorage.getItem(storageKey);
+
+              if (!kodeReferral) {
+                  let randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+                  kodeReferral = 'KIIX-' + randomString;
+                  localStorage.setItem(storageKey, kodeReferral);
+              }
+
+              const elKode = document.getElementById('kode-referral-user');
+              if (elKode) {
+                  elKode.innerText = kodeReferral;
+              }
+
+              window.kodeReferralAktifUser = kodeReferral;
           }
       }
-      async function prosesLogout() { await supa.auth.signOut(); window.location.href = 'register.html'; }
+
+      // Fungsi Salin Link Referral Otomatis
+      function salinLinkReferral() {
+          if (!window.kodeReferralAktifUser) return;
+          let domainWeb = window.location.origin;
+          let linkLengkap = domainWeb + '/register.html?ref=' + window.kodeReferralAktifUser;
+
+          navigator.clipboard.writeText(linkLengkap).then(function() {
+              if (typeof tampilkanNotif === 'function') {
+                  tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses');
+              } else {
+                  alert('Link disalin: ' + linkLengkap);
+              }
+          }).catch(function() {
+              alert('Gagal menyalin link');
+          });
+      }
+
+      async function prosesLogout() { 
+          await supa.auth.signOut(); 
+          window.location.href = 'register.html'; 
+      }
+
       ambilDataLoginAsli();
   </script>
 </body>

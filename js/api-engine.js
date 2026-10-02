@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI + GEMBOK VIP)
 // File: js/api-engine.js
 // ==========================================
 
@@ -187,12 +187,10 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       var jsonStatus = await resStatus.json();
       
-      // BACA SURAT CINTA!
       var msg = (jsonStatus.msg || "").toString().toLowerCase();
       var code = jsonStatus.code;
       var stringData = JSON.stringify(jsonStatus);
       
-      // Jika code 0 atau msg success, DAN di dalamnya ada tulisan .mp4
       if ((code === 0 || msg === "success") && stringData.includes(".mp4")) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
@@ -200,13 +198,10 @@ function pantauTaskRunningHub(tugas, apiKey) {
         tugas.progress = 100; 
         
         var vidUrl = null;
-        
-        // Target langsung ke laci data[0].fileUrl sesuai screenshot!
         if (jsonStatus.data && Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
           vidUrl = jsonStatus.data[0].fileUrl;
         }
         
-        // Kalau ternyata meleset sedikit, pakai jaring harimau (Regex)
         if (!vidUrl) {
           var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
           if (match) vidUrl = match[0];
@@ -222,7 +217,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tampilkanNotif('❌ Status sukses, tapi link mp4 kosong!', 'error');
         }
       } 
-      // Jika statusnya gagal dari server
       else if (msg === "failed" || msg === "error" || code === -1) {
         clearInterval(cekInterval);
         tugas.status = "Gagal Dirender"; 
@@ -233,7 +227,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
         tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
       }
       else {
-        // Masih RUNNING, naikin progress pelan-pelan
         if (tugas.progress < 95) {
           tugas.progress += Math.floor(Math.random() * 3) + 2; 
         }
@@ -247,16 +240,64 @@ function pantauTaskRunningHub(tugas, apiKey) {
 }
 
 // ==========================================
-// KIRIM TUGAS KE GPU
+// KIRIM TUGAS KE GPU (DILENGKAPI GEMBOK VIP 25 HARI)
 // ==========================================
 async function mulaiProsesGenerate() {
+  // 1. CEK IDENTITAS USER
+  var userEmail = (typeof currentUserEmail !== 'undefined' && currentUserEmail) 
+    ? currentUserEmail 
+    : (localStorage.getItem('currentUserEmail') || '');
+
+  if (!userEmail) {
+    return tampilkanNotif('Silakan login terlebih dahulu untuk menggunakan fitur generate!', 'error');
+  }
+
+  var btn = document.getElementById('btn-submit-generate');
+  if (btn) { btn.disabled = true; btn.innerText = "🔒 MEMERIKSA VIP..."; }
+
+  // 2. CEK STATUS VIP KE SUPABASE
+  try {
+    var sbClient = window.supabaseClient || window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+    
+    if (sbClient && typeof sbClient.from === 'function') {
+      var { data: userData, error: userErr } = await sbClient
+        .from('users')
+        .select('is_vip, vip_expires_at')
+        .eq('email', userEmail)
+        .maybeSingle();
+
+      var now = new Date();
+      var isVipActive = userData && userData.is_vip && userData.vip_expires_at && (new Date(userData.vip_expires_at) > now);
+
+      // JIKA BUKAN VIP ATAU MASA AKTIF HABIS -> GEMBOK DIKUNCI!
+      if (!isVipActive) {
+        if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
+        tampilkanNotif('⛔ Khusus Member VIP 25 Hari (Rp 35.000). Silakan upgrade akun Anda!', 'error');
+        
+        // Buka otomatis modal pembayaran jika fungsinya ada
+        if (typeof bukaModalLangganan === 'function') bukaModalLangganan();
+        return; // STOP! Tolak akses GPU
+      }
+    }
+  } catch (errVip) {
+    console.error('Pengecekan VIP gagal:', errVip);
+  }
+
+  // 3. JIKA LOLOS VIP, LANJUT PROSES GENERATE KE GPU
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
-  if (engineProvider !== 'kiix' && targetAkun.length === 0) return tampilkanNotif('Hubungkan akun di menu Kelola Akun terlebih dahulu!', 'error');
+  if (engineProvider !== 'kiix' && targetAkun.length === 0) {
+    if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
+    return tampilkanNotif('Hubungkan akun di menu Kelola Akun terlebih dahulu!', 'error');
+  }
+  
   var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
   var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
   
-  if (!urlBahanFoto || !urlBahanVideo) return tampilkanNotif('Foto dan Video keduanya harus selesai diunggah!', 'error');
-  var btn = document.getElementById('btn-submit-generate');
+  if (!urlBahanFoto || !urlBahanVideo) {
+    if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
+    return tampilkanNotif('Foto dan Video keduanya harus selesai diunggah!', 'error');
+  }
+  
   if (btn) { btn.disabled = true; btn.innerText = "⚡ MENGIRIM KE GPU..."; }
   var taskIdAsli = null;
 
@@ -421,7 +462,7 @@ window.onload = function() {
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
 
-  // Ini balikin ke interval normal 10 detik lagi
+  // Kembalikan ke interval normal 10 detik
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
     riwayatGenerateList.forEach(function(tugas) {
       if (!tugas.selesai && tugas.id && tugas.key) {

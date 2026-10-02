@@ -7,7 +7,7 @@
 var akunRunningHub = [];
 var akunRoboneo = [];
 var riwayatGenerateList = [];
-var currentUserEmail = "aswar@kiixmotion.com"; 
+var currentUserEmail = "anggraingki@gmail.com"; 
 
 // Fungsi untuk menarik data dari penyimpanan browser
 function muatStorage() {

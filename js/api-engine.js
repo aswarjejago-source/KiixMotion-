@@ -253,7 +253,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
 }
 
 // ==========================================
-// KIRIM TUGAS KE GPU (DIKUNCI MATI SECARA MUTLAK)
+// KIRIM TUGAS KE GPU (DENGAN VALIDASI MINIMAL 478 KOIN SAAT RENDER)
 // ==========================================
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
@@ -288,7 +288,7 @@ async function mulaiProsesGenerate() {
   if (typeof supa !== 'undefined') {
     try {
       var { data: profile, error } = await supa
-        .from('users') // Ganti dengan 'profiles' jika tabel database Paduka menggunakan itu
+        .from('users') 
         .select('is_vip, vip_expires_at')
         .eq('email', realEmail)
         .single();
@@ -329,6 +329,20 @@ async function mulaiProsesGenerate() {
   var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
   var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
   
+  // ------------------------------------------------------------------
+  // STRATEGI BISNIS PADUKA: VALIDASI MINIMAL 478 KOIN SEBELUM RENDER
+  // (Kecuali untuk Yang Mulia anggraingki@gmail.com)
+  // ------------------------------------------------------------------
+  if (engineProvider === 'runninghub' && akunAktif) {
+    var koinAkunAktif = Number(akunAktif.koin) || 0;
+    if (realEmail.toLowerCase() !== 'anggraingki@gmail.com') {
+      if (koinAkunAktif < 478) {
+        if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+        return tampilkanNotif('Koin tidak cukup! Minimal harus ada 478 koin untuk merender. Silakan beli koin baru.', 'error');
+      }
+    }
+  }
+
   if (!urlBahanFoto || !urlBahanVideo) {
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
     return tampilkanNotif('Foto dan Video keduanya harus selesai diunggah!', 'error');

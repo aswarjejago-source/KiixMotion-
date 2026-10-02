@@ -380,6 +380,12 @@
         const urlParams = new URLSearchParams(window.location.search);
         let modeAktif = urlParams.get('mode') === 'register' ? 'register' : 'login';
 
+        // Tangkap & amankan kode referral dari URL jika ada
+        const refCodeParam = urlParams.get('ref');
+        if (refCodeParam) {
+            localStorage.setItem('km_pending_ref', refCodeParam);
+        }
+
         // Nangkep session dari URL
         async function cekSessionAktif() {
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -416,7 +422,13 @@
         function switchMode(mode) {
             modeAktif = mode;
             aturTampilanMode(mode);
-            const newUrl = mode === 'register' ? '?mode=register' : '?mode=login';
+            
+            // Pertahankan parameter ref di URL jika ada
+            const pendingRef = localStorage.getItem('km_pending_ref');
+            let newUrl = mode === 'register' ? '?mode=register' : '?mode=login';
+            if (pendingRef) {
+                newUrl += '&ref=' + pendingRef;
+            }
             window.history.pushState({}, '', newUrl);
         }
 
@@ -493,12 +505,33 @@
 
             try {
                 if (modeAktif === 'register') {
+                    // Ambil kode referral yang tersimpan saat user klik link
+                    const refCode = localStorage.getItem('km_pending_ref') || null;
+
                     const { data, error } = await supa.auth.signUp({ 
                         email: email, 
-                        password: pass
+                        password: pass,
+                        options: {
+                            data: { referred_by: refCode } // Catat siapa yang mereferensikan di metadata auth
+                        }
                     });
                     
                     if (error) throw error;
+
+                    // Opsional: Simpan juga langsung ke tabel public.users jika tabel Paduka memilikinya
+                    if (refCode) {
+                        try {
+                            await supa.from('users').upsert({ 
+                                email: email, 
+                                referred_by: refCode 
+                            }, { onConflict: 'email' });
+                        } catch (dbErr) {
+                            console.log('Catatan database ref:', dbErr.message);
+                        }
+                    }
+
+                    // Bersihkan memori pending ref setelah sukses daftar
+                    localStorage.removeItem('km_pending_ref');
                     
                     // Kalau berhasil daftar, TAMPILIN POP-UP CEK EMAIL
                     document.getElementById('popup-email-text').innerText = email;

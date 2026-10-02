@@ -253,12 +253,12 @@ function pantauTaskRunningHub(tugas, apiKey) {
 }
 
 // ==========================================
-// KIRIM TUGAS KE GPU (DIAMANKAN DARI EMAIL NYANGKUT)
+// KIRIM TUGAS KE GPU (DIKUNCI MATI SECARA MUTLAK)
 // ==========================================
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
   
-  // 1. AMBIL SESI USER REAL-TIME LANGSUNG DARI SUPABASE (Mencegah email nyangkut)
+  // 1. AMBIL SESI USER REAL-TIME LANGSUNG DARI SUPABASE
   var realEmail = null;
   if (typeof supa !== 'undefined') {
     if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA SESI & VIP..."; }
@@ -283,17 +283,17 @@ async function mulaiProsesGenerate() {
     return tampilkanNotif('Sesi login tidak terdeteksi, silakan login ulang!', 'error');
   }
 
-  // 2. CEK STATUS VIP KE SUPABASE BERDASARKAN EMAIL REAL-TIME YANG BENAR
+  // 2. CEK STATUS VIP KE SUPABASE (DIKUNCI MATI AMAN DARI ERROR TRY-CATCH)
+  var isVipActive = false;
   if (typeof supa !== 'undefined') {
     try {
       var { data: profile, error } = await supa
-        .from('users') // Ganti dengan nama tabel 'profiles' jika database Paduka menggunakan itu
+        .from('users') // Ganti dengan 'profiles' jika tabel database Paduka menggunakan itu
         .select('is_vip, vip_expires_at')
         .eq('email', realEmail)
         .single();
 
-      var isVipActive = false;
-      if (profile && profile.is_vip === true) {
+      if (!error && profile && profile.is_vip === true) {
         if (profile.vip_expires_at) {
           var expiredTime = new Date(profile.vip_expires_at).getTime();
           var nowTime = new Date().getTime();
@@ -304,18 +304,20 @@ async function mulaiProsesGenerate() {
           isVipActive = true; // VIP Permanen
         }
       }
-
-      if (!isVipActive) {
-        tampilkanNotif('Akses ditolak! Akun ' + realEmail + ' belum VIP Pro.', 'error');
-        if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-        if (typeof gantiLayarNav === 'function') {
-          gantiLayarNav('langganan');
-        }
-        return;
-      }
     } catch (e) {
-      console.log('Catatan query VIP:', e.message);
+      console.log('Akses ditolak atau akun tidak terdaftar di database VIP:', e.message);
+      isVipActive = false;
     }
+  }
+
+  // 3. PEMBLOKIRAN MUTLAK JIKA TIDAK VALID SEBAGAI VIP
+  if (!isVipActive) {
+    tampilkanNotif('Akses ditolak! Akun ' + realEmail + ' belum VIP Pro.', 'error');
+    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+    if (typeof gantiLayarNav === 'function') {
+      gantiLayarNav('langganan');
+    }
+    return;
   }
 
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;

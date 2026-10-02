@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI + GEMBOK VIP)
+// PILAR 3: API ENGINE & RENDER LOGIC (GEMBOK MATI VIP 25 HARI)
 // File: js/api-engine.js
 // ==========================================
 
@@ -7,6 +7,10 @@ var engineProvider = 'runninghub';
 var RUNNINGHUB_WORKFLOW_ID = "2099490599765630978"; 
 var urlBahanFoto = null;
 var urlBahanVideo = null;
+
+// KUNCI DAN ALAMAT SUPABASE KIIXMOTION
+var SUPABASE_URL = "https://fybyupwcburndxulqqnn.supabase.co";
+var SUPABASE_KEY = "sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o";
 
 function updateStatistikDashboard() {
   var totalRhKoin = 0, maxRhKoin = 0, totalRbCarrots = 0, maxRbCarrots = 0;
@@ -164,7 +168,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (TARGET MURNI BERDASARKAN SURAT)
+// CCTV PEMANTAUAN PROGRES GPU
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
@@ -186,7 +190,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (!resStatus.ok) return; 
       
       var jsonStatus = await resStatus.json();
-      
       var msg = (jsonStatus.msg || "").toString().toLowerCase();
       var code = jsonStatus.code;
       var stringData = JSON.stringify(jsonStatus);
@@ -240,50 +243,56 @@ function pantauTaskRunningHub(tugas, apiKey) {
 }
 
 // ==========================================
-// KIRIM TUGAS KE GPU (DILENGKAPI GEMBOK VIP 25 HARI)
+// KIRIM TUGAS KE GPU (DENGAN GEMBOK MATI VIP)
 // ==========================================
 async function mulaiProsesGenerate() {
-  // 1. CEK IDENTITAS USER
   var userEmail = (typeof currentUserEmail !== 'undefined' && currentUserEmail) 
     ? currentUserEmail 
     : (localStorage.getItem('currentUserEmail') || '');
 
   if (!userEmail) {
-    return tampilkanNotif('Silakan login terlebih dahulu untuk menggunakan fitur generate!', 'error');
+    return tampilkanNotif('Silakan login terlebih dahulu untuk menggunakan fitur ini!', 'error');
   }
 
   var btn = document.getElementById('btn-submit-generate');
   if (btn) { btn.disabled = true; btn.innerText = "🔒 MEMERIKSA VIP..."; }
 
-  // 2. CEK STATUS VIP KE SUPABASE
+  // --- CEK KE BUKU KASIR SUPABASE LANGSUNG ---
+  var isVipActive = false;
   try {
-    var sbClient = window.supabaseClient || window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
-    
-    if (sbClient && typeof sbClient.from === 'function') {
-      var { data: userData, error: userErr } = await sbClient
-        .from('users')
-        .select('is_vip, vip_expires_at')
-        .eq('email', userEmail)
-        .maybeSingle();
+    var checkUrl = SUPABASE_URL + "/rest/v1/users?email=eq." + encodeURIComponent(userEmail) + "&select=is_vip,vip_expires_at";
+    var resCheck = await fetch(checkUrl, {
+      method: 'GET',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
 
-      var now = new Date();
-      var isVipActive = userData && userData.is_vip && userData.vip_expires_at && (new Date(userData.vip_expires_at) > now);
-
-      // JIKA BUKAN VIP ATAU MASA AKTIF HABIS -> GEMBOK DIKUNCI!
-      if (!isVipActive) {
-        if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
-        tampilkanNotif('⛔ Khusus Member VIP 25 Hari (Rp 35.000). Silakan upgrade akun Anda!', 'error');
-        
-        // Buka otomatis modal pembayaran jika fungsinya ada
-        if (typeof bukaModalLangganan === 'function') bukaModalLangganan();
-        return; // STOP! Tolak akses GPU
+    if (resCheck.ok) {
+      var rows = await resCheck.json();
+      if (rows && rows.length > 0) {
+        var userRow = rows[0];
+        var now = new Date();
+        if (userRow.is_vip === true && userRow.vip_expires_at && (new Date(userRow.vip_expires_at) > now)) {
+          isVipActive = true;
+        }
       }
     }
   } catch (errVip) {
-    console.error('Pengecekan VIP gagal:', errVip);
+    console.error("Gagal memeriksa Supabase:", errVip);
   }
 
-  // 3. JIKA LOLOS VIP, LANJUT PROSES GENERATE KE GPU
+  // --- GEMBOK MATI: KALAU BUKAN VIP AKTIF, TOLAK DETIK ITU JUGA! ---
+  if (!isVipActive) {
+    if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
+    tampilkanNotif('⛔ Khusus Member VIP 25 Hari (Rp 35.000). Silakan upgrade akun Anda!', 'error');
+    if (typeof bukaModalLangganan === 'function') bukaModalLangganan();
+    return; // STOP! Gerbang GPU tertutup rapat
+  }
+
+  // --- JIKA LOLOS VIP, LANJUT KE RUNNINGHUB ---
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
   if (engineProvider !== 'kiix' && targetAkun.length === 0) {
     if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
@@ -462,7 +471,6 @@ window.onload = function() {
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
 
-  // Kembalikan ke interval normal 10 detik
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
     riwayatGenerateList.forEach(function(tugas) {
       if (!tugas.selesai && tugas.id && tugas.key) {

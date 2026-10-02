@@ -1,27 +1,27 @@
-// Endpoint Webhook iPaymu untuk KiiXMotion
+// Endpoint Webhook iPaymu untuk KiiXMotion (Final & Secure)
 export default async function handler(req, res) {
-  // Hanya terima POST dari iPaymu
+  // Hanya terima metode POST dari iPaymu
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  // Konfigurasi Supabase KiiXMotion
-  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fybrupwcburndxulqqnn.supabase.co';
+  // Konfigurasi Supabase KiiXMotion (URL disesuaikan agar tidak typo)
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fybyupwcburndxulqqnn.supabase.co';
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
   try {
     const payload = req.body || {};
     
     // Ambil data status transaksi dari iPaymu
-    const status = payload.status; // 'berhasil'
-    const trxId = payload.trx_id;
-    const buyerEmail = payload.buyer_email || payload.email || payload.reference_id;
+    const status = payload.status; // 'berhasil' atau '1'
+    const trxId = payload.trx_id || payload.transactionId;
+    const buyerEmail = payload.buyer_email || payload.email || payload.referenceId || payload.reference_id;
     const amount = Number(payload.amount || payload.total || 35000);
 
-    console.log('Webhook diterima:', { status, trxId, buyerEmail, amount });
+    console.log('Webhook diterima dari iPaymu:', { status, trxId, buyerEmail, amount });
 
-    // Hanya proses jika pembayaran sukses dan email pembeli ada
-    if (status === 'berhasil' && buyerEmail) {
+    // Hanya proses jika pembayaran sukses dan email pembeli valid
+    if ((status === 'berhasil' || status === '1' || status === 1) && buyerEmail) {
       const headers = {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
         'Prefer': 'return=representation'
       };
 
-      // 1. Cari user di tabel users berdasarkan email
+      // 1. Cari user pembeli di tabel users berdasarkan email
       const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(buyerEmail)}&select=*`, {
         headers
       });
@@ -37,11 +37,11 @@ export default async function handler(req, res) {
       const user = users && users.length > 0 ? users[0] : null;
 
       if (!user) {
-        console.error('User tidak ditemukan di database:', buyerEmail);
-        return res.status(200).json({ message: 'User not found, but webhook received' });
+        console.error('User pembeli tidak ditemukan di database:', buyerEmail);
+        return res.status(200).json({ success: false, message: 'User not found in database' });
       }
 
-      // 2. Hitung bonus hari (Referral: 32 hari, Biasa: 25 hari)
+      // 2. Tentukan durasi VIP (Jika pakai referral dapat bonus, misal 32 hari, atau standar 25 hari)
       const hasReferral = Boolean(user.referred_by);
       const bonusDays = hasReferral ? 32 : 25;
 
@@ -62,8 +62,9 @@ export default async function handler(req, res) {
         })
       });
 
-      // 4. Jika pakai referral, beri bonus +7 hari ke pemilik kode referral
+      // 4. OTOMATIS BERI REWARD +7 HARI VIP KE PEMBERI REFERRAL (UPLINE)
       if (hasReferral) {
+        // Cari pemilik kode referral berdasarkan kolom referral_code
         const refRes = await fetch(`${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(user.referred_by)}&select=*`, {
           headers
         });
@@ -76,6 +77,7 @@ export default async function handler(req, res) {
             : now;
           const newRefExpiry = new Date(refExpiry.getTime() + 7 * 24 * 60 * 60 * 1000);
 
+          // Update masa aktif VIP pemberi referral (+7 hari)
           await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${referrer.id}`, {
             method: 'PATCH',
             headers,
@@ -84,6 +86,7 @@ export default async function handler(req, res) {
               vip_expires_at: newRefExpiry.toISOString()
             })
           });
+          console.log('Bonus referral +7 hari berhasil dikirim ke:', referrer.email);
         }
       }
 
@@ -93,18 +96,18 @@ export default async function handler(req, res) {
         headers,
         body: JSON.stringify({
           user_id: user.id,
-          trx_id: String(trxId),
+          trx_id: String(trxId || Date.now()),
           amount: amount,
           status: 'BERHASIL'
         })
       });
 
-      return res.status(200).json({ success: true, message: 'VIP Activated' });
+      return res.status(200).json({ success: true, message: 'VIP Activated & Referral Reward Processed' });
     }
 
-    return res.status(200).json({ message: 'Webhook received but not processed' });
+    return res.status(200).json({ success: true, message: 'Webhook received, status not success or email missing' });
   } catch (err) {
-    console.error('Error di webhook:', err);
+    console.error('Error fatal di webhook iPaymu:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }

@@ -23,11 +23,14 @@ export default async function handler(req, res) {
     const userName = reqData.name || reqData.buyerName || '';
     const userPhone = reqData.phone || reqData.buyerPhone || '';
 
-    // 2. Susun parameter checkout iPaymu
+    // Tentukan total bayar termasuk fee admin (Rp 35.630) agar pembeli yang menanggung
+    const totalBayar = reqData.amount || 35630;
+
+    // 2. Susun parameter checkout iPaymu (Harga diubah ke Rp 35.630)
     const body = {
-        product: ["Langganan VIP KiiXMotion 25 Hari"],
+        product: ["Langganan VIP KiiXMotion 25 Hari (Termasuk Fee Admin)"],
         qty: ["1"],
-        price: ["35000"], 
+        price: [String(totalBayar)], // Diubah otomatis menjadi 35630
         description: ["Akses penuh fitur premium motion control AI selama 25 hari"],
         returnUrl: "https://kiix-motion.vercel.app/studio.html",
         cancelUrl: "https://kiix-motion.vercel.app/studio.html",

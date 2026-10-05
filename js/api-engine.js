@@ -170,7 +170,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (DENGAN DETEKSI GAGAL TOTAL & AMAN)
+// CCTV PEMANTAUAN (DENGAN DETEKSI GAGAL TOTAL & AMAN - CASE INSENSITIVE)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
@@ -195,17 +195,21 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       var msg = (jsonStatus.msg || jsonStatus.message || "").toString().toLowerCase();
       var code = jsonStatus.code;
-      var statusField = (jsonStatus.status || "").toString().toLowerCase();
-      var stringData = JSON.stringify(jsonStatus);
+      // Perbaikan: Nangkep parameter status/taskStatus di level manapun
+      var statusField = (jsonStatus.status || jsonStatus.data?.status || jsonStatus.data?.taskStatus || "").toString().toLowerCase();
+      
+      // KUNCI UTAMA: Jadikan seluruh string respons ke lowercase agar FAILED kebaca failed
+      var stringData = JSON.stringify(jsonStatus).toLowerCase();
       
       // Jika status dari server GPU terdeteksi gagal / error / cancel
-      if (msg === "failed" || msg === "error" || code === -1 || code === 500 || statusField === "failed" || statusField === "error" || stringData.includes("fail")) {
+      if (statusField === "failed" || statusField === "error" || msg === "failed" || msg === "error" || code === -1 || code === 500 || stringData.includes("fail") || stringData.includes("error")) {
         clearInterval(cekInterval);
         tugas.status = "Gagal Dirender"; 
         tugas.selesai = true;
         tugas.progress = 100;
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        tampilkanNotif('❌ Render gagal di server GPU RunningHub!', 'error');
       } 
       // Jika code 0 atau msg success, DAN di dalamnya ada tulisan .mp4
       else if ((code === 0 || code === 200 || msg === "success" || statusField === "success") && stringData.includes(".mp4")) {

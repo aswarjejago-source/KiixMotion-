@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL DEEP-SEARCH)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & LOGIKA PALING SIMPEL)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,13 +169,34 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (DEEP SEARCH OTOMATIS)
+// CCTV PEMANTAUAN (LOGIKA SIMPEL & MURNI TEXT)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
+  if (!tugas.cekCount) tugas.cekCount = 0;
+
+  if (tugas.intervalObj) clearInterval(tugas.intervalObj);
 
   var cekInterval = setInterval(async function() {
+    tugas.intervalObj = cekInterval;
+
+    if (tugas.selesai) {
+        clearInterval(cekInterval);
+        return;
+    }
+
+    tugas.cekCount++;
+    if (tugas.cekCount > 90) { // 15 Menit Timeout
+        clearInterval(cekInterval);
+        tugas.status = "Gagal (Timeout)"; 
+        tugas.selesai = true;
+        tugas.progress = 100;
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        return;
+    }
+
     try {
       var resStatus = await fetch('/api/outputs', { 
         method: 'POST',
@@ -186,44 +207,19 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (!resStatus.ok) return; 
       
       var jsonStatus = await resStatus.json();
-      var stringData = JSON.stringify(jsonStatus).toUpperCase();
+      var stringData = JSON.stringify(jsonStatus);
+      // Buat teks tanpa spasi dan huruf besar semua biar gampang dicocokkan
+      var cleanString = stringData.toUpperCase().replace(/\s/g, '');
 
-      // 1. FUNGSI PELACAK OTOMATIS (Bongkar isi JSON sampai ke akar)
-      function isTaskFailed(obj) {
-        if (!obj) return false;
-        
-        // Kalo API dari servernya sendiri ngelaporin gagal (code bukan 0/200)
-        if (obj.code !== undefined && obj.code !== 0 && obj.code !== 200) return true; 
-        
-        if (typeof obj === 'object') {
-          for (var k in obj) {
-            var val = obj[k];
-            var keyUpper = k.toUpperCase();
-            
-            // Kalo ada tulisan 'status' / 'taskStatus' isinya failed
-            if (keyUpper === 'STATUS' || keyUpper === 'TASKSTATUS') {
-              if (typeof val === 'string') {
-                var v = val.toUpperCase();
-                if (v === 'FAILED' || v === 'FAIL' || v === 'ERROR' || v.includes('失败')) return true;
-              }
-            }
-            if (typeof val === 'object') {
-              if (isTaskFailed(val)) return true;
-            }
-          }
-        }
-        return false;
-      }
-
-      // 2. CEK SUKSES DULUAN (Kalo ada MP4, mutlak sukses beres)
-      if (stringData.includes(".MP4")) {
+      // 1. KALO ADA FILE MP4 = MUTLAK SUKSES
+      if (cleanString.includes('.MP4')) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
         tugas.selesai = true;
         tugas.progress = 100; 
         
         var vidUrl = null;
-        var match = JSON.stringify(jsonStatus).match(/https?:\/\/[^"'\s]+\.mp4/i);
+        var match = stringData.match(/https?:\/\/[^"'\s]+\.mp4/i);
         if (match) vidUrl = match[0];
         
         tugas.videoUrl = vidUrl;
@@ -234,27 +230,20 @@ function pantauTaskRunningHub(tugas, apiKey) {
         else tampilkanNotif('❌ Sukses tapi link kosong!', 'error');
         return;
       }
-
-      // 3. CEK GAGAL PAKE PELACAK OTOMATIS
-      if (isTaskFailed(jsonStatus)) {
+      
+      // 2. KALO MURNI TERTULIS STATUS FAILED = MUTLAK GAGAL
+      if (cleanString.includes('"STATUS":"FAILED"') || cleanString.includes('"TASKSTATUS":"FAILED"')) {
         clearInterval(cekInterval);
+        tugas.status = "Gagal Dirender"; 
         tugas.selesai = true;
         tugas.progress = 100;
-        
-        // Fitur Debug: Tampilin pesan aslinya dari server ke layar HP lu
-        if (jsonStatus.msg && jsonStatus.msg.toLowerCase() !== "success") {
-            tugas.status = "Gagal: " + jsonStatus.msg; 
-        } else {
-            tugas.status = "Gagal Dirender";
-        }
-        
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
         tampilkanNotif('❌ Render dibatalkan / gagal di server!', 'error');
         return;
       }
       
-      // 4. SELAIN ITU = MASIH RENDER (Aman muter-muter)
+      // 3. SELAIN DUA ITU (Berarti masih jalan) = NAIKIN PROGRESS AJA TERUS
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -262,7 +251,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
 
     } catch (err) { 
-      // Jaringan ngadat dikit dibiarin aja
+      // Jaringan HP putus sementara, biarin aja jangan ditandai gagal
     }
   }, 10000); 
 }
@@ -397,8 +386,9 @@ function renderLayarHistory() {
   }
   
   riwayatGenerateList.forEach(function(itm, index) {
-    var isDone = (itm.selesai === true && itm.status === "Selesai");
-    var isFailed = (itm.selesai === true && itm.status !== "Selesai");
+    var checkStatus = (itm.status || "").toLowerCase();
+    var isDone = (itm.selesai === true && checkStatus === "selesai");
+    var isFailed = (itm.selesai === true && checkStatus !== "selesai");
     var hasVideo = Boolean(itm.videoUrl);
     var currentProg = itm.progress !== undefined ? itm.progress : (isDone || isFailed ? 100 : 0);
     
@@ -438,6 +428,8 @@ function renderLayarHistory() {
 
 function hapusRiwayatSatu(idx) {
   mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
+    var tgs = riwayatGenerateList[idx];
+    if (tgs && tgs.intervalObj) clearInterval(tgs.intervalObj);
     riwayatGenerateList.splice(idx, 1);
     simpanStorage();
     renderLayarHistory();
@@ -448,6 +440,7 @@ function hapusRiwayatSatu(idx) {
 function bersihkanSemuaHistory() {
   if (riwayatGenerateList.length === 0) return tampilkanNotif('History sudah kosong.', 'info');
   mintaKonfirmasi('Hapus seluruh riwayat generate?', function() {
+    riwayatGenerateList.forEach(function(t) { if (t.intervalObj) clearInterval(t.intervalObj); });
     riwayatGenerateList = []; simpanStorage(); renderLayarHistory(); tampilkanNotif('History dibersihkan', 'sukses');
   });
 }

@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & FULL FIX ANTI-KAGET)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & FULL FIX)
 // File: js/api-engine.js
 // ==========================================
 
@@ -170,7 +170,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (SESUAI LOG JSON MURNI DARI SCREENSHOT)
+// CCTV PEMANTAUAN (FIX MURNI: Nembus Array [0])
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
@@ -189,52 +189,52 @@ function pantauTaskRunningHub(tugas, apiKey) {
         })
       });
       
-      // HAPUS pemblokir "!resStatus.ok". 
-      // Kalo API Vercel ngirim 400/500 karena FAILED, JSON-nya tetep harus kita baca!
-      var jsonStatus;
-      try {
-        jsonStatus = await resStatus.json();
-      } catch (e) {
-        return; // Cuma diskip kalo datanya bener-bener rusak/bukan JSON
-      }
-      
-      // MURNI BACA DARI SCREENSHOT: "status": "FAILED" / "SUCCESS"
-      var statusRunHub = (jsonStatus.status || (jsonStatus.data ? jsonStatus.data.status : "") || "").toString().toUpperCase();
+      if (!resStatus.ok) return; 
+      var jsonStatus = await resStatus.json();
       var code = jsonStatus.code;
-      var stringData = JSON.stringify(jsonStatus);
+      var stringData = JSON.stringify(jsonStatus).toLowerCase();
       
-      // 1. DETEKSI GAGAL
-      if (statusRunHub === "FAILED" || statusRunHub === "ERROR" || code === -1) {
+      // PERBAIKAN MUTLAK: Ambil status dari laci mana pun (termasuk Array [0])
+      var rhStatus = "";
+      if (jsonStatus.status) {
+         rhStatus = jsonStatus.status;
+      } else if (jsonStatus.data) {
+         if (Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
+             rhStatus = jsonStatus.data[0].status || jsonStatus.data[0].taskStatus;
+         } else {
+             rhStatus = jsonStatus.data.status || jsonStatus.data.taskStatus;
+         }
+      }
+      rhStatus = (rhStatus || "").toString().toUpperCase();
+
+      // 1. DETEKSI GAGAL (Sekarang pasti tembus karena Array [0] udah kebaca)
+      if (rhStatus === "FAILED" || rhStatus === "ERROR" || code === -1) {
         clearInterval(cekInterval);
         tugas.status = "Gagal Dirender"; 
         tugas.selesai = true;
         tugas.progress = 100;
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-        tampilkanNotif('❌ Render gagal di server GPU RunningHub!', 'error');
       } 
-      // 2. DETEKSI SUKSES (Cari link mp4 langsung pakai detektor file)
-      else if ((statusRunHub === "SUCCESS" || code === 0 || code === 200) && stringData.includes(".mp4")) {
+      // 2. DETEKSI SUKSES
+      else if ((rhStatus === "SUCCESS" || code === 0 || code === 200) && stringData.includes(".mp4")) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
         tugas.selesai = true;
         tugas.progress = 100; 
         
         var vidUrl = null;
-        var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
-        if (match) {
-            vidUrl = match[0];
+        if (jsonStatus.data && Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
+          vidUrl = jsonStatus.data[0].fileUrl;
+        }
+        if (!vidUrl) {
+          var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
+          if (match) vidUrl = match[0];
         }
         
         tugas.videoUrl = vidUrl;
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-        
-        if (vidUrl) {
-          tampilkanNotif('✓ Render sukses! Video berhasil ditarik.', 'sukses');
-        } else {
-          tampilkanNotif('❌ Status sukses, tapi link mp4 kosong!', 'error');
-        }
       } 
       // 3. MASIH PROSES (RUNNING)
       else {
@@ -251,7 +251,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
 }
 
 // ==========================================
-// KIRIM TUGAS KE GPU
+// KIRIM TUGAS KE GPU (DENGAN VALIDASI MINIMAL 478 KOIN SAAT RENDER)
 // ==========================================
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');

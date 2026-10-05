@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & LOGIKA PALING SIMPEL)
+// PILAR 3: API ENGINE & RENDER LOGIC (KEMBALI KE KODE ASLI 100% BERSIH)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,95 +169,83 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (LOGIKA SIMPEL & MURNI TEXT)
+// CCTV PEMANTAUAN (KEMBALI KE KODE ASLI)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
-  if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
-  if (!tugas.cekCount) tugas.cekCount = 0;
-
-  if (tugas.intervalObj) clearInterval(tugas.intervalObj);
 
   var cekInterval = setInterval(async function() {
-    tugas.intervalObj = cekInterval;
-
-    if (tugas.selesai) {
-        clearInterval(cekInterval);
-        return;
-    }
-
-    tugas.cekCount++;
-    if (tugas.cekCount > 90) { // 15 Menit Timeout
-        clearInterval(cekInterval);
-        tugas.status = "Gagal (Timeout)"; 
-        tugas.selesai = true;
-        tugas.progress = 100;
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-        return;
-    }
-
     try {
       var resStatus = await fetch('/api/outputs', { 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-        body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify({ 
+          taskId: tugas.id,
+          apiKey: apiKey
+        })
       });
       
       if (!resStatus.ok) return; 
       
       var jsonStatus = await resStatus.json();
+      
+      var msg = (jsonStatus.msg || "").toString().toLowerCase();
+      var code = jsonStatus.code;
       var stringData = JSON.stringify(jsonStatus);
-      // Buat teks tanpa spasi dan huruf besar semua biar gampang dicocokkan
-      var cleanString = stringData.toUpperCase().replace(/\s/g, '');
-
-      // 1. KALO ADA FILE MP4 = MUTLAK SUKSES
-      if (cleanString.includes('.MP4')) {
+      
+      if ((code === 0 || msg === "success") && stringData.includes(".mp4")) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
         tugas.selesai = true;
         tugas.progress = 100; 
         
         var vidUrl = null;
-        var match = stringData.match(/https?:\/\/[^"'\s]+\.mp4/i);
-        if (match) vidUrl = match[0];
+        if (jsonStatus.data && Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
+          vidUrl = jsonStatus.data[0].fileUrl;
+        }
+        
+        if (!vidUrl) {
+          var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
+          if (match) vidUrl = match[0];
+        }
         
         tugas.videoUrl = vidUrl;
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
         
-        if (vidUrl) tampilkanNotif('✓ Render sukses! Video ditarik.', 'sukses');
-        else tampilkanNotif('❌ Sukses tapi link kosong!', 'error');
-        return;
-      }
-      
-      // 2. KALO MURNI TERTULIS STATUS FAILED = MUTLAK GAGAL
-      if (cleanString.includes('"STATUS":"FAILED"') || cleanString.includes('"TASKSTATUS":"FAILED"')) {
+        if (vidUrl) {
+          tampilkanNotif('✓ Render sukses! Video berhasil ditarik.', 'sukses');
+        } else {
+          tampilkanNotif('❌ Status sukses, tapi link mp4 kosong!', 'error');
+        }
+      } 
+      else if (msg === "failed" || msg === "error" || code === -1) {
         clearInterval(cekInterval);
         tugas.status = "Gagal Dirender"; 
         tugas.selesai = true;
         tugas.progress = 100;
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-        tampilkanNotif('❌ Render dibatalkan / gagal di server!', 'error');
-        return;
+        tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
       }
-      
-      // 3. SELAIN DUA ITU (Berarti masih jalan) = NAIKIN PROGRESS AJA TERUS
-      if (tugas.progress < 95) {
-        tugas.progress += Math.floor(Math.random() * 3) + 2; 
+      else {
+        if (tugas.progress < 95) {
+          tugas.progress += Math.floor(Math.random() * 3) + 2; 
+        }
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
       }
-      simpanStorage();
-      if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-
     } catch (err) { 
-      // Jaringan HP putus sementara, biarin aja jangan ditandai gagal
+      // Abaikan error jaringan
     }
   }, 10000); 
 }
 
 // ==========================================
-// KIRIM TUGAS KE GPU
+// KIRIM TUGAS KE GPU (KODE ASLI)
 // ==========================================
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
@@ -271,10 +259,15 @@ async function mulaiProsesGenerate() {
       if (sessionUser && sessionUser.email) {
         realEmail = sessionUser.email;
       }
-    } catch (err) {}
+    } catch (err) {
+      console.log('Gagal ambil session Supabase:', err.message);
+    }
   }
 
-  if (!realEmail && typeof currentUserEmail !== 'undefined' && currentUserEmail) realEmail = currentUserEmail;
+  if (!realEmail && typeof currentUserEmail !== 'undefined' && currentUserEmail) {
+    realEmail = currentUserEmail;
+  }
+
   if (!realEmail) {
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
     return tampilkanNotif('Sesi login tidak terdeteksi, silakan login ulang!', 'error');
@@ -283,22 +276,34 @@ async function mulaiProsesGenerate() {
   var isVipActive = false;
   if (typeof supa !== 'undefined') {
     try {
-      var { data: profile, error } = await supa.from('users').select('is_vip, vip_expires_at').eq('email', realEmail).single();
+      var { data: profile, error } = await supa
+        .from('users') 
+        .select('is_vip, vip_expires_at')
+        .eq('email', realEmail)
+        .single();
+
       if (!error && profile && profile.is_vip === true) {
         if (profile.vip_expires_at) {
           var expiredTime = new Date(profile.vip_expires_at).getTime();
-          if (expiredTime > new Date().getTime()) isVipActive = true;
+          var nowTime = new Date().getTime();
+          if (expiredTime > nowTime) {
+            isVipActive = true;
+          }
         } else {
           isVipActive = true; 
         }
       }
-    } catch (e) { isVipActive = false; }
+    } catch (e) {
+      isVipActive = false;
+    }
   }
 
   if (!isVipActive) {
     tampilkanNotif('Akses ditolak! Akun ' + realEmail + ' belum VIP Pro.', 'error');
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-    if (typeof gantiLayarNav === 'function') gantiLayarNav('langganan');
+    if (typeof gantiLayarNav === 'function') {
+      gantiLayarNav('langganan');
+    }
     return;
   }
 
@@ -311,11 +316,13 @@ async function mulaiProsesGenerate() {
   var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
   var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
   
-  if (engineProvider === 'runninghub' && akunAktif && realEmail.toLowerCase() !== 'anggraingki@gmail.com') {
+  if (engineProvider === 'runninghub' && akunAktif) {
     var koinAkunAktif = Number(akunAktif.koin) || 0;
-    if (koinAkunAktif < 478) {
-      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      return tampilkanNotif('Koin tidak cukup! Minimal 478 koin.', 'error');
+    if (realEmail.toLowerCase() !== 'anggraingki@gmail.com') {
+      if (koinAkunAktif < 478) {
+        if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+        return tampilkanNotif('Koin tidak cukup! Minimal harus ada 478 koin untuk merender. Silakan beli koin baru.', 'error');
+      }
     }
   }
 
@@ -373,7 +380,7 @@ async function mulaiProsesGenerate() {
 }
 
 // ==========================================
-// RENDER LAYAR HISTORY
+// RENDER LAYAR HISTORY (DENGAN TOMBOL HAPUS)
 // ==========================================
 function renderLayarHistory() {
   var wadah = document.getElementById('wadah-list-history'), counter = document.getElementById('txt-counter-history');
@@ -386,25 +393,24 @@ function renderLayarHistory() {
   }
   
   riwayatGenerateList.forEach(function(itm, index) {
-    var checkStatus = (itm.status || "").toLowerCase();
-    var isDone = (itm.selesai === true && checkStatus === "selesai");
-    var isFailed = (itm.selesai === true && checkStatus !== "selesai");
+    var isDone = (itm.selesai === true || itm.status === "Selesai");
+    var isFailed = (itm.status === "Gagal Dirender" || itm.status === "Gagal");
     var hasVideo = Boolean(itm.videoUrl);
-    var currentProg = itm.progress !== undefined ? itm.progress : (isDone || isFailed ? 100 : 0);
+    var currentProg = itm.progress !== undefined ? itm.progress : (isDone ? 100 : 0);
     
     var card = document.createElement('div');
     card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
     
     var statusBadge = '';
     if (isFailed) {
-      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ ' + itm.status + '</span>';
+      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ Gagal Dirender</span>';
     } else if (isDone) {
       if (hasVideo) {
         statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai (100%)</span>' +
           '<button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer">Putar</button>' +
           '<a href="' + itm.videoUrl + '" target="_blank" download="kiixmotion-' + itm.id + '.mp4" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</a>';
       } else {
-        statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai di GPU</span>';
+        statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai di GPU (100%)</span>';
       }
     } else {
       statusBadge = '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">⏳ Render: ' + currentProg + '%</span>';
@@ -428,8 +434,6 @@ function renderLayarHistory() {
 
 function hapusRiwayatSatu(idx) {
   mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
-    var tgs = riwayatGenerateList[idx];
-    if (tgs && tgs.intervalObj) clearInterval(tgs.intervalObj);
     riwayatGenerateList.splice(idx, 1);
     simpanStorage();
     renderLayarHistory();
@@ -440,7 +444,6 @@ function hapusRiwayatSatu(idx) {
 function bersihkanSemuaHistory() {
   if (riwayatGenerateList.length === 0) return tampilkanNotif('History sudah kosong.', 'info');
   mintaKonfirmasi('Hapus seluruh riwayat generate?', function() {
-    riwayatGenerateList.forEach(function(t) { if (t.intervalObj) clearInterval(t.intervalObj); });
     riwayatGenerateList = []; simpanStorage(); renderLayarHistory(); tampilkanNotif('History dibersihkan', 'sukses');
   });
 }

@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     const apikey = "6A9E222F-9973-44FE-A657-83D1AC7DD74B";
     const url = "https://my.ipaymu.com/api/v2/payment";
 
-    // 1. Tangkap data pembeli jika dikirim dari frontend saat klik tombol bayar
+    // 1. Tangkap data pembeli dari frontend
     let reqData = req.body || {};
     if (typeof reqData === 'string') {
         try {
@@ -23,22 +23,29 @@ export default async function handler(req, res) {
     const userName = reqData.name || reqData.buyerName || '';
     const userPhone = reqData.phone || reqData.buyerPhone || '';
 
-    // Tentukan total bayar termasuk fee admin (Rp 35.630) agar pembeli yang menanggung
+    // 🚨 PENJAGA PINTU: Tolak kalau email kosong! (Biar gak kecolongan)
+    if (!userEmail) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Sistem error: Email user tidak terbaca dari frontend. Gagal membuat tagihan!" 
+        });
+    }
+
     const totalBayar = reqData.amount || 35630;
 
-    // 2. Susun parameter checkout iPaymu (Harga diubah ke Rp 35.630)
+    // 2. Susun parameter checkout iPaymu 
     const body = {
         product: ["Langganan VIP KiiXMotion 25 Hari (Termasuk Fee Admin)"],
         qty: ["1"],
-        price: [String(totalBayar)], // Diubah otomatis menjadi 35630
+        price: [String(totalBayar)], 
         description: ["Akses penuh fitur premium motion control AI selama 25 hari"],
         returnUrl: "https://kiix-motion.vercel.app/studio.html",
         cancelUrl: "https://kiix-motion.vercel.app/studio.html",
-        notifyUrl: "https://kiix-motion.vercel.app/api/webhook", // ALAMAT WEBHOOK KITA
-        referenceId: userEmail || reqData.referenceId || `KIIX-${Date.now()}` // Tanda pengenal akun pembeli
+        notifyUrl: "https://kiix-motion.vercel.app/api/webhook", // WAJIB ADA
+        referenceId: userEmail // KUNCI UTAMA SUPAYA WEBHOOK BISA UPDATE SUPABASE
     };
 
-    // Jika data profil pembeli ada, tempelkan agar form iPaymu langsung terisi
+    // Tempelkan data pembeli ke iPaymu
     if (userEmail) body.buyerEmail = userEmail;
     if (userName) body.buyerName = userName;
     if (userPhone) body.buyerPhone = userPhone;

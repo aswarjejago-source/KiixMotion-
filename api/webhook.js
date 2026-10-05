@@ -1,4 +1,4 @@
-// Endpoint Webhook iPaymu untuk KiiXMotion (Profile Link & Auto-Insert VIP)
+// Endpoint Webhook iPaymu (Robust Upsert & Detailed Error Logging)
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
@@ -27,86 +27,47 @@ export default async function handler(req, res) {
       const headers = {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
+        'Content-Type': 'application/json'
       };
 
-      // 1. Cek dulu ke tabel PROFILES (untuk ambil data dasar/UUID user jika ada)
+      // 1. Cek profil dulu untuk ambil referensi jika ada
       const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(buyerEmail)}&select=*`, { headers });
       const profiles = await profileRes.json();
       const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
-      // 2. Cek apakah user sudah terdaftar di tabel USERS (tabel VIP/subscriber)
-      const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(buyerEmail)}&select=*`, { headers });
-      const users = await userRes.json();
-      let user = users && users.length > 0 ? users[0] : null;
-
-      const bonusDays = 25; // Durasi standar VIP
+      const bonusDays = 25;
       const now = new Date();
+      const newExpiry = new Date(now.getTime() + bonusDays * 24 * 60 * 60 * 1000);
 
-      if (!user) {
-        // JIKA BELUM ADA DI USERS: Otomatis daftarkan ke tabel USERS sebagai VIP baru!
-        console.log('User belum ada di public.users, membuat data VIP baru secara otomatis untuk:', buyerEmail);
-        
-        const newExpiry = new Date(now.getTime() + bonusDays * 24 * 60 * 60 * 1000);
-        const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            email: buyerEmail,
-            uuid: profile ? profile.uuid : null,
-            full_name: profile ? profile.full_name : 'Member KiiXMotion',
-            is_vip: true,
-            vip_expires_at: newExpiry.toISOString()
-          })
-        });
-        const insertedUsers = await insertRes.json();
-        user = insertedUsers && insertedUsers.length > 0 ? insertedUsers[0] : null;
-      } else {
-        // JIKA SUDAH ADA DI USERS: Perpanjang masa aktif VIP-nya
-        const hasReferral = Boolean(user.referred_by);
-        const actualBonus = hasReferral ? 32 : bonusDays;
+      // 2. GUNAKAN UPSERT SUPABASE (Otomatis Insert kalau belum ada, Update kalau email sudah ada)
+      const upsertHeaders = {
+        ...headers,
+        'Prefer': 'resolution=merge-duplicates, return=representation'
+      };
 
-        const currentExpiry = user.vip_expires_at && new Date(user.vip_expires_at) > now
-          ? new Date(user.vip_expires_at)
-          : now;
-        
-        const newExpiry = new Date(currentExpiry.getTime() + actualBonus * 24 * 60 * 60 * 1000);
+      const upsertRes = await fetch(`${SUPABASE_URL}/rest/v1/users?on_conflict=email`, {
+        method: 'POST',
+        headers: upsertHeaders,
+        body: JSON.stringify({
+          email: buyerEmail,
+          uuid: profile ? profile.uuid : null,
+          full_name: profile ? profile.full_name : 'Member KiiXMotion',
+          is_vip: true,
+          vip_expires_at: newExpiry.toISOString()
+        })
+      });
 
-        await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({
-            is_vip: true,
-            vip_expires_at: newExpiry.toISOString()
-          })
-        });
+      const upsertData = await upsertRes.json();
 
-        // 3. Reward Referral (Upline) jika ada
-        if (hasReferral) {
-          const refRes = await fetch(`${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(user.referred_by)}&select=*`, { headers });
-          const refUsers = await refRes.json();
-          const referrer = refUsers && refUsers.length > 0 ? refUsers[0] : null;
-
-          if (referrer) {
-            const refExpiry = referrer.vip_expires_at && new Date(referrer.vip_expires_at) > now
-              ? new Date(referrer.vip_expires_at)
-              : now;
-            const newRefExpiry = new Date(refExpiry.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-            await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${referrer.id}`, {
-              method: 'PATCH',
-              headers,
-              body: JSON.stringify({
-                is_vip: true,
-                vip_expires_at: newRefExpiry.toISOString()
-              })
-            });
-          }
-        }
+      // Kalau Supabase nolak, catat error aslinya di log Vercel
+      if (!upsertRes.ok) {
+        console.error('GAGAL SIMPAN KE SUPABASE:', upsertData);
+        return res.status(500).json({ success: false, error: upsertData });
       }
 
-      // 4. Catat riwayat transaksi ke tabel transactions
+      const user = upsertData && upsertData.length > 0 ? upsertData[0] : null;
+
+      // 3. Catat riwayat transaksi ke tabel transactions
       if (user && user.id) {
         await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
           method: 'POST',
@@ -120,7 +81,7 @@ export default async function handler(req, res) {
         });
       }
 
-      return res.status(200).json({ success: true, message: 'VIP Activated & Profile Linked Successfully' });
+      return res.status(200).json({ success: true, message: 'VIP Activated via Upsert Successfully' });
     }
 
     return res.status(200).json({ success: true, message: 'Webhook received, status not success' });

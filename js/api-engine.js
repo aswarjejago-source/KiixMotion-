@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL UTUH & SINKRON)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MUTLAK ANTI-FALSE-FAILED)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (SINKRONISASI AKURAT)
+// CCTV PEMANTAUAN (ANTI-FALSE-FAILED LOGIC)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -210,7 +210,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       var stringData = JSON.stringify(jsonStatus);
       var cleanString = stringData.toUpperCase().replace(/\s/g, '');
 
-      // 1. CEK SUKSES: Jika ada link .mp4 di dalam respons
+      // 1. KALO ADA FILE MP4 = MUTLAK SUKSES (Tarik videonya)
       if (cleanString.includes('.MP4')) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
@@ -230,19 +230,14 @@ function pantauTaskRunningHub(tugas, apiKey) {
         return;
       }
       
-      // 2. CEK GAGAL: Tangkap status FAILED, ERROR, atau errorCode dari server
-      var isFailed = false;
-      if (cleanString.includes('"STATUS":"FAILED"') || cleanString.includes('"TASKSTATUS":"FAILED"') || cleanString.includes('"STATUS":"ERROR"')) {
-        isFailed = true;
-      }
-      if (jsonStatus.errorCode && jsonStatus.errorCode !== null && jsonStatus.errorCode !== "0" && jsonStatus.errorCode !== 0 && jsonStatus.errorCode !== "null") {
-        isFailed = true;
-      }
-      if (jsonStatus.code !== undefined && jsonStatus.code !== 0 && jsonStatus.code !== 200 && jsonStatus.code !== null) {
-        isFailed = true;
+      // 2. KALO STATUSNYA BENAR-BENAR FAILED / CANCELLED = MUTLAK GAGAL
+      // (Diabaikan error code 500 sementara supaya gak gampang panik)
+      var isRealFailed = false;
+      if (cleanString.includes('"STATUS":"FAILED"') || cleanString.includes('"TASKSTATUS":"FAILED"') || cleanString.includes('"STATUS":"CANCELLED"') || cleanString.includes('"STATUS":"ERROR"')) {
+        isRealFailed = true;
       }
 
-      if (isFailed) {
+      if (isRealFailed) {
         clearInterval(cekInterval);
         tugas.status = "Gagal Dirender"; 
         tugas.selesai = true;
@@ -253,7 +248,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         return;
       }
       
-      // 3. JIKA BELUM ADA TANDA SELESAI/GAGAL, BERARTI MASIH PROSES RENDER
+      // 3. SELAIN ITU (MASIH ANTRI / RENDER) = LANJUTKAN PROGRESS AMAN
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }

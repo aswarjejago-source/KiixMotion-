@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & LOGIKA SIMPEL)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & X-RAY LOGIC)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (LOGIKA SIMPEL & MURNI)
+// CCTV PEMANTAUAN (X-RAY LOGIC: GAK PEDULI LACI!)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -186,10 +186,13 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (!resStatus.ok) return; 
       
       var jsonStatus = await resStatus.json();
-      var stringData = JSON.stringify(jsonStatus);
+      
+      // LOGIKA X-RAY: Lebur json jadi teks, huruf besar, hilangkan semua spasi!
+      var rawString = JSON.stringify(jsonStatus);
+      var cleanXray = rawString.toUpperCase().replace(/\s/g, '');
 
-      // 1. KALO SERVER BILANG GAGAL, YA UDAH GAGAL
-      if (jsonStatus.status === "FAILED") {
+      // 1. KALO SERVER BILANG GAGAL DI MANAPUN LOKASINYA, YA UDAH GAGAL
+      if (cleanXray.includes('"STATUS":"FAILED"') || cleanXray.includes('"TASKSTATUS":"FAILED"')) {
         clearInterval(cekInterval);
         tugas.status = "Gagal Dirender"; 
         tugas.selesai = true;
@@ -200,15 +203,16 @@ function pantauTaskRunningHub(tugas, apiKey) {
         return;
       }
       
-      // 2. KALO SUKSES & ADA VIDEO MP4, YA TARIK VIDEONYA
-      if ((jsonStatus.status === "SUCCESS" || jsonStatus.code === 0) && stringData.includes(".mp4")) {
+      // 2. KALO SUKSES & ADA VIDEO MP4 DI DALEMNYA, YA TARIK VIDEONYA
+      if (cleanXray.includes('.MP4')) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
         tugas.selesai = true;
         tugas.progress = 100; 
         
         var vidUrl = null;
-        var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
+        // Ekstrak URL asli dari teks mentah
+        var match = rawString.match(/https?:\/\/[^"'\s]+\.mp4/i);
         if (match) vidUrl = match[0];
         
         tugas.videoUrl = vidUrl;
@@ -220,7 +224,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         return;
       }
       
-      // 3. SELAIN DUA ITU (BERARTI MASIH PROSES RENDER), NAIKIN PROGRESS AJA
+      // 3. SELAIN DUA ITU (MASIH PROSES RENDER), NAIKIN PROGRESS AJA
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -228,7 +232,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
 
     } catch (err) { 
-      // Kalo internet ngadat sekian detik, biarin CCTV nunggu ngecek lagi
+      // Kalo internet ngadat sekian detik, biarin nunggu cek lagi
     }
   }, 10000); 
 }

@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MUTLAK TÉMBUS .DATA)
+// PILAR 3: API ENGINE & RENDER LOGIC (STRICT 2 LAMPU MERAH)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,12 +169,13 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (TÉMBUS KE DALAM .DATA & TASK USAGE LIST)
+// CCTV PEMANTAUAN (STRICT 2 LAMPU MERAH / NO SILENT ERROR)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
   if (!tugas.cekCount) tugas.cekCount = 0;
+  if (!tugas.networkErrorCount) tugas.networkErrorCount = 0;
 
   if (tugas.intervalObj) clearInterval(tugas.intervalObj);
 
@@ -189,11 +190,12 @@ function pantauTaskRunningHub(tugas, apiKey) {
     tugas.cekCount++;
     if (tugas.cekCount > 90) { // 15 Menit Timeout
         clearInterval(cekInterval);
-        tugas.status = "Gagal (Timeout)"; 
+        tugas.status = "Gagal (Timeout 15 Menit)"; 
         tugas.selesai = true;
         tugas.progress = 100;
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        tampilkanNotif('❌ Proses timeout di server.', 'error');
         return;
     }
 
@@ -204,9 +206,35 @@ function pantauTaskRunningHub(tugas, apiKey) {
         body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
       });
       
-      if (!resStatus.ok) return; 
+      // 🚨 LAMPU MERAH KEDUA: Jangan diam-diam return! Tangkap error HTTP Vercel/API.
+      if (!resStatus.ok) {
+        var errText = "";
+        try { var errJson = await resStatus.json(); errText = errJson.message || JSON.stringify(errJson); } catch(e) { errText = await resStatus.text(); }
+        
+        clearInterval(cekInterval);
+        tugas.status = "Gagal (HTTP " + resStatus.status + ")";
+        tugas.selesai = true;
+        tugas.progress = 100;
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        tampilkanNotif('❌ Gagal Server Vercel: ' + errText, 'error');
+        return;
+      }
       
       var jsonStatus = await resStatus.json();
+
+      // Jika dari Vercel eksplisit ngasih tanda error
+      if (jsonStatus.error || jsonStatus.status === "FAILED") {
+        clearInterval(cekInterval);
+        tugas.status = "Gagal: " + (jsonStatus.message || "Server menolak permintaan status");
+        tugas.selesai = true;
+        tugas.progress = 100;
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        tampilkanNotif('❌ ' + tugas.status, 'error');
+        return;
+      }
+
       var stringData = JSON.stringify(jsonStatus);
       var cleanString = stringData.toUpperCase().replace(/\s/g, '');
 
@@ -232,18 +260,17 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       // 2. CEK STATUS GAGAL SECARA MENYELURUH (ROOT, .DATA, ATAU TASK USAGE LIST)
       var isRealFailed = false;
+      var failReason = "Gagal Dirender di Server";
 
-      // Ambil objek dalam data jika dibungkus .data
       var dataObj = jsonStatus.data && typeof jsonStatus.data === 'object' ? jsonStatus.data : {};
 
-      // Cek status di root atau di dalam .data
       var s1 = (jsonStatus.status || "").toString().toUpperCase();
       var s2 = (dataObj.status || "").toString().toUpperCase();
       if (s1 === "FAILED" || s1 === "CANCELLED" || s1 === "ERROR" || s2 === "FAILED" || s2 === "CANCELLED" || s2 === "ERROR") {
         isRealFailed = true;
+        failReason = jsonStatus.message || dataObj.message || "Status FAILED dari RunningHub";
       }
 
-      // Cek ke dalam array taskUsageList (baik di root maupun di dalam .data)
       var usageList = jsonStatus.taskUsageList || dataObj.taskUsageList;
       if (usageList && Array.isArray(usageList)) {
         usageList.forEach(function(item) {
@@ -251,6 +278,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
             var subStatus = (item.taskStatus || "").toString().toUpperCase();
             if (subStatus === "FAILED" || subStatus === "CANCELLED" || subStatus === "ERROR") {
               isRealFailed = true;
+              failReason = item.errorMsg || "Task usage list FAILED";
             }
           }
         });
@@ -258,16 +286,19 @@ function pantauTaskRunningHub(tugas, apiKey) {
 
       if (isRealFailed) {
         clearInterval(cekInterval);
-        tugas.status = "Gagal Dirender"; 
+        tugas.status = "Gagal: " + failReason; 
         tugas.selesai = true;
         tugas.progress = 100;
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-        tampilkanNotif('❌ Render dibatalkan / gagal di server!', 'error');
+        tampilkanNotif('❌ ' + tugas.status, 'error');
         return;
       }
       
-      // 3. JIKA BELUM SELESAI ATAU GAGAL = LANJUTKAN PROGRESS AMAN
+      // Reset counter network error jika berhasil tembus server
+      tugas.networkErrorCount = 0;
+
+      // 3. JIKA BELUM SELESAI = LANJUTKAN PROGRESS AMAN
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -275,7 +306,17 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
 
     } catch (err) { 
-      // Abaikan gangguan jaringan sementara
+      // 🚨 LAMPU MERAH KEDUA (NETWORK EXCEPTION): Jangan diabaikan diam-diam! Jika error 3x berturut-turut, matikan proses.
+      tugas.networkErrorCount++;
+      if (tugas.networkErrorCount >= 3) {
+        clearInterval(cekInterval);
+        tugas.status = "Gagal: Koneksi Terputus (" + err.message + ")";
+        tugas.selesai = true;
+        tugas.progress = 100;
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        tampilkanNotif('❌ Koneksi terputus total ke server.', 'error');
+      }
     }
   }, 10000); 
 }
@@ -420,7 +461,7 @@ function renderLayarHistory() {
     
     var statusBadge = '';
     if (isFailed) {
-      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ Gagal Dirender</span>';
+      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ ' + itm.status + '</span>';
     } else if (isDone) {
       if (hasVideo) {
         statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai (100%)</span>' +

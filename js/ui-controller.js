@@ -323,23 +323,61 @@ document.addEventListener("DOMContentLoaded", function() {
 window.prosesBeliVIP = function() {
     tampilkanNotif("Menghubungkan ke secure payment iPaymu...", "info");
     
-    // Nembak ke backend Vercel aman tanpa bocorin API Key di browser
+    // AMBIL EMAIL USER DARI SUPABASE SESSION / LOCALSTORAGE 
+    let userEmail = "";
+    
+    try {
+        const sbData = localStorage.getItem('sb-fybyupwcburndxulqqnn-auth-token'); 
+        if (sbData) {
+            const parsedData = JSON.parse(sbData);
+            if (parsedData.user && parsedData.user.email) {
+                userEmail = parsedData.user.email;
+            }
+        }
+        
+        // Kalau gak nemu di session, cek variabel global kalau user udah login di web
+        if (!userEmail && typeof currentKiiXUser !== 'undefined' && currentKiiXUser.email) {
+            userEmail = currentKiiXUser.email;
+        }
+        
+    } catch(e) { console.log("Gagal baca session", e); }
+
+    // BLOKIR DI FRONTEND KALAU EMAIL KOSONG BIAR GAK ERROR
+    if (!userEmail) {
+        userEmail = prompt("Masukkan email aktif Anda untuk mengirim struk tagihan iPaymu:", "");
+        if (!userEmail) {
+            tampilkanNotif("Gagal: Email wajib diisi untuk transaksi!", "error");
+            return; 
+        }
+    }
+    
+    // Nembak ke backend Vercel 
     fetch('/api/bayar', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+            email: userEmail,
+            amount: 35630, 
+            name: "Member KiiXMotion", 
+            phone: "081122334455"
+        })
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {
-        // Cek struktur respons sukses iPaymu
-        if (data.Success === true || data.Status === 200) {
+        if (data.Success === true || data.Status === 200 || data.Data) {
             tampilkanNotif("Berhasil! Mengarahkan ke secure payment...", "sukses");
             setTimeout(function() {
-                window.location.href = data.Data.Url;
+                var paymentLink = (data.Data && data.Data.Url) ? data.Data.Url : data.url; 
+                if(paymentLink) {
+                   window.location.href = paymentLink;
+                } else {
+                   tampilkanNotif("Gagal membaca link pembayaran dari iPaymu", "error");
+                }
             }, 1000);
         } else {
-            tampilkanNotif("Gagal bikin transaksi: " + (data.Message || "Kesalahan iPaymu"), "error");
+            tampilkanNotif("Gagal bikin transaksi: " + (data.message || data.Message || "Kesalahan iPaymu"), "error");
             console.error("Detail Error iPaymu:", data);
         }
     })

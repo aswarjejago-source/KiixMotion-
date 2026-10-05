@@ -42,7 +42,8 @@ export default async function handler(req, res) {
     try {
       data = JSON.parse(textData);
     } catch (parseError) {
-      return res.status(200).json({ code: 502, status: "RUNNING", raw: textData });
+      // UBAH JADI FAILED, JANGAN DIBOHONGI JADI RUNNING!
+      return res.status(200).json({ code: 502, status: "FAILED", msg: "Gagal parse respons dari server", raw: textData });
     }
     
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -51,6 +52,7 @@ export default async function handler(req, res) {
     
     return res.status(200).json(data);
   } catch (err) {
-    return res.status(200).json({ code: 500, status: "RUNNING", msg: err.message });
+    // UBAH JADI FAILED, JANGAN DIBOHONGI JADI RUNNING!
+    return res.status(200).json({ code: 500, status: "FAILED", msg: err.message });
   }
 }

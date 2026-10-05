@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  // Konfigurasi Supabase KiiXMotion (URL disesuaikan agar tidak typo)
+  // Konfigurasi Supabase KiiXMotion
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fybyupwcburndxulqqnn.supabase.co';
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
@@ -13,12 +13,21 @@ export default async function handler(req, res) {
     const payload = req.body || {};
     
     // Ambil data status transaksi dari iPaymu
-    const status = payload.status; // 'berhasil' atau '1'
+    const status = payload.status; 
     const trxId = payload.trx_id || payload.transactionId;
-    const buyerEmail = payload.buyer_email || payload.email || payload.referenceId || payload.reference_id;
     const amount = Number(payload.amount || payload.total || 35000);
+    
+    // AMBIL DATA EMAIL DARI IPAYMU
+    let rawEmail = payload.buyer_email || payload.email || payload.referenceId || payload.reference_id || '';
 
-    console.log('Webhook diterima dari iPaymu:', { status, trxId, buyerEmail, amount });
+    // 👇👇 INI KUNCI PENYELAMATNYA (PENGHANCUR KODE UNIK) 👇👇
+    // Kita buang "===" dan angka di belakangnya biar emailnya bersih lagi
+    let buyerEmail = rawEmail;
+    if (rawEmail && rawEmail.includes('===')) {
+        buyerEmail = rawEmail.split('===')[0];
+    }
+
+    console.log('Webhook diterima dari iPaymu:', { status, trxId, buyerEmail, rawEmail });
 
     // Hanya proses jika pembayaran sukses dan email pembeli valid
     if ((status === 'berhasil' || status === '1' || status === 1) && buyerEmail) {
@@ -29,7 +38,7 @@ export default async function handler(req, res) {
         'Prefer': 'return=representation'
       };
 
-      // 1. Cari user pembeli di tabel users berdasarkan email
+      // 1. Cari user pembeli di tabel users berdasarkan email BERSIH
       const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(buyerEmail)}&select=*`, {
         headers
       });
@@ -64,7 +73,6 @@ export default async function handler(req, res) {
 
       // 4. OTOMATIS BERI REWARD +7 HARI VIP KE PEMBERI REFERRAL (UPLINE)
       if (hasReferral) {
-        // Cari pemilik kode referral berdasarkan kolom referral_code
         const refRes = await fetch(`${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(user.referred_by)}&select=*`, {
           headers
         });
@@ -77,7 +85,6 @@ export default async function handler(req, res) {
             : now;
           const newRefExpiry = new Date(refExpiry.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-          // Update masa aktif VIP pemberi referral (+7 hari)
           await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${referrer.id}`, {
             method: 'PATCH',
             headers,
@@ -86,7 +93,6 @@ export default async function handler(req, res) {
               vip_expires_at: newRefExpiry.toISOString()
             })
           });
-          console.log('Bonus referral +7 hari berhasil dikirim ke:', referrer.email);
         }
       }
 

@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & X-RAY LOGIC)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL DEEP-SEARCH)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (X-RAY LOGIC: GAK PEDULI LACI!)
+// CCTV PEMANTAUAN (DEEP SEARCH OTOMATIS)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -186,33 +186,44 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (!resStatus.ok) return; 
       
       var jsonStatus = await resStatus.json();
-      
-      // LOGIKA X-RAY: Lebur json jadi teks, huruf besar, hilangkan semua spasi!
-      var rawString = JSON.stringify(jsonStatus);
-      var cleanXray = rawString.toUpperCase().replace(/\s/g, '');
+      var stringData = JSON.stringify(jsonStatus).toUpperCase();
 
-      // 1. KALO SERVER BILANG GAGAL DI MANAPUN LOKASINYA, YA UDAH GAGAL
-      if (cleanXray.includes('"STATUS":"FAILED"') || cleanXray.includes('"TASKSTATUS":"FAILED"')) {
-        clearInterval(cekInterval);
-        tugas.status = "Gagal Dirender"; 
-        tugas.selesai = true;
-        tugas.progress = 100;
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-        tampilkanNotif('❌ Render dibatalkan / gagal di server!', 'error');
-        return;
+      // 1. FUNGSI PELACAK OTOMATIS (Bongkar isi JSON sampai ke akar)
+      function isTaskFailed(obj) {
+        if (!obj) return false;
+        
+        // Kalo API dari servernya sendiri ngelaporin gagal (code bukan 0/200)
+        if (obj.code !== undefined && obj.code !== 0 && obj.code !== 200) return true; 
+        
+        if (typeof obj === 'object') {
+          for (var k in obj) {
+            var val = obj[k];
+            var keyUpper = k.toUpperCase();
+            
+            // Kalo ada tulisan 'status' / 'taskStatus' isinya failed
+            if (keyUpper === 'STATUS' || keyUpper === 'TASKSTATUS') {
+              if (typeof val === 'string') {
+                var v = val.toUpperCase();
+                if (v === 'FAILED' || v === 'FAIL' || v === 'ERROR' || v.includes('失败')) return true;
+              }
+            }
+            if (typeof val === 'object') {
+              if (isTaskFailed(val)) return true;
+            }
+          }
+        }
+        return false;
       }
-      
-      // 2. KALO SUKSES & ADA VIDEO MP4 DI DALEMNYA, YA TARIK VIDEONYA
-      if (cleanXray.includes('.MP4')) {
+
+      // 2. CEK SUKSES DULUAN (Kalo ada MP4, mutlak sukses beres)
+      if (stringData.includes(".MP4")) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
         tugas.selesai = true;
         tugas.progress = 100; 
         
         var vidUrl = null;
-        // Ekstrak URL asli dari teks mentah
-        var match = rawString.match(/https?:\/\/[^"'\s]+\.mp4/i);
+        var match = JSON.stringify(jsonStatus).match(/https?:\/\/[^"'\s]+\.mp4/i);
         if (match) vidUrl = match[0];
         
         tugas.videoUrl = vidUrl;
@@ -223,8 +234,27 @@ function pantauTaskRunningHub(tugas, apiKey) {
         else tampilkanNotif('❌ Sukses tapi link kosong!', 'error');
         return;
       }
+
+      // 3. CEK GAGAL PAKE PELACAK OTOMATIS
+      if (isTaskFailed(jsonStatus)) {
+        clearInterval(cekInterval);
+        tugas.selesai = true;
+        tugas.progress = 100;
+        
+        // Fitur Debug: Tampilin pesan aslinya dari server ke layar HP lu
+        if (jsonStatus.msg && jsonStatus.msg.toLowerCase() !== "success") {
+            tugas.status = "Gagal: " + jsonStatus.msg; 
+        } else {
+            tugas.status = "Gagal Dirender";
+        }
+        
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        tampilkanNotif('❌ Render dibatalkan / gagal di server!', 'error');
+        return;
+      }
       
-      // 3. SELAIN DUA ITU (MASIH PROSES RENDER), NAIKIN PROGRESS AJA
+      // 4. SELAIN ITU = MASIH RENDER (Aman muter-muter)
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -232,7 +262,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
 
     } catch (err) { 
-      // Kalo internet ngadat sekian detik, biarin nunggu cek lagi
+      // Jaringan ngadat dikit dibiarin aja
     }
   }, 10000); 
 }
@@ -368,7 +398,7 @@ function renderLayarHistory() {
   
   riwayatGenerateList.forEach(function(itm, index) {
     var isDone = (itm.selesai === true && itm.status === "Selesai");
-    var isFailed = (itm.selesai === true && itm.status === "Gagal Dirender");
+    var isFailed = (itm.selesai === true && itm.status !== "Selesai");
     var hasVideo = Boolean(itm.videoUrl);
     var currentProg = itm.progress !== undefined ? itm.progress : (isDone || isFailed ? 100 : 0);
     
@@ -377,7 +407,7 @@ function renderLayarHistory() {
     
     var statusBadge = '';
     if (isFailed) {
-      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ Gagal Dirender</span>';
+      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ ' + itm.status + '</span>';
     } else if (isDone) {
       if (hasVideo) {
         statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai (100%)</span>' +

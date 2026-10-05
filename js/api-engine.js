@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & FULL FIX)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & FULL FIX ANTI-KAGET)
 // File: js/api-engine.js
 // ==========================================
 
@@ -170,7 +170,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (DENGAN DETEKSI GAGAL TOTAL & AMAN - CASE INSENSITIVE)
+// CCTV PEMANTAUAN (SUDAH DIKOREKSI: ANTI KAGET "FAILED")
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
@@ -195,14 +195,12 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       var msg = (jsonStatus.msg || jsonStatus.message || "").toString().toLowerCase();
       var code = jsonStatus.code;
-      // Perbaikan: Nangkep parameter status/taskStatus di level manapun
       var statusField = (jsonStatus.status || jsonStatus.data?.status || jsonStatus.data?.taskStatus || "").toString().toLowerCase();
-      
-      // KUNCI UTAMA: Jadikan seluruh string respons ke lowercase agar FAILED kebaca failed
       var stringData = JSON.stringify(jsonStatus).toLowerCase();
       
-      // Jika status dari server GPU terdeteksi gagal / error / cancel
-      if (statusField === "failed" || statusField === "error" || msg === "failed" || msg === "error" || code === -1 || code === 500 || stringData.includes("fail") || stringData.includes("error")) {
+      // LOGIKA BARU: Cuma ngecek value dari statusField, msg, atau code. 
+      // Gak lagi ngecek stringData secara membabi-buta supaya gak kagetan kena "errorCode: null".
+      if (statusField === "failed" || statusField === "error" || msg === "failed" || msg === "error" || code === -1 || code === 500) {
         clearInterval(cekInterval);
         tugas.status = "Gagal Dirender"; 
         tugas.selesai = true;
@@ -211,7 +209,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
         tampilkanNotif('❌ Render gagal di server GPU RunningHub!', 'error');
       } 
-      // Jika code 0 atau msg success, DAN di dalamnya ada tulisan .mp4
+      // Jika code 0 atau msg success, DAN di dalamnya ada link .mp4
       else if ((code === 0 || code === 200 || msg === "success" || statusField === "success") && stringData.includes(".mp4")) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
@@ -238,7 +236,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         }
       } 
       else {
-        // Masih RUNNING, naikin progress pelan-pelan
+        // Masih Proses / RUNNING, naikin progress pelan-pelan
         if (tugas.progress < 95) {
           tugas.progress += Math.floor(Math.random() * 3) + 2; 
         }
@@ -252,7 +250,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
 }
 
 // ==========================================
-// KIRIM TUGAS KE GPU (DENGAN VALIDASI MINIMAL 478 KOIN SAAT RENDER)
+// KIRIM TUGAS KE GPU
 // ==========================================
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');

@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI + GEMBOK ANTI-ZOMBIE)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & LOGIKA SIMPEL)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,38 +169,13 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (FULL GEMBOK BESI ANTI-ZOMBIE)
+// CCTV PEMANTAUAN (LOGIKA SIMPEL & MURNI)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
-  // GEMBOK LAPIS 1: Kalau sebelum mulai udah kelar, tolak.
   if (tugas.selesai) return; 
-
   if (!tugas.progress) tugas.progress = 0; 
-  if (!tugas.cekCount) tugas.cekCount = 0;
-
-  // Bersihkan sisa interval zombie yang mungkin nyangkut dari sesi sebelumnya
-  if (tugas.intervalObj) clearInterval(tugas.intervalObj);
 
   var cekInterval = setInterval(async function() {
-    tugas.intervalObj = cekInterval;
-
-    // GEMBOK LAPIS 2: Eksekusi mati kalau pas interval jalan, tugasnya ternyata udah selesai.
-    if (tugas.selesai) {
-        clearInterval(cekInterval);
-        return;
-    }
-
-    tugas.cekCount++;
-    if (tugas.cekCount > 90) { // 15 Menit Timeout
-        clearInterval(cekInterval);
-        tugas.status = "Gagal (Timeout)"; 
-        tugas.selesai = true;
-        tugas.progress = 100;
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-        return;
-    }
-
     try {
       var resStatus = await fetch('/api/outputs', { 
         method: 'POST',
@@ -208,37 +183,13 @@ function pantauTaskRunningHub(tugas, apiKey) {
         body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
       });
       
-      // GEMBOK LAPIS 3: Jaring pengaman pas nunggu fetch (karena jaringan butuh beberapa detik, status bisa berubah)
-      if (tugas.selesai) {
-          clearInterval(cekInterval);
-          return;
-      }
+      if (!resStatus.ok) return; 
       
-      var resText = await resStatus.text();
-      var jsonStatus = {};
-      try { jsonStatus = JSON.parse(resText); } catch(e) {}
-      
-      // CARI STATUS REAL DARI LACI MANAPUN
-      var rhStatus = "";
-      if (jsonStatus.status) {
-         rhStatus = jsonStatus.status;
-      } else if (jsonStatus.data) {
-         if (Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
-             rhStatus = jsonStatus.data[0].status || jsonStatus.data[0].taskStatus;
-         } else {
-             rhStatus = jsonStatus.data.status || jsonStatus.data.taskStatus;
-         }
-      }
-      rhStatus = (rhStatus || "").toString().toUpperCase();
-      var code = jsonStatus.code;
-      var strData = resText.toLowerCase();
+      var jsonStatus = await resStatus.json();
+      var stringData = JSON.stringify(jsonStatus);
 
-      var isFailed = false;
-      if (!resStatus.ok) isFailed = true;
-      else if (rhStatus === "FAILED" || rhStatus === "ERROR") isFailed = true;
-      else if (code !== 0 && code !== undefined && code !== 200 && code !== 201) isFailed = true;
-
-      if (isFailed) {
+      // 1. KALO SERVER BILANG GAGAL, YA UDAH GAGAL
+      if (jsonStatus.status === "FAILED") {
         clearInterval(cekInterval);
         tugas.status = "Gagal Dirender"; 
         tugas.selesai = true;
@@ -247,32 +198,29 @@ function pantauTaskRunningHub(tugas, apiKey) {
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
         tampilkanNotif('❌ Render dibatalkan / gagal di server!', 'error');
         return;
-      } 
+      }
       
-      if ((rhStatus === "SUCCESS" || code === 0 || code === 200) && strData.includes(".mp4")) {
+      // 2. KALO SUKSES & ADA VIDEO MP4, YA TARIK VIDEONYA
+      if ((jsonStatus.status === "SUCCESS" || jsonStatus.code === 0) && stringData.includes(".mp4")) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
         tugas.selesai = true;
         tugas.progress = 100; 
         
         var vidUrl = null;
-        if (jsonStatus.data && Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
-            vidUrl = jsonStatus.data[0].fileUrl;
-        }
-        if (!vidUrl) {
-            var match = resText.match(/https?:\/\/[^"']+\.mp4/i);
-            if (match) vidUrl = match[0];
-        }
+        var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
+        if (match) vidUrl = match[0];
         
         tugas.videoUrl = vidUrl;
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        
         if (vidUrl) tampilkanNotif('✓ Render sukses! Video ditarik.', 'sukses');
         else tampilkanNotif('❌ Sukses tapi link kosong!', 'error');
         return;
-      } 
+      }
       
-      // MASIH JALAN
+      // 3. SELAIN DUA ITU (BERARTI MASIH PROSES RENDER), NAIKIN PROGRESS AJA
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -280,7 +228,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
 
     } catch (err) { 
-      // Error jaringan ditahan supaya gak merusak state
+      // Kalo internet ngadat sekian detik, biarin CCTV nunggu ngecek lagi
     }
   }, 10000); 
 }
@@ -402,7 +350,7 @@ async function mulaiProsesGenerate() {
 }
 
 // ==========================================
-// RENDER LAYAR HISTORY (TANGGUH DARI NYAWA GANDA)
+// RENDER LAYAR HISTORY
 // ==========================================
 function renderLayarHistory() {
   var wadah = document.getElementById('wadah-list-history'), counter = document.getElementById('txt-counter-history');
@@ -415,10 +363,8 @@ function renderLayarHistory() {
   }
   
   riwayatGenerateList.forEach(function(itm, index) {
-    // Validasi Gagal dan Selesai dikunci pakai kata kunci yang jauh lebih saklek
-    var checkStatus = (itm.status || "").toLowerCase();
-    var isFailed = (checkStatus.includes("gagal") || checkStatus.includes("timeout") || checkStatus.includes("error"));
-    var isDone = (itm.selesai === true && !isFailed);
+    var isDone = (itm.selesai === true && itm.status === "Selesai");
+    var isFailed = (itm.selesai === true && itm.status === "Gagal Dirender");
     var hasVideo = Boolean(itm.videoUrl);
     var currentProg = itm.progress !== undefined ? itm.progress : (isDone || isFailed ? 100 : 0);
     
@@ -427,7 +373,7 @@ function renderLayarHistory() {
     
     var statusBadge = '';
     if (isFailed) {
-      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ ' + itm.status + '</span>';
+      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ Gagal Dirender</span>';
     } else if (isDone) {
       if (hasVideo) {
         statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai (100%)</span>' +
@@ -458,8 +404,6 @@ function renderLayarHistory() {
 
 function hapusRiwayatSatu(idx) {
   mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
-    var tgs = riwayatGenerateList[idx];
-    if (tgs && tgs.intervalObj) clearInterval(tgs.intervalObj); // Bunuh intervalnya sebelum hapus
     riwayatGenerateList.splice(idx, 1);
     simpanStorage();
     renderLayarHistory();
@@ -470,7 +414,6 @@ function hapusRiwayatSatu(idx) {
 function bersihkanSemuaHistory() {
   if (riwayatGenerateList.length === 0) return tampilkanNotif('History sudah kosong.', 'info');
   mintaKonfirmasi('Hapus seluruh riwayat generate?', function() {
-    riwayatGenerateList.forEach(function(t) { if (t.intervalObj) clearInterval(t.intervalObj); });
     riwayatGenerateList = []; simpanStorage(); renderLayarHistory(); tampilkanNotif('History dibersihkan', 'sukses');
   });
 }

@@ -20,7 +20,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const urlRunningHub = `https://www.runninghub.ai/task/openapi/outputs`;
+    // TEMBAK LANGSUNG KE ENDPOINT STATUS RESMI RUNNINGHUB
+    const urlRunningHub = `https://www.runninghub.ai/task/openapi/status`;
 
     const response = await fetch(urlRunningHub, {
       method: 'POST', 

@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & FULL FIX)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & FULL FIX ANTI-KAGET)
 // File: js/api-engine.js
 // ==========================================
 
@@ -170,12 +170,26 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (FIX MURNI: Nembus Array [0])
+// CCTV PEMANTAUAN (DETEKSI GAGAL BRUTAL & TIMEOUT)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
+  if (!tugas.cekCount) tugas.cekCount = 0; // Penghitung jumlah cek
 
   var cekInterval = setInterval(async function() {
+    tugas.cekCount++;
+    
+    // TIMEOUT PAKSA: Kalau udah dicek 90 kali (15 menit muter-muter) otomatis langsung digagalkan
+    if (tugas.cekCount > 90) {
+        clearInterval(cekInterval);
+        tugas.status = "Gagal (Timeout)"; 
+        tugas.selesai = true;
+        tugas.progress = 100;
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        return;
+    }
+
     try {
       var resStatus = await fetch('/api/outputs', { 
         method: 'POST',
@@ -189,69 +203,86 @@ function pantauTaskRunningHub(tugas, apiKey) {
         })
       });
       
-      if (!resStatus.ok) return; 
-      var jsonStatus = await resStatus.json();
-      var code = jsonStatus.code;
-      var stringData = JSON.stringify(jsonStatus).toLowerCase();
+      var resText = await resStatus.text();
+      var jsonStatus = {};
+      try { jsonStatus = JSON.parse(resText); } catch(e) {}
       
-      // PERBAIKAN MUTLAK: Ambil status dari laci mana pun (termasuk Array [0])
-      var rhStatus = "";
-      if (jsonStatus.status) {
-         rhStatus = jsonStatus.status;
-      } else if (jsonStatus.data) {
-         if (Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
-             rhStatus = jsonStatus.data[0].status || jsonStatus.data[0].taskStatus;
-         } else {
-             rhStatus = jsonStatus.data.status || jsonStatus.data.taskStatus;
-         }
-      }
-      rhStatus = (rhStatus || "").toString().toUpperCase();
+      var strData = resText.toLowerCase();
+      var code = jsonStatus.code;
 
-      // 1. DETEKSI GAGAL (Sekarang pasti tembus karena Array [0] udah kebaca)
-      if (rhStatus === "FAILED" || rhStatus === "ERROR" || code === -1) {
-        clearInterval(cekInterval);
-        tugas.status = "Gagal Dirender"; 
-        tugas.selesai = true;
-        tugas.progress = 100;
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-      } 
-      // 2. DETEKSI SUKSES
-      else if ((rhStatus === "SUCCESS" || code === 0 || code === 200) && stringData.includes(".mp4")) {
+      // 1. CEK SUKSES MUTLAK: Jika ada file .mp4 di dalam response
+      if (strData.includes(".mp4")) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
         tugas.selesai = true;
         tugas.progress = 100; 
         
         var vidUrl = null;
-        if (jsonStatus.data && Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
-          vidUrl = jsonStatus.data[0].fileUrl;
-        }
-        if (!vidUrl) {
-          var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
-          if (match) vidUrl = match[0];
+        var match = resText.match(/https?:\/\/[^"']+\.mp4/i);
+        if (match) {
+            vidUrl = match[0];
         }
         
         tugas.videoUrl = vidUrl;
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-      } 
-      // 3. MASIH PROSES (RUNNING)
-      else {
-        if (tugas.progress < 95) {
-          tugas.progress += Math.floor(Math.random() * 3) + 2; 
+        
+        if (vidUrl) {
+          tampilkanNotif('✓ Render sukses! Video berhasil ditarik.', 'sukses');
+        } else {
+          tampilkanNotif('❌ Status sukses, tapi link mp4 kosong!', 'error');
         }
+        return;
+      } 
+      
+      // 2. CEK GAGAL BRUTAL (Tangkep semua jenis error)
+      var isFailed = false;
+      
+      // Jika dari Vercel aja udah error 4xx atau 5xx
+      if (!resStatus.ok) {
+          isFailed = true;
+      } 
+      // Jika RH terang-terangan ngirim code gagal (-1, 500, atau code aneh lainnya selain 0 & 200)
+      else if (code !== 0 && code !== undefined && code !== 200 && code !== 201) {
+          isFailed = true;
+      }
+      // Jika ada teks FAILED atau tulisan cina kegagalan di dalam respons JSON-nya
+      else if (strData.includes('"status":"failed"') || strData.includes('"taskstatus":"failed"')) {
+          isFailed = true;
+      }
+      else if (strData.includes('"msg":"failed"') || strData.includes('"message":"failed"')) {
+          isFailed = true;
+      }
+      else if (strData.includes("失败")) { // Tulisan "Gagal" dari server pusat
+          isFailed = true;
+      }
+
+      if (isFailed) {
+        clearInterval(cekInterval);
+        tugas.status = "Gagal Dirender"; 
+        tugas.selesai = true;
+        tugas.progress = 100;
         simpanStorage();
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+        tampilkanNotif('❌ Render dibatalkan / gagal di server!', 'error');
+        return;
       }
+      
+      // 3. MASIH JALAN (Aman, naikin progress)
+      if (tugas.progress < 95) {
+        tugas.progress += Math.floor(Math.random() * 3) + 2; 
+      }
+      simpanStorage();
+      if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+
     } catch (err) { 
-      // Abaikan error jaringan sementara
+      // Jaringan HP putus sementara, biarin aja jangan ditandai gagal dulu
     }
   }, 10000); 
 }
 
 // ==========================================
-// KIRIM TUGAS KE GPU (DENGAN VALIDASI MINIMAL 478 KOIN SAAT RENDER)
+// KIRIM TUGAS KE GPU
 // ==========================================
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
@@ -399,8 +430,8 @@ function renderLayarHistory() {
   }
   
   riwayatGenerateList.forEach(function(itm, index) {
-    var isDone = (itm.selesai === true || itm.status === "Selesai");
-    var isFailed = (itm.status === "Gagal Dirender" || itm.status === "Gagal");
+    var isDone = (itm.selesai === true || itm.status === "Selesai" || itm.status.includes("Timeout"));
+    var isFailed = (itm.status === "Gagal Dirender" || itm.status === "Gagal" || itm.status.includes("Timeout"));
     var hasVideo = Boolean(itm.videoUrl);
     var currentProg = itm.progress !== undefined ? itm.progress : (isDone ? 100 : 0);
     
@@ -409,7 +440,7 @@ function renderLayarHistory() {
     
     var statusBadge = '';
     if (isFailed) {
-      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ Gagal Dirender</span>';
+      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ ' + (itm.status) + '</span>';
     } else if (isDone) {
       if (hasVideo) {
         statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai (100%)</span>' +

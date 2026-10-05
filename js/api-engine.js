@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MUTLAK)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MUTLAK - ANTI MUTAR)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (MUTLAK BERDASARKAN JSON ASLI)
+// CCTV PEMANTAUAN (PENJAGAAN BERLAPIS, ANTI MUTER)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -189,7 +189,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
     tugas.cekCount++;
     if (tugas.cekCount > 90) { // Timeout 15 Menit
         clearInterval(cekInterval);
-        tugas.status = "Gagal (Timeout 15 Menit)"; 
+        tugas.status = "Gagal (Timeout)"; 
         tugas.selesai = true;
         tugas.progress = 100;
         simpanStorage();
@@ -206,25 +206,17 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       if (!resStatus.ok) return; 
       
-      var jsonStatus = await resStatus.json();
-      var stringData = JSON.stringify(jsonStatus);
-      var cleanString = stringData.toUpperCase().replace(/\s/g, '');
-
-      // 1. CEK SUKSES (Murni nunggu sampai beneran ada URL .mp4)
+      var textRaw = await resStatus.text(); // AMBIL TEXT ASLI, JANGAN LANGSUNG JSON
+      var cleanString = textRaw.toUpperCase().replace(/\s/g, ''); // HAPUS SPASI BIAR BISA DIBACA LANGSUNG
+      
+      // 1. CEK SUKSES (MURNI JIKA ADA LINK MP4)
       if (cleanString.includes('.MP4')) {
         var vidUrl = null;
-        var match = stringData.match(/https?:\/\/[^"'\s]+\.mp4/i);
+        var match = textRaw.match(/https?:\/\/[^"'\s]+\.mp4/i);
+        if (!match) match = textRaw.match(/[^"'\s]+\.mp4/i); // fallback tanpa http
         
         if (match) {
           vidUrl = match[0].replace(/\\/g, '');
-        } else {
-          // Fallback antisipasi kalau URL video dari server gak pakai http://
-          var fallbackMatch = stringData.match(/[^"'\s]+\.mp4/i);
-          if (fallbackMatch) vidUrl = fallbackMatch[0].replace(/\\/g, '');
-        }
-
-        // Kalau url dapet, baru eksekusi selesai
-        if (vidUrl) {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
@@ -232,44 +224,27 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.videoUrl = vidUrl;
           simpanStorage();
           if (typeof renderLayarHistory === 'function') renderLayarHistory();
-          tampilkanNotif('✓ Render sukses! Video ditarik.', 'sukses');
+          tampilkanNotif('✓ Render sukses!', 'sukses');
           return;
         }
       }
-      
-      // 2. CEK GAGAL MUTLAK (Sesuai Struktur JSON RunningHub)
-      var statusRoot = (jsonStatus.status || "").toString().toUpperCase();
-      var errorMessage = jsonStatus.errorMessage || ""; 
-      var isRealFailed = (statusRoot === "FAILED" || statusRoot === "CANCELLED" || statusRoot === "ERROR");
 
-      // Cek ke dalam array taskUsageList
-      if (jsonStatus.taskUsageList && Array.isArray(jsonStatus.taskUsageList)) {
-        jsonStatus.taskUsageList.forEach(function(item) {
-          if (item.taskId && String(item.taskId) === String(tugas.id)) {
-            var subStatus = (item.taskStatus || "").toString().toUpperCase();
-            if (subStatus === "FAILED" || subStatus === "CANCELLED" || subStatus === "ERROR") {
-              isRealFailed = true;
-            }
-          }
-        });
-      }
-
-      // Deteksi error lemparan dari backend Vercel (jika ada)
-      if (jsonStatus.code === 502 || jsonStatus.code === 500) {
-        isRealFailed = true;
-        errorMessage = jsonStatus.msg || "Server Vercel Error";
-      }
-
-      // JIKA TERDETEKSI GAGAL, LANGSUNG EKSEKUSI BERHENTI!
-      if (isRealFailed) {
-        clearInterval(cekInterval);
-        tugas.status = errorMessage ? ("Gagal: " + errorMessage) : "❌ Gagal Dirender";
-        tugas.selesai = true;
-        tugas.progress = 100;
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function') renderLayarHistory();
-        tampilkanNotif('❌ Proses render gagal di server!', 'error');
-        return;
+      // 2. CEK GAGAL PALING BRUTAL & MUTLAK
+      // Gak peduli dibungkus .data atau enggak, kalau Vercel balikin kata ini, langsung BUNUH loop-nya!
+      if (cleanString.includes('"STATUS":"FAILED"') || 
+          cleanString.includes('"TASKSTATUS":"FAILED"') || 
+          cleanString.includes('"STATUS":"ERROR"') || 
+          cleanString.includes('"ERRORCODE":"805"') || 
+          cleanString.includes('工作流运行失败')) {
+          
+          clearInterval(cekInterval);
+          tugas.status = "❌ Gagal Dirender Server";
+          tugas.selesai = true;
+          tugas.progress = 100;
+          simpanStorage();
+          if (typeof renderLayarHistory === 'function') renderLayarHistory();
+          tampilkanNotif('❌ Proses render gagal ditolak server!', 'error');
+          return;
       }
       
       // 3. JIKA BELUM SELESAI, NAIKKAN PROGRESS AMAN
@@ -280,7 +255,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (typeof renderLayarHistory === 'function') renderLayarHistory();
 
     } catch (err) { 
-      // Abaikan gangguan jaringan agar tidak membatalkan render yang sedang berjalan
+      // Abaikan error jaringan sementara
     }
   }, 10000); 
 }

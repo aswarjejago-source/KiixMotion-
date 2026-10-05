@@ -170,7 +170,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (SUDAH DIKOREKSI: ANTI KAGET "FAILED")
+// CCTV PEMANTAUAN (SESUAI LOG JSON MURNI DARI SCREENSHOT)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
@@ -189,18 +189,22 @@ function pantauTaskRunningHub(tugas, apiKey) {
         })
       });
       
-      if (!resStatus.ok) return; 
+      // HAPUS pemblokir "!resStatus.ok". 
+      // Kalo API Vercel ngirim 400/500 karena FAILED, JSON-nya tetep harus kita baca!
+      var jsonStatus;
+      try {
+        jsonStatus = await resStatus.json();
+      } catch (e) {
+        return; // Cuma diskip kalo datanya bener-bener rusak/bukan JSON
+      }
       
-      var jsonStatus = await resStatus.json();
-      
-      var msg = (jsonStatus.msg || jsonStatus.message || "").toString().toLowerCase();
+      // MURNI BACA DARI SCREENSHOT: "status": "FAILED" / "SUCCESS"
+      var statusRunHub = (jsonStatus.status || (jsonStatus.data ? jsonStatus.data.status : "") || "").toString().toUpperCase();
       var code = jsonStatus.code;
-      var statusField = (jsonStatus.status || jsonStatus.data?.status || jsonStatus.data?.taskStatus || "").toString().toLowerCase();
-      var stringData = JSON.stringify(jsonStatus).toLowerCase();
+      var stringData = JSON.stringify(jsonStatus);
       
-      // LOGIKA BARU: Cuma ngecek value dari statusField, msg, atau code. 
-      // Gak lagi ngecek stringData secara membabi-buta supaya gak kagetan kena "errorCode: null".
-      if (statusField === "failed" || statusField === "error" || msg === "failed" || msg === "error" || code === -1 || code === 500) {
+      // 1. DETEKSI GAGAL
+      if (statusRunHub === "FAILED" || statusRunHub === "ERROR" || code === -1) {
         clearInterval(cekInterval);
         tugas.status = "Gagal Dirender"; 
         tugas.selesai = true;
@@ -209,20 +213,17 @@ function pantauTaskRunningHub(tugas, apiKey) {
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
         tampilkanNotif('❌ Render gagal di server GPU RunningHub!', 'error');
       } 
-      // Jika code 0 atau msg success, DAN di dalamnya ada link .mp4
-      else if ((code === 0 || code === 200 || msg === "success" || statusField === "success") && stringData.includes(".mp4")) {
+      // 2. DETEKSI SUKSES (Cari link mp4 langsung pakai detektor file)
+      else if ((statusRunHub === "SUCCESS" || code === 0 || code === 200) && stringData.includes(".mp4")) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
         tugas.selesai = true;
         tugas.progress = 100; 
         
         var vidUrl = null;
-        if (jsonStatus.data && Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
-          vidUrl = jsonStatus.data[0].fileUrl;
-        }
-        if (!vidUrl) {
-          var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
-          if (match) vidUrl = match[0];
+        var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
+        if (match) {
+            vidUrl = match[0];
         }
         
         tugas.videoUrl = vidUrl;
@@ -235,8 +236,8 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tampilkanNotif('❌ Status sukses, tapi link mp4 kosong!', 'error');
         }
       } 
+      // 3. MASIH PROSES (RUNNING)
       else {
-        // Masih Proses / RUNNING, naikin progress pelan-pelan
         if (tugas.progress < 95) {
           tugas.progress += Math.floor(Math.random() * 3) + 2; 
         }

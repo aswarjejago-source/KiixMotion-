@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MURNI & FULL FIX)
 // File: js/api-engine.js
 // ==========================================
 
@@ -170,7 +170,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (TARGET MURNI BERDASARKAN SURAT)
+// CCTV PEMANTAUAN (DENGAN DETEKSI GAGAL TOTAL & AMAN)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (!tugas.progress) tugas.progress = 0; 
@@ -193,26 +193,31 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       var jsonStatus = await resStatus.json();
       
-      // BACA SURAT CINTA!
-      var msg = (jsonStatus.msg || "").toString().toLowerCase();
+      var msg = (jsonStatus.msg || jsonStatus.message || "").toString().toLowerCase();
       var code = jsonStatus.code;
+      var statusField = (jsonStatus.status || "").toString().toLowerCase();
       var stringData = JSON.stringify(jsonStatus);
       
+      // Jika status dari server GPU terdeteksi gagal / error / cancel
+      if (msg === "failed" || msg === "error" || code === -1 || code === 500 || statusField === "failed" || statusField === "error" || stringData.includes("fail")) {
+        clearInterval(cekInterval);
+        tugas.status = "Gagal Dirender"; 
+        tugas.selesai = true;
+        tugas.progress = 100;
+        simpanStorage();
+        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
+      } 
       // Jika code 0 atau msg success, DAN di dalamnya ada tulisan .mp4
-      if ((code === 0 || msg === "success") && stringData.includes(".mp4")) {
+      else if ((code === 0 || code === 200 || msg === "success" || statusField === "success") && stringData.includes(".mp4")) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
         tugas.selesai = true;
         tugas.progress = 100; 
         
         var vidUrl = null;
-        
-        // Target langsung ke laci data[0].fileUrl sesuai screenshot!
         if (jsonStatus.data && Array.isArray(jsonStatus.data) && jsonStatus.data.length > 0) {
           vidUrl = jsonStatus.data[0].fileUrl;
         }
-        
-        // Kalau ternyata meleset sedikit, pakai jaring harimau (Regex)
         if (!vidUrl) {
           var match = stringData.match(/https?:\/\/[^"']+\.mp4/i);
           if (match) vidUrl = match[0];
@@ -228,16 +233,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tampilkanNotif('❌ Status sukses, tapi link mp4 kosong!', 'error');
         }
       } 
-      // Jika statusnya gagal dari server
-      else if (msg === "failed" || msg === "error" || code === -1) {
-        clearInterval(cekInterval);
-        tugas.status = "Gagal Dirender"; 
-        tugas.selesai = true;
-        tugas.progress = 100;
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
-        tampilkanNotif('❌ Render dibatalkan/gagal oleh server GPU!', 'error');
-      }
       else {
         // Masih RUNNING, naikin progress pelan-pelan
         if (tugas.progress < 95) {
@@ -247,7 +242,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
       }
     } catch (err) { 
-      // Abaikan error jaringan
+      // Abaikan error jaringan sementara
     }
   }, 10000); 
 }
@@ -258,7 +253,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
   
-  // 1. AMBIL SESI USER REAL-TIME LANGSUNG DARI SUPABASE
   var realEmail = null;
   if (typeof supa !== 'undefined') {
     if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA SESI & VIP..."; }
@@ -273,7 +267,6 @@ async function mulaiProsesGenerate() {
     }
   }
 
-  // Fallback jika session kosong, ambil dari variabel global
   if (!realEmail && typeof currentUserEmail !== 'undefined' && currentUserEmail) {
     realEmail = currentUserEmail;
   }
@@ -283,7 +276,6 @@ async function mulaiProsesGenerate() {
     return tampilkanNotif('Sesi login tidak terdeteksi, silakan login ulang!', 'error');
   }
 
-  // 2. CEK STATUS VIP KE SUPABASE (DIKUNCI MATI AMAN DARI ERROR TRY-CATCH)
   var isVipActive = false;
   if (typeof supa !== 'undefined') {
     try {
@@ -301,16 +293,14 @@ async function mulaiProsesGenerate() {
             isVipActive = true;
           }
         } else {
-          isVipActive = true; // VIP Permanen
+          isVipActive = true; 
         }
       }
     } catch (e) {
-      console.log('Akses ditolak atau akun tidak terdaftar di database VIP:', e.message);
       isVipActive = false;
     }
   }
 
-  // 3. PEMBLOKIRAN MUTLAK JIKA TIDAK VALID SEBAGAI VIP
   if (!isVipActive) {
     tampilkanNotif('Akses ditolak! Akun ' + realEmail + ' belum VIP Pro.', 'error');
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
@@ -329,10 +319,6 @@ async function mulaiProsesGenerate() {
   var sel = document.getElementById('sel-dropdown-akun'), idx = sel ? sel.value : "";
   var akunAktif = (idx === "random" || idx === "") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
   
-  // ------------------------------------------------------------------
-  // STRATEGI BISNIS PADUKA: VALIDASI MINIMAL 478 KOIN SEBELUM RENDER
-  // (Kecuali untuk Yang Mulia anggraingki@gmail.com)
-  // ------------------------------------------------------------------
   if (engineProvider === 'runninghub' && akunAktif) {
     var koinAkunAktif = Number(akunAktif.koin) || 0;
     if (realEmail.toLowerCase() !== 'anggraingki@gmail.com') {
@@ -396,25 +382,66 @@ async function mulaiProsesGenerate() {
   }
 }
 
+// ==========================================
+// RENDER LAYAR HISTORY (LENGKAP DENGAN TOMBOL HAPUS)
+// ==========================================
 function renderLayarHistory() {
   var wadah = document.getElementById('wadah-list-history'), counter = document.getElementById('txt-counter-history');
   if (!wadah) return; wadah.innerHTML = '';
   if (counter) counter.innerText = riwayatGenerateList.length + " tugas";
+  
   if (riwayatGenerateList.length === 0) {
     wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada riwayat generate video.</div>';
     return;
   }
-  riwayatGenerateList.forEach(function(itm) {
-    var isDone = (itm.selesai === true || itm.status === "Selesai"), hasVideo = Boolean(itm.videoUrl);
+  
+  riwayatGenerateList.forEach(function(itm, index) {
+    var isDone = (itm.selesai === true || itm.status === "Selesai");
+    var isFailed = (itm.status === "Gagal Dirender" || itm.status === "Gagal");
+    var hasVideo = Boolean(itm.videoUrl);
     var currentProg = itm.progress !== undefined ? itm.progress : (isDone ? 100 : 0);
     
     var card = document.createElement('div');
     card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
-    card.innerHTML = '<div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-kmVioletLight text-kmViolet flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">' + (isDone ? '▶' : '⏳') + '</div><div><div class="flex items-center gap-2"><span class="text-base font-bold text-kmTextPrimary">' + itm.model + '</span><span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-semibold border border-slate-200">' + itm.prov + '</span></div><div class="text-xs sm:text-sm text-kmTextSecondary mt-1">ID: <span class="text-kmViolet font-mono font-bold">' + itm.id + '</span> • ' + itm.tgl + ' • <span class="text-amber-600 font-bold">' + itm.biaya + '</span></div></div></div><div class="flex items-center gap-2.5 shrink-0 pt-2 sm:pt-0">' +
-      (isDone ? (hasVideo ? '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai (100%)</span><button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer">Putar</button><a href="' + itm.videoUrl + '" target="_blank" download="kiixmotion-' + itm.id + '.mp4" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</a>'
-        : '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai di GPU (100%)</span>')
-        : '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">⏳ Render: ' + currentProg + '%</span>') + '</div>';
+    
+    var statusBadge = '';
+    if (isFailed) {
+      statusBadge = '<span class="text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full font-bold">❌ Gagal Dirender</span>';
+    } else if (isDone) {
+      if (hasVideo) {
+        statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai (100%)</span>' +
+          '<button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer">Putar</button>' +
+          '<a href="' + itm.videoUrl + '" target="_blank" download="kiixmotion-' + itm.id + '.mp4" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</a>';
+      } else {
+        statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai di GPU (100%)</span>';
+      }
+    } else {
+      statusBadge = '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">⏳ Render: ' + currentProg + '%</span>';
+    }
+
+    card.innerHTML = '<div class="flex items-center gap-4">' +
+      '<div class="w-12 h-12 rounded-2xl ' + (isFailed ? 'bg-rose-50 text-rose-600' : 'bg-kmVioletLight text-kmViolet') + ' flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">' + (isFailed ? '✕' : (isDone ? '▶' : '⏳')) + '</div>' +
+      '<div>' +
+        '<div class="flex items-center gap-2"><span class="text-base font-bold text-kmTextPrimary">' + itm.model + '</span><span class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-semibold border border-slate-200">' + itm.prov + '</span></div>' +
+        '<div class="text-xs sm:text-sm text-kmTextSecondary mt-1">ID: <span class="text-kmViolet font-mono font-bold">' + itm.id + '</span> • ' + itm.tgl + ' • <span class="text-amber-600 font-bold">' + itm.biaya + '</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="flex items-center gap-2.5 shrink-0 pt-2 sm:pt-0">' + 
+      statusBadge + 
+      '<button type="button" onclick="hapusRiwayatSatu(' + index + ')" class="px-3 py-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition cursor-pointer border border-rose-200" title="Hapus Riwayat">Hapus</button>' +
+    '</div>';
+    
     wadah.appendChild(card);
+  });
+}
+
+// Fungsi Hapus Satu Tugas History
+function hapusRiwayatSatu(idx) {
+  mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
+    riwayatGenerateList.splice(idx, 1);
+    simpanStorage();
+    renderLayarHistory();
+    tampilkanNotif('Riwayat tugas berhasil dihapus', 'sukses');
   });
 }
 
@@ -512,7 +539,6 @@ window.onload = function() {
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
 
-  // Ini balikin ke interval normal 10 detik lagi
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
     riwayatGenerateList.forEach(function(tugas) {
       if (!tugas.selesai && tugas.id && tugas.key) {

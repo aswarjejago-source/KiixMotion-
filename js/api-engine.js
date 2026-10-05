@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL FOKUS TASK STATUS & ID)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MUTLAK TÉMBUS .DATA)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (BERBASIS TASK ID & TASK STATUS DI TASK USAGE LIST)
+// CCTV PEMANTAUAN (TÉMBUS KE DALAM .DATA & TASK USAGE LIST)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -210,7 +210,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       var stringData = JSON.stringify(jsonStatus);
       var cleanString = stringData.toUpperCase().replace(/\s/g, '');
 
-      // 1. CEK SUKSES UTAMA: Jika ada file .mp4 di dalam respons
+      // 1. CEK SUKSES: Jika ada file .mp4 di dalam respons
       if (cleanString.includes('.MP4')) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
@@ -230,18 +230,23 @@ function pantauTaskRunningHub(tugas, apiKey) {
         return;
       }
       
-      // 2. CEK BERDASARKAN LOGIKA LU: Periksa taskStatus di dalam taskUsageList atau root status
+      // 2. CEK STATUS GAGAL SECARA MENYELURUH (ROOT, .DATA, ATAU TASK USAGE LIST)
       var isRealFailed = false;
-      
-      // Cek status root dari balasan server (misal: status: "FAILED" / "CANCELLED" / "ERROR")
-      var rootStatus = (jsonStatus.status || "").toString().toUpperCase();
-      if (rootStatus === "FAILED" || rootStatus === "CANCELLED" || rootStatus === "ERROR") {
+
+      // Ambil objek dalam data jika dibungkus .data
+      var dataObj = jsonStatus.data && typeof jsonStatus.data === 'object' ? jsonStatus.data : {};
+
+      // Cek status di root atau di dalam .data
+      var s1 = (jsonStatus.status || "").toString().toUpperCase();
+      var s2 = (dataObj.status || "").toString().toUpperCase();
+      if (s1 === "FAILED" || s1 === "CANCELLED" || s1 === "ERROR" || s2 === "FAILED" || s2 === "CANCELLED" || s2 === "ERROR") {
         isRealFailed = true;
       }
 
-      // Cek ke dalam array taskUsageList dan cocokkan taskId miliknya
-      if (jsonStatus.taskUsageList && Array.isArray(jsonStatus.taskUsageList)) {
-        jsonStatus.taskUsageList.forEach(function(item) {
+      // Cek ke dalam array taskUsageList (baik di root maupun di dalam .data)
+      var usageList = jsonStatus.taskUsageList || dataObj.taskUsageList;
+      if (usageList && Array.isArray(usageList)) {
+        usageList.forEach(function(item) {
           if (item.taskId && String(item.taskId) === String(tugas.id)) {
             var subStatus = (item.taskStatus || "").toString().toUpperCase();
             if (subStatus === "FAILED" || subStatus === "CANCELLED" || subStatus === "ERROR") {
@@ -262,7 +267,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         return;
       }
       
-      // 3. JIKA BELUM ADA TANDA SELESAI ATAU GAGAL = LANJUTKAN PROGRESS AMAN
+      // 3. JIKA BELUM SELESAI ATAU GAGAL = LANJUTKAN PROGRESS AMAN
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }

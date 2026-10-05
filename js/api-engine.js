@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (AUTO-CLEAN STUCK TASKS)
+// PILAR 3: API ENGINE & RENDER LOGIC (AUTO-CLEAN STUCK TASKS + UI REFRESH)
 // File: js/api-engine.js
 // ==========================================
 
@@ -450,7 +450,7 @@ function renderLayarHistory() {
     var isDone = (itm.selesai === true && itm.status === "Selesai");
     var isFailed = (itm.selesai === true && itm.status !== "Selesai");
     var hasVideo = Boolean(itm.videoUrl);
-    var currentProg = itm.progress !== undefined ? itm.progress : (isDone || isFailed ? 100 : 0);
+    var currentProg = riwayatGenerateList[index].progress !== undefined ? riwayatGenerateList[index].progress : (isDone || isFailed ? 100 : 0);
     
     var card = document.createElement('div');
     card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
@@ -592,7 +592,7 @@ window.onload = function() {
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
 
-  // 🛡️ AUTO-CLEAN: Begitu web dibuka di HP, task menggantung dari sesi lalu langsung di-stop & ditandai gagal agar tidak muter-muter abadi
+  // 🛡️ AUTO-CLEAN: Begitu web dibuka di HP, task menggantung dari sesi lalu langsung di-stop & ditandai gagal
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
     var adaTaskMacet = false;
     riwayatGenerateList.forEach(function(tugas) {
@@ -605,6 +605,10 @@ window.onload = function() {
     });
     if (adaTaskMacet) {
       simpanStorage();
+      // Paksa refresh tampilan history jika fungsi render tersedia
+      if (typeof renderLayarHistory === 'function') {
+        renderLayarHistory();
+      }
     }
   }
 };

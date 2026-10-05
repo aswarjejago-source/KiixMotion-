@@ -11,7 +11,7 @@ var pendingKonfirmasiFn = null;
 var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
 
 // ------------------------------------------
-// FITUR LAMA BAWAAN LU (AMAN 100%)
+// FITUR PONDASI
 // ------------------------------------------
 function tampilkanNotif(pesan, jenis) {
   var wadah = document.getElementById('toast-container');
@@ -90,7 +90,7 @@ function centangSemuaAkun(master) {
 }
 
 // ------------------------------------------
-// FITUR BARU: NAVIGASI LENGKAP DENGAN LANGGANAN
+// NAVIGASI
 // ------------------------------------------
 function gantiLayarNav(layar) {
   navLayarAktif = layar;
@@ -138,7 +138,7 @@ function togglePanduanKey() {
 }
 
 // ------------------------------------------
-// FITUR BARU: GALERI MAKS 50 FILE
+// GALERI
 // ------------------------------------------
 var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
 
@@ -214,7 +214,7 @@ window.renderGaleri = function() {
 }
 
 // ------------------------------------------
-// FITUR BARU: RENDER VIDEO KE GRID
+// FITUR BARU: RENDER VIDEO KE GRID (ANTI-MUTER)
 // ------------------------------------------
 window.renderVideoAsliKeGrid = function() {
   var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
@@ -240,17 +240,41 @@ window.renderVideoAsliKeGrid = function() {
 
   function bikinKartuHTML(video) {
       var linkVideo = video.url || video.video_url || video.hasil_url || video.videoUrl || '';
-      var namaEngine = video.engine || video.provider || 'Wan Motion Control';
+      var namaEngine = video.engine || video.provider || video.model || 'Wan Motion Control';
       
-      var areaMedia = linkVideo ? 
-          `<video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata" playsinline></video>
+      // KUNCI PENTING: Cek apakah sistem di api-engine.js udah ngasih sinyal "Gagal" atau nge-set "selesai" tanpa URL.
+      var isFailed = (video.status && (video.status.toLowerCase().includes('gagal') || video.status.includes('❌')));
+      var isSelesai = video.selesai === true;
+
+      var areaMedia = '';
+
+      if (linkVideo) {
+          // 1. JIKA ADA VIDEO -> SUKSES
+          areaMedia = `<video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata" playsinline></video>
           <div class="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm z-10 pointer-events-none">
              <i class="ph ph-check-circle"></i> Selesai
-          </div>` : 
-          `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400">
-             <i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i>
-             <span class="text-xs font-bold">Sedang Diproses...</span>
           </div>`;
+      } else if (isFailed || (isSelesai && !linkVideo)) {
+          // 2. JIKA GAGAL -> MUNCULKAN ERROR, JANGAN MUTER TERUS!
+          var teksError = video.status || "❌ Gagal Dirender Server";
+          areaMedia = `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-rose-500 p-4 text-center">
+             <i class="ph-fill ph-warning-circle text-4xl mb-2 drop-shadow-md"></i>
+             <span class="text-xs sm:text-sm font-bold leading-tight">${teksError}</span>
+          </div>`;
+      } else {
+          // 3. JIKA MASIH PROSES BENERAN
+          var progress = video.progress || 0;
+          areaMedia = `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400">
+             <i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i>
+             <span class="text-xs font-bold mb-1">Sedang Diproses...</span>
+             <span class="text-[10px] text-kmViolet font-bold">${progress}%</span>
+          </div>`;
+      }
+
+      var tombolDownload = linkVideo ? 
+          `<a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download">
+              <i class="ph ph-download-simple text-lg hover:scale-110"></i>
+           </a>` : '';
 
       return `
       <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow hover:shadow-lg transition flex flex-col group">
@@ -259,18 +283,16 @@ window.renderVideoAsliKeGrid = function() {
         </div>
         <div class="p-4 space-y-3">
            <div class="flex items-center gap-2.5">
-              <span class="w-2 h-2 rounded-full bg-kmViolet shadow-[0_0_8px_#7C3AED]"></span>
+              <span class="w-2 h-2 rounded-full ${isFailed ? 'bg-rose-500 shadow-[0_0_8px_#ef4444]' : 'bg-kmViolet shadow-[0_0_8px_#7C3AED]'}"></span>
               <h4 class="text-sm font-bold text-slate-800 truncate">${namaEngine}</h4>
            </div>
            <div class="flex items-center justify-between border-t border-kmBorder pt-3 mt-2">
-              <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                 <i class="ph-fill ph-tiktok-logo text-sm text-slate-800"></i> Auto TikTok
+              <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium truncate max-w-[60%]">
+                 <i class="ph-fill ph-tiktok-logo text-sm text-slate-800"></i> ID: ${video.id || '-'}
               </div>
               <div class="flex items-center gap-4">
-                 <a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download">
-                    <i class="ph ph-download-simple text-lg hover:scale-110"></i>
-                 </a>
-                 <button onclick="tampilkanNotif('Fitur Hapus sedang dalam perbaikan', 'error')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus">
+                 ${tombolDownload}
+                 <button onclick="hapusTugasBerdasarkanId('${video.id}')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus Tugas">
                     <i class="ph ph-trash text-lg hover:scale-110"></i>
                  </button>
               </div>
@@ -292,10 +314,33 @@ window.renderVideoAsliKeGrid = function() {
   }
 }
 
+// ------------------------------------------
+// FITUR HAPUS TUGAS
+// ------------------------------------------
+window.hapusTugasBerdasarkanId = function(id) {
+  if (typeof mintaKonfirmasi === 'function') {
+      mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
+          if (typeof riwayatGenerateList !== 'undefined') {
+              var idx = riwayatGenerateList.findIndex(function(t) { return String(t.id) === String(id); });
+              if (idx > -1) {
+                  if (riwayatGenerateList[idx].intervalObj) clearInterval(riwayatGenerateList[idx].intervalObj);
+                  riwayatGenerateList.splice(idx, 1);
+                  if (typeof simpanStorage === 'function') simpanStorage();
+                  renderVideoAsliKeGrid();
+                  tampilkanNotif('Riwayat tugas berhasil dihapus', 'sukses');
+              }
+          }
+      });
+  }
+};
+
 window.renderLayarHistory = function() { 
     renderVideoAsliKeGrid(); 
 };
 
+// ------------------------------------------
+// OBSERVER UNTUK UPDATE OTOMATIS UI
+// ------------------------------------------
 const observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(mutation) {
         if (mutation.target.id === 'wadah-list-history' || mutation.target.id === 'wadah-job-terbaru-dashboard') {
@@ -318,12 +363,11 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 // =========================================================================
-// INTEGRASI API IPAYMU - VERCEL BACKEND ROUTE (/api/bayar)
+// INTEGRASI API IPAYMU
 // =========================================================================
 window.prosesBeliVIP = function() {
     tampilkanNotif("Menghubungkan ke secure payment iPaymu...", "info");
     
-    // AMBIL EMAIL USER DARI SUPABASE SESSION / LOCALSTORAGE 
     let userEmail = "";
     
     try {
@@ -335,14 +379,11 @@ window.prosesBeliVIP = function() {
             }
         }
         
-        // Kalau gak nemu di session, cek variabel global kalau user udah login di web
         if (!userEmail && typeof currentKiiXUser !== 'undefined' && currentKiiXUser.email) {
             userEmail = currentKiiXUser.email;
         }
-        
-    } catch(e) { console.log("Gagal baca session", e); }
+    } catch(e) {}
 
-    // BLOKIR DI FRONTEND KALAU EMAIL KOSONG BIAR GAK ERROR
     if (!userEmail) {
         userEmail = prompt("Masukkan email aktif Anda untuk mengirim struk tagihan iPaymu:", "");
         if (!userEmail) {
@@ -351,18 +392,10 @@ window.prosesBeliVIP = function() {
         }
     }
     
-    // Nembak ke backend Vercel 
     fetch('/api/bayar', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            email: userEmail,
-            amount: 35630, 
-            name: "Member KiiXMotion", 
-            phone: "081122334455"
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, amount: 35630, name: "Member KiiXMotion", phone: "081122334455" })
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {
@@ -370,19 +403,14 @@ window.prosesBeliVIP = function() {
             tampilkanNotif("Berhasil! Mengarahkan ke secure payment...", "sukses");
             setTimeout(function() {
                 var paymentLink = (data.Data && data.Data.Url) ? data.Data.Url : data.url; 
-                if(paymentLink) {
-                   window.location.href = paymentLink;
-                } else {
-                   tampilkanNotif("Gagal membaca link pembayaran dari iPaymu", "error");
-                }
+                if(paymentLink) window.location.href = paymentLink;
+                else tampilkanNotif("Gagal membaca link pembayaran dari iPaymu", "error");
             }, 1000);
         } else {
             tampilkanNotif("Gagal bikin transaksi: " + (data.message || data.Message || "Kesalahan iPaymu"), "error");
-            console.error("Detail Error iPaymu:", data);
         }
     })
     .catch(function(err) {
         tampilkanNotif("Gagal koneksi ke server Vercel/iPaymu.", "error");
-        console.error("Error Fetch:", err);
     });
 };

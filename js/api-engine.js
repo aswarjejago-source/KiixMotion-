@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FULL UTUH - FINAL FIX)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL UTUH & SINKRON)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (FINAL FIX: NANGKEP FAILED & ERROR CODE 500)
+// CCTV PEMANTAUAN (SINKRONISASI AKURAT)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -210,7 +210,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       var stringData = JSON.stringify(jsonStatus);
       var cleanString = stringData.toUpperCase().replace(/\s/g, '');
 
-      // 1. KALO ADA FILE MP4 = MUTLAK SUKSES
+      // 1. CEK SUKSES: Jika ada link .mp4 di dalam respons
       if (cleanString.includes('.MP4')) {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
@@ -230,19 +230,19 @@ function pantauTaskRunningHub(tugas, apiKey) {
         return;
       }
       
-      // 2. KALO STATUS FAILED ATAU ERRORCODE BUKAN KOSONG/0 = MUTLAK GAGAL
-      var isServerFailed = false;
-      if (cleanString.includes('"STATUS":"FAILED"') || cleanString.includes('"TASKSTATUS":"FAILED"')) {
-        isServerFailed = true;
+      // 2. CEK GAGAL: Tangkap status FAILED, ERROR, atau errorCode dari server
+      var isFailed = false;
+      if (cleanString.includes('"STATUS":"FAILED"') || cleanString.includes('"TASKSTATUS":"FAILED"') || cleanString.includes('"STATUS":"ERROR"')) {
+        isFailed = true;
       }
-      if (jsonStatus.errorCode && jsonStatus.errorCode !== null && jsonStatus.errorCode !== "0" && jsonStatus.errorCode !== 0) {
-        isServerFailed = true;
+      if (jsonStatus.errorCode && jsonStatus.errorCode !== null && jsonStatus.errorCode !== "0" && jsonStatus.errorCode !== 0 && jsonStatus.errorCode !== "null") {
+        isFailed = true;
       }
-      if (jsonStatus.code !== undefined && jsonStatus.code !== 0 && jsonStatus.code !== 200) {
-        isServerFailed = true;
+      if (jsonStatus.code !== undefined && jsonStatus.code !== 0 && jsonStatus.code !== 200 && jsonStatus.code !== null) {
+        isFailed = true;
       }
 
-      if (isServerFailed) {
+      if (isFailed) {
         clearInterval(cekInterval);
         tugas.status = "Gagal Dirender"; 
         tugas.selesai = true;
@@ -253,7 +253,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         return;
       }
       
-      // 3. SELAIN ITU = MASIH JALAN AMAN
+      // 3. JIKA BELUM ADA TANDA SELESAI/GAGAL, BERARTI MASIH PROSES RENDER
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -261,7 +261,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
 
     } catch (err) { 
-      // Jaringan ngadat
+      // Abaikan gangguan jaringan sementara
     }
   }, 10000); 
 }

@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (STRICT 2 LAMPU MERAH)
+// PILAR 3: API ENGINE & RENDER LOGIC (AUTO-CLEAN STUCK TASKS)
 // File: js/api-engine.js
 // ==========================================
 
@@ -206,7 +206,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
       });
       
-      // 🚨 LAMPU MERAH KEDUA: Jangan diam-diam return! Tangkap error HTTP Vercel/API.
+      // 🚨 LAMPU MERAH KEDUA: Tangkap error HTTP Vercel/API secara transparan.
       if (!resStatus.ok) {
         var errText = "";
         try { var errJson = await resStatus.json(); errText = errJson.message || JSON.stringify(errJson); } catch(e) { errText = await resStatus.text(); }
@@ -223,7 +223,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       var jsonStatus = await resStatus.json();
 
-      // Jika dari Vercel eksplisit ngasih tanda error
       if (jsonStatus.error || jsonStatus.status === "FAILED") {
         clearInterval(cekInterval);
         tugas.status = "Gagal: " + (jsonStatus.message || "Server menolak permintaan status");
@@ -295,10 +294,8 @@ function pantauTaskRunningHub(tugas, apiKey) {
         return;
       }
       
-      // Reset counter network error jika berhasil tembus server
       tugas.networkErrorCount = 0;
 
-      // 3. JIKA BELUM SELESAI = LANJUTKAN PROGRESS AMAN
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -306,7 +303,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (typeof renderLayarHistory === 'function' && navLayarAktif === 'history') renderLayarHistory();
 
     } catch (err) { 
-      // 🚨 LAMPU MERAH KEDUA (NETWORK EXCEPTION): Jangan diabaikan diam-diam! Jika error 3x berturut-turut, matikan proses.
       tugas.networkErrorCount++;
       if (tugas.networkErrorCount >= 3) {
         clearInterval(cekInterval);
@@ -596,11 +592,19 @@ window.onload = function() {
   setProviderUtama('runninghub');
   aturTampilanHalamanUtama();
 
+  // 🛡️ AUTO-CLEAN: Begitu web dibuka di HP, task menggantung dari sesi lalu langsung di-stop & ditandai gagal agar tidak muter-muter abadi
   if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
+    var adaTaskMacet = false;
     riwayatGenerateList.forEach(function(tugas) {
-      if (!tugas.selesai && tugas.id && tugas.key) {
-        pantauTaskRunningHub(tugas, tugas.key);
+      if (!tugas.selesai) {
+        tugas.status = "Gagal (Sesi Berakhir / Perangkat Dimuat Ulang)";
+        tugas.selesai = true;
+        tugas.progress = 100;
+        adaTaskMacet = true;
       }
     });
+    if (adaTaskMacet) {
+      simpanStorage();
+    }
   }
 };

@@ -242,27 +242,23 @@ window.renderVideoAsliKeGrid = function() {
       var linkVideo = video.url || video.video_url || video.hasil_url || video.videoUrl || '';
       var namaEngine = video.engine || video.provider || video.model || 'Wan Motion Control';
       
-      // KUNCI PENTING: Cek apakah sistem di api-engine.js udah ngasih sinyal "Gagal" atau nge-set "selesai" tanpa URL.
       var isFailed = (video.status && (video.status.toLowerCase().includes('gagal') || video.status.includes('❌')));
       var isSelesai = video.selesai === true;
 
       var areaMedia = '';
 
       if (linkVideo) {
-          // 1. JIKA ADA VIDEO -> SUKSES
           areaMedia = `<video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata" playsinline></video>
           <div class="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm z-10 pointer-events-none">
              <i class="ph ph-check-circle"></i> Selesai
           </div>`;
       } else if (isFailed || (isSelesai && !linkVideo)) {
-          // 2. JIKA GAGAL -> MUNCULKAN ERROR, JANGAN MUTER TERUS!
           var teksError = video.status || "❌ Gagal Dirender Server";
           areaMedia = `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-rose-500 p-4 text-center">
              <i class="ph-fill ph-warning-circle text-4xl mb-2 drop-shadow-md"></i>
              <span class="text-xs sm:text-sm font-bold leading-tight">${teksError}</span>
           </div>`;
       } else {
-          // 3. JIKA MASIH PROSES BENERAN
           var progress = video.progress || 0;
           areaMedia = `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400">
              <i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i>
@@ -339,6 +335,47 @@ window.renderLayarHistory = function() {
 };
 
 // ------------------------------------------
+// FITUR OTOMATIS UBAH "MEMBER AKTIF" JADI "MEMBER PRO"
+// ------------------------------------------
+async function updateStatusMemberUI() {
+  if (typeof supa === 'undefined') return;
+  
+  try {
+    var sessionRes = await supa.auth.getSession();
+    var user = sessionRes?.data?.session?.user;
+    
+    if (user && user.email) {
+      var { data: profile, error } = await supa.from('users').select('is_vip, vip_expires_at').eq('email', user.email).single();
+      
+      var badgeEl = document.getElementById('label-member-status');
+      if (!badgeEl) return;
+      
+      if (!error && profile && profile.is_vip === true) {
+        var isExpired = false;
+        if (profile.vip_expires_at) {
+          if (new Date(profile.vip_expires_at).getTime() < new Date().getTime()) {
+            isExpired = true;
+          }
+        }
+
+        if (!isExpired) {
+          badgeEl.innerText = "⭐ Member Pro";
+          badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md inline-block";
+        } else {
+          badgeEl.innerText = "Member Aktif (Expired)";
+          badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
+        }
+      } else {
+        badgeEl.innerText = "Member Aktif";
+        badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
+      }
+    }
+  } catch (err) {
+    console.error("Gagal ngecek status member UI:", err);
+  }
+}
+
+// ------------------------------------------
 // OBSERVER UNTUK UPDATE OTOMATIS UI
 // ------------------------------------------
 const observer = new MutationObserver(function(mutations) {
@@ -356,6 +393,9 @@ document.addEventListener("DOMContentLoaded", function() {
     var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
     if(wadahHist) observer.observe(wadahHist, { childList: true, subtree: true });
     if(wadahDash) observer.observe(wadahDash, { childList: true, subtree: true });
+    
+    // PANGGIL DI SINI SUPAYA OTOMATIS JALAN PAS HALAMAN DIMUAT
+    updateStatusMemberUI();
     
     setTimeout(function() {
         gantiLayarNav('dashboard');

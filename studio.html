@@ -115,10 +115,11 @@
             <div class="absolute right-0 mt-2 w-48 bg-white border border-kmBorder rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 origin-top-right">
                 <div class="px-4 py-2 border-b border-kmBorder mb-1">
                     <p class="text-xs font-bold text-slate-800 truncate" id="profil-email-drop">Memuat...</p>
-                    <p class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
+                    <!-- ID "label-member-status" SUDAH DIPASANG DI SINI -->
+                    <p id="label-member-status" class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
                 </div>
                 <a href="#" onclick="gantiLayarNav('langganan')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro</a>
-                <a href="#" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙️ Add Apikey</a>
+                <a href="#" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙️️ Add Apikey</a>
                 <div class="border-t border-kmBorder mt-1 pt-1"><a href="#" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a></div>
             </div>
         </div>
@@ -380,7 +381,7 @@
 
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <h3 class="font-bold text-slate-800 text-sm">Kode Promo Spesial</h3>
-            <p class="text-xs text-slate-500">Punya kode promo? Masukkan di sini untuk aktifkan atau perpanjang plan.</p>
+            <p class="text-xs text-slate-500">Punya kode promo? Masukkan di sini untuk aktifkan atau perpanجار plan.</p>
             <div class="flex gap-2">
                 <input type="text" placeholder="PRO-XXXXXXX" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 font-mono" />
                 <button onclick="tampilkanNotif('Kode promo tidak valid', 'error')" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
@@ -457,6 +458,40 @@
               }
 
               window.kodeReferralAktifUser = kodeReferral;
+              
+              // Jalankan pengecekan status VIP member pro otomatis
+              updateStatusMemberUI(emailUser);
+          }
+      }
+
+      // Fungsi Cek Status VIP Member Pro dari Supabase
+      async function updateStatusMemberUI(emailUser) {
+          try {
+              const { data: profile, error } = await supa.from('users').select('is_vip, vip_expires_at').eq('email', emailUser).single();
+              const badgeEl = document.getElementById('label-member-status');
+              if (!badgeEl) return;
+              
+              if (!error && profile && profile.is_vip === true) {
+                  let isExpired = false;
+                  if (profile.vip_expires_at) {
+                      if (new Date(profile.vip_expires_at).getTime() < new Date().getTime()) {
+                          isExpired = true;
+                      }
+                  }
+
+                  if (!isExpired) {
+                      badgeEl.innerText = "⭐ Member Pro";
+                      badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md inline-block";
+                  } else {
+                      badgeEl.innerText = "Member Aktif (Expired)";
+                      badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
+                  }
+              } else {
+                  badgeEl.innerText = "Member Aktif";
+                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
+              }
+          } catch (err) {
+              console.error("Gagal ngecek status member UI:", err);
           }
       }
 

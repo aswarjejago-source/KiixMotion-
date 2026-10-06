@@ -1,5 +1,6 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL MUTLAK ANTI-MUTER)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL UTUH & ANTI-MUTER)
+// File: js/api-engine.js
 // ==========================================
 
 var engineProvider = 'runninghub';
@@ -168,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (PENJAGAAN BERLAPIS, ANTI MUTER)
+// CCTV PEMANTAUAN (ANTI-MUTER & TANGKAP ERROR JARINGAN/API)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -186,9 +187,10 @@ function pantauTaskRunningHub(tugas, apiKey) {
     }
 
     tugas.cekCount++;
-    if (tugas.cekCount > 90) { // Timeout 15 Menit
+    // Timeout jika sudah ngecek lebih dari 15 menit (90 kali)
+    if (tugas.cekCount > 90) { 
         clearInterval(cekInterval);
-        tugas.status = "Gagal (Timeout)"; 
+        tugas.status = "❌ Gagal (Timeout Server)"; 
         tugas.selesai = true;
         tugas.progress = 100;
         simpanStorage();
@@ -203,16 +205,25 @@ function pantauTaskRunningHub(tugas, apiKey) {
         body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
       });
       
-      if (!resStatus.ok) return; 
+      // PERBAIKAN MUTLAK: Tangkap Vercel Error (500, 502, 504 dll) dan matikan spinner
+      if (!resStatus.ok) {
+          clearInterval(cekInterval);
+          tugas.status = "❌ Error Vercel: " + resStatus.status;
+          tugas.selesai = true;
+          tugas.progress = 100;
+          simpanStorage();
+          if (typeof renderLayarHistory === 'function') renderLayarHistory();
+          return;
+      }
       
       var textRaw = await resStatus.text(); 
       var cleanString = textRaw.toUpperCase().replace(/\s/g, ''); 
       
-      // 1. CEK SUKSES (MURNI JIKA ADA LINK MP4)
+      // 1. CEK SUKSES (ADA VIDEO MP4)
       if (cleanString.includes('.MP4')) {
         var vidUrl = null;
         var match = textRaw.match(/https?:\/\/[^"'\s]+\.mp4/i);
-        if (!match) match = textRaw.match(/[^"'\s]+\.mp4/i); // fallback tanpa http
+        if (!match) match = textRaw.match(/[^"'\s]+\.mp4/i); 
         
         if (match) {
           vidUrl = match[0].replace(/\\/g, '');
@@ -223,17 +234,17 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.videoUrl = vidUrl;
           simpanStorage();
           if (typeof renderLayarHistory === 'function') renderLayarHistory();
-          tampilkanNotif('✓ Render sukses!', 'sukses');
           return;
         }
       }
 
-      // 2. CEK GAGAL PALING BRUTAL & MUTLAK
-      // Teks string mentah dari JSON, anti ditipu Vercel
+      // 2. CEK GAGAL BRUTAL (Tolak, API Sibuk, dll)
       if (cleanString.includes('"STATUS":"FAILED"') || 
           cleanString.includes('"TASKSTATUS":"FAILED"') || 
           cleanString.includes('"STATUS":"ERROR"') || 
           cleanString.includes('"ERRORCODE":"805"') || 
+          cleanString.includes('FAILED') || 
+          cleanString.includes('ERROR') || 
           cleanString.includes('工作流运行失败')) {
           
           clearInterval(cekInterval);
@@ -242,19 +253,24 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.progress = 100;
           simpanStorage();
           if (typeof renderLayarHistory === 'function') renderLayarHistory();
-          tampilkanNotif('❌ Proses render gagal ditolak server!', 'error');
           return;
       }
       
-      // 3. JIKA BELUM SELESAI, NAIKKAN PROGRESS AMAN
+      // 3. JIKA MASIH PROSES BENERAN, NAIKKAN PROGRESS
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
       simpanStorage();
       if (typeof renderLayarHistory === 'function') renderLayarHistory();
 
-    } catch (err) { 
-      // Abaikan error jaringan sementara
+    } catch (err) {
+      // PERBAIKAN MUTLAK: Tangkap jaringan putus / crash dan matikan spinner
+      clearInterval(cekInterval);
+      tugas.status = "❌ Gagal Jaringan/Koneksi";
+      tugas.selesai = true;
+      tugas.progress = 100;
+      simpanStorage();
+      if (typeof renderLayarHistory === 'function') renderLayarHistory();
     }
   }, 10000); 
 }

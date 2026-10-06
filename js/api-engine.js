@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL UTUH & ANTI-MUTER)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL UTUH & PRESISI JSON)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (ANTI-MUTER & TANGKAP ERROR JARINGAN/API)
+// CCTV PEMANTAUAN (FIXED: BACA JSON PRESISI)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -187,8 +187,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
     }
 
     tugas.cekCount++;
-    // Timeout jika sudah ngecek lebih dari 15 menit (90 kali)
-    if (tugas.cekCount > 90) { 
+    if (tugas.cekCount > 90) { // 15 Menit Timeout
         clearInterval(cekInterval);
         tugas.status = "❌ Gagal (Timeout Server)"; 
         tugas.selesai = true;
@@ -205,7 +204,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
       });
       
-      // PERBAIKAN MUTLAK: Tangkap Vercel Error (500, 502, 504 dll) dan matikan spinner
+      // Tangkap Error HTTP Vercel
       if (!resStatus.ok) {
           clearInterval(cekInterval);
           tugas.status = "❌ Error Vercel: " + resStatus.status;
@@ -238,22 +237,49 @@ function pantauTaskRunningHub(tugas, apiKey) {
         }
       }
 
-      // 2. CEK GAGAL BRUTAL (Tolak, API Sibuk, dll)
-      if (cleanString.includes('"STATUS":"FAILED"') || 
-          cleanString.includes('"TASKSTATUS":"FAILED"') || 
-          cleanString.includes('"STATUS":"ERROR"') || 
-          cleanString.includes('"ERRORCODE":"805"') || 
-          cleanString.includes('FAILED') || 
-          cleanString.includes('ERROR') || 
-          cleanString.includes('工作流运行失败')) {
+      // 2. CEK GAGAL DENGAN PARSING JSON (PRESISI TINGGI)
+      try {
+          var jsonObj = JSON.parse(textRaw);
+          var statusLuar = (jsonObj.status || "").toString().toUpperCase();
+          var errorCode = (jsonObj.errorCode || "").toString();
           
-          clearInterval(cekInterval);
-          tugas.status = "❌ Gagal Dirender Server";
-          tugas.selesai = true;
-          tugas.progress = 100;
-          simpanStorage();
-          if (typeof renderLayarHistory === 'function') renderLayarHistory();
-          return;
+          var taskStatusDalam = "";
+          if (jsonObj.taskUsageList && Array.isArray(jsonObj.taskUsageList) && jsonObj.taskUsageList.length > 0) {
+              taskStatusDalam = (jsonObj.taskUsageList[0].taskStatus || "").toString().toUpperCase();
+          }
+
+          // Matikan jika status BENAR-BENAR FAILED atau ERRORCODE 805
+          var isRealFailed = (
+              statusLuar === "FAILED" || 
+              statusLuar === "ERROR" || 
+              statusLuar === "CANCELLED" || 
+              taskStatusDalam === "FAILED" || 
+              errorCode === "805"
+          );
+
+          if (isRealFailed) {
+              clearInterval(cekInterval);
+              var pesanError = jsonObj.errorMessage || jsonObj.msg || "Gagal Dirender Server";
+              if (pesanError === "工作流运行失败") pesanError = "APIKEY_TASK_IS_RUNNING";
+              
+              tugas.status = "❌ " + pesanError;
+              tugas.selesai = true;
+              tugas.progress = 100;
+              simpanStorage();
+              if (typeof renderLayarHistory === 'function') renderLayarHistory();
+              return;
+          }
+      } catch (e) {
+          // Fallback aman kalau Vercel balikin teks non-JSON
+          if (cleanString.includes('"STATUS":"FAILED"') || cleanString.includes('"TASKSTATUS":"FAILED"')) {
+              clearInterval(cekInterval);
+              tugas.status = "❌ Gagal Dirender Server";
+              tugas.selesai = true;
+              tugas.progress = 100;
+              simpanStorage();
+              if (typeof renderLayarHistory === 'function') renderLayarHistory();
+              return;
+          }
       }
       
       // 3. JIKA MASIH PROSES BENERAN, NAIKKAN PROGRESS
@@ -264,9 +290,8 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (typeof renderLayarHistory === 'function') renderLayarHistory();
 
     } catch (err) {
-      // PERBAIKAN MUTLAK: Tangkap jaringan putus / crash dan matikan spinner
       clearInterval(cekInterval);
-      tugas.status = "❌ Gagal Jaringan/Koneksi";
+      tugas.status = "❌ Gagal Jaringan Koneksi";
       tugas.selesai = true;
       tugas.progress = 100;
       simpanStorage();

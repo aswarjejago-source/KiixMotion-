@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (PENARIKAN VIDEO PRESISI TINGGI)
+// PILAR 3: API ENGINE & RENDER LOGIC (BERSIH, TANPA DEBUG, AUTO REFRESH KOIN)
 // File: js/api-engine.js
 // ==========================================
 
@@ -76,6 +76,34 @@ function setProviderUtama(p) {
     if (dropWrap) dropWrap.style.display = 'block';
   }
   sinkronkanDropdownAkunGenerate();
+}
+
+// FUNGSI OTOMATIS REFRESH SALDO KOIN RUNNINGHUB
+async function refreshSaldoAkunOtomatis(apiKey) {
+  if (!apiKey || engineProvider !== 'runninghub') return;
+  try {
+    var res = await fetch('/api/saldo', {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ apiKey: apiKey })
+    });
+    var hasil = await res.json();
+    if (res.ok && hasil) {
+      var rawData = hasil.data || hasil;
+      var k = rawData.totalCoins !== undefined ? rawData.totalCoins : rawData.coins !== undefined ? rawData.coins : rawData.coin !== undefined ? rawData.coin : rawData.credit !== undefined ? rawData.credit : rawData.balance !== undefined ? rawData.balance : rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
+      
+      if (k !== undefined && k !== null) {
+        var idxKetemu = akunRunningHub.findIndex(function(a) { return a.key === apiKey; });
+        if (idxKetemu !== -1) {
+          akunRunningHub[idxKetemu].koin = Number(k);
+          simpanStorage();
+          updateStatistikDashboard();
+          sinkronkanDropdownAkunGenerate();
+          if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
+        }
+      }
+    }
+  } catch (err) {}
 }
 
 function unggahBahanLangsung(input, tipe) {
@@ -169,7 +197,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (PENARIKAN VIDEO & TIMEOUT 1 JAM)
+// CCTV PEMANTAUAN (BERSIH, TANPA DEBUG, AUTO REFRESH KOIN)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -205,21 +233,10 @@ function pantauTaskRunningHub(tugas, apiKey) {
       });
       
       var textRaw = await res.text(); 
-      var parsedText = textRaw.replace(/\\/g, ''); // Bersihkan backslash escape kalau ada
-      
-      // KOTAK DEBUG LIVE
-      var debugBox = document.getElementById('debug-box-cctv-live');
-      if (!debugBox) {
-          debugBox = document.createElement('div');
-          debugBox.id = 'debug-box-cctv-live';
-          debugBox.style = 'position:fixed; bottom:0; left:0; right:0; background:rgba(0,0,0,0.95); color:#00ff00; font-family:monospace; font-size:11px; padding:12px; z-index:999999; max-height:35vh; overflow-y:auto; border-top:3px solid #00ff00; word-wrap:break-word;';
-          document.body.appendChild(debugBox);
-      }
-      debugBox.innerHTML = "<strong style='color:white;'>[LIVE CCTV DEBUG]</strong><br>ID: " + tugas.id + " | Cek ke-" + tugas.cekCount + "<br>HTTP: " + res.status + "<br>Respon Mentah:<br>" + textRaw;
-
+      var parsedText = textRaw.replace(/\\/g, ''); 
       var cleanString = parsedText.toUpperCase(); 
       
-      // 1. CEK SUKSES: MENCARI LINK .MP4 ATAU OBJEK HASIL DARI SERVER
+      // 1. CEK SUKSES: MENCARI LINK .MP4 ATAU OBJEK HASIL
       var vidUrl = null;
       try {
           var jsonObj = JSON.parse(textRaw);
@@ -232,13 +249,12 @@ function pantauTaskRunningHub(tugas, apiKey) {
           }
       } catch (e) {}
 
-      // Jika dari parsing JSON belum ketemu, ambil pakai regex di teks yang sudah dibersihkan
       if (!vidUrl && cleanString.includes('.MP4')) {
           var match = parsedText.match(/https?:\/\/[^"'\s]+\.mp4/i);
           if (match) vidUrl = match[0];
       }
 
-      // JIKA VIDEO URL BERHASIL DIDAPATKAN -> EKSEKUSI SUKSES!
+      // JIKA BERHASIL TARIK VIDEO -> SUKSES & REFRESH SALDO TERBARU
       if (vidUrl && typeof vidUrl === 'string') {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
@@ -247,6 +263,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.videoUrl = vidUrl.replace(/\\/g, '');
           simpanStorage();
           if (typeof renderLayarHistory === 'function') renderLayarHistory();
+          refreshSaldoAkunOtomatis(apiKey); // Sinkronkan koin terbaru otomatis
           return;
       }
 
@@ -297,6 +314,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
               tugas.progress = 100;
               simpanStorage();
               if (typeof renderLayarHistory === 'function') renderLayarHistory();
+              refreshSaldoAkunOtomatis(apiKey); // Sinkronkan koin terbaru otomatis
               return;
           }
       } catch (jsonErr2) {}
@@ -404,6 +422,9 @@ async function mulaiProsesGenerate() {
       if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
         taskIdAsli = data.data?.taskId || data.taskId; 
         tampilkanNotif('Tugas berhasil dikirim ke GPU! ID: ' + taskIdAsli, 'sukses');
+        
+        // Segarkan saldo koin otomatis setelah tugas berhasil dikirim & dipotong koinnya
+        refreshSaldoAkunOtomatis(akunAktif.key);
       } else { 
         tampilkanNotif('Gagal RunningHub: ' + (data ? (data.msg || JSON.stringify(data)) : 'Respon kosong'), 'error');
         if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; } return; 

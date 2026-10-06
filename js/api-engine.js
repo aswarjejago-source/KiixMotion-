@@ -560,4 +560,38 @@ async function simpanAkunBaruDariModal() {
         var rawData = hasil.data || hasil;
         var k = rawData.totalCoins !== undefined ? rawData.totalCoins : rawData.coins !== undefined ? rawData.coins : rawData.coin !== undefined ? rawData.coin : rawData.credit !== undefined ? rawData.credit : rawData.balance !== undefined ? rawData.balance : rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
         saldoDidapat = (k !== undefined && k !== null) ? Number(k) : 0;
-      
+      } else {
+        if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
+        return tampilkanNotif('API Key Ditolak: ' + ((hasil && hasil.msg) ? hasil.msg : 'Ditolak Server'), 'error');
+      }
+    } catch (err) {
+      if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
+      return tampilkanNotif('Gagal terhubung ke Vercel: ' + err.message, 'error');
+    }
+  } else { saldoDidapat = 4; }
+
+  if (btnSimpan) { btnSimpan.innerText = 'Simpan API Key'; btnSimpan.disabled = false; }
+  
+  var indexKetemu = targetAkun.findIndex(function(a) { return a.key === valKey; });
+  if (indexKetemu !== -1) {
+    targetAkun[indexKetemu].koin = Number(saldoDidapat); tampilkanNotif('✓ Saldo akun berhasil direfresh! Koin saat ini: ' + saldoDidapat, 'sukses');
+  } else {
+    targetAkun.push({ nama: valKey, key: valKey, koin: Number(saldoDidapat) }); tampilkanNotif('✓ Akun baru terhubung! Coin ditarik: ' + saldoDidapat, 'sukses');
+  }
+  simpanStorage(); tutupModalFormKey(); renderListAkunDiKelola(); sinkronkanDropdownAkunGenerate();
+}
+
+window.onload = function() {
+  muatStorage();
+  setProviderUtama('runninghub');
+  aturTampilanHalamanUtama();
+
+  if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
+    riwayatGenerateList.forEach(function(tugas) {
+      if (!tugas.selesai && tugas.id && tugas.key) {
+        pantauTaskRunningHub(tugas, tugas.key);
+      }
+    });
+  }
+  if (typeof renderLayarHistory === 'function') renderLayarHistory();
+};

@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (TIMEOUT 1 JAM + LIVE DEBUG)
+// PILAR 3: API ENGINE & RENDER LOGIC (PENARIKAN VIDEO PRESISI TINGGI)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (TIMEOUT 1 JAM + LIVE DEBUG)
+// CCTV PEMANTAUAN (PENARIKAN VIDEO & TIMEOUT 1 JAM)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -187,7 +187,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
     }
 
     tugas.cekCount++;
-    if (tugas.cekCount > 360) { // Timeout 1 Jam (360 * 10 detik = 3600 detik)
+    if (tugas.cekCount > 360) { // Timeout 1 Jam
         clearInterval(cekInterval);
         tugas.status = "❌ Gagal (Timeout 1 Jam Habis)"; 
         tugas.selesai = true;
@@ -205,6 +205,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       });
       
       var textRaw = await res.text(); 
+      var parsedText = textRaw.replace(/\\/g, ''); // Bersihkan backslash escape kalau ada
       
       // KOTAK DEBUG LIVE
       var debugBox = document.getElementById('debug-box-cctv-live');
@@ -216,40 +217,52 @@ function pantauTaskRunningHub(tugas, apiKey) {
       }
       debugBox.innerHTML = "<strong style='color:white;'>[LIVE CCTV DEBUG]</strong><br>ID: " + tugas.id + " | Cek ke-" + tugas.cekCount + "<br>HTTP: " + res.status + "<br>Respon Mentah:<br>" + textRaw;
 
-      var cleanString = textRaw.toUpperCase().replace(/\s/g, ''); 
+      var cleanString = parsedText.toUpperCase(); 
       
-      // 1. CEK SUKSES JIKA ADA LINK .MP4
-      if (cleanString.includes('.MP4')) {
-        var vidUrl = null;
-        var match = textRaw.match(/https?:\/\/[^"'\s]+\.mp4/i);
-        if (!match) match = textRaw.match(/[^"'\s]+\.mp4/i); 
-        
-        if (match) {
-          vidUrl = match[0].replace(/\\/g, '');
+      // 1. CEK SUKSES: MENCARI LINK .MP4 ATAU OBJEK HASIL DARI SERVER
+      var vidUrl = null;
+      try {
+          var jsonObj = JSON.parse(textRaw);
+          var dataObj = jsonObj.data || jsonObj;
+          
+          if (typeof dataObj === 'string' && dataObj.toUpperCase().includes('.MP4')) {
+              vidUrl = dataObj;
+          } else if (dataObj && typeof dataObj === 'object') {
+              vidUrl = dataObj.fileUrl || dataObj.url || dataObj.videoUrl || dataObj.path || dataObj.fileUrls;
+          }
+      } catch (e) {}
+
+      // Jika dari parsing JSON belum ketemu, ambil pakai regex di teks yang sudah dibersihkan
+      if (!vidUrl && cleanString.includes('.MP4')) {
+          var match = parsedText.match(/https?:\/\/[^"'\s]+\.mp4/i);
+          if (match) vidUrl = match[0];
+      }
+
+      // JIKA VIDEO URL BERHASIL DIDAPATKAN -> EKSEKUSI SUKSES!
+      if (vidUrl && typeof vidUrl === 'string') {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
           tugas.progress = 100; 
-          tugas.videoUrl = vidUrl;
+          tugas.videoUrl = vidUrl.replace(/\\/g, '');
           simpanStorage();
           if (typeof renderLayarHistory === 'function') renderLayarHistory();
           return;
-        }
       }
 
-      // 2. CEK STRUKTUR JSON RESMI DARI RUNNINGHUB (ANTI FALSE-POSITIVE)
+      // 2. CEK STRUKTUR JSON RESMI UNTUK KONDISI GAGAL
       try {
-          var jsonObj = JSON.parse(textRaw);
-          var topCode = Number(jsonObj.code || 0);
-          var topMsg = (jsonObj.msg || "").toString().toUpperCase();
+          var jsonObj2 = JSON.parse(textRaw);
+          var topCode = Number(jsonObj2.code || 0);
+          var topMsg = (jsonObj2.msg || "").toString().toUpperCase();
           
-          var dataObj = jsonObj.data || jsonObj;
-          var statusLuar = (dataObj.status || jsonObj.status || "").toString().toUpperCase();
-          var errorCode = (dataObj.errorCode || jsonObj.errorCode || "").toString();
-          var errorMessage = dataObj.errorMessage || jsonObj.errorMessage || dataObj.msg || jsonObj.msg || "";
+          var dataObj2 = jsonObj2.data || jsonObj2;
+          var statusLuar = (dataObj2.status || jsonObj2.status || "").toString().toUpperCase();
+          var errorCode = (dataObj2.errorCode || jsonObj2.errorCode || "").toString();
+          var errorMessage = dataObj2.errorMessage || jsonObj2.errorMessage || dataObj2.msg || jsonObj2.msg || "";
           
           var taskStatusDalam = "";
-          var usageArr = dataObj.taskUsageList || jsonObj.taskUsageList;
+          var usageArr = dataObj2.taskUsageList || jsonObj2.taskUsageList;
           if (usageArr && Array.isArray(usageArr) && usageArr.length > 0) {
               taskStatusDalam = (usageArr[0].taskStatus || usageArr[0].status || "").toString().toUpperCase();
           }
@@ -286,7 +299,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
               if (typeof renderLayarHistory === 'function') renderLayarHistory();
               return;
           }
-      } catch (jsonErr) {}
+      } catch (jsonErr2) {}
       
       // 3. JIKA MASIH PROSES
       if (tugas.progress < 95) {

@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (FINAL UTUH & PRESISI JSON)
+// PILAR 3: API ENGINE & RENDER LOGIC (FINAL TAHAN BANTING JARINGAN)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (FIXED: BACA JSON PRESISI)
+// CCTV PEMANTAUAN (KOKOH TERHADAP GANGGUAN JARINGAN)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -187,7 +187,8 @@ function pantauTaskRunningHub(tugas, apiKey) {
     }
 
     tugas.cekCount++;
-    if (tugas.cekCount > 90) { // 15 Menit Timeout
+    // Timeout jika sudah lebih dari 15 menit
+    if (tugas.cekCount > 90) { 
         clearInterval(cekInterval);
         tugas.status = "❌ Gagal (Timeout Server)"; 
         tugas.selesai = true;
@@ -204,15 +205,10 @@ function pantauTaskRunningHub(tugas, apiKey) {
         body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
       });
       
-      // Tangkap Error HTTP Vercel
+      // LOGIKA BENAR: Kalau Vercel ngelag/error (502/504), JANGAN MATIKAN TUGAS!
+      // Cukup "return" (abaikan detik ini) dan biarkan sistem mencoba lagi 10 detik kemudian.
       if (!resStatus.ok) {
-          clearInterval(cekInterval);
-          tugas.status = "❌ Error Vercel: " + resStatus.status;
-          tugas.selesai = true;
-          tugas.progress = 100;
-          simpanStorage();
-          if (typeof renderLayarHistory === 'function') renderLayarHistory();
-          return;
+          return; 
       }
       
       var textRaw = await resStatus.text(); 
@@ -237,52 +233,56 @@ function pantauTaskRunningHub(tugas, apiKey) {
         }
       }
 
-      // 2. CEK GAGAL DENGAN PARSING JSON (PRESISI TINGGI)
+      // 2. CEK GAGAL MUTLAK (HANYA DARI RUNNINGHUB)
+      var isGagal = false;
+      var pesanError = "Gagal Dirender Server";
+
       try {
           var jsonObj = JSON.parse(textRaw);
-          var statusLuar = (jsonObj.status || "").toString().toUpperCase();
-          var errorCode = (jsonObj.errorCode || "").toString();
+          var dataObj = jsonObj.data || jsonObj; 
           
-          var taskStatusDalam = "";
-          if (jsonObj.taskUsageList && Array.isArray(jsonObj.taskUsageList) && jsonObj.taskUsageList.length > 0) {
-              taskStatusDalam = (jsonObj.taskUsageList[0].taskStatus || "").toString().toUpperCase();
+          var st = (dataObj.status || jsonObj.status || "").toString().toUpperCase();
+          var tSt = (dataObj.taskStatus || jsonObj.taskStatus || "").toString().toUpperCase();
+          var errCode = (dataObj.errorCode || jsonObj.errorCode || "").toString();
+          
+          // Kalau statusnya emang dibilang gagal oleh mesin, baru bunuh tugasnya
+          if (st === "FAILED" || st === "ERROR" || tSt === "FAILED" || tSt === "ERROR" || errCode === "805") {
+              isGagal = true;
+              pesanError = dataObj.errorMessage || jsonObj.errorMessage || dataObj.msg || jsonObj.msg || pesanError;
+              if (pesanError === "工作流运行失败" || errCode === "805") pesanError = "APIKEY_TASK_IS_RUNNING";
           }
-
-          // Matikan jika status BENAR-BENAR FAILED atau ERRORCODE 805
-          var isRealFailed = (
-              statusLuar === "FAILED" || 
-              statusLuar === "ERROR" || 
-              statusLuar === "CANCELLED" || 
-              taskStatusDalam === "FAILED" || 
-              errorCode === "805"
-          );
-
-          if (isRealFailed) {
-              clearInterval(cekInterval);
-              var pesanError = jsonObj.errorMessage || jsonObj.msg || "Gagal Dirender Server";
-              if (pesanError === "工作流运行失败") pesanError = "APIKEY_TASK_IS_RUNNING";
-              
-              tugas.status = "❌ " + pesanError;
-              tugas.selesai = true;
-              tugas.progress = 100;
-              simpanStorage();
-              if (typeof renderLayarHistory === 'function') renderLayarHistory();
-              return;
+          
+          var usageArr = dataObj.taskUsageList || jsonObj.taskUsageList;
+          if (usageArr && usageArr.length > 0) {
+              var subSt = (usageArr[0].taskStatus || usageArr[0].status || "").toString().toUpperCase();
+              if (subSt === "FAILED" || subSt === "ERROR") {
+                  isGagal = true;
+              }
           }
       } catch (e) {
-          // Fallback aman kalau Vercel balikin teks non-JSON
-          if (cleanString.includes('"STATUS":"FAILED"') || cleanString.includes('"TASKSTATUS":"FAILED"')) {
-              clearInterval(cekInterval);
-              tugas.status = "❌ Gagal Dirender Server";
-              tugas.selesai = true;
-              tugas.progress = 100;
-              simpanStorage();
-              if (typeof renderLayarHistory === 'function') renderLayarHistory();
-              return;
+          // Kalau JSON rusak parah, tapi ada kata FAILED, baru dianggap gagal
+          if (cleanString.includes('"STATUS":"FAILED"') || 
+              cleanString.includes('"TASKSTATUS":"FAILED"') || 
+              cleanString.includes('"ERRORCODE":"805"') || 
+              cleanString.includes('工作流运行失败')) {
+              isGagal = true;
+              if (cleanString.includes('"ERRORCODE":"805"') || cleanString.includes('工作流运行失败')) {
+                  pesanError = "APIKEY_TASK_IS_RUNNING";
+              }
           }
       }
+
+      if (isGagal) {
+          clearInterval(cekInterval);
+          tugas.status = "❌ " + pesanError;
+          tugas.selesai = true;
+          tugas.progress = 100;
+          simpanStorage();
+          if (typeof renderLayarHistory === 'function') renderLayarHistory();
+          return;
+      }
       
-      // 3. JIKA MASIH PROSES BENERAN, NAIKKAN PROGRESS
+      // 3. JIKA MASIH PROSES, NAIKKAN PROGRESS
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -290,12 +290,8 @@ function pantauTaskRunningHub(tugas, apiKey) {
       if (typeof renderLayarHistory === 'function') renderLayarHistory();
 
     } catch (err) {
-      clearInterval(cekInterval);
-      tugas.status = "❌ Gagal Jaringan Koneksi";
-      tugas.selesai = true;
-      tugas.progress = 100;
-      simpanStorage();
-      if (typeof renderLayarHistory === 'function') renderLayarHistory();
+      // LOGIKA BENAR: Kalau jaringan tiba-tiba putus, JANGAN MATIKAN TUGAS!
+      // Biarkan catch ini kosong. Biar intervalnya nyoba narik data lagi 10 detik kemudian.
     }
   }, 10000); 
 }

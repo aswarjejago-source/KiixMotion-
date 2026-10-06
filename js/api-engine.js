@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (BERSIH, TANPA DEBUG, AUTO REFRESH KOIN)
+// PILAR 3: API ENGINE & RENDER LOGIC (DENGAN TOMBOL REFRESH KOIN MANUAL)
 // File: js/api-engine.js
 // ==========================================
 
@@ -106,6 +106,46 @@ async function refreshSaldoAkunOtomatis(apiKey) {
   } catch (err) {}
 }
 
+// FUNGSI REFRESH MANUAL KETIKA TOMBOL IKON REFRESH DIKLIK
+async function manualRefreshAkunSatu(idx) {
+  var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
+  var akun = targetAkun[idx];
+  if (!akun) return;
+
+  if (tabAkunAktif !== 'runninghub') {
+    return tampilkanNotif('Akun Roboneo saldo selalu tetap (4 carrots)', 'info');
+  }
+
+  tampilkanNotif('Menyegarkan saldo koin...', 'info');
+  try {
+    var res = await fetch('/api/saldo', {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ apiKey: akun.key })
+    });
+    var hasil = await res.json();
+    if (res.ok && hasil) {
+      var rawData = hasil.data || hasil;
+      var k = rawData.totalCoins !== undefined ? rawData.totalCoins : rawData.coins !== undefined ? rawData.coins : rawData.coin !== undefined ? rawData.coin : rawData.credit !== undefined ? rawData.credit : rawData.balance !== undefined ? rawData.balance : rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
+      
+      if (k !== undefined && k !== null) {
+        akun.koin = Number(k);
+        simpanStorage();
+        renderListAkunDiKelola();
+        sinkronkanDropdownAkunGenerate();
+        updateStatistikDashboard();
+        tampilkanNotif('✓ Saldo berhasil diperbarui: ' + k + ' coin', 'sukses');
+      } else {
+        tampilkanNotif('Gagal membaca format koin dari server', 'error');
+      }
+    } else {
+      tampilkanNotif('Gagal refresh: ' + ((hasil && hasil.msg) ? hasil.msg : 'Ditolak server'), 'error');
+    }
+  } catch (err) {
+    tampilkanNotif('Gagal terhubung: ' + err.message, 'error');
+  }
+}
+
 function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
   var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
@@ -197,7 +237,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (BERSIH, TANPA DEBUG, AUTO REFRESH KOIN)
+// CCTV PEMANTAUAN (BERSIH TOTAL, AUTO REFRESH KOIN)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -263,7 +303,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
           tugas.videoUrl = vidUrl.replace(/\\/g, '');
           simpanStorage();
           if (typeof renderLayarHistory === 'function') renderLayarHistory();
-          refreshSaldoAkunOtomatis(apiKey); // Sinkronkan koin terbaru otomatis
+          refreshSaldoAkunOtomatis(apiKey);
           return;
       }
 
@@ -314,7 +354,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
               tugas.progress = 100;
               simpanStorage();
               if (typeof renderLayarHistory === 'function') renderLayarHistory();
-              refreshSaldoAkunOtomatis(apiKey); // Sinkronkan koin terbaru otomatis
+              refreshSaldoAkunOtomatis(apiKey);
               return;
           }
       } catch (jsonErr2) {}
@@ -422,8 +462,6 @@ async function mulaiProsesGenerate() {
       if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
         taskIdAsli = data.data?.taskId || data.taskId; 
         tampilkanNotif('Tugas berhasil dikirim ke GPU! ID: ' + taskIdAsli, 'sukses');
-        
-        // Segarkan saldo koin otomatis setelah tugas berhasil dikirim & dipotong koinnya
         refreshSaldoAkunOtomatis(akunAktif.key);
       } else { 
         tampilkanNotif('Gagal RunningHub: ' + (data ? (data.msg || JSON.stringify(data)) : 'Respon kosong'), 'error');
@@ -451,7 +489,7 @@ async function mulaiProsesGenerate() {
 }
 
 // ==========================================
-// RENDER LAYAR HISTORY
+// RENDER LAYAR HISTORY & KELOLA AKUN
 // ==========================================
 function renderLayarHistory() {
   var wadah = document.getElementById('wadah-list-history'), counter = document.getElementById('txt-counter-history');
@@ -540,7 +578,20 @@ function renderListAkunDiKelola() {
     var koinVal = Number(a.koin) || 0; totalKredit += koinVal;
     var el = document.createElement('div');
     el.className = "bg-white border border-kmBorder p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
-    el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-xs sm:text-sm font-bold text-kmTextPrimary font-mono break-all w-32 sm:w-64 truncate" title="' + a.key + '">' + a.nama + '</span></div><div class="flex items-center gap-3"><span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span><span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + (tabAkunAktif === 'roboneo' ? ' carrots' : ' coin') + '</span><button onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans">Hapus</button></div>';
+    
+    // Tombol Ikon Refresh Saldo
+    var refreshBtnHtml = (tabAkunAktif === 'runninghub') ? 
+      '<button type="button" onclick="manualRefreshAkunSatu(' + i + ')" class="p-2 text-slate-400 hover:text-kmViolet bg-slate-50 hover:bg-violet-50 rounded-xl transition cursor-pointer border border-slate-200" title="Refresh Saldo Koin">' +
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' +
+      '</button>' : '';
+
+    el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-xs sm:text-sm font-bold text-kmTextPrimary font-mono break-all w-28 sm:w-56 truncate" title="' + a.key + '">' + a.nama + '</span></div>' +
+    '<div class="flex items-center gap-2 sm:gap-3">' +
+      '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span>' +
+      '<span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + (tabAkunAktif === 'roboneo' ? ' carrots' : ' coin') + '</span>' +
+      refreshBtnHtml +
+      '<button type="button" onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans px-2 py-1">Hapus</button>' +
+    '</div>';
     wadah.appendChild(el);
   });
   var setTxt = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };

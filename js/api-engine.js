@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (DENGAN KOTAK DEBUG TRANSPARAN)
+// PILAR 3: API ENGINE & RENDER LOGIC (AKURAT & KEBAL LAG LOKAL)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (DENGAN KOTAK DEBUG LIVE)
+// CCTV PEMANTAUAN (DENGAN LIVE DEBUG & KEBAL LAG LOKAL)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -206,9 +206,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       var textRaw = await res.text(); 
       
-      // ========================================================
-      // KOTAK POP-UP DEBUG DI BAWAH LAYAR
-      // ========================================================
+      // KOTAK DEBUG LIVE (SUPAYA LU BISA LIHAT RESPON ASLINYA)
       var debugBox = document.getElementById('debug-box-cctv-live');
       if (!debugBox) {
           debugBox = document.createElement('div');
@@ -217,7 +215,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
           document.body.appendChild(debugBox);
       }
       debugBox.innerHTML = "<strong style='color:white;'>[LIVE CCTV DEBUG]</strong><br>ID: " + tugas.id + " | Cek ke-" + tugas.cekCount + "<br>HTTP: " + res.status + "<br>Respon Mentah:<br>" + textRaw;
-      // ========================================================
 
       var cleanString = textRaw.toUpperCase().replace(/\s/g, ''); 
       
@@ -240,11 +237,13 @@ function pantauTaskRunningHub(tugas, apiKey) {
         }
       }
 
-      // 2. CEK STRUKTUR JSON RESMI
+      // 2. CEK STRUKTUR JSON RESMI DARI RUNNINGHUB (PRESISI TANPA KENA FALSE-POSITIVE JARINGAN)
       try {
           var jsonObj = JSON.parse(textRaw);
-          var dataObj = jsonObj.data || jsonObj;
+          var topCode = Number(jsonObj.code || 0);
+          var topMsg = (jsonObj.msg || "").toString().toUpperCase();
           
+          var dataObj = jsonObj.data || jsonObj;
           var statusLuar = (dataObj.status || jsonObj.status || "").toString().toUpperCase();
           var errorCode = (dataObj.errorCode || jsonObj.errorCode || "").toString();
           var errorMessage = dataObj.errorMessage || jsonObj.errorMessage || dataObj.msg || jsonObj.msg || "";
@@ -255,7 +254,10 @@ function pantauTaskRunningHub(tugas, apiKey) {
               taskStatusDalam = (usageArr[0].taskStatus || usageArr[0].status || "").toString().toUpperCase();
           }
 
-          var isRealFailed = (
+          // Kondisi Gagal Resmi (Hanya dipicu oleh kode/status dari RunningHub)
+          var isRunningHubFailed = (
+              topCode === 807 ||
+              topMsg.includes("APIKEY_TASK_NOT_FOUND") ||
               statusLuar === "FAILED" || 
               statusLuar === "ERROR" || 
               statusLuar === "CANCELLED" || 
@@ -264,16 +266,16 @@ function pantauTaskRunningHub(tugas, apiKey) {
               (errorCode && errorCode !== "0" && errorCode !== "")
           );
 
-          if (isRealFailed) {
+          if (isRunningHubFailed) {
               clearInterval(cekInterval);
               
               var pesanFinal = "Gagal Dirender Server";
-              if (errorMessage && errorMessage !== "null" && errorMessage !== "") {
+              if (topCode === 807 || topMsg.includes("APIKEY_TASK_NOT_FOUND")) {
+                  pesanFinal = "Gagal: Tugas Tidak Ditemukan / Dibatalkan (807)";
+              } else if (errorMessage && errorMessage !== "null" && errorMessage !== "") {
                   pesanFinal = errorMessage;
               } else if (errorCode === "805" || pesanFinal.includes("工作流运行失败")) {
                   pesanFinal = "Workflow Run Failed (Error Code: " + errorCode + ")";
-              } else if (errorCode === "807") {
-                  pesanFinal = "Task Not Found / Dibatalkan";
               } else if (errorCode) {
                   pesanFinal = "Gagal (Error Code: " + errorCode + ")";
               }
@@ -285,7 +287,10 @@ function pantauTaskRunningHub(tugas, apiKey) {
               if (typeof renderLayarHistory === 'function') renderLayarHistory();
               return;
           }
-      } catch (jsonErr) {}
+      } catch (jsonErr) {
+          // Jika server ngirim teks rusak / HTML gateway timeout (bukan JSON valid),
+          // JANGAN divonis gagal agar jaringan lokal yang lag tidak merusak tugas yang sedang jalan.
+      }
       
       // 3. JIKA MASIH PROSES
       if (tugas.progress < 95) {
@@ -295,7 +300,9 @@ function pantauTaskRunningHub(tugas, apiKey) {
       simpanStorage();
       if (typeof renderLayarHistory === 'function') renderLayarHistory();
 
-    } catch (err) {}
+    } catch (err) {
+      // Jaringan lokal ngelag / fetch error: DIAMKAN, lanjut coba lagi di detik berikutnya.
+    }
   }, 10000); 
 }
 

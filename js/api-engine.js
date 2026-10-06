@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (DENGAN JEBAKAN KOTAK DEBUG)
+// PILAR 3: API ENGINE & RENDER LOGIC (STRUKTUR JSON RESMI RUNNINGHUB)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,13 +169,12 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (DENGAN KOTAK DEBUG)
+// CCTV PEMANTAUAN (PARSING STRUKTUR JSON RESMI)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
   if (!tugas.cekCount) tugas.cekCount = 0;
-  if (typeof tugas.errCount === 'undefined') tugas.errCount = 0;
 
   if (tugas.intervalObj) clearInterval(tugas.intervalObj);
 
@@ -188,7 +187,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
     }
 
     tugas.cekCount++;
-    if (tugas.cekCount > 90) { 
+    if (tugas.cekCount > 90) { // Timeout 15 menit
         clearInterval(cekInterval);
         tugas.status = "❌ Gagal (Timeout Waktu Habis)"; 
         tugas.selesai = true;
@@ -198,115 +197,96 @@ function pantauTaskRunningHub(tugas, apiKey) {
         return;
     }
 
-    var resStatus;
-    var textRaw = "";
-
     try {
-      resStatus = await fetch('/api/outputs', { 
+      var res = await fetch('/api/outputs', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
         body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
       });
-      textRaw = await resStatus.text(); 
       
-      // ========================================================
-      // MUNCULIN KOTAK DEBUG DI BAWAH LAYAR
-      // ========================================================
-      var debugBox = document.getElementById('debug-box-cctv');
-      if (!debugBox) {
-          debugBox = document.createElement('div');
-          debugBox.id = 'debug-box-cctv';
-          debugBox.style = 'position:fixed; bottom:0; left:0; right:0; background:rgba(0,0,0,0.95); color:#00ff00; font-family:monospace; font-size:11px; padding:12px; z-index:999999; max-height:35vh; overflow-y:auto; border-top:3px solid #00ff00; word-wrap: break-word;';
-          document.body.appendChild(debugBox);
-      }
-      debugBox.innerHTML = "<strong style='color:white;'>[DEBUG MODE] Murni Respon Vercel / RunningHub:</strong><br><br>ID: " + tugas.id + "<br>Cek ke: " + tugas.cekCount + "<br>HTTP Status: " + resStatus.status + "<br>Data JSON:<br>" + textRaw;
-      // ========================================================
-
-    } catch (e) {
-      tugas.errCount++;
-      if (tugas.errCount >= 4) {
+      var textRaw = await res.text(); 
+      var cleanString = textRaw.toUpperCase().replace(/\s/g, ''); 
+      
+      // 1. CEK SUKSES JIKA ADA LINK .MP4
+      if (cleanString.includes('.MP4')) {
+        var vidUrl = null;
+        var match = textRaw.match(/https?:\/\/[^"'\s]+\.mp4/i);
+        if (!match) match = textRaw.match(/[^"'\s]+\.mp4/i); 
+        
+        if (match) {
+          vidUrl = match[0].replace(/\\/g, '');
           clearInterval(cekInterval);
-          tugas.status = "❌ Gagal: Jaringan Terputus";
+          tugas.status = "Selesai"; 
           tugas.selesai = true;
-          tugas.progress = 100;
+          tugas.progress = 100; 
+          tugas.videoUrl = vidUrl;
           simpanStorage();
           if (typeof renderLayarHistory === 'function') renderLayarHistory();
+          return;
+        }
       }
-      return; 
-    }
-    
-    var cleanString = textRaw.toUpperCase().replace(/\s/g, ''); 
-    var isGagal = false;
-    var pesanError = "Gagal Dirender Server";
-    
-    // 1. CEK SUKSES
-    if (cleanString.includes('.MP4')) {
-      var vidUrl = null;
-      var match = textRaw.match(/https?:\/\/[^"'\s]+\.mp4/i);
-      if (!match) match = textRaw.match(/[^"'\s]+\.mp4/i); 
+
+      // 2. CEK STATUS GAGAL BERDASARKAN PROPERTI JSON RESMI
+      try {
+          var jsonObj = JSON.parse(textRaw);
+          var dataObj = jsonObj.data || jsonObj;
+          
+          var statusLuar = (dataObj.status || jsonObj.status || "").toString().toUpperCase();
+          var errorCode = (dataObj.errorCode || jsonObj.errorCode || "").toString();
+          var errorMessage = dataObj.errorMessage || jsonObj.errorMessage || dataObj.msg || jsonObj.msg || "";
+          
+          var taskStatusDalam = "";
+          var usageArr = dataObj.taskUsageList || jsonObj.taskUsageList;
+          if (usageArr && Array.isArray(usageArr) && usageArr.length > 0) {
+              taskStatusDalam = (usageArr[0].taskStatus || usageArr[0].status || "").toString().toUpperCase();
+          }
+
+          // Kondisi Gagal Mutlak Berdasarkan Properti Resmi
+          var isRealFailed = (
+              statusLuar === "FAILED" || 
+              statusLuar === "ERROR" || 
+              statusLuar === "CANCELLED" || 
+              taskStatusDalam === "FAILED" || 
+              taskStatusDalam === "ERROR" ||
+              (errorCode && errorCode !== "0" && errorCode !== "")
+          );
+
+          if (isRealFailed) {
+              clearInterval(cekInterval);
+              
+              var pesanFinal = "Gagal Dirender Server";
+              if (errorMessage && errorMessage !== "null" && errorMessage !== "") {
+                  pesanFinal = errorMessage;
+              } else if (errorCode === "805" || pesanFinal.includes("工作流运行失败")) {
+                  pesanFinal = "Workflow Run Failed (Error Code: " + errorCode + ")";
+              } else if (errorCode === "807") {
+                  pesanFinal = "Task Not Found / Dibatalkan";
+              } else if (errorCode) {
+                  pesanFinal = "Gagal (Error Code: " + errorCode + ")";
+              }
+
+              tugas.status = "❌ " + pesanFinal;
+              tugas.selesai = true;
+              tugas.progress = 100;
+              simpanStorage();
+              if (typeof renderLayarHistory === 'function') renderLayarHistory();
+              return;
+          }
+      } catch (jsonErr) {
+          // Jika parsing JSON gagal, abaikan detik ini dan coba lagi di interval berikutnya
+      }
       
-      if (match) {
-        vidUrl = match[0].replace(/\\/g, '');
-        clearInterval(cekInterval);
-        tugas.status = "Selesai"; 
-        tugas.selesai = true;
-        tugas.progress = 100; 
-        tugas.videoUrl = vidUrl;
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function') renderLayarHistory();
-        return;
+      // 3. JIKA MASIH PROSES (RUNNING), NAIKKAN PROGRESS
+      if (tugas.progress < 95) {
+        tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
-    }
+      tugas.status = "Sedang Render di GPU...";
+      simpanStorage();
+      if (typeof renderLayarHistory === 'function') renderLayarHistory();
 
-    // 2. KONDISI GAGAL LAMA KITA (Tetap dibiarkan jalan buat ngetes)
-    if (cleanString.includes('"STATUS":"FAILED"') || 
-        cleanString.includes('"TASKSTATUS":"FAILED"') || 
-        cleanString.includes('"STATUS":"ERROR"') || 
-        cleanString.includes('"TASKSTATUS":"ERROR"') || 
-        cleanString.includes('"ERRORCODE":"805"') || 
-        cleanString.includes('工作流运行失败')) {
-        
-        isGagal = true;
-        if (cleanString.includes('805') || cleanString.includes('工作流运行失败')) {
-            pesanError = "APIKEY_TASK_IS_RUNNING";
-        }
+    } catch (err) {
+      // Jaringan ngelag sesaat? Abaikan, jangan matikan tugas.
     }
-
-    if (!resStatus.ok && !isGagal) {
-        tugas.errCount++;
-        if (tugas.errCount >= 4) {
-            clearInterval(cekInterval);
-            tugas.status = "❌ Gagal: Vercel Error (" + resStatus.status + ")";
-            tugas.selesai = true;
-            tugas.progress = 100;
-            simpanStorage();
-            if (typeof renderLayarHistory === 'function') renderLayarHistory();
-            return;
-        }
-        return; 
-    }
-
-    if (resStatus.ok) {
-        tugas.errCount = 0;
-    }
-
-    if (isGagal) {
-        clearInterval(cekInterval);
-        tugas.status = "❌ " + pesanError;
-        tugas.selesai = true;
-        tugas.progress = 100;
-        simpanStorage();
-        if (typeof renderLayarHistory === 'function') renderLayarHistory();
-        return;
-    }
-    
-    // NAIKKAN PROGRESS
-    if (tugas.progress < 95) {
-      tugas.progress += Math.floor(Math.random() * 3) + 2; 
-    }
-    simpanStorage();
-    if (typeof renderLayarHistory === 'function') renderLayarHistory();
-
   }, 10000); 
 }
 

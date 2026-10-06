@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (AKURAT & KEBAL LAG LOKAL)
+// PILAR 3: API ENGINE & RENDER LOGIC (TIMEOUT 1 JAM + LIVE DEBUG)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (DENGAN LIVE DEBUG & KEBAL LAG LOKAL)
+// CCTV PEMANTAUAN (TIMEOUT 1 JAM + LIVE DEBUG)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -187,9 +187,9 @@ function pantauTaskRunningHub(tugas, apiKey) {
     }
 
     tugas.cekCount++;
-    if (tugas.cekCount > 90) { 
+    if (tugas.cekCount > 360) { // Timeout 1 Jam (360 * 10 detik = 3600 detik)
         clearInterval(cekInterval);
-        tugas.status = "❌ Gagal (Timeout Waktu Habis)"; 
+        tugas.status = "❌ Gagal (Timeout 1 Jam Habis)"; 
         tugas.selesai = true;
         tugas.progress = 100;
         simpanStorage();
@@ -206,7 +206,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       
       var textRaw = await res.text(); 
       
-      // KOTAK DEBUG LIVE (SUPAYA LU BISA LIHAT RESPON ASLINYA)
+      // KOTAK DEBUG LIVE
       var debugBox = document.getElementById('debug-box-cctv-live');
       if (!debugBox) {
           debugBox = document.createElement('div');
@@ -237,7 +237,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         }
       }
 
-      // 2. CEK STRUKTUR JSON RESMI DARI RUNNINGHUB (PRESISI TANPA KENA FALSE-POSITIVE JARINGAN)
+      // 2. CEK STRUKTUR JSON RESMI DARI RUNNINGHUB (ANTI FALSE-POSITIVE)
       try {
           var jsonObj = JSON.parse(textRaw);
           var topCode = Number(jsonObj.code || 0);
@@ -254,7 +254,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
               taskStatusDalam = (usageArr[0].taskStatus || usageArr[0].status || "").toString().toUpperCase();
           }
 
-          // Kondisi Gagal Resmi (Hanya dipicu oleh kode/status dari RunningHub)
           var isRunningHubFailed = (
               topCode === 807 ||
               topMsg.includes("APIKEY_TASK_NOT_FOUND") ||
@@ -287,10 +286,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
               if (typeof renderLayarHistory === 'function') renderLayarHistory();
               return;
           }
-      } catch (jsonErr) {
-          // Jika server ngirim teks rusak / HTML gateway timeout (bukan JSON valid),
-          // JANGAN divonis gagal agar jaringan lokal yang lag tidak merusak tugas yang sedang jalan.
-      }
+      } catch (jsonErr) {}
       
       // 3. JIKA MASIH PROSES
       if (tugas.progress < 95) {
@@ -300,9 +296,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       simpanStorage();
       if (typeof renderLayarHistory === 'function') renderLayarHistory();
 
-    } catch (err) {
-      // Jaringan lokal ngelag / fetch error: DIAMKAN, lanjut coba lagi di detik berikutnya.
-    }
+    } catch (err) {}
   }, 10000); 
 }
 

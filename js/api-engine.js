@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (STRUKTUR JSON RESMI RUNNINGHUB)
+// PILAR 3: API ENGINE & RENDER LOGIC (DENGAN KOTAK DEBUG TRANSPARAN)
 // File: js/api-engine.js
 // ==========================================
 
@@ -169,7 +169,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (PARSING STRUKTUR JSON RESMI)
+// CCTV PEMANTAUAN (DENGAN KOTAK DEBUG LIVE)
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -187,7 +187,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
     }
 
     tugas.cekCount++;
-    if (tugas.cekCount > 90) { // Timeout 15 menit
+    if (tugas.cekCount > 90) { 
         clearInterval(cekInterval);
         tugas.status = "❌ Gagal (Timeout Waktu Habis)"; 
         tugas.selesai = true;
@@ -205,6 +205,20 @@ function pantauTaskRunningHub(tugas, apiKey) {
       });
       
       var textRaw = await res.text(); 
+      
+      // ========================================================
+      // KOTAK POP-UP DEBUG DI BAWAH LAYAR
+      // ========================================================
+      var debugBox = document.getElementById('debug-box-cctv-live');
+      if (!debugBox) {
+          debugBox = document.createElement('div');
+          debugBox.id = 'debug-box-cctv-live';
+          debugBox.style = 'position:fixed; bottom:0; left:0; right:0; background:rgba(0,0,0,0.95); color:#00ff00; font-family:monospace; font-size:11px; padding:12px; z-index:999999; max-height:35vh; overflow-y:auto; border-top:3px solid #00ff00; word-wrap:break-word;';
+          document.body.appendChild(debugBox);
+      }
+      debugBox.innerHTML = "<strong style='color:white;'>[LIVE CCTV DEBUG]</strong><br>ID: " + tugas.id + " | Cek ke-" + tugas.cekCount + "<br>HTTP: " + res.status + "<br>Respon Mentah:<br>" + textRaw;
+      // ========================================================
+
       var cleanString = textRaw.toUpperCase().replace(/\s/g, ''); 
       
       // 1. CEK SUKSES JIKA ADA LINK .MP4
@@ -226,7 +240,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
         }
       }
 
-      // 2. CEK STATUS GAGAL BERDASARKAN PROPERTI JSON RESMI
+      // 2. CEK STRUKTUR JSON RESMI
       try {
           var jsonObj = JSON.parse(textRaw);
           var dataObj = jsonObj.data || jsonObj;
@@ -241,7 +255,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
               taskStatusDalam = (usageArr[0].taskStatus || usageArr[0].status || "").toString().toUpperCase();
           }
 
-          // Kondisi Gagal Mutlak Berdasarkan Properti Resmi
           var isRealFailed = (
               statusLuar === "FAILED" || 
               statusLuar === "ERROR" || 
@@ -272,11 +285,9 @@ function pantauTaskRunningHub(tugas, apiKey) {
               if (typeof renderLayarHistory === 'function') renderLayarHistory();
               return;
           }
-      } catch (jsonErr) {
-          // Jika parsing JSON gagal, abaikan detik ini dan coba lagi di interval berikutnya
-      }
+      } catch (jsonErr) {}
       
-      // 3. JIKA MASIH PROSES (RUNNING), NAIKKAN PROGRESS
+      // 3. JIKA MASIH PROSES
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -284,9 +295,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
       simpanStorage();
       if (typeof renderLayarHistory === 'function') renderLayarHistory();
 
-    } catch (err) {
-      // Jaringan ngelag sesaat? Abaikan, jangan matikan tugas.
-    }
+    } catch (err) {}
   }, 10000); 
 }
 

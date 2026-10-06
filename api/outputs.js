@@ -20,7 +20,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const urlRunningHub = `https://www.runninghub.ai/task/openapi/status`;
+    // UBAH KE ENDPOINT OUTPUTS UNTUK MENARIK LINK VIDEO (.MP4)
+    const urlRunningHub = `https://www.runninghub.ai/task/openapi/outputs`;
 
     const response = await fetch(urlRunningHub, {
       method: 'POST', 
@@ -42,7 +43,6 @@ export default async function handler(req, res) {
     try {
       data = JSON.parse(textData);
     } catch (parseError) {
-      // UBAH JADI FAILED, JANGAN DIBOHONGI JADI RUNNING!
       return res.status(200).json({ code: 502, status: "FAILED", msg: "Gagal parse respons dari server", raw: textData });
     }
     
@@ -52,7 +52,6 @@ export default async function handler(req, res) {
     
     return res.status(200).json(data);
   } catch (err) {
-    // UBAH JADI FAILED, JANGAN DIBOHONGI JADI RUNNING!
     return res.status(200).json({ code: 500, status: "FAILED", msg: err.message });
   }
 }

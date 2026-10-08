@@ -335,39 +335,59 @@ window.renderLayarHistory = function() {
 };
 
 // ------------------------------------------
-// FITUR OTOMATIS UBAH "MEMBER AKTIF" JADI "MEMBER PRO"
+// FITUR OTOMATIS UBAH "MEMBER AKTIF" JADI "MEMBER PRO" & TAMPILKAN EXPIRED
 // ------------------------------------------
-async function updateStatusMemberUI() {
+async function updateStatusMemberUI(emailUser) {
   if (typeof supa === 'undefined') return;
   
   try {
-    var sessionRes = await supa.auth.getSession();
-    var user = sessionRes?.data?.session?.user;
+    var targetEmail = emailUser;
+    if (!targetEmail) {
+      var sessionRes = await supa.auth.getSession();
+      targetEmail = sessionRes?.data?.session?.user?.email;
+    }
     
-    if (user && user.email) {
-      var { data: profile, error } = await supa.from('users').select('is_vip, vip_expires_at').eq('email', user.email).single();
+    if (targetEmail) {
+      var { data: profile, error } = await supa.from('users').select('is_vip, vip_expires_at').eq('email', targetEmail).single();
       
       var badgeEl = document.getElementById('label-member-status');
+      var expEl = document.getElementById('label-vip-expires');
       if (!badgeEl) return;
       
       if (!error && profile && profile.is_vip === true) {
         var isExpired = false;
+        var formattedDate = "";
+
         if (profile.vip_expires_at) {
-          if (new Date(profile.vip_expires_at).getTime() < new Date().getTime()) {
+          var expDate = new Date(profile.vip_expires_at);
+          if (expDate.getTime() < new Date().getTime()) {
             isExpired = true;
+          } else {
+            formattedDate = expDate.toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            });
           }
         }
 
         if (!isExpired) {
           badgeEl.innerText = "⭐ Member Pro";
           badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md inline-block";
+          
+          if (expEl && formattedDate) {
+            expEl.innerText = "Aktif s.d. " + formattedDate;
+            expEl.classList.remove('hidden');
+          }
         } else {
           badgeEl.innerText = "Member Aktif (Expired)";
           badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
+          if (expEl) expEl.classList.add('hidden');
         }
       } else {
         badgeEl.innerText = "Member Aktif";
         badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
+        if (expEl) expEl.classList.add('hidden');
       }
     }
   } catch (err) {

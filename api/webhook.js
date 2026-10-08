@@ -1,4 +1,4 @@
-// Endpoint Webhook iPaymu (Safe Minimal Insert)
+// Endpoint Webhook iPaymu (Safe Minimal Insert + Referral Bonus 7 Hari)
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
@@ -31,16 +31,16 @@ export default async function handler(req, res) {
         'Prefer': 'return=representation'
       };
 
-      const bonusDays = 25;
+      const bonusDays = 25; // Pembeli tetap dapat 25 hari standar
       const now = new Date();
 
-      // 1. CEK APAKAH USER SUDAH ADA DI TABEL USERS
+      // 1. CEK DATA PEMBELI DI TABEL USERS
       const userCheckRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(buyerEmail)}&select=*`, { headers });
       const existingUsers = await userCheckRes.json();
       let targetUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null;
 
       if (!targetUser) {
-        // JIKA BELUM ADA: INSERT minimal (hanya email & status VIP agar tidak melanggar NOT NULL constraint)
+        // JIKA BELUM ADA: INSERT pembeli baru
         const newExpiry = new Date(now.getTime() + bonusDays * 24 * 60 * 60 * 1000);
         
         const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         }
         targetUser = insertData && insertData.length > 0 ? insertData[0] : null;
       } else {
-        // JIKA SUDAH ADA: UPDATE perpanjangan masa aktif
+        // JIKA SUDAH ADA: Perpanjang masa aktif pembeli (+25 hari)
         const currentExpiry = targetUser.vip_expires_at && new Date(targetUser.vip_expires_at) > now
           ? new Date(targetUser.vip_expires_at)
           : now;
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         }
       }
 
-      // 2. Catat riwayat transaksi ke tabel transactions
+      // 2. CATAT TRANSAKSI KE TABEL TRANSACTIONS
       if (targetUser && targetUser.id) {
         await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
           method: 'POST',
@@ -96,7 +96,37 @@ export default async function handler(req, res) {
         });
       }
 
-      return res.status(200).json({ success: true, message: 'VIP Activated Successfully' });
+      // 3. BONUS REFERRAL: CEK DAN BERIKAN +7 HARI HANYA KEPADA PENGUNDANG
+      if (targetUser && targetUser.referred_by) {
+        try {
+          const inviterRes = await fetch(`${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(targetUser.referred_by)}&select=*`, { headers });
+          const inviters = await inviterRes.json();
+          const inviter = inviters && inviters.length > 0 ? inviters[0] : null;
+
+          if (inviter) {
+            // Hitung masa aktif pengundang (+7 hari)
+            const inviterCurrentExpiry = inviter.vip_expires_at && new Date(inviter.vip_expires_at) > now
+              ? new Date(inviter.vip_expires_at)
+              : now;
+            const inviterNewExpiry = new Date(inviterCurrentExpiry.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+            await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${inviter.id}`, {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify({
+                is_vip: true,
+                vip_expires_at: inviterNewExpiry.toISOString()
+              })
+            });
+
+            console.log(`Bonus referral 7 hari berhasil diberikan ke pengundang (${inviter.email})!`);
+          }
+        } catch (refErr) {
+          console.error('Gagal memproses bonus referral pengundang:', refErr);
+        }
+      }
+
+      return res.status(200).json({ success: true, message: 'VIP Activated Successfully & Referral Processed' });
     }
 
     return res.status(200).json({ success: true, message: 'Webhook received, status not success' });

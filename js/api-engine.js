@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (DENGAN TOMBOL REFRESH KOIN MANUAL)
+// PILAR 3: API ENGINE & RENDER LOGIC (DENGAN TOMBOL REFRESH KOIN MANUAL & SYNC SEMUA)
 // File: js/api-engine.js
 // ==========================================
 
@@ -106,7 +106,7 @@ async function refreshSaldoAkunOtomatis(apiKey) {
   } catch (err) {}
 }
 
-// FUNGSI REFRESH MANUAL KETIKA TOMBOL IKON REFRESH DIKLIK
+// FUNGSI REFRESH MANUAL KETIKA TOMBOL IKON REFRESH DIKLIK SATU PER SATU
 async function manualRefreshAkunSatu(idx) {
   var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
   var akun = targetAkun[idx];
@@ -144,6 +144,61 @@ async function manualRefreshAkunSatu(idx) {
   } catch (err) {
     tampilkanNotif('Gagal terhubung: ' + err.message, 'error');
   }
+}
+
+// FUNGSI SYNC / REFRESH SEMUA KOIN RUNNINGHUB SEKALIGUS
+async function refreshSemuaAkunRunningHub() {
+  if (tabAkunAktif !== 'runninghub') {
+    return tampilkanNotif('Sync Semua khusus akun RunningHub', 'info');
+  }
+
+  if (!akunRunningHub || akunRunningHub.length === 0) {
+    return tampilkanNotif('Belum ada akun RunningHub yang terhubung!', 'error');
+  }
+
+  var btn = document.getElementById('btn-sync-all-rh');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ph ph-spinner animate-spin text-sm"></i> Syncing...';
+  }
+
+  tampilkanNotif('Menyinkronkan seluruh akun RunningHub...', 'info');
+
+  var suksesHitung = 0;
+
+  var antreanSync = akunRunningHub.map(async function(akun) {
+    try {
+      var res = await fetch('/api/saldo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: akun.key })
+      });
+      var hasil = await res.json();
+      if (res.ok && hasil) {
+        var rawData = hasil.data || hasil;
+        var k = rawData.totalCoins !== undefined ? rawData.totalCoins : rawData.coins !== undefined ? rawData.coins : rawData.coin !== undefined ? rawData.coin : rawData.credit !== undefined ? rawData.credit : rawData.balance !== undefined ? rawData.balance : rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
+        
+        if (k !== undefined && k !== null) {
+          akun.koin = Number(k);
+          suksesHitung++;
+        }
+      }
+    } catch (e) {}
+  });
+
+  await Promise.allSettled(antreanSync);
+
+  simpanStorage();
+  if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
+  if (typeof sinkronkanDropdownAkunGenerate === 'function') sinkronkanDropdownAkunGenerate();
+  if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph ph-arrows-clockwise text-sm"></i> Sync Semua';
+  }
+
+  tampilkanNotif('✓ ' + suksesHitung + ' akun berhasil diperbarui!', 'sukses');
 }
 
 function unggahBahanLangsung(input, tipe) {
@@ -579,7 +634,7 @@ function renderListAkunDiKelola() {
     var el = document.createElement('div');
     el.className = "bg-white border border-kmBorder p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
     
-    // Tombol Ikon Refresh Saldo
+    // Tombol Ikon Refresh Saldo Satuan
     var refreshBtnHtml = (tabAkunAktif === 'runninghub') ? 
       '<button type="button" onclick="manualRefreshAkunSatu(' + i + ')" class="p-2 text-slate-400 hover:text-kmViolet bg-slate-50 hover:bg-violet-50 rounded-xl transition cursor-pointer border border-slate-200" title="Refresh Saldo Koin">' +
         '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' +

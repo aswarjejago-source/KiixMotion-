@@ -1,4 +1,4 @@
-// Endpoint Webhook iPaymu (Target: public.users + Anti-Duplikat + Bonus 7 Hari)
+// Endpoint Webhook iPaymu (Versi Final & Pasti)
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
@@ -20,9 +20,9 @@ export default async function handler(req, res) {
     }
     buyerEmail = (buyerEmail || '').toLowerCase().trim();
 
-    console.log('Webhook diterima dari iPaymu:', { status, trxId, buyerEmail });
+    console.log('Webhook iPaymu Masuk:', { status, trxId, buyerEmail });
 
-    // Hanya proses jika pembayaran sukses
+    // 1. Validasi status sukses standar iPaymu
     if ((status === 'berhasil' || status === '1' || status === 1 || status === 'paid') && buyerEmail) {
       const headers = {
         'apikey': SUPABASE_KEY,
@@ -31,25 +31,15 @@ export default async function handler(req, res) {
         'Prefer': 'return=representation'
       };
 
-      // 1. CEK ANTI-DUPLIKAT TRANSAKSI
-      if (trxId) {
-        const trxCheckRes = await fetch(`${SUPABASE_URL}/rest/v1/transactions?trx_id=eq.${encodeURIComponent(String(trxId))}&status=eq.BERHASIL&select=id`, { headers });
-        const existingTrx = await trxCheckRes.json();
-        if (existingTrx && existingTrx.length > 0) {
-          return res.status(200).json({ success: true, message: 'Transaksi ini sudah selesai diproses.' });
-        }
-      }
-
-      const bonusDays = 25; // Paket pembeli 25 hari
       const now = new Date();
 
-      // 2. CEK / INSERT PEMBELI DI TABEL USERS
+      // 2. Tambah / Perpanjang 25 hari ke pembeli di tabel users
       const userCheckRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=ilike.${encodeURIComponent(buyerEmail)}&select=*`, { headers });
       const existingUsers = await userCheckRes.json();
       let targetUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null;
 
       if (!targetUser) {
-        const newExpiry = new Date(now.getTime() + bonusDays * 24 * 60 * 60 * 1000);
+        const newExpiry = new Date(now.getTime() + 25 * 24 * 60 * 60 * 1000);
         const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
           method: 'POST',
           headers,
@@ -65,7 +55,7 @@ export default async function handler(req, res) {
         const currentExpiry = targetUser.vip_expires_at && new Date(targetUser.vip_expires_at) > now
           ? new Date(targetUser.vip_expires_at)
           : now;
-        const updatedExpiry = new Date(currentExpiry.getTime() + bonusDays * 24 * 60 * 60 * 1000);
+        const updatedExpiry = new Date(currentExpiry.getTime() + 25 * 24 * 60 * 60 * 1000);
 
         await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${targetUser.id}`, {
           method: 'PATCH',
@@ -77,7 +67,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // 3. CATAT TRANSAKSI KE TABEL TRANSACTIONS
+      // 3. Catat riwayat ke tabel transactions
       if (targetUser && targetUser.id) {
         await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
           method: 'POST',
@@ -91,7 +81,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // 4. EKSEKUSI BONUS REFERRAL 7 HARI (CARI DI TABEL USERS)
+      // 4. Tambah bonus +7 hari ke pemilik kode referral di tabel users
       if (targetUser && targetUser.referred_by) {
         try {
           const inviterRes = await fetch(`${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(targetUser.referred_by)}&select=*`, { headers });
@@ -113,19 +103,19 @@ export default async function handler(req, res) {
               })
             });
 
-            console.log(`Bonus +7 hari berhasil masuk ke akun: ${inviter.email}`);
+            console.log(`Bonus +7 hari masuk ke: ${inviter.email}`);
           }
         } catch (refErr) {
-          console.error('Gagal memproses bonus referral:', refErr);
+          console.error('Error proses bonus referral:', refErr);
         }
       }
 
-      return res.status(200).json({ success: true, message: 'VIP Berhasil Diaktifkan & Referral Sukses Diproses' });
+      return res.status(200).json({ success: true, message: 'VIP Aktif & Referral Berhasil' });
     }
 
-    return res.status(200).json({ success: true, message: 'Status transaksi belum berhasil' });
+    return res.status(200).json({ success: true, message: 'Status belum berhasil' });
   } catch (err) {
-    console.error('Error fatal di webhook iPaymu:', err);
+    console.error('Error webhook iPaymu:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }

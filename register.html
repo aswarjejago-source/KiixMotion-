@@ -199,7 +199,7 @@
         }
         .form-footer-link a:hover { text-decoration: underline; }
 
-        /* TOMBOL TELEGRAM KHUSUS RAKYAT BINGUNG */
+        /* TOMBOL TELEGRAM */
         .btn-telegram {
             display: flex;
             align-items: center;
@@ -231,7 +231,7 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* POP-UP CEK EMAIL (Estetik & Profesional) */
+        /* POP-UP CEK EMAIL */
         #popup-cek-email {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(17, 17, 19, 0.7); z-index: 10000;
@@ -262,7 +262,6 @@
         }
         .popup-btn:hover { background: #333; }
 
-        /* RESPONSIF KHUSUS HP */
         @media (max-width: 768px) {
             body { flex-direction: column; }
             .left-side { padding: 30px 20px; }
@@ -341,7 +340,7 @@
                 </div>
             </div>
 
-            <!-- KOLOM TAMBAHAN: Ulangi Password (Hanya muncul pas mode register) -->
+            <!-- KOLOM TAMBAHAN: Ulangi Password -->
             <div class="input-group" id="group-confirm-pass" style="display: none;">
                 <label>Ulangi password</label>
                 <div class="input-wrapper">
@@ -357,7 +356,7 @@
 
             <button type="button" onclick="prosesAuthSupabase()" class="btn-submit" id="btn-text">Masuk</button>
 
-            <!-- TOMBOL TELEGRAM UNTUK RAKYAT YANG BINGUNG -->
+            <!-- TOMBOL TELEGRAM -->
             <a href="https://t.me/+JS435ITO1h0xMWJl" target="_blank" class="btn-telegram">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg>
                 Tanya Admin / Join Komunitas Telegram
@@ -378,15 +377,16 @@
         const supa = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
         const urlParams = new URLSearchParams(window.location.search);
-        let modeAktif = urlParams.get('mode') === 'register' ? 'register' : 'login';
-
-        // Tangkap & amankan kode referral dari URL jika ada
+        
+        // 1. TANGKAP KODE REFERRAL
         const refCodeParam = urlParams.get('ref');
         if (refCodeParam) {
             localStorage.setItem('km_pending_ref', refCodeParam);
         }
 
-        // Nangkep session dari URL
+        // 2. OTOMATIS BUKA MODE DAFTAR JIKA MEMBAWA LINK REFERRAL ATAU MODE=REGISTER
+        let modeAktif = (urlParams.get('mode') === 'register' || refCodeParam) ? 'register' : 'login';
+
         async function cekSessionAktif() {
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             
@@ -423,7 +423,6 @@
             modeAktif = mode;
             aturTampilanMode(mode);
             
-            // Pertahankan parameter ref di URL jika ada
             const pendingRef = localStorage.getItem('km_pending_ref');
             let newUrl = mode === 'register' ? '?mode=register' : '?mode=login';
             if (pendingRef) {
@@ -476,13 +475,12 @@
             }
         }
 
-        // Fungsi buka-tutup pop up
         function tutupPopUpEmail() {
             document.getElementById('popup-cek-email').style.display = 'none';
         }
 
         async function prosesAuthSupabase() {
-            const email = document.getElementById('input-email').value;
+            const email = document.getElementById('input-email').value.trim();
             const pass = document.getElementById('input-pass').value;
             const btnSubmit = document.getElementById('btn-text');
 
@@ -494,7 +492,7 @@
             if (modeAktif === 'register') {
                 const confirmPass = document.getElementById('input-confirm-pass').value;
                 if (pass !== confirmPass) {
-                    alert('Waduh, kata sandi yang diulangi tidak sama, Bree! Cek lagi.');
+                    alert('Kata sandi yang diulangi tidak sama, Bree! Cek lagi.');
                     return;
                 }
             }
@@ -505,39 +503,38 @@
 
             try {
                 if (modeAktif === 'register') {
-                    // Ambil kode referral yang tersimpan saat user klik link
                     const refCode = localStorage.getItem('km_pending_ref') || null;
 
+                    // 1. Daftarkan akun auth ke Supabase
                     const { data, error } = await supa.auth.signUp({ 
                         email: email, 
                         password: pass,
                         options: {
-                            data: { referred_by: refCode } // Catat siapa yang mereferensikan di metadata auth
+                            data: { referred_by: refCode }
                         }
                     });
                     
                     if (error) throw error;
 
-                    // Opsional: Simpan juga langsung ke tabel public.users jika tabel Paduka memilikinya
+                    // 2. Simpan referred_by ke tabel public.users secara aman (anti-crash)
                     if (refCode) {
                         try {
-                            await supa.from('users').upsert({ 
-                                email: email, 
-                                referred_by: refCode 
-                            }, { onConflict: 'email' });
+                            const { data: existingUser } = await supa.from('users').select('id').eq('email', email).maybeSingle();
+                            if (existingUser) {
+                                await supa.from('users').update({ referred_by: refCode }).eq('email', email);
+                            } else {
+                                await supa.from('users').insert({ email: email, referred_by: refCode });
+                            }
                         } catch (dbErr) {
-                            console.log('Catatan database ref:', dbErr.message);
+                            console.warn('Gagal sync referred_by ke tabel users:', dbErr.message);
                         }
                     }
 
-                    // Bersihkan memori pending ref setelah sukses daftar
                     localStorage.removeItem('km_pending_ref');
                     
-                    // Kalau berhasil daftar, TAMPILIN POP-UP CEK EMAIL
                     document.getElementById('popup-email-text').innerText = email;
                     document.getElementById('popup-cek-email').style.display = 'flex';
                     
-                    // Otomatis pindah UI ke mode login buat nanti dia balik
                     switchMode('login');
                     document.getElementById('input-pass').value = '';
                     document.getElementById('input-confirm-pass').value = '';

@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (DENGAN TOMBOL REFRESH KOIN MANUAL & SYNC SEMUA)
+// PILAR 3: API ENGINE & RENDER LOGIC (AUTO INJECT TOMBOL SYNC SEMUA)
 // File: js/api-engine.js
 // ==========================================
 
@@ -106,7 +106,7 @@ async function refreshSaldoAkunOtomatis(apiKey) {
   } catch (err) {}
 }
 
-// FUNGSI REFRESH MANUAL KETIKA TOMBOL IKON REFRESH DIKLIK SATU PER SATU
+// FUNGSI REFRESH MANUAL SATU PER SATU
 async function manualRefreshAkunSatu(idx) {
   var targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
   var akun = targetAkun[idx];
@@ -146,7 +146,7 @@ async function manualRefreshAkunSatu(idx) {
   }
 }
 
-// FUNGSI SYNC / REFRESH SEMUA KOIN RUNNINGHUB SEKALIGUS
+// FUNGSI SYNC SEMUA KOIN RUNNINGHUB SEKALIGUS
 async function refreshSemuaAkunRunningHub() {
   if (tabAkunAktif !== 'runninghub') {
     return tampilkanNotif('Sync Semua khusus akun RunningHub', 'info');
@@ -162,7 +162,7 @@ async function refreshSemuaAkunRunningHub() {
     btn.innerHTML = '<i class="ph ph-spinner animate-spin text-sm"></i> Syncing...';
   }
 
-  tampilkanNotif('Menyinkronkan seluruh akun RunningHub...', 'info');
+  tampilkanNotif('Menyinkronkan semua koin RunningHub...', 'info');
 
   var suksesHitung = 0;
 
@@ -292,7 +292,7 @@ function sinkronkanDropdownAkunGenerate() {
 }
 
 // ==========================================
-// CCTV PEMANTAUAN (BERSIH TOTAL, AUTO REFRESH KOIN)
+// CCTV PEMANTAUAN
 // ==========================================
 function pantauTaskRunningHub(tugas, apiKey) {
   if (tugas.selesai) return; 
@@ -310,7 +310,7 @@ function pantauTaskRunningHub(tugas, apiKey) {
     }
 
     tugas.cekCount++;
-    if (tugas.cekCount > 360) { // Timeout 1 Jam
+    if (tugas.cekCount > 360) {
         clearInterval(cekInterval);
         tugas.status = "❌ Gagal (Timeout 1 Jam Habis)"; 
         tugas.selesai = true;
@@ -331,7 +331,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
       var parsedText = textRaw.replace(/\\/g, ''); 
       var cleanString = parsedText.toUpperCase(); 
       
-      // 1. CEK SUKSES: MENCARI LINK .MP4 ATAU OBJEK HASIL
       var vidUrl = null;
       try {
           var jsonObj = JSON.parse(textRaw);
@@ -349,7 +348,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
           if (match) vidUrl = match[0];
       }
 
-      // JIKA BERHASIL TARIK VIDEO -> SUKSES & REFRESH SALDO TERBARU
       if (vidUrl && typeof vidUrl === 'string') {
           clearInterval(cekInterval);
           tugas.status = "Selesai"; 
@@ -362,12 +360,10 @@ function pantauTaskRunningHub(tugas, apiKey) {
           return;
       }
 
-      // 2. CEK STRUKTUR JSON RESMI UNTUK KONDISI GAGAL
       try {
           var jsonObj2 = JSON.parse(textRaw);
           var topCode = Number(jsonObj2.code || 0);
           var topMsg = (jsonObj2.msg || "").toString().toUpperCase();
-          
           var dataObj2 = jsonObj2.data || jsonObj2;
           var statusLuar = (dataObj2.status || jsonObj2.status || "").toString().toUpperCase();
           var errorCode = (dataObj2.errorCode || jsonObj2.errorCode || "").toString();
@@ -392,7 +388,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
 
           if (isRunningHubFailed) {
               clearInterval(cekInterval);
-              
               var pesanFinal = "Gagal Dirender Server";
               if (topCode === 807 || topMsg.includes("APIKEY_TASK_NOT_FOUND")) {
                   pesanFinal = "Gagal: Tugas Tidak Ditemukan / Dibatalkan (807)";
@@ -414,7 +409,6 @@ function pantauTaskRunningHub(tugas, apiKey) {
           }
       } catch (jsonErr2) {}
       
-      // 3. JIKA MASIH PROSES
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -625,16 +619,36 @@ function gantiTabAkunProvider(prov) {
   renderListAkunDiKelola();
 }
 
+// FUNGSI INI OTOMATIS MENAMPILKAN TOMBOL SYNC SEMUA DI ATAS DAFTAR KARTU
 function renderListAkunDiKelola() {
   var wadah = document.getElementById('wadah-kartu-akun-list'), targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
-  if (!wadah) return; wadah.innerHTML = '';
+  if (!wadah) return; 
+  wadah.innerHTML = '';
   var totalKredit = 0;
+
+  if (targetAkun.length === 0) {
+    wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Tambah API Key" di atas.</div>';
+    var setTxt0 = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
+    setTxt0('txt-stat-aktif', 0); setTxt0('txt-stat-akun', 0); setTxt0('txt-stat-kredit', 0);
+    return;
+  }
+
+  // 1. INJEKSI OTOMATIS: Toolbar Atas & Tombol Sync Semua
+  var toolbarEl = document.createElement('div');
+  toolbarEl.className = "flex items-center justify-between px-1 pb-1 pt-1";
+  toolbarEl.innerHTML = '<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Daftar API Key (' + targetAkun.length + ')</span>' +
+    ((tabAkunAktif === 'runninghub') ? 
+      '<button id="btn-sync-all-rh" type="button" onclick="refreshSemuaAkunRunningHub()" class="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 hover:text-kmViolet border border-kmBorder rounded-xl text-xs font-bold transition shadow-sm cursor-pointer flex items-center gap-1.5">' +
+        '<i class="ph ph-arrows-clockwise text-sm"></i> Sync Semua' +
+      '</button>' : '');
+  wadah.appendChild(toolbarEl);
+
+  // 2. Render Kartu Akun
   targetAkun.forEach(function(a, i) {
     var koinVal = Number(a.koin) || 0; totalKredit += koinVal;
     var el = document.createElement('div');
     el.className = "bg-white border border-kmBorder p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
     
-    // Tombol Ikon Refresh Saldo Satuan
     var refreshBtnHtml = (tabAkunAktif === 'runninghub') ? 
       '<button type="button" onclick="manualRefreshAkunSatu(' + i + ')" class="p-2 text-slate-400 hover:text-kmViolet bg-slate-50 hover:bg-violet-50 rounded-xl transition cursor-pointer border border-slate-200" title="Refresh Saldo Koin">' +
         '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' +
@@ -649,9 +663,9 @@ function renderListAkunDiKelola() {
     '</div>';
     wadah.appendChild(el);
   });
+
   var setTxt = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
   setTxt('txt-stat-aktif', targetAkun.length); setTxt('txt-stat-akun', targetAkun.length); setTxt('txt-stat-kredit', totalKredit);
-  if (targetAkun.length === 0) wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Tambah API Key" di atas.</div>';
 }
 
 function hapusAkunSatu(idx) {

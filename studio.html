@@ -40,14 +40,10 @@
     .nav-btn-smooth { display: flex; align-items: center; gap: 12px; transition: all 0.2s ease-in-out; }
   </style>
 
-  <!-- LIBRARY KRIPTOGRAFI UNTUK GENERATE SIGNATURE IPAYMU -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-
-  <!-- PANGGIL FILE JAVASCRIPT -->
   <script src="js/database.js" defer></script>
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
-
 </head>
 <body class="selection:bg-kmViolet selection:text-white pb-14 md:pb-0 md:flex md:h-screen md:overflow-hidden bg-kmBg">
   
@@ -112,7 +108,7 @@
         
         <div class="relative group">
             <button class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-200 border border-kmBorder font-bold text-slate-700 text-sm shadow-sm hover:ring-2 hover:ring-kmViolet transition cursor-pointer"><span id="profil-inisial">U</span></button>
-            <div class="absolute right-0 mt-2 w-48 bg-white border border-kmBorder rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 origin-top-right">
+            <div class="absolute right-0 mt-2 w-56 bg-white border border-kmBorder rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 origin-top-right">
                 <div class="px-4 py-2 border-b border-kmBorder mb-1">
                     <p class="text-xs font-bold text-slate-800 truncate" id="profil-email-drop">Memuat...</p>
                     <p id="label-member-status" class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
@@ -133,7 +129,6 @@
           <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Ringkasan akun dan aktivitas generate kamu.</p>
       </div>
 
-      <!-- GRID TOMBOL SHORTCUT DASHBOARD -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div></button>
           <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Simpan media</p></div></button>
@@ -141,9 +136,7 @@
           
           <button onclick="gantiLayarNav('langganan')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden">
               <div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div>
-              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10">
-                  <span class="text-kmViolet text-lg">👑</span>
-              </div>
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div>
               <div class="relative z-10">
                   <h4 class="text-xs sm:text-sm font-bold text-slate-800">Upgrade ke Pro</h4>
                   <p class="text-[10px] text-slate-400">Pakai akses sendiri</p>
@@ -151,13 +144,13 @@
           </button>
       </div>
 
-      <!-- PROGRAM REFERRAL DENGAN TOMBOL SALIN LINK -->
+      <!-- KOTAK REFERRAL DENGAN TOMBOL SALIN -->
       <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 modern-shadow">
           <div class="flex items-center gap-3.5">
               <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-xl shrink-0">🎁</div>
               <div>
                   <h4 class="text-sm font-bold text-slate-900">Program Referral KiiXMotion</h4>
-                  <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Sebar link-mu, dapat reward VIP ketika teman upgrade!</p>
+                  <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Sebar link referral-mu! Dapatkan bonus masa aktif VIP +7 hari setiap ada yang checkout.</p>
               </div>
           </div>
           <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -323,7 +316,15 @@
         </div>
       </div>
       
-      <div id="wadah-kartu-akun-list" class="space-y-3"></div>
+      <div class="space-y-3">
+        <div class="flex items-center justify-between px-1 pt-1">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Daftar API Key</span>
+          <button id="btn-sync-all-rh" onclick="refreshSemuaAkunRunningHub()" class="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 hover:text-kmViolet border border-kmBorder rounded-xl text-xs font-bold transition shadow-sm cursor-pointer flex items-center gap-1.5">
+            <i class="ph ph-arrows-clockwise text-sm"></i> Sync Semua
+          </button>
+        </div>
+        <div id="wadah-kartu-akun-list" class="space-y-3"></div>
+      </div>
     </div>
 
     <!-- 6. LAYAR LANGGANAN -->
@@ -426,7 +427,7 @@
     </div>
   </div>
 
-  <!-- SKRIP SUPABASE & REFERRAL PROPER -->
+  <!-- SCRIPT SUPABASE & ENGINE REFERRAL TERPADU -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
       const supabaseUrl = 'https://fybyupwcburndxulqqnn.supabase.co';
@@ -436,22 +437,42 @@
       async function ambilDataLoginAsli() {
           const { data: { session } } = await supa.auth.getSession();
           if (session && session.user) {
-              const emailUser = session.user.email;
+              const emailUser = session.user.email.toLowerCase().trim();
               const namaAsli = emailUser.split('@')[0];
               
               document.getElementById('user-greeting-name').innerText = namaAsli;
               document.getElementById('profil-email-drop').innerText = emailUser;
               document.getElementById('profil-inisial').innerText = namaAsli.charAt(0).toUpperCase();
               
-              // Sistem Referral Permanen per Akun
-              let storageKey = 'km_referral_code_' + emailUser;
-              let kodeReferral = localStorage.getItem(storageKey);
+              // 1. Ambil data dari tabel users
+              const { data: userRow } = await supa.from('users').select('id, is_vip, vip_expires_at, referral_code, referred_by').ilike('email', emailUser).maybeSingle();
+              
+              let kodeReferral = userRow?.referral_code;
 
+              // 2. Jika kolom referral_code di database masih NULL, buatkan dan simpan ke Supabase
               if (!kodeReferral) {
                   let randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
                   kodeReferral = 'KIIX-' + randomString;
-                  localStorage.setItem(storageKey, kodeReferral);
+
+                  let pendingRef = localStorage.getItem('km_pending_ref') || session.user.user_metadata?.referred_by || null;
+
+                  if (userRow) {
+                      let updateData = { referral_code: kodeReferral };
+                      if (!userRow.referred_by && pendingRef) updateData.referred_by = pendingRef;
+                      await supa.from('users').update(updateData).eq('id', userRow.id);
+                  } else {
+                      await supa.from('users').insert({
+                          email: emailUser,
+                          referral_code: kodeReferral,
+                          referred_by: pendingRef,
+                          is_vip: false
+                      });
+                  }
               }
+
+              // Simpan kode lokal & pasang di UI
+              let storageKey = 'km_referral_code_' + emailUser;
+              localStorage.setItem(storageKey, kodeReferral);
 
               const elKode = document.getElementById('kode-referral-user');
               if (elKode) {
@@ -460,25 +481,25 @@
 
               window.kodeReferralAktifUser = kodeReferral;
               
-              // Jalankan pengecekan status VIP member pro otomatis
+              // Perbarui status VIP dan tanggal masa aktif di UI
               updateStatusMemberUI(emailUser);
           }
       }
 
-      // Fungsi Cek Status VIP Member Pro dari Supabase
+      // Fungsi Cek Status VIP Member Pro & Render Tanggal Expired
       async function updateStatusMemberUI(emailUser) {
           try {
-              const { data: profile, error } = await supa.from('users').select('is_vip, vip_expires_at').eq('email', emailUser).single();
+              const { data: userRow, error } = await supa.from('users').select('is_vip, vip_expires_at').ilike('email', emailUser).maybeSingle();
               const badgeEl = document.getElementById('label-member-status');
               const expEl = document.getElementById('label-vip-expires');
               if (!badgeEl) return;
               
-              if (!error && profile && profile.is_vip === true) {
+              if (!error && userRow && userRow.is_vip === true) {
                   let isExpired = false;
                   let formattedDate = "";
 
-                  if (profile.vip_expires_at) {
-                      const expDate = new Date(profile.vip_expires_at);
+                  if (userRow.vip_expires_at) {
+                      const expDate = new Date(userRow.vip_expires_at);
                       if (expDate.getTime() < new Date().getTime()) {
                           isExpired = true;
                       } else {
@@ -509,7 +530,7 @@
                   if (expEl) expEl.classList.add('hidden');
               }
           } catch (err) {
-              console.error("Gagal ngecek status member UI:", err);
+              console.error("Gagal membaca status member:", err);
           }
       }
 

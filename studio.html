@@ -112,7 +112,6 @@
                 <div class="px-4 py-2 border-b border-kmBorder mb-1">
                     <p class="text-xs font-bold text-slate-800 truncate" id="profil-email-drop">Memuat...</p>
                     <p id="label-member-status" class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
-                    <!-- ELEMEN TANGGAL EXPIRED AKTIF -->
                     <p id="label-vip-expires" class="text-[9px] text-slate-400 font-medium mt-1 hidden"></p>
                 </div>
                 <a href="#" onclick="gantiLayarNav('langganan')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro</a>
@@ -427,7 +426,7 @@
     </div>
   </div>
 
-  <!-- SCRIPT SUPABASE & ENGINE REFERRAL TERPADU -->
+  <!-- SCRIPT SUPABASE & ENGINE REFERRAL TERPADU (PERMANEN & ANTI-RESET) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
       const supabaseUrl = 'https://fybyupwcburndxulqqnn.supabase.co';
@@ -435,61 +434,83 @@
       const supa = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
       async function ambilDataLoginAsli() {
-          const { data: { session } } = await supa.auth.getSession();
-          if (session && session.user) {
-              const emailUser = session.user.email.toLowerCase().trim();
-              const namaAsli = emailUser.split('@')[0];
-              
-              document.getElementById('user-greeting-name').innerText = namaAsli;
-              document.getElementById('profil-email-drop').innerText = emailUser;
-              document.getElementById('profil-inisial').innerText = namaAsli.charAt(0).toUpperCase();
-              
-              // 1. Ambil data dari tabel users
-              const { data: userRow } = await supa.from('users').select('id, is_vip, vip_expires_at, referral_code, referred_by').ilike('email', emailUser).maybeSingle();
-              
-              let kodeReferral = userRow?.referral_code;
+          try {
+              const { data: { session } } = await supa.auth.getSession();
+              if (session && session.user) {
+                  const emailUser = session.user.email.toLowerCase().trim();
+                  const namaAsli = emailUser.split('@')[0];
+                  
+                  document.getElementById('user-greeting-name').innerText = namaAsli;
+                  document.getElementById('profil-email-drop').innerText = emailUser;
+                  document.getElementById('profil-inisial').innerText = namaAsli.charAt(0).toUpperCase();
+                  
+                  let storageKey = 'km_referral_code_' + emailUser;
+                  let cachedCode = localStorage.getItem(storageKey);
 
-              // 2. Jika kolom referral_code di database masih NULL, buatkan dan simpan ke Supabase
-              if (!kodeReferral) {
-                  let randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
-                  kodeReferral = 'KIIX-' + randomString;
+                  // 1. Ambil baris pertama secara aman pakai limit(1) (Mencegah crash kalau ada data duplikat)
+                  const { data: userRows, error } = await supa
+                      .from('users')
+                      .select('id, is_vip, vip_expires_at, referral_code, referred_by')
+                      .ilike('email', emailUser)
+                      .limit(1);
 
-                  let pendingRef = localStorage.getItem('km_pending_ref') || session.user.user_metadata?.referred_by || null;
+                  const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
+                  
+                  // 2. Prioritaskan kode yang sudah ada di database atau cache lokal
+                  let kodeReferral = userRow?.referral_code || cachedCode;
 
-                  if (userRow) {
-                      let updateData = { referral_code: kodeReferral };
-                      if (!userRow.referred_by && pendingRef) updateData.referred_by = pendingRef;
-                      await supa.from('users').update(updateData).eq('id', userRow.id);
-                  } else {
-                      await supa.from('users').insert({
-                          email: emailUser,
-                          referral_code: kodeReferral,
-                          referred_by: pendingRef,
-                          is_vip: false
-                      });
+                  // 3. Hanya generate kode baru jika di DB dan Cache benar-benar KOSONG
+                  if (!kodeReferral) {
+                      let randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+                      kodeReferral = 'KIIX-' + randomString;
+
+                      let pendingRef = localStorage.getItem('km_pending_ref') || session.user.user_metadata?.referred_by || null;
+
+                      if (userRow) {
+                          let updateData = { referral_code: kodeReferral };
+                          if (!userRow.referred_by && pendingRef) updateData.referred_by = pendingRef;
+                          await supa.from('users').update(updateData).eq('id', userRow.id);
+                      } else {
+                          await supa.from('users').insert({
+                              email: emailUser,
+                              referral_code: kodeReferral,
+                              referred_by: pendingRef,
+                              is_vip: false
+                          });
+                      }
+                  } else if (userRow && !userRow.referral_code) {
+                      // Kunci kode cache lokal ke database jika di database masih NULL
+                      await supa.from('users').update({ referral_code: kodeReferral }).eq('id', userRow.id);
                   }
+
+                  // Kunci permanen di browser user
+                  localStorage.setItem(storageKey, kodeReferral);
+
+                  const elKode = document.getElementById('kode-referral-user');
+                  if (elKode) {
+                      elKode.innerText = kodeReferral;
+                  }
+
+                  window.kodeReferralAktifUser = kodeReferral;
+                  
+                  // Perbarui status VIP dan tanggal masa aktif di UI
+                  updateStatusMemberUI(emailUser);
               }
-
-              // Simpan kode lokal & pasang di UI
-              let storageKey = 'km_referral_code_' + emailUser;
-              localStorage.setItem(storageKey, kodeReferral);
-
-              const elKode = document.getElementById('kode-referral-user');
-              if (elKode) {
-                  elKode.innerText = kodeReferral;
-              }
-
-              window.kodeReferralAktifUser = kodeReferral;
-              
-              // Perbarui status VIP dan tanggal masa aktif di UI
-              updateStatusMemberUI(emailUser);
+          } catch (err) {
+              console.error("Gagal memuat sesi pengguna:", err);
           }
       }
 
-      // Fungsi Cek Status VIP Member Pro & Render Tanggal Expired
+      // Fungsi Cek Status VIP Member Pro & Render Tanggal Expired (Aman Duplikasi)
       async function updateStatusMemberUI(emailUser) {
           try {
-              const { data: userRow, error } = await supa.from('users').select('is_vip, vip_expires_at').ilike('email', emailUser).maybeSingle();
+              const { data: userRows, error } = await supa
+                  .from('users')
+                  .select('is_vip, vip_expires_at')
+                  .ilike('email', emailUser)
+                  .limit(1);
+
+              const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
               const badgeEl = document.getElementById('label-member-status');
               const expEl = document.getElementById('label-vip-expires');
               if (!badgeEl) return;
@@ -534,21 +555,51 @@
           }
       }
 
-      // Fungsi Salin Link Referral Otomatis
+      // Fungsi Salin Link Referral Otomatis (Support HP Android & Browser Brave/Chrome)
       function salinLinkReferral() {
-          if (!window.kodeReferralAktifUser) return;
+          if (!window.kodeReferralAktifUser) {
+              alert('Kode referral sedang dimuat, coba sesaat lagi ya!');
+              return;
+          }
           let domainWeb = window.location.origin;
           let linkLengkap = domainWeb + '/register.html?ref=' + window.kodeReferralAktifUser;
 
-          navigator.clipboard.writeText(linkLengkap).then(function() {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(linkLengkap).then(function() {
+                  if (typeof tampilkanNotif === 'function') {
+                      tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses');
+                  } else {
+                      alert('Link referral berhasil disalin:\n' + linkLengkap);
+                  }
+              }).catch(function() {
+                  fallbackSalinTeks(linkLengkap);
+              });
+          } else {
+              fallbackSalinTeks(linkLengkap);
+          }
+      }
+
+      // Fallback salin teks jika clipboard API browser HP diblokir
+      function fallbackSalinTeks(text) {
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-9999px";
+          textArea.style.top = "0";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+              document.execCommand('copy');
               if (typeof tampilkanNotif === 'function') {
                   tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses');
               } else {
-                  alert('Link disalin: ' + linkLengkap);
+                  alert('Link referral berhasil disalin:\n' + text);
               }
-          }).catch(function() {
-              alert('Gagal menyalin link');
-          });
+          } catch (err) {
+              prompt('Salin link referral Anda di bawah ini:', text);
+          }
+          document.body.removeChild(textArea);
       }
 
       async function prosesLogout() { 
@@ -556,6 +607,7 @@
           window.location.href = 'register.html'; 
       }
 
+      // Inisialisasi saat file dimuat
       ambilDataLoginAsli();
   </script>
 </body>

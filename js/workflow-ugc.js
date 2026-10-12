@@ -1,13 +1,13 @@
 // =========================================================
 // FILE: js/workflow-ugc.js
 // INGKI AI STUDIOPRO v6.1 — 100% FULL EDITION (PURE JS)
-// Seluruh Prompt, Identity Lock, 8 Mode & Seluruh Input Utuh
+// Fixed generationConfig for Google AI Studio Public API
 // =========================================================
 
 (function () {
   var STORAGE_KEY_UGC = 'kiix_ugc_gemini_key';
   var GENERATIVE_MODEL = "gemini-2.5-flash-image-preview";
-  var TEXT_MODEL = "gemini-2.5-flash-preview-09-2025";
+  var TEXT_MODEL = "gemini-2.5-flash";
   var TTS_MODEL = "gemini-2.5-flash-preview-tts";
 
   // --- PROMPT ENGINE LOGIC ASLI (100% UTUH) ---
@@ -227,6 +227,30 @@
         await new Promise(function (res) { setTimeout(res, delays[i]); });
       }
     }
+  };
+
+  // Helper pemanggil Image Model dengan auto-fallback bila model preview berubah di AI Studio
+  var callGeminiImageAPI = async function (apiKey, parts) {
+    var candidateModels = [
+      GENERATIVE_MODEL,
+      "gemini-2.0-flash-exp-image-generation"
+    ];
+    var lastResp = null;
+
+    for (var m = 0; m < candidateModels.length; m++) {
+      var modelName = candidateModels[m];
+      var resp = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: parts }],
+          generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+        })
+      });
+      lastResp = resp;
+      if (resp && resp.ok) return resp;
+    }
+    return lastResp;
   };
 
   var playClick = function () {};
@@ -546,33 +570,26 @@
     state.view = 'ugc-result';
     renderApp();
 
-    var prompt = `RAW AUTHENTIC SMARTPHONE PHOTO of a ${state.ugcAge} ${state.ugcGender} influencer/model. Nationality/Ethnicity: ${state.ugcCountry}. Skin tone: ${state.ugcSkin}. Hair style: ${state.ugcHairStyle}. Hair color: ${state.ugcHairColor}. Looking confidently at the camera. Extremely detailed real human skin texture, natural imperfections, visible pores. Casual, highly aesthetic everyday background. Single natural light source casting realistic shadows. UNEDITED authentic social media snapshot style. 
+    var prompt = `RAW AUTHENTIC SMARTPHONE PHOTO of a ${state.ugcAge} ${state.ugcGender} influencer/model. Nationality/Ethnicity: ${state.ugcCountry}. Skin tone: ${state.ugcSkin}. Hair style: ${state.ugcHairStyle}. Hair color: ${state.ugcHairColor}. Looking confidently at the camera. Extremely detailed real human skin texture, natural imperfections, visible pores. Casual, highly aesthetic everyday background. Single natural light source casting realistic shadows. UNEDITED authentic social media snapshot style. Format Aspect Ratio: ${state.ugcRatio}.
       NEGATIVE: 3d render, cartoon, illustration, anime, deformed, plastic skin, professional studio setup, flat lighting, text, watermark.`;
 
-    var payload = {
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { responseModalities: ["IMAGE"], aspectRatio: state.ugcRatio }
-    };
-
     try {
-      var response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${GENERATIVE_MODEL}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      var response = await callGeminiImageAPI(apiKey, [{ text: prompt }]);
 
-      if (response.ok) {
+      if (response && response.ok) {
         var result = await response.json();
         var base64Output = result.candidates?.[0]?.content?.parts?.find(function (p) { return p.inlineData; })?.inlineData?.data;
         if (base64Output) {
-          state.ugcGeneratedImage = `data:image/png;base64,${base64Output}`;
+          var rawDataUrl = `data:image/png;base64,${base64Output}`;
+          state.ugcGeneratedImage = await processImageForDownload(rawDataUrl, state.ugcRatio);
         }
       } else {
-        var err = await response.json().catch(function () { return {}; });
-        notify('Gagal generate: ' + ((err.error && err.error.message) || response.status), 'error');
+        var err = response ? await response.json().catch(function () { return {}; }) : {};
+        notify('Gagal generate: ' + ((err.error && err.error.message) || (response && response.status)), 'error');
       }
     } catch (err) {
       console.error("UGC Influencer Gen Error", err);
+      notify('Gagal generate: ' + err.message, 'error');
     } finally {
       state.isGeneratingUgc = false;
       renderApp();
@@ -588,7 +605,7 @@
     renderApp();
 
     var base64Model = state.ugcGeneratedImage.split(',')[1];
-    var prompt = `[CRITICAL: EXACT IDENTITY MATCH] Character Design Reference Sheet Grid. Use the provided reference image to create a highly detailed photo grid layout of THIS EXACT SAME PERSON'S face. 
+    var prompt = `[CRITICAL: EXACT IDENTITY MATCH] Character Design Reference Sheet Grid (16:9 widescreen layout). Use the provided reference image to create a highly detailed photo grid layout of THIS EXACT SAME PERSON'S face. 
       The grid MUST include these exact angles: 
       1. Extreme macro close-up of the eyes.
       2. Close-up of the nose and cheeks.
@@ -598,29 +615,21 @@
       Styling: Photorealistic, ultra-detailed skin texture, clean studio white background for the grid layout itself.
       NEGATIVE: different person, altered facial features, illustration, drawing, text, watermarks, not a grid, messy layout.`;
 
-    var payload = {
-      contents: [{
-        parts: [
-          { text: prompt },
-          { inlineData: { mimeType: "image/png", data: base64Model } }
-        ]
-      }],
-      generationConfig: { responseModalities: ["IMAGE"], aspectRatio: "16:9" }
-    };
-
     try {
-      var response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${GENERATIVE_MODEL}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      var response = await callGeminiImageAPI(apiKey, [
+        { text: prompt },
+        { inlineData: { mimeType: "image/png", data: base64Model } }
+      ]);
 
-      if (response.ok) {
+      if (response && response.ok) {
         var result = await response.json();
         var base64Output = result.candidates?.[0]?.content?.parts?.find(function (p) { return p.inlineData; })?.inlineData?.data;
         if (base64Output) {
           state.ugcDetailImage = `data:image/png;base64,${base64Output}`;
         }
+      } else {
+        var err = response ? await response.json().catch(function () { return {}; }) : {};
+        notify('Gagal detailing: ' + ((err.error && err.error.message) || 'Coba lagi'), 'error');
       }
     } catch (err) {
       console.error("UGC Detailing Gen Error", err);
@@ -748,16 +757,7 @@
 
           payloadParts.push({ text: diffusionPrompt });
 
-          var payload = {
-            contents: [{ parts: payloadParts }],
-            generationConfig: { responseModalities: ["IMAGE"], aspectRatio: state.config.ratio }
-          };
-
-          var response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${GENERATIVE_MODEL}:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
+          var response = await callGeminiImageAPI(apiKey, payloadParts);
 
           if (!response || !response.ok) {
             var errorText = response ? await response.text() : 'No response';
@@ -768,7 +768,8 @@
           var base64Output = result.candidates?.[0]?.content?.parts?.find(function (p) { return p.inlineData; })?.inlineData?.data;
 
           if (base64Output) {
-            var imgSrc = `data:image/png;base64,${base64Output}`;
+            var rawImgSrc = `data:image/png;base64,${base64Output}`;
+            var imgSrc = await processImageForDownload(rawImgSrc, state.config.ratio);
             var defaultVoActive = !isBRoll && (selectedModeId !== 'pov');
 
             state.generatedImages[index] = {
@@ -881,27 +882,20 @@
       Keep original action: ${originalScenario.action}. Background: ${activeBackground}.
       ${realismLaws}
       ${currentIdentityLock}
+      Technical: ${state.config.ratio} format.
       CRITICAL NEGATIVE: ${revisionNegPrompt}.
       `;
 
       payloadParts.push({ text: systemPrompt });
 
-      var payload = {
-        contents: [{ parts: payloadParts }],
-        generationConfig: { responseModalities: ["IMAGE"], aspectRatio: state.config.ratio }
-      };
-
-      var response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${GENERATIVE_MODEL}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      var response = await callGeminiImageAPI(apiKey, payloadParts);
 
       if (response && response.ok) {
         var result = await response.json();
         var base64Output = result.candidates?.[0]?.content?.parts?.find(function (p) { return p.inlineData; })?.inlineData?.data;
         if (base64Output) {
-          state.generatedImages[index].src = `data:image/png;base64,${base64Output}`;
+          var rawImgSrc = `data:image/png;base64,${base64Output}`;
+          state.generatedImages[index].src = await processImageForDownload(rawImgSrc, state.config.ratio);
           state.scenePrompts[index] = "";
         }
       }
@@ -1094,6 +1088,7 @@
 
     try {
       var base64ProductRaw = state.carImage ? state.carImage.split(',')[1] : null;
+      var targetRatioKey = state.carRatio === "1:1 (Square)" ? "1:1" : state.carRatio === "4:5 (Portrait)" ? "3:4" : "16:9";
 
       for (var i = 1; i <= state.carSlides; i++) {
         state.carouselProgress = i;
@@ -1165,25 +1160,14 @@
         }
         payloadParts.push({ text: prompt });
 
-        var payload = {
-          contents: [{ parts: payloadParts }],
-          generationConfig: {
-            responseModalities: ["IMAGE"],
-            aspectRatio: state.carRatio === "1:1 (Square)" ? "1:1" : state.carRatio === "4:5 (Portrait)" ? "3:4" : "16:9"
-          }
-        };
-
-        var response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${GENERATIVE_MODEL}:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        var response = await callGeminiImageAPI(apiKey, payloadParts);
 
         if (response && response.ok) {
           var result = await response.json();
           var base64Output = result.candidates?.[0]?.content?.parts?.find(function (p) { return p.inlineData; })?.inlineData?.data;
           if (base64Output) {
-            state.carouselResults[i - 1] = `data:image/png;base64,${base64Output}`;
+            var rawCarouselImg = `data:image/png;base64,${base64Output}`;
+            state.carouselResults[i - 1] = await processImageForDownload(rawCarouselImg, targetRatioKey);
             renderApp();
           }
         }
@@ -1815,7 +1799,7 @@
                 </div>
 
                 <div class="flex justify-end pt-2">
-                  <button type="button" onclick="ugcAppActions.confirmProduct()" ${!state.productName || state.isProductConfirmed || state.isAnalyzingProduct ? '' : ''} class="px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer ${state.isProductConfirmed ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gradient-to-r from-green-600 to-emerald-500 text-white border border-emerald-400/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]'}">
+                  <button type="button" onclick="ugcAppActions.confirmProduct()" class="px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer ${state.isProductConfirmed ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gradient-to-r from-green-600 to-emerald-500 text-white border border-emerald-400/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]'}">
                     ${state.isAnalyzingProduct ? `<i class="ph ph-spinner animate-spin"></i> Analyzing` : state.isProductConfirmed ? `<i class="ph ph-check-circle"></i> Confirmed` : 'Confirm Info'}
                   </button>
                 </div>
@@ -1968,7 +1952,7 @@
       `;
     }
 
-    // 6. CONFIG STUDIO (DENGAN LAYOUT 12 KOLOM 7:5 & GAYA KAMERA KONTEN UTUH)
+    // 6. CONFIG STUDIO
     if (v === 'config') {
       var hasResult = state.generatedImages.some(function (img) { return img !== null; });
       var bgOptsCfg = state.dynamicBackgrounds.map(function (bg) {
@@ -2293,7 +2277,7 @@
       `;
     }
 
-    // 9. CAROUSEL SETUP (LENGKAP DENGAN KOTAK GAYA VISUAL, TONE & CTA)
+    // 9. CAROUSEL SETUP
     if (v === 'carousel-setup') {
       return `
         ${renderNavbar('mode-selection', false)}
@@ -2334,7 +2318,6 @@
               </div>
             </div>
 
-            <!-- Informasi Brand & Produk -->
             <div class="bg-zinc-900/50 border border-white/5 rounded-3xl p-6 md:p-8 space-y-5">
               <h3 class="text-sm font-bold text-white mb-2 flex items-center gap-2"><i class="ph ph-layout text-emerald-400"></i> Informasi Brand & Produk</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -2350,7 +2333,6 @@
               </div>
             </div>
 
-            <!-- Gaya Visual, Tone & CTA (DIKEMBALIKAN 100% UTUH) -->
             <div class="bg-zinc-900/50 border border-white/5 rounded-3xl p-6 md:p-8 space-y-5">
               <h3 class="text-sm font-bold text-white mb-2 flex items-center gap-2"><i class="ph ph-sparkle text-emerald-400"></i> Gaya Visual, Tone & CTA</h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -2389,7 +2371,7 @@
       `;
     }
 
-    // 10. CAROUSEL RESULT (LENGKAP DENGAN PROGRESS BAR & LABEL SLIDE)
+    // 10. CAROUSEL RESULT
     if (v === 'carousel-result') {
       var slidesHtml = Array.from({ length: state.carSlides }).map(function (_, index) {
         var image = state.carouselResults[index];

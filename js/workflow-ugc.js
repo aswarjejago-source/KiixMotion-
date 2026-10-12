@@ -285,7 +285,7 @@
     return defaults;
   };
 
-  // Helper Murni Google AI Studio (Tanpa Pollinations AI)
+  // Helper Murni Google AI Studio
   var callGeminiImageAPI = async function (apiKey, parts) {
     var candidateModels = await getAvailableGeminiImageModels(apiKey);
     var firstErrorResp = null;
@@ -1721,7 +1721,7 @@
 
       return `
         ${renderNavbar('mode-selection', false)}
-        <div class="flex-grow flex flex-col px-4 pt-8 pb-12 md:px-12 lg:px-20 relative z-20">
+        <div class="flex-grow flex flex-col px-4 pt-8 pb-12 md:px-12 lg:px-20 z-20 relative">
           <div class="max-w-4xl mx-auto w-full flex flex-col gap-8">
             ${renderSectionTitle('AI Influencer Creator', 'Buat karakter model / influencer eksklusif Anda sendiri untuk kebutuhan konten.')}
             <div class="bg-zinc-900/50 border border-white/5 rounded-3xl p-6 md:p-8 space-y-6">

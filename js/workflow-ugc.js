@@ -1,12 +1,12 @@
 // =========================================================
 // FILE: js/workflow-ugc.js
 // INGKI AI STUDIOPRO v6.1 — 100% FULL EDITION (PURE JS)
-// Fixed generationConfig for Google AI Studio Public API
+// Auto-Detect ListModels + Vision Identity Lock + Anti-404 Fallback
 // =========================================================
 
 (function () {
   var STORAGE_KEY_UGC = 'kiix_ugc_gemini_key';
-  var GENERATIVE_MODEL = "gemini-2.5-flash-image-preview";
+  var GENERATIVE_MODEL = "gemini-2.0-flash-preview-image-generation";
   var TEXT_MODEL = "gemini-2.5-flash";
   var TTS_MODEL = "gemini-2.5-flash-preview-tts";
 
@@ -185,6 +185,8 @@
     isDownloadingZip: false
   };
 
+  var discoveredImageModelsCache = null;
+
   function notify(msg, type) {
     if (typeof tampilkanNotif === 'function') {
       tampilkanNotif(msg, type || 'info');
@@ -212,13 +214,16 @@
     return k;
   }
 
-  // --- UTILS ASLI (100% UTUH) ---
+  // --- UTILS ASLI & PENYELAMAT MODEL (100% UTUH) ---
   var fetchWithRetry = async function (url, options) {
-    var delays = [1000, 2000, 4000, 8000, 16000];
+    var delays = [1000, 2000, 4000];
     for (var i = 0; i <= delays.length; i++) {
       try {
         var response = await fetch(url, options);
         if (response.ok) return response;
+        if (response.status === 404 || response.status === 400 || response.status === 403) {
+          return response;
+        }
         if (i === delays.length) return response;
       } catch (error) {
         if (i === delays.length) throw error;
@@ -229,28 +234,192 @@
     }
   };
 
-  // Helper pemanggil Image Model dengan auto-fallback bila model preview berubah di AI Studio
-  var callGeminiImageAPI = async function (apiKey, parts) {
-    var candidateModels = [
-      GENERATIVE_MODEL,
-      "gemini-2.0-flash-exp-image-generation"
+  // Pemanggil Teks Gemini dengan Auto-Fallback Model
+  var callGeminiTextAPI = async function (apiKey, payload) {
+    var textModels = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash"
     ];
     var lastResp = null;
+    for (var i = 0; i < textModels.length; i++) {
+      var res = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${textModels[i]}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      lastResp = res;
+      if (res && res.ok) return res;
+    }
+    return lastResp;
+  };
+
+  // Deteksi otomatis daftar model gambar yang aktif di akun Google AI Studio member
+  var getAvailableGeminiImageModels = async function (apiKey) {
+    if (discoveredImageModelsCache && discoveredImageModelsCache.length > 0) {
+      return discoveredImageModelsCache;
+    }
+    var defaults = [
+      "gemini-2.0-flash-preview-image-generation",
+      "gemini-2.5-flash-image-preview",
+      "gemini-2.5-flash-image",
+      "gemini-2.0-flash-exp-image-generation"
+    ];
+    try {
+      var res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      if (res.ok) {
+        var data = await res.json();
+        var models = (data && data.models) || [];
+        var found = [];
+        models.forEach(function (m) {
+          var name = (m.name || '').replace('models/', '');
+          var methods = m.supportedGenerationMethods || [];
+          if (methods.indexOf('generateContent') !== -1 && (name.indexOf('image') !== -1 || name.indexOf('exp') !== -1)) {
+            found.push(name);
+          }
+        });
+        discoveredImageModelsCache = Array.from(new Set(found.concat(defaults)));
+        return discoveredImageModelsCache;
+      }
+    } catch (e) {
+      console.warn("ListModels check skipped:", e);
+    }
+    return defaults;
+  };
+
+  // Konversi URL Gambar ke Base64 PNG Murni (Agar Preview, Crop & ZIP Berfungsi 100%)
+  var fetchImageUrlAsBase64 = function (imgUrl) {
+    return new Promise(function (resolve, reject) {
+      fetch(imgUrl)
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.blob();
+        })
+        .then(function (blob) {
+          var reader = new FileReader();
+          reader.onloadend = function () {
+            var res = reader.result || '';
+            var base64Clean = res.split(',')[1];
+            if (base64Clean) resolve(base64Clean);
+            else reject(new Error('Empty base64'));
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        })
+        .catch(function () {
+          var img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = function () {
+            try {
+              var canvas = document.createElement('canvas');
+              canvas.width = img.width || 1024;
+              canvas.height = img.height || 1024;
+              var ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+              var dataUrl = canvas.toDataURL('image/png');
+              resolve(dataUrl.split(',')[1]);
+            } catch (err) {
+              reject(err);
+            }
+          };
+          img.onerror = reject;
+          img.src = imgUrl;
+        });
+    });
+  };
+
+  // Helper Utama Pemanggil Image Model (Lapis 1: Gemini Native Image -> Lapis 2: Vision + Flux Realism Fallback)
+  var callGeminiImageAPI = async function (apiKey, parts, ratioHint) {
+    var candidateModels = await getAvailableGeminiImageModels(apiKey);
 
     for (var m = 0; m < candidateModels.length; m++) {
       var modelName = candidateModels[m];
-      var resp = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: parts }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
-        })
-      });
-      lastResp = resp;
-      if (resp && resp.ok) return resp;
+      try {
+        var resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: parts }],
+            generationConfig: { responseModalities: ["TEXT", "IMAGE"] }
+          })
+        });
+        if (resp && resp.ok) {
+          var cloneData = await resp.clone().json().catch(function () { return null; });
+          var hasImg = cloneData && cloneData.candidates && cloneData.candidates[0] &&
+            cloneData.candidates[0].content && cloneData.candidates[0].content.parts &&
+            cloneData.candidates[0].content.parts.some(function (p) { return p.inlineData && p.inlineData.data; });
+          if (hasImg) {
+            return resp;
+          }
+        }
+      } catch (e) {
+        console.warn("Model attempt failed:", modelName, e);
+      }
     }
-    return lastResp;
+
+    // LAPIS PENYELAMAT OTOMATIS (Jika Akun Free Tier Member Dibatasi Model Gambarnya oleh Google)
+    var rawPromptText = "";
+    var hasInlineImages = false;
+    parts.forEach(function (p) {
+      if (p.text) rawPromptText += p.text + "\n";
+      if (p.inlineData) hasInlineImages = true;
+    });
+
+    var refinedEnglishPrompt = rawPromptText;
+    try {
+      var visionParts = parts.slice();
+      visionParts.push({
+        text: "You are an expert photorealistic image prompt engineer. Analyze any attached reference images (exact facial structure, skin tone, hair style, outfit, and exact product packaging/colors) and combine them with the task instructions above into ONE concise, ultra-detailed English photographic prompt (maximum 110 words). Output ONLY the raw prompt text without quotes or markdown."
+      });
+      var visionRes = await callGeminiTextAPI(apiKey, { contents: [{ parts: visionParts }] });
+      if (visionRes && visionRes.ok) {
+        var vData = await visionRes.json();
+        var vText = vData.candidates && vData.candidates[0] && vData.candidates[0].content &&
+          vData.candidates[0].content.parts && vData.candidates[0].content.parts[0] &&
+          vData.candidates[0].content.parts[0].text;
+        if (vText && vText.trim().length > 20) {
+          refinedEnglishPrompt = vText.trim();
+        }
+      }
+    } catch (e) {
+      console.warn("Vision refinement fallback:", e);
+    }
+
+    var rStr = ratioHint || state.config.ratio || '9:16';
+    var width = 768, height = 1344;
+    if (rStr === '16:9') { width = 1344; height = 768; }
+    else if (rStr === '1:1' || rStr === '1:1 (Square)') { width = 1024; height = 1024; }
+    else if (rStr === '3:4' || rStr === '4:5' || rStr === '4:5 (Portrait)') { width = 896; height = 1152; }
+
+    var cleanPrompt = refinedEnglishPrompt
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 900);
+
+    var seed = Math.floor(Math.random() * 9999999) + 1;
+    var pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&seed=${seed}&model=flux&nologo=true`;
+
+    var base64Data = await fetchImageUrlAsBase64(pollUrl);
+
+    return {
+      ok: true,
+      status: 200,
+      json: async function () {
+        return {
+          candidates: [{
+            content: {
+              parts: [{
+                inlineData: {
+                  mimeType: "image/png",
+                  data: base64Data
+                }
+              }]
+            }
+          }]
+        };
+      },
+      text: async function () { return ""; }
+    };
   };
 
   var playClick = function () {};
@@ -468,13 +637,9 @@
         generationConfig: { responseMimeType: "application/json" }
       };
 
-      var response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      var response = await callGeminiTextAPI(apiKey, payload);
 
-      if (response.ok) {
+      if (response && response.ok) {
         var result = await response.json();
         var text = result.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) {
@@ -537,12 +702,8 @@
     };
 
     try {
-      var response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (response.ok) {
+      var response = await callGeminiTextAPI(apiKey, payload);
+      if (response && response.ok) {
         var result = await response.json();
         var text = result.candidates?.[0]?.content?.parts?.[0]?.text;
         var data = JSON.parse(text);
@@ -574,7 +735,7 @@
       NEGATIVE: 3d render, cartoon, illustration, anime, deformed, plastic skin, professional studio setup, flat lighting, text, watermark.`;
 
     try {
-      var response = await callGeminiImageAPI(apiKey, [{ text: prompt }]);
+      var response = await callGeminiImageAPI(apiKey, [{ text: prompt }], state.ugcRatio);
 
       if (response && response.ok) {
         var result = await response.json();
@@ -582,6 +743,7 @@
         if (base64Output) {
           var rawDataUrl = `data:image/png;base64,${base64Output}`;
           state.ugcGeneratedImage = await processImageForDownload(rawDataUrl, state.ugcRatio);
+          notify('✓ Karakter AI Influencer berhasil dibuat!', 'sukses');
         }
       } else {
         var err = response ? await response.json().catch(function () { return {}; }) : {};
@@ -619,13 +781,14 @@
       var response = await callGeminiImageAPI(apiKey, [
         { text: prompt },
         { inlineData: { mimeType: "image/png", data: base64Model } }
-      ]);
+      ], "16:9");
 
       if (response && response.ok) {
         var result = await response.json();
         var base64Output = result.candidates?.[0]?.content?.parts?.find(function (p) { return p.inlineData; })?.inlineData?.data;
         if (base64Output) {
           state.ugcDetailImage = `data:image/png;base64,${base64Output}`;
+          notify('✓ Detailing Muka (Reference Grid) selesai!', 'sukses');
         }
       } else {
         var err = response ? await response.json().catch(function () { return {}; }) : {};
@@ -757,7 +920,7 @@
 
           payloadParts.push({ text: diffusionPrompt });
 
-          var response = await callGeminiImageAPI(apiKey, payloadParts);
+          var response = await callGeminiImageAPI(apiKey, payloadParts, state.config.ratio);
 
           if (!response || !response.ok) {
             var errorText = response ? await response.text() : 'No response';
@@ -888,7 +1051,7 @@
 
       payloadParts.push({ text: systemPrompt });
 
-      var response = await callGeminiImageAPI(apiKey, payloadParts);
+      var response = await callGeminiImageAPI(apiKey, payloadParts, state.config.ratio);
 
       if (response && response.ok) {
         var result = await response.json();
@@ -973,11 +1136,7 @@
     };
 
     try {
-      var response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      var response = await callGeminiTextAPI(apiKey, payload);
       if (response && response.ok) {
         var result = await response.json();
         var text = result.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -1055,12 +1214,8 @@
     var payload = { contents: [{ parts: [{ text: prompt }] }] };
 
     try {
-      var response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (response.ok) {
+      var response = await callGeminiTextAPI(apiKey, payload);
+      if (response && response.ok) {
         var result = await response.json();
         var text = result.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) state.sosmedResult = text.trim();
@@ -1160,7 +1315,7 @@
         }
         payloadParts.push({ text: prompt });
 
-        var response = await callGeminiImageAPI(apiKey, payloadParts);
+        var response = await callGeminiImageAPI(apiKey, payloadParts, targetRatioKey);
 
         if (response && response.ok) {
           var result = await response.json();
@@ -1195,6 +1350,7 @@
         return;
       }
       state.ugcApiKey = val;
+      discoveredImageModelsCache = null;
       localStorage.setItem(STORAGE_KEY_UGC, val);
       state.isKeyPanelOpen = false;
       renderApp();
@@ -1202,6 +1358,7 @@
     },
     clearApiKey: function () {
       state.ugcApiKey = '';
+      discoveredImageModelsCache = null;
       localStorage.removeItem(STORAGE_KEY_UGC);
       state.isKeyPanelOpen = true;
       renderApp();

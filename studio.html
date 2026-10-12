@@ -44,6 +44,7 @@
   <script src="js/database.js" defer></script>
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
+  <script src="js/workflow-ugc.js" defer></script>
 </head>
 <body class="selection:bg-kmViolet selection:text-white pb-14 md:pb-0 md:flex md:h-screen md:overflow-hidden bg-kmBg">
   
@@ -75,6 +76,10 @@
       </button>
       <button id="nav-btn-history" onclick="gantiLayarNav('history')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-clock-counter-clockwise text-lg"></i> History
+      </button>
+      <!-- TOMBOL WORKFLOW UGC (DI BAWAH HISTORY) -->
+      <button id="nav-btn-workflow-ugc" onclick="gantiLayarNav('workflow-ugc')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-sparkle text-lg text-kmViolet"></i> Workflow UGC <span class="text-[9px] bg-violet-100 text-kmViolet px-1.5 py-0.2 rounded-md font-bold">PRO</span>
       </button>
       <button id="nav-btn-galeri" onclick="gantiLayarNav('galeri')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-images text-lg"></i> Galeri <span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-md font-bold">Maks 50</span>
@@ -269,6 +274,11 @@
         <div class="flex items-center gap-3"><span id="txt-counter-history" class="text-xs sm:text-sm font-mono font-bold text-kmViolet bg-violet-50 px-3.5 py-1.5 rounded-xl border border-violet-100">0 tugas</span></div>
       </div>
       <div id="wadah-list-history" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    </div>
+
+    <!-- 3B. WORKFLOW UGC VIEW (WADAH BERSIH UNTUK FULL WORKFLOW MATANG) -->
+    <div id="layar-workflow-ugc" class="layar-konten space-y-6 pt-10 md:pt-0" style="display: none;">
+      <div id="wadah-utama-workflow-ugc"></div>
     </div>
 
     <!-- 4. GALERI VIEW -->

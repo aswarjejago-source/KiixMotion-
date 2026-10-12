@@ -94,7 +94,7 @@ function centangSemuaAkun(master) {
 // ------------------------------------------
 function gantiLayarNav(layar) {
   navLayarAktif = layar;
-  var ids = ['dashboard', 'generate', 'history', 'galeri', 'kelola-akun', 'langganan'];
+  var ids = ['dashboard', 'generate', 'history', 'workflow-ugc', 'galeri', 'kelola-akun', 'langganan'];
   
   ids.forEach(function(id) {
     var el = document.getElementById('layar-' + id);
@@ -118,6 +118,9 @@ function gantiLayarNav(layar) {
   }
   if (layar === 'history') {
       setTimeout(renderVideoAsliKeGrid, 100);
+  }
+  if (layar === 'workflow-ugc' && typeof initWorkflowUGC === 'function') {
+      initWorkflowUGC();
   }
   if (layar === 'galeri') renderGaleri();
   if (layar === 'kelola-akun' && typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();

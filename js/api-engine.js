@@ -496,7 +496,7 @@ async function mulaiProsesGenerate() {
       var nodeParams = [
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
         { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
-        { nodeId: "308", fieldName: "upscale_method", fieldValue: "lanczos" }
+        { nodeId: "308", fieldName: "upscale_method", fieldValue: "bicubic" }
       ];
       
       var res = await fetch('https://www.runninghub.ai/task/openapi/create', {

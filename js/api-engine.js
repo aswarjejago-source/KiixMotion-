@@ -4,7 +4,7 @@
 // ==========================================
 
 var engineProvider = 'runninghub';
-var RUNNINGHUB_WORKFLOW_ID = "2099490599765630978"; 
+var RUNNINGHUB_WORKFLOW_ID = "2099509417535340546"; 
 var urlBahanFoto = null;
 var urlBahanVideo = null;
 
@@ -495,7 +495,8 @@ async function mulaiProsesGenerate() {
     try {
       var nodeParams = [
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
-        { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
+        { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
+        { nodeId: "308", fieldName: "upscale_method", fieldValue: "lanczos" }
       ];
       
       var res = await fetch('https://www.runninghub.ai/task/openapi/create', {

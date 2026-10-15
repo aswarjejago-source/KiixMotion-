@@ -539,77 +539,8 @@ async function mulaiProsesGenerate() {
 }
 
 // ==========================================
-// RENDER LAYAR HISTORY & KELOLA AKUN
+// KELOLA AKUN
 // ==========================================
-function renderLayarHistory() {
-  var wadah = document.getElementById('wadah-list-history'), counter = document.getElementById('txt-counter-history');
-  if (!wadah) return; wadah.innerHTML = '';
-  if (counter) counter.innerText = riwayatGenerateList.length + " tugas";
-  
-  if (riwayatGenerateList.length === 0) {
-    wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada riwayat generate video.</div>';
-    return;
-  }
-  
-  riwayatGenerateList.forEach(function(itm, index) {
-    var isDone = (itm.selesai === true && itm.status === "Selesai");
-    var isFailed = (itm.selesai === true && itm.status !== "Selesai");
-    var hasVideo = Boolean(itm.videoUrl);
-    var currentProg = itm.progress !== undefined ? itm.progress : (isDone || isFailed ? 100 : 0);
-    
-    var card = document.createElement('div');
-    card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
-    
-    var statusBadge = '';
-    if (isFailed) {
-      var textPesanError = itm.status || "❌ Gagal Dirender";
-      statusBadge = '<span class="text-[10px] sm:text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl font-bold max-w-[200px] truncate" title="' + textPesanError + '">' + textPesanError + '</span>';
-    } else if (isDone) {
-      if (hasVideo) {
-        statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai (100%)</span>' +
-          '<button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer">Putar</button>' +
-          '<a href="' + itm.videoUrl + '" target="_blank" download="kiixmotion-' + itm.id + '.mp4" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</a>';
-      } else {
-        statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai di GPU</span>';
-      }
-    } else {
-      statusBadge = '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">⏳ Render: ' + currentProg + '%</span>';
-    }
-
-    card.innerHTML = '<div class="flex items-center gap-4">' +
-      '<div class="w-12 h-12 rounded-2xl ' + (isFailed ? 'bg-rose-50 text-rose-600' : 'bg-kmVioletLight text-kmViolet') + ' flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">' + (isFailed ? '✕' : (isDone ? '▶' : '⏳')) + '</div>' +
-      '<div class="min-w-0">' +
-        '<div class="flex items-center gap-2 flex-wrap"><span class="text-base font-bold text-kmTextPrimary truncate">' + itm.model + '</span><span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-semibold border border-slate-200">' + itm.prov + '</span></div>' +
-        '<div class="text-[11px] sm:text-sm text-kmTextSecondary mt-1">ID: <span class="text-kmViolet font-mono font-bold">' + itm.id + '</span> • ' + itm.tgl + '</div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="flex items-center gap-2.5 shrink-0 pt-2 sm:pt-0">' + 
-      statusBadge + 
-      '<button type="button" onclick="hapusRiwayatSatu(' + index + ')" class="px-3 py-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition cursor-pointer border border-rose-200" title="Hapus Riwayat">Hapus</button>' +
-    '</div>';
-    
-    wadah.appendChild(card);
-  });
-}
-
-function hapusRiwayatSatu(idx) {
-  mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
-    var tgs = riwayatGenerateList[idx];
-    if (tgs && tgs.intervalObj) clearInterval(tgs.intervalObj);
-    riwayatGenerateList.splice(idx, 1);
-    simpanStorage();
-    renderLayarHistory();
-    tampilkanNotif('Riwayat tugas berhasil dihapus', 'sukses');
-  });
-}
-
-function bersihkanSemuaHistory() {
-  if (riwayatGenerateList.length === 0) return tampilkanNotif('History sudah kosong.', 'info');
-  mintaKonfirmasi('Hapus seluruh riwayat generate?', function() {
-    riwayatGenerateList.forEach(function(t) { if (t.intervalObj) clearInterval(t.intervalObj); });
-    riwayatGenerateList = []; simpanStorage(); renderLayarHistory(); tampilkanNotif('History dibersihkan', 'sukses');
-  });
-}
 
 function gantiTabAkunProvider(prov) {
   tabAkunAktif = prov;
@@ -620,7 +551,6 @@ function gantiTabAkunProvider(prov) {
   renderListAkunDiKelola();
 }
 
-// FUNGSI INI OTOMATIS MENAMPILKAN TOMBOL SYNC SEMUA DI ATAS DAFTAR KARTU
 function renderListAkunDiKelola() {
   var wadah = document.getElementById('wadah-kartu-akun-list'), targetAkun = (tabAkunAktif === 'runninghub') ? akunRunningHub : akunRoboneo;
   if (!wadah) return; 
@@ -634,7 +564,6 @@ function renderListAkunDiKelola() {
     return;
   }
 
-  // 1. INJEKSI OTOMATIS: Toolbar Atas & Tombol Sync Semua
   var toolbarEl = document.createElement('div');
   toolbarEl.className = "flex items-center justify-between px-1 pb-1 pt-1";
   toolbarEl.innerHTML = '<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Daftar API Key (' + targetAkun.length + ')</span>' +
@@ -644,7 +573,6 @@ function renderListAkunDiKelola() {
       '</button>' : '');
   wadah.appendChild(toolbarEl);
 
-  // 2. Render Kartu Akun
   targetAkun.forEach(function(a, i) {
     var koinVal = Number(a.koin) || 0; totalKredit += koinVal;
     var el = document.createElement('div');

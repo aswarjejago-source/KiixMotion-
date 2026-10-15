@@ -222,7 +222,7 @@ function unggahBahanLangsung(input, tipe) {
   formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
 
   var xhr = new XMLHttpRequest();
-  xhr.open("POST", "https://www.runninghub.ai/task/openapi/upload");
+  xhr.open("POST", "[https://www.runninghub.ai/task/openapi/upload](https://www.runninghub.ai/task/openapi/upload)");
   xhr.setRequestHeader("Authorization", "Bearer " + akunAktif.key);
   
   xhr.upload.onprogress = function(e) {
@@ -495,10 +495,11 @@ async function mulaiProsesGenerate() {
     try {
       var nodeParams = [
         { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
-        { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo }
+        { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
+        { nodeId: "308", fieldName: "upscale_method", fieldValue: "lanczos" }
       ];
       
-      var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
+      var res = await fetch('[https://www.runninghub.ai/task/openapi/create](https://www.runninghub.ai/task/openapi/create)', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + akunAktif.key },
         body: JSON.stringify({ workflowId: RUNNINGHUB_WORKFLOW_ID, apiKey: akunAktif.key, nodeInfoList: nodeParams })

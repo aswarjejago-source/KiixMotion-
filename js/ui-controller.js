@@ -105,7 +105,9 @@ function gantiLayarNav(layar) {
     if (btn) {
       var baseClass = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
       if (layar === id) {
-        btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]"; 
+        if (!btn.classList.contains('bg-violet-50')) {
+          btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]"; 
+        }
       } else {
         btn.className = baseClass + "text-slate-600 hover:bg-slate-50 hover:text-slate-800"; 
       }
@@ -477,3 +479,69 @@ window.prosesBeliVIP = function() {
         tampilkanNotif("Gagal koneksi ke server Vercel/iPaymu.", "error");
     });
 };
+
+// =========================================================================
+// KONTROL TAMPILAN SIDEBAR & DUAL ENGINE STUDIO (TAMBAHAN BARU)
+// =========================================================================
+
+function toggleSubmenuGenerate() {
+  var wrap = document.getElementById('submenu-generate-wrap');
+  var icon = document.getElementById('icon-chevron-gen');
+  var btnMain = document.getElementById('nav-btn-generate');
+  
+  // Pastikan langsung pindah ke layar generate saat diklik
+  gantiLayarNav('generate');
+
+  if (wrap) {
+    if (wrap.classList.contains('hidden')) {
+      wrap.classList.remove('hidden');
+      wrap.classList.add('flex');
+      if (icon) icon.style.transform = 'rotate(-180deg)';
+      if (btnMain) btnMain.classList.add('bg-violet-50', 'text-kmViolet');
+    } else {
+      wrap.classList.add('hidden');
+      wrap.classList.remove('flex');
+      if (icon) icon.style.transform = 'rotate(0deg)';
+    }
+  }
+}
+
+function pilihStudioMode(mode) {
+  var areaMotion = document.getElementById('area-workspace-motion');
+  var areaNano = document.getElementById('area-workspace-nano');
+  var subMotion = document.getElementById('subnav-motion');
+  var subNano = document.getElementById('subnav-nano');
+
+  if (mode === 'motion') {
+    if (areaMotion) { areaMotion.classList.remove('hidden'); areaMotion.classList.add('block'); }
+    if (areaNano) { areaNano.classList.remove('block'); areaNano.classList.add('hidden'); }
+    
+    if (subMotion) { subMotion.classList.add('text-kmViolet', 'bg-violet-50'); subMotion.classList.remove('text-slate-500'); }
+    if (subNano) { subNano.classList.remove('text-kmViolet', 'bg-violet-50'); subNano.classList.add('text-slate-500'); }
+  } else {
+    if (areaMotion) { areaMotion.classList.remove('block'); areaMotion.classList.add('hidden'); }
+    if (areaNano) { areaNano.classList.remove('hidden'); areaNano.classList.add('block'); }
+    
+    if (subNano) { subNano.classList.add('text-kmViolet', 'bg-violet-50'); subNano.classList.remove('text-slate-500'); }
+    if (subMotion) { subMotion.classList.remove('text-kmViolet', 'bg-violet-50'); subMotion.classList.add('text-slate-500'); }
+  }
+}
+
+function pilihModelVeo(modelName) {
+  var cardOmni = document.getElementById('c-model-omniflash');
+  var badgeOmni = document.getElementById('badge-omniflash');
+  var cardVeo = document.getElementById('c-model-veo3');
+  var badgeVeo = document.getElementById('badge-veo3');
+
+  if (modelName === 'omniflash') {
+    cardOmni.className = "bg-gradient-to-br from-white to-amber-50/30 border-2 border-amber-400 p-5 rounded-2xl modern-shadow ring-4 ring-amber-50 cursor-pointer transition relative overflow-hidden";
+    cardVeo.className = "bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow relative overflow-hidden";
+    badgeOmni.classList.remove('hidden');
+    badgeVeo.classList.add('hidden');
+  } else {
+    cardVeo.className = "bg-gradient-to-br from-white to-indigo-50/30 border-2 border-indigo-400 p-5 rounded-2xl modern-shadow ring-4 ring-indigo-50 cursor-pointer transition relative overflow-hidden";
+    cardOmni.className = "bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-amber-300 transition modern-shadow relative overflow-hidden";
+    badgeVeo.classList.remove('hidden');
+    badgeOmni.classList.add('hidden');
+  }
+}

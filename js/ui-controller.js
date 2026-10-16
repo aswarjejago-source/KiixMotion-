@@ -545,3 +545,41 @@ function pilihModelVeo(modelName) {
     badgeOmni.classList.add('hidden');
   }
 }
+
+function pilihModeGenerate(mode) {
+  var labelMode = document.getElementById('label-mode-aktif');
+  var iconMode = document.getElementById('icon-mode-aktif');
+  var areaBahan = document.getElementById('v-bahan-nano');
+  var boxFoto = document.getElementById('upload-foto-nano');
+  var boxVideo = document.getElementById('upload-video-nano');
+
+  // Tampilkan area bahan input jika mode BUKAN text-to-video
+  if (mode !== 't2v') {
+    areaBahan.classList.remove('hidden');
+    areaBahan.classList.add('grid');
+  } else {
+    areaBahan.classList.remove('grid');
+    areaBahan.classList.add('hidden');
+  }
+
+  // Atur visibilitas kotak upload berdasarkan mode
+  if (mode === 't2v') {
+    labelMode.innerText = 'Text to Video';
+    iconMode.className = 'ph-fill ph-text-t';
+  } else if (mode === 'i2v') {
+    labelMode.innerText = 'Start Frame to Video';
+    iconMode.className = 'ph-fill ph-image';
+    boxFoto.classList.remove('hidden'); boxFoto.classList.add('flex');
+    boxVideo.classList.remove('flex'); boxVideo.classList.add('hidden');
+  } else if (mode === 'ing') {
+    labelMode.innerText = 'Ingredients to Video';
+    iconMode.className = 'ph-fill ph-images';
+    boxFoto.classList.remove('hidden'); boxFoto.classList.add('flex');
+    boxVideo.classList.remove('flex'); boxVideo.classList.add('hidden');
+  } else if (mode === 'r2v') {
+    labelMode.innerText = 'Reference Video to Video';
+    iconMode.className = 'ph-fill ph-film-strip';
+    boxFoto.classList.remove('hidden'); boxFoto.classList.add('flex');
+    boxVideo.classList.remove('hidden'); boxVideo.classList.add('flex');
+  }
+}

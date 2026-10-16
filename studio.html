@@ -78,7 +78,6 @@
           <div class="flex items-center gap-1.5 sm:gap-2"><i class="ph ph-magic-wand text-lg"></i> Generate Studio</div>
           <i id="icon-chevron-gen" class="ph ph-caret-down text-sm transition-transform duration-200"></i>
         </button>
-        <!-- Isi Sub-Menu -->
         <div id="submenu-generate-wrap" class="hidden flex-col gap-1 pl-4 sm:pl-6 border-l-2 border-slate-100 ml-3 sm:ml-4 my-1">
           <button onclick="pilihStudioMode('motion')" id="subnav-motion" class="text-left px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold text-kmViolet bg-violet-50 transition cursor-pointer flex items-center gap-2">
             <i class="ph ph-video-camera text-sm"></i> Motion Control
@@ -162,7 +161,6 @@
           </button>
       </div>
 
-      <!-- KOTAK REFERRAL DENGAN TOMBOL SALIN -->
       <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 modern-shadow">
           <div class="flex items-center gap-3.5">
               <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-xl shrink-0">🎁</div>
@@ -284,7 +282,7 @@
         </div>
       </div>
 
-      <!-- B. STUDIO VEO 3 & OMNI FLASH (YANG BARU & MEWAH + FITUR MODE NEXABOT) -->
+      <!-- B. STUDIO VEO 3 & OMNI FLASH (YANG BARU & MEWAH + TANPA KOTAK MODEL DI ATAS) -->
       <div id="area-workspace-nano" class="space-y-6 hidden">
         
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-6 modern-shadow mt-4">
@@ -364,7 +362,8 @@
                <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600"><i class="ph-fill ph-coin text-xl"></i></div>
                <div><p class="text-[10px] font-bold text-slate-400 uppercase">Estimasi Biaya</p><p class="text-sm font-black text-slate-800 font-mono">1 Kredit API</p></div>
             </div>
-            <button onclick="alert('API Generator Veo3 sedang disiapkan di backend!')" class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-sm uppercase tracking-wider rounded-xl shadow-[0_8px_20px_-4px_rgba(245,158,11,0.4)] transition transform active:scale-95 cursor-pointer flex items-center justify-center gap-2">
+            <!-- TOMBOL GENERATE VEO YANG SUDAH DIGEMBOK KHUSUS ADMIN -->
+            <button id="btn-submit-nano" onclick="mulaiProsesNanoAI()" class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-sm uppercase tracking-wider rounded-xl shadow-[0_8px_20px_-4px_rgba(245,158,11,0.4)] transition transform active:scale-95 cursor-pointer flex items-center justify-center gap-2">
               <i class="ph-fill ph-play-circle text-lg"></i> GENERATE SEKARANG
             </button>
           </div>

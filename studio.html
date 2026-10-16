@@ -162,6 +162,7 @@
           </button>
       </div>
 
+      <!-- KOTAK REFERRAL DENGAN TOMBOL SALIN -->
       <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 modern-shadow">
           <div class="flex items-center gap-3.5">
               <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-xl shrink-0">🎁</div>
@@ -283,7 +284,7 @@
         </div>
       </div>
 
-      <!-- B. STUDIO VEO 3 & OMNI FLASH (YANG BARU & MEWAH) -->
+      <!-- B. STUDIO VEO 3 & OMNI FLASH (YANG BARU & MEWAH + FITUR MODE NEXABOT) -->
       <div id="area-workspace-nano" class="space-y-6 hidden">
         <div>
           <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI (NATIVE GENERATIVE)</label>
@@ -301,10 +302,49 @@
         </div>
 
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-6 modern-shadow">
-          <div class="flex items-center justify-between border-b border-kmBorder pb-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-kmBorder pb-4 gap-4">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Studio Prompting
             </h2>
+            
+            <!-- TAMBAHAN: PILIHAN MODE RENDER (GAYA NEXABOT) -->
+            <div class="relative group w-full sm:w-auto z-20">
+              <button class="w-full sm:w-auto px-4 py-2.5 bg-slate-900 text-amber-400 text-xs sm:text-sm font-bold rounded-xl flex items-center justify-between sm:justify-center gap-3 transition shadow-md border border-slate-700 hover:border-amber-400">
+                <div class="flex items-center gap-2"><i id="icon-mode-aktif" class="ph-fill ph-text-t"></i> <span id="label-mode-aktif">Text to Video</span></div>
+                <i class="ph ph-caret-down text-slate-400"></i>
+              </button>
+              <!-- Dropdown Mode -->
+              <div class="absolute right-0 mt-2 w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 overflow-hidden origin-top-right">
+                <button onclick="pilihModeGenerate('t2v')" class="w-full px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-amber-400 transition flex items-center justify-between">
+                  <div class="flex items-center gap-2.5"><i class="ph-fill ph-text-t text-sm"></i> Text to Video</div>
+                </button>
+                <button onclick="pilihModeGenerate('i2v')" class="w-full px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-amber-400 transition flex items-center justify-between">
+                  <div class="flex items-center gap-2.5"><i class="ph-fill ph-image text-sm"></i> Start Frame to Video</div><span class="text-[9px] text-slate-500 font-mono">1 img</span>
+                </button>
+                <button onclick="pilihModeGenerate('ing')" class="w-full px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-amber-400 transition flex items-center justify-between">
+                  <div class="flex items-center gap-2.5"><i class="ph-fill ph-images text-sm"></i> Ingredients to Video</div><span class="text-[9px] text-slate-500 font-mono">1-3 img</span>
+                </button>
+                <button onclick="pilihModeGenerate('r2v')" class="w-full px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-amber-400 transition flex items-center justify-between">
+                  <div class="flex items-center gap-2.5"><i class="ph-fill ph-film-strip text-sm"></i> Reference Video to Video</div><span class="text-[9px] text-slate-500 font-mono">vid+img</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- KOTAK UPLOAD BAHAN (DINAMIS MUNCUL KALAU PILIH MODE SELAIN TEXT) -->
+          <div id="v-bahan-nano" class="hidden grid-cols-2 gap-4 pb-2 border-b border-kmBorder/60">
+            <label id="upload-foto-nano" class="border-2 border-dashed border-kmBorder hover:border-amber-400 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-amber-50/30 group">
+              <span class="text-3xl mb-1 group-hover:scale-105 transition">🖼️</span>
+              <span class="text-xs font-bold text-kmTextPrimary">Foto Referensi</span>
+              <span class="text-[10px] text-slate-400 mt-1">Upload Gambar</span>
+              <input type="file" accept="image/*" class="hidden" />
+            </label>
+            <label id="upload-video-nano" class="hidden border-2 border-dashed border-kmBorder hover:border-amber-400 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-amber-50/30 group">
+              <span class="text-3xl mb-1 group-hover:scale-105 transition">🎬</span>
+              <span class="text-xs font-bold text-kmTextPrimary">Video Referensi</span>
+              <span class="text-[10px] text-slate-400 mt-1">Upload MP4</span>
+              <input type="file" accept="video/*" class="hidden" />
+            </label>
           </div>
 
           <div class="space-y-4">

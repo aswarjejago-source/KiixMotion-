@@ -219,7 +219,7 @@ window.renderGaleri = function() {
 }
 
 // ------------------------------------------
-// FITUR BARU: RENDER VIDEO KE GRID (ANTI-MUTER)
+// FITUR BARU: RENDER VIDEO KE GRID
 // ------------------------------------------
 window.renderVideoAsliKeGrid = function() {
   var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
@@ -419,7 +419,6 @@ document.addEventListener("DOMContentLoaded", function() {
     if(wadahHist) observer.observe(wadahHist, { childList: true, subtree: true });
     if(wadahDash) observer.observe(wadahDash, { childList: true, subtree: true });
     
-    // PANGGIL DI SINI SUPAYA OTOMATIS JALAN PAS HALAMAN DIMUAT
     updateStatusMemberUI();
     
     setTimeout(function() {
@@ -481,7 +480,7 @@ window.prosesBeliVIP = function() {
 };
 
 // =========================================================================
-// KONTROL TAMPILAN SIDEBAR & DUAL ENGINE STUDIO (TAMBAHAN BARU)
+// KONTROL TAMPILAN SIDEBAR & DUAL ENGINE STUDIO (NEXABOT SYNC)
 // =========================================================================
 
 function toggleSubmenuGenerate() {
@@ -489,7 +488,6 @@ function toggleSubmenuGenerate() {
   var icon = document.getElementById('icon-chevron-gen');
   var btnMain = document.getElementById('nav-btn-generate');
   
-  // Pastikan langsung pindah ke layar generate saat diklik
   gantiLayarNav('generate');
 
   if (wrap) {
@@ -527,25 +525,7 @@ function pilihStudioMode(mode) {
   }
 }
 
-function pilihModelVeo(modelName) {
-  var cardOmni = document.getElementById('c-model-omniflash');
-  var badgeOmni = document.getElementById('badge-omniflash');
-  var cardVeo = document.getElementById('c-model-veo3');
-  var badgeVeo = document.getElementById('badge-veo3');
-
-  if (modelName === 'omniflash') {
-    cardOmni.className = "bg-gradient-to-br from-white to-amber-50/30 border-2 border-amber-400 p-5 rounded-2xl modern-shadow ring-4 ring-amber-50 cursor-pointer transition relative overflow-hidden";
-    cardVeo.className = "bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow relative overflow-hidden";
-    badgeOmni.classList.remove('hidden');
-    badgeVeo.classList.add('hidden');
-  } else {
-    cardVeo.className = "bg-gradient-to-br from-white to-indigo-50/30 border-2 border-indigo-400 p-5 rounded-2xl modern-shadow ring-4 ring-indigo-50 cursor-pointer transition relative overflow-hidden";
-    cardOmni.className = "bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-amber-300 transition modern-shadow relative overflow-hidden";
-    badgeVeo.classList.remove('hidden');
-    badgeOmni.classList.add('hidden');
-  }
-}
-
+// FUNGSI INI 100% SINKRON DENGAN DOKUMEN RESMI NEXA: t2v, sfv, i2v, r2v
 function pilihModeGenerate(mode) {
   var labelMode = document.getElementById('label-mode-aktif');
   var iconMode = document.getElementById('icon-mode-aktif');
@@ -553,7 +533,9 @@ function pilihModeGenerate(mode) {
   var boxFoto = document.getElementById('upload-foto-nano');
   var boxVideo = document.getElementById('upload-video-nano');
 
-  // Tampilkan area bahan input jika mode BUKAN text-to-video
+  if (!labelMode || !iconMode || !areaBahan || !boxFoto || !boxVideo) return;
+
+  // 1. Tampilkan wadah media input jika bukan teks murni (t2v)
   if (mode !== 't2v') {
     areaBahan.classList.remove('hidden');
     areaBahan.classList.add('grid');
@@ -562,16 +544,18 @@ function pilihModeGenerate(mode) {
     areaBahan.classList.add('hidden');
   }
 
-  // Atur visibilitas kotak upload berdasarkan mode
+  // 2. Sesuaikan label, icon, dan visibilitas kotak upload
   if (mode === 't2v') {
     labelMode.innerText = 'Text to Video';
     iconMode.className = 'ph-fill ph-text-t';
-  } else if (mode === 'i2v') {
+    boxFoto.classList.remove('flex'); boxFoto.classList.add('hidden');
+    boxVideo.classList.remove('flex'); boxVideo.classList.add('hidden');
+  } else if (mode === 'sfv') {
     labelMode.innerText = 'Start Frame to Video';
     iconMode.className = 'ph-fill ph-image';
     boxFoto.classList.remove('hidden'); boxFoto.classList.add('flex');
     boxVideo.classList.remove('flex'); boxVideo.classList.add('hidden');
-  } else if (mode === 'ing') {
+  } else if (mode === 'i2v') {
     labelMode.innerText = 'Ingredients to Video';
     iconMode.className = 'ph-fill ph-images';
     boxFoto.classList.remove('hidden'); boxFoto.classList.add('flex');

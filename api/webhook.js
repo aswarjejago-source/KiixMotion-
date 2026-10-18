@@ -38,23 +38,10 @@ export default async function handler(req, res) {
 
       const now = new Date();
 
-      // 2. Ambil data pembeli dari tabel users
+      // 2. Ambil data pembeli dari tabel public.users
       const userCheckRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=ilike.${encodeURIComponent(buyerEmail)}&select=*`, { headers });
       const existingUsers = await userCheckRes.json();
       let targetUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null;
-
-      // Deteksi ID pengguna di Supabase Auth (UUID)
-      let authUserId = null;
-      try {
-        const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-        });
-        const authJson = await authRes.json();
-        const foundAuth = authJson?.users?.find(u => u.email?.toLowerCase() === buyerEmail);
-        if (foundAuth && foundAuth.id) {
-          authUserId = foundAuth.id;
-        }
-      } catch (eAuth) {}
 
       if (!targetUser) {
         const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
@@ -69,59 +56,73 @@ export default async function handler(req, res) {
         targetUser = insertData && insertData.length > 0 ? insertData[0] : null;
       }
 
-      const finalUserId = authUserId || (targetUser ? targetUser.id : null);
+      // Selalu gunakan ID dari public.users agar sinkron dengan frontend
+      const finalUserId = targetUser ? targetUser.id : null;
 
-      // 3. IDENTIFIKASI PAKET BERDASARKAN NOMINAL TAGIHAN (DITAMBAH PAKET 4 KREDIT)
-      const isPaket4  = (amount >= 2000 && amount < 4500);    // Tagihan Rp 2.800 (4 Kredit)
-      const isPaket10 = (amount >= 4500 && amount <= 8000);   // Tagihan Rp 5.800 (10 Kredit)
-      const isPaket20 = (amount > 8000 && amount <= 18000);   // Tagihan Rp 10.800 (20 Kredit)
-      const isPaketVIP = (amount > 18000) || (!isPaket4 && !isPaket10 && !isPaket20); // Tagihan Rp 35.850 (Pro VIP)
+      if (!finalUserId) {
+        console.error('User ID tidak dapat ditemukan atau dibuat');
+        return res.status(200).json({ success: false, message: 'User ID tidak ditemukan' });
+      }
+
+      // 3. IDENTIFIKASI PAKET BERDASARKAN NOMINAL TAGIHAN
+      const isPaket4   = (amount >= 2000 && amount < 4500);   // Tagihan Rp 2.800 (4 Kredit)
+      const isPaket10  = (amount >= 4500 && amount <= 8000);  // Tagihan Rp 5.800 (10 Kredit)
+      const isPaket20  = (amount > 8000 && amount <= 18000);  // Tagihan Rp 10.800 (20 Kredit)
+      const isPaketVIP = (amount > 18000);                    // Tagihan Rp 35.850 (Pro VIP)
 
       // ======================================================
-      // EKSEKUSI A: JIKA PEMBELIAN PAKET KREDIT 24 JAM (4 / 10 / 20)
+      // EKSEKUSI A: PAKET KREDIT 24 JAM (ANTI-DOUBLE CREDITS)
       // ======================================================
-      if ((isPaket4 || isPaket10 || isPaket20) && finalUserId) {
-        // Logika penentuan jumlah kredit
+      if (isPaket4 || isPaket10 || isPaket20) {
         const jumlahKreditTambah = isPaket4 ? 4 : (isPaket10 ? 10 : 20);
         const exp24Jam = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        let rpcSukses = false;
 
-        // Panggil fungsi database tambah_kredit_member
+        // Panggil fungsi database RPC tambah_kredit_member
         try {
-          await fetch(`${SUPABASE_URL}/rest/v1/rpc/tambah_kredit_member`, {
+          const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/tambah_kredit_member`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
-              target_user_id: finalUserId,
+              target_user_id: String(finalUserId),
               jumlah_kredit: jumlahKreditTambah
             })
           });
-        } catch (eRpc) {}
+          if (rpcRes.ok) {
+            rpcSukses = true;
+            console.log(`RPC tambah_kredit_member berhasil untuk: ${buyerEmail}`);
+          }
+        } catch (eRpc) {
+          console.warn('RPC gagal, beralih ke fallback:', eRpc);
+        }
 
-        // Fallback langsung upsert ke tabel user_credits agar 100% masuk
-        try {
-          const credCheckRes = await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${finalUserId}&select=*`, { headers });
-          const credRows = await credCheckRes.json();
-          let currentBalance = (credRows && credRows.length > 0) ? (credRows[0].credits_balance || 0) : 0;
-          let newBalance = currentBalance + jumlahKreditTambah;
+        // Fallback HANYA dieksekusi jika RPC gagal
+        if (!rpcSukses) {
+          try {
+            const credCheckRes = await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${finalUserId}&select=*`, { headers });
+            const credRows = await credCheckRes.json();
+            let currentBalance = (credRows && credRows.length > 0) ? (credRows[0].credits_balance || 0) : 0;
+            let newBalance = currentBalance + jumlahKreditTambah;
 
-          await fetch(`${SUPABASE_URL}/rest/v1/user_credits`, {
-            method: 'POST',
-            headers: { ...headers, 'Prefer': 'resolution=merge-duplicates' },
-            body: JSON.stringify({
-              user_id: finalUserId,
-              credits_balance: newBalance,
-              expires_at: exp24Jam,
-              updated_at: now.toISOString()
-            })
-          });
-          console.log(`Berhasil menambahkan ${jumlahKreditTambah} kredit ke user: ${buyerEmail}`);
-        } catch (eCred) {
-          console.error('Gagal upsert user_credits:', eCred);
+            await fetch(`${SUPABASE_URL}/rest/v1/user_credits`, {
+              method: 'POST',
+              headers: { ...headers, 'Prefer': 'resolution=merge-duplicates' },
+              body: JSON.stringify({
+                user_id: String(finalUserId),
+                credits_balance: newBalance,
+                expires_at: exp24Jam,
+                updated_at: now.toISOString()
+              })
+            });
+            console.log(`Fallback upsert user_credits berhasil untuk: ${buyerEmail}`);
+          } catch (eCred) {
+            console.error('Gagal fallback upsert user_credits:', eCred);
+          }
         }
       }
 
       // ======================================================
-      // EKSEKUSI B: JIKA PEMBELIAN PAKET PRO VIP (25 HARI)
+      // EKSEKUSI B: PAKET PRO VIP (25 HARI)
       // ======================================================
       if (isPaketVIP && targetUser) {
         const currentExpiry = targetUser.vip_expires_at && new Date(targetUser.vip_expires_at) > now
@@ -137,24 +138,22 @@ export default async function handler(req, res) {
             vip_expires_at: updatedExpiry.toISOString()
           })
         });
-        console.log(`VIP Pro 25 hari aktif untuk user: ${buyerEmail}`);
+        console.log(`VIP Pro 25 hari aktif untuk: ${buyerEmail}`);
       }
 
-      // 4. Catat riwayat ke tabel transactions
-      if (targetUser && targetUser.id) {
-        await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            user_id: targetUser.id,
-            trx_id: String(trxId || Date.now()),
-            amount: amount,
-            status: 'BERHASIL'
-          })
-        });
-      }
+      // 4. Catat transaksi
+      await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          user_id: String(finalUserId),
+          trx_id: String(trxId || Date.now()),
+          amount: amount,
+          status: 'BERHASIL'
+        })
+      });
 
-      // 5. Tambah bonus +7 hari ke referral jika ada
+      // 5. Bonus referral (+7 hari)
       if (targetUser && targetUser.referred_by) {
         try {
           const inviterRes = await fetch(`${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(targetUser.referred_by)}&select=*`, { headers });

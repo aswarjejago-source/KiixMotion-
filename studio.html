@@ -280,7 +280,6 @@
               <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
             </label>
           </div>
-          <!-- PROMPT OPSIONAL SUDAH DIHAPUS -->
         </div>
 
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
@@ -352,7 +351,7 @@
       </div>
     </div>
 
-    <!-- 5. ADD APIKEY VIEW (TOMBOL BELI AKUN & KLING DIHAPUS) -->
+    <!-- 5. ADD APIKEY VIEW -->
     <div id="layar-kelola-akun" class="layar-konten space-y-6" style="display: none;">
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -375,7 +374,6 @@
       </div>
       
       <div class="space-y-3">
-        <!-- TOOLBAR DAFTAR API KEY BERSIH TUNGGAL -->
         <div id="wadah-kartu-akun-list" class="space-y-3"></div>
       </div>
     </div>
@@ -423,7 +421,7 @@
                 </span>
             </div>
 
-            <!-- PILIHAN 3 PAKET KREDIT (2K, 5K, 10K DENGAN KREDIT JELAS) -->
+            <!-- PILIHAN 3 PAKET KREDIT -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 
                 <!-- Paket 2k -->
@@ -442,7 +440,7 @@
                     </div>
                 </button>
 
-                <!-- Paket 5k (Default) -->
+                <!-- Paket 5k (Default Aktif) -->
                 <button type="button" onclick="pilihPaketKredit('5k')" id="btn-kredit-5k" class="p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm">
                     <div class="flex items-center justify-between mb-1.5">
                       <span class="text-[10px] font-extrabold uppercase tracking-wider text-kmViolet bg-violet-100/80 px-2 py-0.5 rounded-md">10 Kredit</span>
@@ -776,10 +774,19 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
 
       async function updateStatusMemberUI(emailUser) {
           try {
+              // PENGAMAN 1: Ambil dari sesi aktif jika parameter email kosong saat ganti tab / refund
+              let targetEmail = emailUser;
+              if (!targetEmail) {
+                  const { data: { session } } = await supa.auth.getSession();
+                  targetEmail = session?.user?.email;
+              }
+              if (!targetEmail) return;
+              targetEmail = targetEmail.toLowerCase().trim();
+
               const { data: userRows, error } = await supa
                   .from('users')
                   .select('id, is_vip, vip_expires_at')
-                  .ilike('email', emailUser)
+                  .ilike('email', targetEmail)
                   .limit(1);
 
               const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
@@ -832,9 +839,14 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   }
               }
 
-              // CEK STATUS KREDIT 24 JAM
+              // PENGAMAN 2: Gunakan .maybeSingle() agar akun baru tanpa saldo tidak memicu error
               if (userRow && userRow.id) {
-                const { data: userCredit } = await supa.from('user_credits').select('credits_balance, expires_at').eq('user_id', userRow.id).single();
+                const { data: userCredit } = await supa
+                    .from('user_credits')
+                    .select('credits_balance, expires_at')
+                    .eq('user_id', String(userRow.id))
+                    .maybeSingle();
+
                 if (userCredit && userCredit.credits_balance > 0) {
                   const expTime = new Date(userCredit.expires_at).getTime();
                   if (expTime > new Date().getTime()) {

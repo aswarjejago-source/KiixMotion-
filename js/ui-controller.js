@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 2: UI CONTROLLER (Sistem Saraf Antarmuka Terpadu)
+// PILAR 2: UI CONTROLLER (SISTEM SARAF ANTARMUKA LENGKAP & AMAN)
 // File: js/ui-controller.js
 // ==========================================
 
@@ -139,11 +139,11 @@ function gantiLayarNav(layar) {
   
   if (layar === 'dashboard') {
     if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
-    updateStatusMemberUI();
+    if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
     setTimeout(renderVideoAsliKeGrid, 100);
   }
   if (layar === 'generate') {
-    if (typeof sinkronkanDropdownAkunGenerate === 'function') sinkronkanDropdownAkunGenerate();
+    if (typeof setProviderUtama === 'function') setProviderUtama(engineProvider || 'kiix');
   }
   if (layar === 'history') {
     setTimeout(renderVideoAsliKeGrid, 100);
@@ -154,13 +154,13 @@ function gantiLayarNav(layar) {
   if (layar === 'galeri') renderGaleri();
   if (layar === 'kelola-akun' && typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
   if (layar === 'beli-kredit') {
-    updateStatusMemberUI();
+    if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
     pilihPaketKredit(paketKreditAktif || '5k');
   }
   if (layar === 'langganan') {
-    updateStatusMemberUI();
+    if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
   }
-  if (layar === 'admin-pool') muatDataKolamAdmin();
+  if (layar === 'admin-pool' && typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
 }
 
 // ------------------------------------------
@@ -358,113 +358,7 @@ window.renderLayarHistory = function() {
 };
 
 // ------------------------------------------
-// 5. UPDATE STATUS MEMBER (VIP & KREDIT 24 JAM)
-// ------------------------------------------
-async function updateStatusMemberUI(emailUser) {
-  if (typeof supa === 'undefined') return;
-  
-  try {
-    var targetEmail = emailUser;
-    if (!targetEmail) {
-      var sessionRes = await supa.auth.getSession();
-      targetEmail = sessionRes?.data?.session?.user?.email;
-    }
-    
-    if (targetEmail) {
-      var { data: profile, error } = await supa.from('users').select('id, is_vip, vip_expires_at').eq('email', targetEmail).single();
-      
-      var badgeTop = document.getElementById('label-member-status');
-      var expTop = document.getElementById('label-vip-expires');
-      
-      var planNamaVIP = document.getElementById('label-plan-nama');
-      var planDescVIP = document.getElementById('label-plan-desc');
-      var badgeVIP = document.getElementById('label-status-vip-badge');
-
-      var boxKreditAngka = document.getElementById('label-box-kredit-angka');
-      var boxKreditInfo = document.getElementById('label-box-kredit-info');
-
-      var isVipActive = false;
-
-      // 1. CEK STATUS VIP PRO
-      if (!error && profile && profile.is_vip === true) {
-        var formattedDate = "";
-        if (profile.vip_expires_at) {
-          var expDate = new Date(profile.vip_expires_at);
-          if (expDate.getTime() > new Date().getTime()) {
-            isVipActive = true;
-            formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-          }
-        } else {
-          isVipActive = true;
-        }
-
-        if (isVipActive) {
-          if (badgeTop) {
-            badgeTop.innerText = "⭐ Member Pro";
-            badgeTop.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-md inline-block";
-          }
-          if (expTop && formattedDate) {
-            expTop.innerText = "Aktif s.d. " + formattedDate;
-            expTop.classList.remove('hidden');
-          }
-          if (planNamaVIP) planNamaVIP.innerText = "Pro VIP (Aktif)";
-          if (planDescVIP) planDescVIP.innerText = "Masa aktif s.d. " + formattedDate + " · Akses akun RunningHub sendiri";
-          if (badgeVIP) {
-            badgeVIP.innerText = "Aktif";
-            badgeVIP.className = "px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full";
-          }
-        }
-      }
-
-      if (!isVipActive) {
-        if (planNamaVIP) planNamaVIP.innerText = "Free";
-        if (planDescVIP) planDescVIP.innerText = "Belum berlangganan VIP (Pakai kuota server di Beli Kredit)";
-        if (badgeVIP) {
-          badgeVIP.innerText = "Non-Aktif";
-          badgeVIP.className = "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full";
-        }
-      }
-
-      // 2. CEK STATUS KREDIT 24 JAM
-      if (profile && profile.id) {
-        var { data: userCredit } = await supa.from('user_credits').select('credits_balance, expires_at').eq('user_id', profile.id).single();
-        if (userCredit && userCredit.credits_balance > 0) {
-          var expTime = new Date(userCredit.expires_at).getTime();
-          if (expTime > new Date().getTime()) {
-            var jamSisa = Math.max(1, Math.round((expTime - new Date().getTime()) / (1000 * 60 * 60)));
-            
-            if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
-            if (boxKreditInfo) boxKreditInfo.innerText = "Berlaku untuk " + userCredit.credits_balance + " video · Hangus dalam " + jamSisa + " jam";
-            
-            if (!isVipActive && badgeTop) {
-              badgeTop.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
-              badgeTop.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-md inline-block";
-              if (expTop) {
-                expTop.innerText = "Hangus dalam " + jamSisa + " jam";
-                expTop.classList.remove('hidden');
-              }
-            }
-            return;
-          }
-        }
-      }
-
-      if (boxKreditAngka) boxKreditAngka.innerText = "0";
-      if (boxKreditInfo) boxKreditInfo.innerText = "Belum ada paket kredit aktif. Beli paket di bawah untuk render.";
-
-      if (!isVipActive && badgeTop) {
-        badgeTop.innerText = "Member Aktif";
-        badgeTop.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
-        if (expTop) expTop.classList.add('hidden');
-      }
-    }
-  } catch (err) {
-    console.error("Gagal membaca status member:", err);
-  }
-}
-
-// ------------------------------------------
-// 6. CHECKOUT KREDIT 24 JAM (2K, 5K, 10K)
+// 5. CHECKOUT KREDIT 24 JAM (2K, 5K, 10K)
 // ------------------------------------------
 function pilihPaketKredit(tipe) {
   paketKreditAktif = tipe;
@@ -489,7 +383,7 @@ function pilihPaketKredit(tipe) {
   if (tipe === '2k') {
     if (btn2k) {
       btn2k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
-      var dot2 = btn2k.querySelector('.rounded-full.bg-slate-300');
+      var dot2 = btn2k.querySelector('.rounded-full');
       if (dot2) dot2.className = "w-2 h-2 rounded-full bg-kmViolet";
     }
     if (txtItem) txtItem.innerText = "Paket 4 Kredit (4 Video / 24 Jam)";
@@ -501,7 +395,7 @@ function pilihPaketKredit(tipe) {
   } else if (tipe === '5k') {
     if (btn5k) {
       btn5k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
-      var dot5 = btn5k.querySelector('.rounded-full.bg-slate-300');
+      var dot5 = btn5k.querySelector('.rounded-full');
       if (dot5) dot5.className = "w-2 h-2 rounded-full bg-kmViolet";
     }
     if (txtItem) txtItem.innerText = "Paket 10 Kredit (10 Video / 24 Jam)";
@@ -513,7 +407,7 @@ function pilihPaketKredit(tipe) {
   } else if (tipe === '10k') {
     if (btn10k) {
       btn10k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
-      var dot10 = btn10k.querySelector('.rounded-full.bg-slate-300');
+      var dot10 = btn10k.querySelector('.rounded-full');
       if (dot10) dot10.className = "w-2 h-2 rounded-full bg-kmViolet";
     }
     if (txtItem) txtItem.innerText = "Paket 20 Kredit (20 Video / 24 Jam)";
@@ -595,7 +489,7 @@ async function jalankanBayarKredit() {
 }
 
 // ------------------------------------------
-// 7. CHECKOUT PRO VIP (Rp 35.850)
+// 6. CHECKOUT PRO VIP (Rp 35.850)
 // ------------------------------------------
 async function jalankanBayarVIP() {
   tampilkanNotif("Menghubungkan ke secure payment iPaymu...", "info");
@@ -652,7 +546,7 @@ window.prosesBeliKredit = function(nom, krd) {
 };
 
 // ------------------------------------------
-// 8. MASTER POOL ADMIN (KHUSUS ANGGRAINGKI)
+// 7. MASTER POOL ADMIN (KHUSUS ANGGRAINGKI)
 // ------------------------------------------
 async function cekAksesAdminPool() {
   if (typeof supa === 'undefined') return;
@@ -700,7 +594,7 @@ async function muatDataKolamAdmin() {
     } else if (a.status === 'busy') {
       badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 animate-pulse">🟡 RENDERING</span>';
     } else {
-      badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-emerald-200">🔴 HABIS</span>';
+      badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">🔴 HABIS</span>';
     }
 
     var tglPakai = a.last_used_at ? new Date(a.last_used_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
@@ -709,7 +603,7 @@ async function muatDataKolamAdmin() {
       <tr class="hover:bg-slate-50/60 transition">
         <td class="py-3 px-3">${badgeStatus}</td>
         <td class="py-3 px-3 font-mono font-bold text-slate-700">${keyMasked}</td>
-        <td class="py-3 px-3 font-extrabold tabular-nums ${a.koin < 200 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
+        <td class="py-3 px-3 font-extrabold tabular-nums ${a.koin < 478 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
         <td class="py-3 px-3 text-slate-400 text-[11px]">${tglPakai}</td>
         <td class="py-3 px-3 text-right">
           <button onclick="hapusSatuKunciPool(${a.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus Kunci Ini">
@@ -803,7 +697,7 @@ async function refreshDataKolamAdmin() {
         var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
         if (k !== undefined && k !== null) {
           var koinVal = Number(k);
-          var statusBaru = koinVal < 200 ? 'habis' : 'idle';
+          var statusBaru = koinVal < 478 ? 'habis' : 'idle';
           await supa.from('runninghub_pool').update({ koin: koinVal, status: statusBaru }).eq('id', akun.id);
         }
       }
@@ -814,7 +708,7 @@ async function refreshDataKolamAdmin() {
 }
 
 // ------------------------------------------
-// 9. OBSERVER & INISIALISASI
+// 8. OBSERVER & INISIALISASI
 // ------------------------------------------
 const observer = new MutationObserver(function(mutations) {
   mutations.forEach(function(mutation) {
@@ -832,7 +726,7 @@ document.addEventListener("DOMContentLoaded", function() {
   if (wadahHist) observer.observe(wadahHist, { childList: true, subtree: true });
   if (wadahDash) observer.observe(wadahDash, { childList: true, subtree: true });
   
-  updateStatusMemberUI();
+  if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
   cekAksesAdminPool();
   
   setTimeout(function() {

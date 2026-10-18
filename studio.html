@@ -115,9 +115,7 @@
       <button id="nav-btn-kelola-akun" onclick="gantiLayarNav('kelola-akun')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-key text-lg"></i> Add Apikey
       </button>
-      <button onclick="alert('Fitur Beli Akun Segera Hadir!')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
-        <i class="ph ph-storefront text-lg"></i> Beli Akun
-      </button>
+      <!-- TOMBOL "BELI AKUN" SUDAH DIHAPUS BERSIH DI SINI -->
 
       <!-- TAB TERPISAH 1: BELI KREDIT (TERIMA BERES) -->
       <button id="nav-btn-beli-kredit" onclick="gantiLayarNav('beli-kredit')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
@@ -219,7 +217,7 @@
         <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           
-          <!-- ENGINE 1: KIIXMOTION CONTROL (DEFAULT AKTIF - BEBAS API KEY) -->
+          <!-- ENGINE 1: KIIXMOTION CONTROL -->
           <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer transition">
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
@@ -232,7 +230,7 @@
             <p class="text-xs text-kmViolet mt-3 font-bold">1 Kredit / render</p>
           </div>
 
-          <!-- ENGINE 2: RUNNINGHUB PRO (AKUN SENDIRI) -->
+          <!-- ENGINE 2: RUNNINGHUB PRO -->
           <div id="c-prov-runninghub" onclick="setProviderUtama('runninghub')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
@@ -286,11 +284,7 @@
               <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
             </label>
           </div>
-
-          <div>
-            <label class="text-xs font-bold uppercase tracking-wide text-slate-400 block mb-2">Prompt Gerakan Tambahan (Opsional)</label>
-            <textarea id="in-prompt-gerak" placeholder="Contoh: cinematic dancing, smooth fluid motion, high details..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs sm:text-sm text-kmTextPrimary focus:outline-none focus:border-kmViolet focus:bg-white h-24 resize-none leading-relaxed"></textarea>
-          </div>
+          <!-- PROMPT OPSIONAL SUDAH DIHAPUS BERSIH -->
         </div>
 
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
@@ -299,7 +293,6 @@
               <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
             </h2>
 
-            <!-- KOTAK DROPDOWN AKUN: OTOMATIS HIDDEN DI KIIX KONTROL, MUNCUL DI RUNNINGHUB -->
             <div id="box-wrap-dropdown-akun" class="space-y-2" style="display: none;">
               <div class="flex items-center justify-between">
                 <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Pilih Akun Pemotong Saldo</label>
@@ -363,7 +356,7 @@
       </div>
     </div>
 
-    <!-- 5. ADD APIKEY VIEW -->
+    <!-- 5. ADD APIKEY VIEW (TOMBOL BELI AKUN & KLING DIHAPUS BERSIH) -->
     <div id="layar-kelola-akun" class="layar-konten space-y-6" style="display: none;">
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -372,7 +365,6 @@
         </div>
         <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-kmBorder">
           <button class="px-4 py-2 rounded-xl bg-violet-50 border border-violet-200 text-kmViolet text-xs font-bold flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">R</span> Akun RunningHub</button>
-          <button onclick="alert('Kling 2.6 Segera Hadir!')" class="px-4 py-2 rounded-xl bg-white border border-kmBorder text-slate-500 text-xs font-semibold flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[10px]">K</span> Akun Kling 2.6</button>
         </div>
       </div>
       
@@ -387,24 +379,18 @@
       </div>
       
       <div class="space-y-3">
-        <div class="flex items-center justify-between px-1 pt-1">
-          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Daftar API Key</span>
-          <button id="btn-sync-all-rh" onclick="refreshSemuaAkunRunningHub()" class="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 hover:text-kmViolet border border-kmBorder rounded-xl text-xs font-bold transition shadow-sm cursor-pointer flex items-center gap-1.5">
-            <i class="ph ph-arrows-clockwise text-sm"></i> Sync Semua
-          </button>
-        </div>
+        <!-- TOOLBAR DAFTAR API KEY HANYA MUNCUL SATU KALI DI SINI -->
         <div id="wadah-kartu-akun-list" class="space-y-3"></div>
       </div>
     </div>
 
-    <!-- 6A. LAYAR TERPISAH: BELI KREDIT (TERIMA BERES — KEKINIAN & PRO) -->
+    <!-- 6A. LAYAR TERPISAH: BELI KREDIT (TERIMA BERES) -->
     <div id="layar-beli-kredit" class="layar-konten space-y-6" style="display: none;">
         <div>
             <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Beli Kredit Render</h1>
             <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Paket kuota kilat terima beres tanpa ribet API key (Aktif 24 Jam)</p>
         </div>
 
-        <!-- KOTAK SISA KREDIT REAL-TIME -->
         <div class="bg-gradient-to-br from-violet-600 to-indigo-700 text-white rounded-3xl p-6 sm:p-7 shadow-lg flex items-center justify-between relative overflow-hidden">
             <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
             <div class="relative z-10">
@@ -420,7 +406,6 @@
             </div>
         </div>
 
-        <!-- INFO EDUKASI HANGUS 24 JAM -->
         <div class="bg-amber-50/80 border border-amber-200/90 p-4 sm:p-5 rounded-3xl flex items-start gap-3.5 modern-shadow">
           <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 text-lg">⏳</div>
           <div>
@@ -431,7 +416,6 @@
           </div>
         </div>
 
-        <!-- KARTU PILIHAN PAKET KREDIT & CHECKOUT MODERN -->
         <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 modern-shadow space-y-5">
             <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
@@ -443,7 +427,6 @@
                 </span>
             </div>
 
-            <!-- PILIHAN 2 PAKET KREDIT (10 KREDIT & 20 KREDIT) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
                 <button type="button" onclick="pilihPaketKredit('5k')" id="btn-kredit-5k" class="p-5 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group">
                     <div class="flex items-center justify-between mb-2">
@@ -485,7 +468,6 @@
                 </div>
             </div>
 
-            <!-- RINCIAN TAGIHAN KREDIT -->
             <div class="bg-slate-50/90 rounded-2xl p-4 sm:p-5 space-y-2.5 border border-slate-200/80 text-xs text-slate-600">
                 <div class="flex justify-between items-center">
                     <span id="txt-kredit-item" class="font-medium text-slate-700">Paket 10 Kredit (10 Video / 24 Jam)</span>
@@ -510,14 +492,13 @@
         </div>
     </div>
 
-    <!-- 6B. LAYAR TERPISAH: LANGGANAN VIP PRO (UNLIMITED — KEKINIAN & PRO) -->
+    <!-- 6B. LAYAR TERPISAH: LANGGANAN VIP PRO -->
     <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
         <div>
             <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Langganan Pro VIP</h1>
             <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Kelola akses unlimited render menggunakan akun RunningHub sendiri</p>
         </div>
 
-        <!-- STATUS PLAN SAAT INI -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 modern-shadow space-y-3">
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Akses VIP</span>
             <div class="flex items-center justify-between">
@@ -529,7 +510,6 @@
             </div>
         </div>
 
-        <!-- PERINGATAN TEGAS KHUSUS PEMULA -->
         <div class="bg-rose-50/90 border border-rose-200 p-5 rounded-3xl space-y-2 modern-shadow">
             <div class="flex items-center gap-2 text-rose-900 font-extrabold text-xs sm:text-sm">
                 <span>⚠️</span> PERHATIAN PENTING SEBELUM UPGRADE:
@@ -542,7 +522,6 @@
             </p>
         </div>
 
-        <!-- KARTU CHECKOUT PRO VIP -->
         <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 modern-shadow space-y-5">
             <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
@@ -561,7 +540,6 @@
                 </div>
             </div>
 
-            <!-- RINCIAN TAGIHAN PRO -->
             <div class="bg-slate-50/90 rounded-2xl p-4 sm:p-5 space-y-2.5 border border-slate-200/80 text-xs text-slate-600">
                 <div class="flex justify-between items-center">
                     <span class="font-medium text-slate-700">Langganan Pro VIP (25 Hari)</span>
@@ -585,7 +563,6 @@
             </button>
         </div>
 
-        <!-- KODE PROMO -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <h3 class="font-bold text-slate-800 text-sm">Kode Promo Spesial</h3>
             <p class="text-xs text-slate-500">Punya kode promo? Masukkan di sini untuk aktifkan atau perpanjang plan.</p>
@@ -597,7 +574,6 @@
             </div>
         </div>
 
-        <!-- RIWAYAT TRANSAKSI -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <h3 class="font-bold text-slate-800 text-sm">Riwayat Transaksi</h3>
             <div class="p-6 border border-slate-200 border-dashed rounded-2xl text-center text-slate-400 text-xs font-medium">
@@ -866,7 +842,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
 
               if (!isVipActive && badgeEl) {
                   badgeEl.innerText = "Member Aktif";
-                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md inline-block";
+                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
                   if (expEl) expEl.classList.add('hidden');
               }
           } catch (err) {

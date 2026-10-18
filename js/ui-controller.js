@@ -10,7 +10,7 @@ var isModePilih = false;
 var pendingKonfirmasiFn = null;
 var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
 
-// VARIABEL PAKET KREDIT AKTIF (Default: 5k)
+// VARIABEL PAKET KREDIT AKTIF (Default: 5k / 10 Kredit)
 var paketKreditAktif = '5k';
 
 // ------------------------------------------
@@ -464,11 +464,12 @@ async function updateStatusMemberUI(emailUser) {
 }
 
 // ------------------------------------------
-// 6. CHECKOUT KREDIT 24 JAM (10 & 20 KREDIT)
+// 6. CHECKOUT KREDIT 24 JAM (2K, 5K, 10K)
 // ------------------------------------------
 function pilihPaketKredit(tipe) {
   paketKreditAktif = tipe;
 
+  var btn2k = document.getElementById('btn-kredit-2k');
   var btn5k = document.getElementById('btn-kredit-5k');
   var btn10k = document.getElementById('btn-kredit-10k');
 
@@ -478,18 +479,28 @@ function pilihPaketKredit(tipe) {
   var txtTotal = document.getElementById('txt-kredit-total');
   var btnEksekusi = document.getElementById('btn-eksekusi-kredit');
 
-  [btn5k, btn10k].forEach(function(b) {
+  [btn2k, btn5k, btn10k].forEach(function(b) {
     if (!b) return;
-    b.className = "p-5 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group";
+    b.className = "p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group";
     var dot = b.querySelector('.rounded-full');
-    if (dot && dot.classList.contains('bg-kmViolet')) {
-      dot.className = "w-2 h-2 rounded-full bg-slate-300";
-    }
+    if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-300";
   });
 
-  if (tipe === '5k') {
+  if (tipe === '2k') {
+    if (btn2k) {
+      btn2k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
+      var dot2 = btn2k.querySelector('.rounded-full.bg-slate-300');
+      if (dot2) dot2.className = "w-2 h-2 rounded-full bg-kmViolet";
+    }
+    if (txtItem) txtItem.innerText = "Paket 4 Kredit (4 Video / 24 Jam)";
+    if (txtHarga) txtHarga.innerText = "Rp 2.000";
+    if (txtFee) txtFee.innerText = "Rp 800";
+    if (txtTotal) txtTotal.innerText = "Rp 2.800";
+    if (btnEksekusi) btnEksekusi.innerHTML = '<span>Bayar Rp 2.800 via QRIS (4 Kredit)</span> &rarr;';
+
+  } else if (tipe === '5k') {
     if (btn5k) {
-      btn5k.className = "p-5 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
+      btn5k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
       var dot5 = btn5k.querySelector('.rounded-full.bg-slate-300');
       if (dot5) dot5.className = "w-2 h-2 rounded-full bg-kmViolet";
     }
@@ -501,7 +512,7 @@ function pilihPaketKredit(tipe) {
 
   } else if (tipe === '10k') {
     if (btn10k) {
-      btn10k.className = "p-5 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
+      btn10k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
       var dot10 = btn10k.querySelector('.rounded-full.bg-slate-300');
       if (dot10) dot10.className = "w-2 h-2 rounded-full bg-kmViolet";
     }
@@ -539,9 +550,19 @@ async function jalankanBayarKredit() {
     if (!userEmail) return tampilkanNotif("Email wajib diisi untuk transaksi!", "error");
   }
 
-  var nominal = (paketKreditAktif === '10k') ? 10800 : 5800;
-  var namaItem = (paketKreditAktif === '10k') ? "Paket 20 Kredit KiixMotion" : "Paket 10 Kredit KiixMotion";
-  var jmlKredit = (paketKreditAktif === '10k') ? 20 : 10;
+  var nominal = 5800;
+  var namaItem = "Paket 10 Kredit KiixMotion";
+  var jmlKredit = 10;
+
+  if (paketKreditAktif === '2k') {
+    nominal = 2800;
+    namaItem = "Paket 4 Kredit KiixMotion";
+    jmlKredit = 4;
+  } else if (paketKreditAktif === '10k') {
+    nominal = 10800;
+    namaItem = "Paket 20 Kredit KiixMotion";
+    jmlKredit = 20;
+  }
 
   fetch('/api/bayar', {
     method: 'POST',
@@ -624,7 +645,8 @@ async function jalankanBayarVIP() {
 
 window.prosesBeliVIP = jalankanBayarVIP;
 window.prosesBeliKredit = function(nom, krd) {
-  if (krd <= 10) pilihPaketKredit('5k');
+  if (krd <= 4) pilihPaketKredit('2k');
+  else if (krd <= 10) pilihPaketKredit('5k');
   else pilihPaketKredit('10k');
   jalankanBayarKredit();
 };
@@ -678,7 +700,7 @@ async function muatDataKolamAdmin() {
     } else if (a.status === 'busy') {
       badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 animate-pulse">🟡 RENDERING</span>';
     } else {
-      badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">🔴 HABIS</span>';
+      badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-emerald-200">🔴 HABIS</span>';
     }
 
     var tglPakai = a.last_used_at ? new Date(a.last_used_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';

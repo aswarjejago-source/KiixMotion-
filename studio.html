@@ -39,6 +39,13 @@
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .nav-btn-smooth { display: flex; align-items: center; gap: 12px; transition: all 0.2s ease-in-out; }
     .tabular-nums { font-variant-numeric: tabular-nums; }
+    
+    @keyframes checkmarkPop {
+      0% { transform: scale(0.6); opacity: 0; }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .anim-check-pop { animation: checkmarkPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
   </style>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -50,6 +57,22 @@
 <body class="selection:bg-kmViolet selection:text-white pb-14 md:pb-0 md:flex md:h-screen md:overflow-hidden bg-kmBg">
   
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
+
+  <!-- MODAL CEKLIS SUKSES RENDER (ESTETIK & ELEGAN) -->
+  <div id="modal-ceklis-sukses" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-kmBorder rounded-3xl p-6 sm:p-7 max-w-xs w-full text-center shadow-2xl space-y-3.5 anim-check-pop">
+      <div class="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-400 text-emerald-600 flex items-center justify-center mx-auto text-2xl shadow-sm">
+        <i class="ph-bold ph-check"></i>
+      </div>
+      <div>
+        <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Tugas Berhasil Terkirim!</h3>
+        <p class="text-xs text-slate-500 mt-1">Video kamu sedang diproses di antrean studio.</p>
+        <div class="mt-2 text-[11px] font-mono font-bold text-kmViolet bg-violet-50 px-2.5 py-1 rounded-lg inline-block" id="label-ceklis-taskid">
+          ID: KM-000000
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- SIDEBAR -->
   <header id="main-header-nav" class="bg-white/90 backdrop-blur-md md:bg-white border-b md:border-b-0 md:border-r border-kmBorder px-4 sm:px-6 md:px-5 py-3.5 md:py-6 flex md:flex-col flex-wrap items-center md:items-start justify-between md:justify-start sticky top-0 z-40 gap-3 md:gap-6 md:w-[260px] shrink-0 h-auto md:h-screen transition-all shadow-[2px_0_15px_rgba(0,0,0,0.02)] overflow-y-auto hide-scrollbar">
@@ -92,7 +115,7 @@
       <button id="nav-btn-kelola-akun" onclick="gantiLayarNav('kelola-akun')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-key text-lg"></i> Add Apikey
       </button>
-      <button onclick="alert('Fitur Beli Akun Segera Hadir!')" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button onclick="alert('Fitur Beli Akun Segera Hadir!')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-storefront text-lg"></i> Beli Akun
       </button>
 
@@ -195,18 +218,45 @@
       <div>
         <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div id="c-prov-runninghub" class="bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer">
-            <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">R</div><span class="text-sm font-bold text-kmTextPrimary">RunningHub</span></div><span class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span></div>
-            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p><p class="text-xs text-kmViolet mt-3 font-bold">≈ 478 coin / render</p>
+          
+          <!-- ENGINE 1: KIIXMOTION CONTROL (DEFAULT AKTIF - BEBAS API KEY) -->
+          <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer transition">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-kmViolet text-white flex items-center justify-center font-black text-xs shadow-sm">⚡</div>
+                <span class="text-sm font-extrabold text-kmTextPrimary">KiixMotion Control</span>
+              </div>
+              <span id="b-prov-kiix" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p>
+            <p class="text-xs text-kmViolet mt-3 font-bold">1 Kredit / render</p>
           </div>
-          <div onclick="alert('Provider Roboneo Coming Soon!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
-            <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">🥕</div><span class="text-sm font-bold text-kmTextPrimary">Roboneo</span></div></div>
-            <p class="text-xs text-kmTextSecondary">Motion Control Kling</p><p class="text-xs text-amber-600 mt-3 font-bold">≈ 4 carrots / render</p>
+
+          <!-- ENGINE 2: RUNNINGHUB PRO (AKUN SENDIRI) -->
+          <div id="c-prov-runninghub" onclick="setProviderUtama('runninghub')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">R</div>
+                <span class="text-sm font-bold text-kmTextPrimary">RunningHub Pro</span>
+              </div>
+              <span id="b-prov-runninghub" style="display:none;" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p>
+            <p class="text-xs text-kmViolet mt-3 font-bold">≈ 478 coin / render</p>
           </div>
-          <div onclick="alert('Provider Kling 2.6 Coming Soon!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
-            <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">K</div><span class="text-sm font-bold text-kmTextPrimary">Kling 2.6</span></div></div>
-            <p class="text-xs text-kmTextSecondary">Cinematic Motion Engine</p><p class="text-xs text-indigo-600 mt-3 font-bold">1 Coin VIP / render</p>
+
+          <!-- ENGINE 3: KLING 2.6 -->
+          <div onclick="alert('Provider Kling 2.6 Segera Hadir!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">K</div>
+                <span class="text-sm font-bold text-kmTextPrimary">Kling 2.6</span>
+              </div>
+            </div>
+            <p class="text-xs text-kmTextSecondary">Cinematic Motion Engine</p>
+            <p class="text-xs text-indigo-600 mt-3 font-bold">1 Coin VIP / render</p>
           </div>
+
         </div>
       </div>
 
@@ -249,13 +299,14 @@
               <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
             </h2>
 
-            <div id="box-wrap-dropdown-akun" class="space-y-2">
+            <!-- KOTAK DROPDOWN AKUN: OTOMATIS HIDDEN DI KIIX KONTROL, MUNCUL DI RUNNINGHUB -->
+            <div id="box-wrap-dropdown-akun" class="space-y-2" style="display: none;">
               <div class="flex items-center justify-between">
-                <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Jalur Server Pemotong Saldo</label>
+                <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Pilih Akun Pemotong Saldo</label>
                 <span id="badge-total-saldo-gen" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">0 coin</span>
               </div>
               <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
-                <option value="">Memuat jalur server...</option>
+                <option value="">Memuat akun...</option>
               </select>
             </div>
 
@@ -316,13 +367,12 @@
     <div id="layar-kelola-akun" class="layar-konten space-y-6" style="display: none;">
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub dan Roboneo kamu.</p></div>
+          <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub kamu.</p></div>
           <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-violet-50 hover:bg-violet-100 text-kmViolet border border-violet-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2"><i class="ph ph-key text-base"></i> + Add Apikey</button>
         </div>
         <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-kmBorder">
           <button class="px-4 py-2 rounded-xl bg-violet-50 border border-violet-200 text-kmViolet text-xs font-bold flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">R</span> Akun RunningHub</button>
-          <button onclick="alert('Roboneo Coming Soon!')" class="px-4 py-2 rounded-xl bg-white border border-kmBorder text-slate-500 text-xs font-semibold flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-amber-500 text-white flex items-center justify-center text-[10px]">🥕</span> Akun Roboneo</button>
-          <button onclick="alert('Kling 2.6 Coming Soon!')" class="px-4 py-2 rounded-xl bg-white border border-kmBorder text-slate-500 text-xs font-semibold flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[10px]">K</span> Akun Kling 2.6</button>
+          <button onclick="alert('Kling 2.6 Segera Hadir!')" class="px-4 py-2 rounded-xl bg-white border border-kmBorder text-slate-500 text-xs font-semibold flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[10px]">K</span> Akun Kling 2.6</button>
         </div>
       </div>
       
@@ -764,7 +814,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   if (isVipActive) {
                       if (badgeEl) {
                         badgeEl.innerText = "⭐ Member Pro";
-                        badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block";
+                        badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-md inline-block";
                       }
                       if (expEl && formattedDate) { 
                         expEl.innerText = "Aktif s.d. " + formattedDate; 
@@ -800,7 +850,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                     
                     if (!isVipActive && badgeEl) {
                       badgeEl.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
-                      badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
+                      badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-md inline-block";
                       if (expEl) {
                         expEl.innerText = "Hangus dalam " + jamSisa + " jam";
                         expEl.classList.remove('hidden');
@@ -816,7 +866,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
 
               if (!isVipActive && badgeEl) {
                   badgeEl.innerText = "Member Aktif";
-                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
+                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md inline-block";
                   if (expEl) expEl.classList.add('hidden');
               }
           } catch (err) {

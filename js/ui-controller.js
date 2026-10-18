@@ -385,7 +385,7 @@ async function updateStatusMemberUI(emailUser) {
 
       var isVipActive = false;
 
-      // 1. CEK VIP PRO
+      // 1. CEK STATUS VIP PRO
       if (!error && profile && profile.is_vip === true) {
         var formattedDate = "";
         if (profile.vip_expires_at) {
@@ -401,7 +401,7 @@ async function updateStatusMemberUI(emailUser) {
         if (isVipActive) {
           if (badgeTop) {
             badgeTop.innerText = "⭐ Member Pro";
-            badgeTop.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block";
+            badgeTop.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-md inline-block";
           }
           if (expTop && formattedDate) {
             expTop.innerText = "Aktif s.d. " + formattedDate;
@@ -425,7 +425,7 @@ async function updateStatusMemberUI(emailUser) {
         }
       }
 
-      // 2. CEK KREDIT 24 JAM
+      // 2. CEK STATUS KREDIT 24 JAM
       if (profile && profile.id) {
         var { data: userCredit } = await supa.from('user_credits').select('credits_balance, expires_at').eq('user_id', profile.id).single();
         if (userCredit && userCredit.credits_balance > 0) {
@@ -438,7 +438,7 @@ async function updateStatusMemberUI(emailUser) {
             
             if (!isVipActive && badgeTop) {
               badgeTop.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
-              badgeTop.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
+              badgeTop.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-md inline-block";
               if (expTop) {
                 expTop.innerText = "Hangus dalam " + jamSisa + " jam";
                 expTop.classList.remove('hidden');
@@ -454,7 +454,7 @@ async function updateStatusMemberUI(emailUser) {
 
       if (!isVipActive && badgeTop) {
         badgeTop.innerText = "Member Aktif";
-        badgeTop.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
+        badgeTop.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
         if (expTop) expTop.classList.add('hidden');
       }
     }
@@ -464,7 +464,7 @@ async function updateStatusMemberUI(emailUser) {
 }
 
 // ------------------------------------------
-// 6. CHECKOUT KREDIT 24 JAM (FLAT 500/VIDEO KEKINIAN)
+// 6. CHECKOUT KREDIT 24 JAM (10 & 20 KREDIT)
 // ------------------------------------------
 function pilihPaketKredit(tipe) {
   paketKreditAktif = tipe;

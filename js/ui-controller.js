@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 2: UI CONTROLLER (SISTEM SARAF ANTARMUKA LENGKAP & AMAN)
+// PILAR 2: UI CONTROLLER (LENGKAP & UTUH)
 // File: js/ui-controller.js
 // ==========================================
 
@@ -546,7 +546,7 @@ window.prosesBeliKredit = function(nom, krd) {
 };
 
 // ------------------------------------------
-// 7. MASTER POOL ADMIN (KHUSUS ANGGRAINGKI)
+// 7. MASTER POOL ADMIN (PATOKAN 200 KOIN)
 // ------------------------------------------
 async function cekAksesAdminPool() {
   if (typeof supa === 'undefined') return;
@@ -603,7 +603,7 @@ async function muatDataKolamAdmin() {
       <tr class="hover:bg-slate-50/60 transition">
         <td class="py-3 px-3">${badgeStatus}</td>
         <td class="py-3 px-3 font-mono font-bold text-slate-700">${keyMasked}</td>
-        <td class="py-3 px-3 font-extrabold tabular-nums ${a.koin < 478 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
+        <td class="py-3 px-3 font-extrabold tabular-nums ${a.koin < 200 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
         <td class="py-3 px-3 text-slate-400 text-[11px]">${tglPakai}</td>
         <td class="py-3 px-3 text-right">
           <button onclick="hapusSatuKunciPool(${a.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus Kunci Ini">
@@ -627,6 +627,7 @@ function updateStatistikPool(tot, idl, bsy, hbs) {
   if (sHbs) sHbs.innerText = hbs;
 }
 
+// SIMPAN BULK: CEK SALDO LANGSUNG KE RUNNINGHUB & SET IDLE JIKA >= 200
 async function simpanBulkKeysKeSupabase() {
   var area = document.getElementById('in-bulk-keys');
   var btn = document.getElementById('btn-submit-bulk-pool');
@@ -635,13 +636,34 @@ async function simpanBulkKeysKeSupabase() {
   var baris = area.value.split('\n').map(k => k.trim()).filter(k => k.length > 10);
   if (baris.length === 0) return tampilkanNotif('Format API key tidak valid!', 'error');
 
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Menyimpan...'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Cek Saldo & Simpan...'; }
 
-  var dataInsert = baris.map(k => ({
-    api_key: k,
-    status: 'idle',
-    koin: 0
-  }));
+  var dataInsert = [];
+  for (var k of baris) {
+    var koinAsli = 0;
+    try {
+      var resSaldo = await fetch('/api/saldo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: k })
+      });
+      var hasilSaldo = await resSaldo.json();
+      if (resSaldo.ok && hasilSaldo) {
+        var rawData = hasilSaldo.data || hasilSaldo;
+        var c = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
+        if (c !== undefined && c !== null) koinAsli = Number(c);
+      }
+    } catch (e) {}
+
+    // PATOKAN 200: Koin >= 200 langsung diset 'idle'
+    var statusOtomatis = koinAsli >= 200 ? 'idle' : 'habis';
+    dataInsert.push({
+      api_key: k,
+      koin: koinAsli,
+      status: statusOtomatis,
+      last_used_at: new Date()
+    });
+  }
 
   const { error } = await supa
     .from('runninghub_pool')
@@ -651,9 +673,8 @@ async function simpanBulkKeysKeSupabase() {
 
   if (!error) {
     area.value = '';
-    tampilkanNotif(`✓ Berhasil menambahkan ${baris.length} API Key ke kolam!`, 'sukses');
+    tampilkanNotif(`✓ Berhasil! ${dataInsert.length} API Key dicek & status otomatis aktif.`, 'sukses');
     muatDataKolamAdmin();
-    refreshDataKolamAdmin();
   } else {
     tampilkanNotif('Gagal menyimpan: ' + error.message, 'error');
   }
@@ -679,6 +700,7 @@ async function sapuBersihAkunHabis() {
   });
 }
 
+// SYNC SALDO: CEK KE RUNNINGHUB, HANYA HABIS JIKA KOIN < 200
 async function refreshDataKolamAdmin() {
   tampilkanNotif('Menyinkronkan saldo seluruh kunci kolam...', 'info');
   const { data: listAkun } = await supa.from('runninghub_pool').select('id, api_key');
@@ -697,7 +719,8 @@ async function refreshDataKolamAdmin() {
         var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
         if (k !== undefined && k !== null) {
           var koinVal = Number(k);
-          var statusBaru = koinVal < 478 ? 'habis' : 'idle';
+          // PATOKAN 200: Koin >= 200 tetap IDLE
+          var statusBaru = koinVal < 200 ? 'habis' : 'idle';
           await supa.from('runninghub_pool').update({ koin: koinVal, status: statusBaru }).eq('id', akun.id);
         }
       }
@@ -707,9 +730,6 @@ async function refreshDataKolamAdmin() {
   muatDataKolamAdmin();
 }
 
-// ------------------------------------------
-// 8. OBSERVER & INISIALISASI
-// ------------------------------------------
 const observer = new MutationObserver(function(mutations) {
   mutations.forEach(function(mutation) {
     if (mutation.target.id === 'wadah-list-history' || mutation.target.id === 'wadah-job-terbaru-dashboard') {

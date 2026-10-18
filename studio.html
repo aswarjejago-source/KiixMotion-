@@ -72,7 +72,6 @@
         <i class="ph ph-squares-four text-lg"></i> Dashboard
       </button>
       
-      <!-- GENERATE BERSIH (SEMULA) -->
       <button id="nav-btn-generate" onclick="gantiLayarNav('generate')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-magic-wand text-lg"></i> Generate
       </button>
@@ -95,14 +94,14 @@
       <button onclick="alert('Fitur Beli Akun Segera Hadir!')" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-storefront text-lg"></i> Beli Akun
       </button>
-      <button onclick="alert('Fitur Beli Kredit Segera Hadir!')" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+      <button onclick="gantiLayarNav('langganan')" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-lightning text-lg"></i> Beli Kredit
       </button>
       <button id="nav-btn-langganan" onclick="gantiLayarNav('langganan')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-crown text-lg text-amber-500"></i> Langganan VIP
       </button>
 
-      <!-- TOMBOL KHUSUS ADMIN (MUNCUL HANYA UNTUK ANGGRAINGKI) -->
+      <!-- TOMBOL KHUSUS ADMIN ANGGRAINGKI -->
       <button id="nav-btn-admin-pool" onclick="gantiLayarNav('admin-pool')" style="display: none;" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500/10 text-amber-600 border border-amber-300 hover:bg-amber-500 hover:text-white cursor-pointer whitespace-nowrap transition mt-2">
         <i class="ph-fill ph-shield-check text-lg"></i> Master Pool API
       </button>
@@ -185,7 +184,7 @@
       </div>
     </div>
 
-    <!-- 2. GENERATE VIEW (BERSIH SEMULA) -->
+    <!-- 2. GENERATE VIEW -->
     <div id="layar-generate" class="layar-konten space-y-6" style="display: none;">
       <div>
         <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
@@ -342,60 +341,80 @@
       </div>
     </div>
 
-    <!-- 6. LAYAR LANGGANAN -->
+    <!-- 6. LAYAR LANGGANAN & BELI KREDIT (PERSIS FORMAT KARTU KIIXMOTION) -->
     <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
         <div>
             <h1 class="text-xl sm:text-2xl font-bold text-slate-800">Langganan</h1>
-            <p class="text-xs sm:text-sm text-slate-500">Kelola plan subscription kamu</p>
+            <p class="text-xs sm:text-sm text-slate-500">Kelola plan subscription dan saldo render kamu</p>
         </div>
 
+        <!-- PLAN SAAT INI -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Plan Saat Ini</span>
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-xl font-extrabold text-slate-900">Free</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Generator: Server Standar · Akun: 0 (Khusus Pro)</p>
+                    <h2 class="text-xl font-extrabold text-slate-900" id="label-plan-nama">Free</h2>
+                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Akun: 0 (Khusus Pro)</p>
                 </div>
                 <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">Aktif</span>
             </div>
         </div>
 
+        <!-- KARTU UTAMA PEMBAYARAN -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
-            <div class="flex items-center justify-between">
-                <h3 class="font-bold text-slate-800 text-base">Upgrade ke Pro</h3>
-                <span class="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg">Rp 35.000 / 25 hari, Unlimited</span>
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <h3 class="font-bold text-slate-800 text-base" id="judul-paket-checkout">Beli Paket Render & Pro</h3>
+                <span id="badge-durasi-paket" class="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg">Hangus dalam 24 Jam</span>
             </div>
-            <p class="text-xs text-slate-500">Buka akses penuh generate video AI dan kelola akun sepuasnya.</p>
+            <p class="text-xs text-slate-500" id="subjudul-paket-checkout">Pilih paket kuota render kilat 24 jam atau langganan Pro sepuasnya.</p>
+
+            <!-- PILIHAN 3 PAKET (KAPSUL MODERN) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                <button type="button" onclick="pilihPaketCheckout('5k')" id="btn-pkt-5k" class="p-3 rounded-2xl border-2 border-kmViolet bg-violet-50/50 text-left transition cursor-pointer">
+                    <span class="text-[10px] font-bold text-kmViolet uppercase block">13 Video (24 Jam)</span>
+                    <span class="text-sm font-black text-slate-900 mt-0.5 block font-mono">Rp 5.000</span>
+                </button>
+                <button type="button" onclick="pilihPaketCheckout('10k')" id="btn-pkt-10k" class="p-3 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block">25 Video (24 Jam)</span>
+                    <span class="text-sm font-black text-slate-900 mt-0.5 block font-mono">Rp 10.000</span>
+                </button>
+                <button type="button" onclick="pilihPaketCheckout('35k')" id="btn-pkt-35k" class="p-3 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Pro Unlimited (25 Hari)</span>
+                    <span class="text-sm font-black text-slate-900 mt-0.5 block font-mono">Rp 35.000</span>
+                </button>
+            </div>
             
             <div class="space-y-2 pt-2">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Metode Pembayaran</span>
                 <div class="flex items-center gap-2">
-                    <button class="px-4 py-2 bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer">
+                    <button type="button" class="px-4 py-2 bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer">
                         <span>💳</span> QRIS
                     </button>
                 </div>
             </div>
 
+            <!-- RINCIAN TAGIHAN (BIAYA DIBEBANKAN KE PEMBELI) -->
             <div class="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-100 text-xs text-slate-600">
                 <div class="flex justify-between">
-                    <span>Langganan Pro (35k / 25 Hari)</span>
-                    <span class="font-bold text-slate-800">Rp 35.000</span>
+                    <span id="txt-rincian-item">Paket 13 Video (5k / 24 Jam)</span>
+                    <span class="font-bold text-slate-800 font-mono" id="txt-rincian-harga">Rp 5.000</span>
                 </div>
                 <div class="flex justify-between border-b border-slate-200 pb-2">
-                    <span>Payment Gateway Fee (1.8%)</span>
-                    <span class="font-bold text-slate-800">Rp 630</span>
+                    <span>Biaya Layanan Pembayaran</span>
+                    <span class="font-bold text-slate-800 font-mono" id="txt-rincian-fee">Rp 800</span>
                 </div>
                 <div class="flex justify-between pt-1 text-sm font-extrabold text-slate-900">
                     <span>Total Bayar</span>
-                    <span class="text-violet-600">Rp 35.630</span>
+                    <span class="text-violet-600 font-mono" id="txt-rincian-total">Rp 5.800</span>
                 </div>
             </div>
 
-            <button onclick="prosesBeliVIP()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-2xl transition shadow-lg cursor-pointer">
+            <button type="button" id="btn-eksekusi-bayar" onclick="jalankanBayarPaketTerpilih()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-2xl transition shadow-lg cursor-pointer">
                 Bayar Sekarang via QRIS
             </button>
         </div>
 
+        <!-- KODE PROMO -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <h3 class="font-bold text-slate-800 text-sm">Kode Promo Spesial</h3>
             <p class="text-xs text-slate-500">Punya kode promo? Masukkan di sini untuk aktifkan atau perpanjang plan.</p>
@@ -407,6 +426,7 @@
             </div>
         </div>
 
+        <!-- RIWAYAT TRANSAKSI -->
         <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
             <h3 class="font-bold text-slate-800 text-sm">Riwayat Transaksi</h3>
             <div class="p-6 border border-slate-200 border-dashed rounded-2xl text-center text-slate-400 text-xs font-medium">
@@ -418,7 +438,6 @@
     <!-- 7. MASTER DASHBOARD POOL (KHUSUS ADMIN) -->
     <div id="layar-admin-pool" class="layar-konten space-y-6 pt-10 md:pt-0" style="display: none;">
       
-      <!-- HEADER ADMIN -->
       <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 sm:p-8 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div class="flex items-center gap-2 mb-1">
@@ -433,7 +452,6 @@
         </button>
       </div>
 
-      <!-- KARTU STATISTIK POOL -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
           <p class="text-[11px] font-bold text-slate-400 uppercase">Total Akun</p>
@@ -453,7 +471,6 @@
         </div>
       </div>
 
-      <!-- KOTAK MASSAL / BULK INSERT -->
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
         <div class="flex items-center justify-between">
           <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
@@ -472,7 +489,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
         </div>
       </div>
 
-      <!-- TABEL DAFTAR KUNCI & MONITOR STATUS -->
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
@@ -495,7 +511,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
               </tr>
             </thead>
             <tbody id="wadah-baris-pool-admin" class="divide-y divide-kmBorder/60">
-              <!-- Baris Akun Di-render Otomatis via JS -->
             </tbody>
           </table>
         </div>
@@ -548,7 +563,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   document.getElementById('profil-email-drop').innerText = emailUser;
                   document.getElementById('profil-inisial').innerText = namaAsli.charAt(0).toUpperCase();
                   
-                  // BUKA MENU KHUSUS ADMIN JIKA EMAIL ANGGRAINGKI
                   if (emailUser === 'anggraingki@gmail.com') {
                       const btnAdminNav = document.getElementById('nav-btn-admin-pool');
                       if (btnAdminNav) btnAdminNav.style.display = 'flex';
@@ -606,6 +620,9 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
               const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
               const badgeEl = document.getElementById('label-member-status');
               const expEl = document.getElementById('label-vip-expires');
+              const planNamaEl = document.getElementById('label-plan-nama');
+              const planDescEl = document.getElementById('label-plan-desc');
+
               if (!badgeEl) return;
               
               if (!error && userRow && userRow.is_vip === true) {
@@ -623,15 +640,21 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                       badgeEl.innerText = "⭐ Member Pro";
                       badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md inline-block";
                       if (expEl && formattedDate) { expEl.innerText = "Aktif s.d. " + formattedDate; expEl.classList.remove('hidden'); }
+                      if (planNamaEl) planNamaEl.innerText = "Pro VIP";
+                      if (planDescEl) planDescEl.innerText = "Generator: Server Cloud · Unlimited Render (Akun Sendiri)";
                   } else {
                       badgeEl.innerText = "Member Aktif (Expired)";
                       badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
                       if (expEl) expEl.classList.add('hidden');
+                      if (planNamaEl) planNamaEl.innerText = "Free";
+                      if (planDescEl) planDescEl.innerText = "Generator: Server Standar · Akun: 0 (Khusus Pro)";
                   }
               } else {
                   badgeEl.innerText = "Member Aktif";
                   badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
                   if (expEl) expEl.classList.add('hidden');
+                  if (planNamaEl) planNamaEl.innerText = "Free";
+                  if (planDescEl) planDescEl.innerText = "Generator: Server Standar · Akun: 0 (Khusus Pro)";
               }
           } catch (err) {
               console.error("Gagal membaca status member:", err);

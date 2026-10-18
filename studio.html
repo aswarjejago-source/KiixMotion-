@@ -7,7 +7,7 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -38,6 +38,7 @@
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .nav-btn-smooth { display: flex; align-items: center; gap: 12px; transition: all 0.2s ease-in-out; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
   </style>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -94,11 +95,15 @@
       <button onclick="alert('Fitur Beli Akun Segera Hadir!')" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-storefront text-lg"></i> Beli Akun
       </button>
-      <button onclick="gantiLayarNav('langganan')" class="nav-btn-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
-        <i class="ph ph-lightning text-lg"></i> Beli Kredit
+
+      <!-- TAB TERPISAH 1: BELI KREDIT (TERIMA BERES) -->
+      <button id="nav-btn-beli-kredit" onclick="gantiLayarNav('beli-kredit')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-lightning text-lg text-amber-500"></i> Beli Kredit
       </button>
+
+      <!-- TAB TERPISAH 2: LANGGANAN VIP PRO -->
       <button id="nav-btn-langganan" onclick="gantiLayarNav('langganan')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
-        <i class="ph ph-crown text-lg text-amber-500"></i> Langganan VIP
+        <i class="ph ph-crown text-lg text-kmViolet"></i> Langganan VIP
       </button>
 
       <!-- TOMBOL KHUSUS ADMIN ANGGRAINGKI -->
@@ -125,7 +130,8 @@
                     <p id="label-member-status" class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
                     <p id="label-vip-expires" class="text-[9px] text-slate-400 font-medium mt-1 hidden"></p>
                 </div>
-                <a href="#" onclick="gantiLayarNav('langganan')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro</a>
+                <a href="#" onclick="gantiLayarNav('beli-kredit')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚡ Beli Kredit (24 Jam)</a>
+                <a href="#" onclick="gantiLayarNav('langganan')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro VIP</a>
                 <a href="#" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙ Add Apikey</a>
                 <div class="border-t border-kmBorder mt-1 pt-1"><a href="#" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a></div>
             </div>
@@ -142,14 +148,14 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div></button>
           <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Simpan media</p></div></button>
-          <button onclick="gantiLayarNav('kelola-akun')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-violet-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-kmViolet text-lg">🔑</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Add Apikey</h4><p class="text-[10px] text-slate-400">Kelola token</p></div></button>
+          <button onclick="gantiLayarNav('beli-kredit')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-600 text-lg">⚡</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Beli Kredit</h4><p class="text-[10px] text-slate-400">Render 24 jam</p></div></button>
           
           <button onclick="gantiLayarNav('langganan')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden">
               <div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div>
               <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div>
               <div class="relative z-10">
                   <h4 class="text-xs sm:text-sm font-bold text-slate-800">Upgrade ke Pro</h4>
-                  <p class="text-[10px] text-slate-400">Pakai akses sendiri</p>
+                  <p class="text-[10px] text-slate-400">Pakai akun sendiri</p>
               </div>
           </button>
       </div>
@@ -191,15 +197,15 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div id="c-prov-runninghub" class="bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer">
             <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">R</div><span class="text-sm font-bold text-kmTextPrimary">RunningHub</span></div><span class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span></div>
-            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p><p class="text-xs text-kmViolet mt-3 font-mono font-bold">≈ 478 coin / render</p>
+            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p><p class="text-xs text-kmViolet mt-3 font-bold">≈ 478 coin / render</p>
           </div>
           <div onclick="alert('Provider Roboneo Coming Soon!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
             <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">🥕</div><span class="text-sm font-bold text-kmTextPrimary">Roboneo</span></div></div>
-            <p class="text-xs text-kmTextSecondary">Motion Control Kling</p><p class="text-xs text-amber-600 mt-3 font-mono font-bold">≈ 4 carrots / render</p>
+            <p class="text-xs text-kmTextSecondary">Motion Control Kling</p><p class="text-xs text-amber-600 mt-3 font-bold">≈ 4 carrots / render</p>
           </div>
           <div onclick="alert('Provider Kling 2.6 Coming Soon!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
             <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">K</div><span class="text-sm font-bold text-kmTextPrimary">Kling 2.6</span></div></div>
-            <p class="text-xs text-kmTextSecondary">Cinematic Motion Engine</p><p class="text-xs text-indigo-600 mt-3 font-mono font-bold">1 Coin VIP / render</p>
+            <p class="text-xs text-kmTextSecondary">Cinematic Motion Engine</p><p class="text-xs text-indigo-600 mt-3 font-bold">1 Coin VIP / render</p>
           </div>
         </div>
       </div>
@@ -245,22 +251,22 @@
 
             <div id="box-wrap-dropdown-akun" class="space-y-2">
               <div class="flex items-center justify-between">
-                <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Pilih Akun Pemotong Saldo</label>
-                <span id="badge-total-saldo-gen" class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">0 coin</span>
+                <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Jalur Server Pemotong Saldo</label>
+                <span id="badge-total-saldo-gen" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">0 coin</span>
               </div>
               <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
-                <option value="">Belum ada akun terhubung</option>
+                <option value="">Memuat jalur server...</option>
               </select>
             </div>
 
             <div class="bg-slate-50 border border-kmBorder rounded-2xl p-5 space-y-3.5">
               <div class="flex justify-between items-center text-xs sm:text-sm">
                 <span class="text-kmTextSecondary font-medium">Model Engine:</span>
-                <span id="t-engine-title" class="font-bold text-kmTextPrimary font-mono">WAN MOTION CONTROL 1080HD</span>
+                <span id="t-engine-title" class="font-bold text-kmTextPrimary tracking-tight">WAN MOTION CONTROL 1080HD</span>
               </div>
               <div class="border-t border-kmBorder pt-3 flex justify-between items-center">
-                <span class="text-xs sm:text-sm font-bold text-kmTextPrimary">Total Terpotong:</span>
-                <span id="t-engine-total" class="text-lg sm:text-xl font-black text-kmViolet font-mono">≈ 478 coin</span>
+                <span class="text-xs sm:text-sm font-bold text-kmTextPrimary">Biaya Render:</span>
+                <span id="t-engine-total" class="text-lg sm:text-xl font-black text-kmViolet tracking-tight">1 Kredit</span>
               </div>
             </div>
           </div>
@@ -276,12 +282,12 @@
     <div id="layar-history" class="layar-konten space-y-6" style="display: none;">
       <div class="flex items-center justify-between bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
         <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Riwayat Generate Video</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Daftar render motion control yang pernah kamu buat.</p></div>
-        <div class="flex items-center gap-3"><span id="txt-counter-history" class="text-xs sm:text-sm font-mono font-bold text-kmViolet bg-violet-50 px-3.5 py-1.5 rounded-xl border border-violet-100">0 tugas</span></div>
+        <div class="flex items-center gap-3"><span id="txt-counter-history" class="text-xs sm:text-sm font-bold text-kmViolet bg-violet-50 px-3.5 py-1.5 rounded-xl border border-violet-100 tabular-nums">0 tugas</span></div>
       </div>
       <div id="wadah-list-history" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </div>
 
-    <!-- 3B. WORKFLOW UGC VIEW (WADAH BERSIH UNTUK FULL WORKFLOW MATANG) -->
+    <!-- 3B. WORKFLOW UGC VIEW -->
     <div id="layar-workflow-ugc" class="layar-konten space-y-6 pt-10 md:pt-0" style="display: none;">
       <div id="wadah-utama-workflow-ugc"></div>
     </div>
@@ -341,76 +347,191 @@
       </div>
     </div>
 
-    <!-- 6. LAYAR LANGGANAN & BELI KREDIT (PERSIS FORMAT KARTU KIIXMOTION) -->
-    <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
+    <!-- 6A. LAYAR TERPISAH: BELI KREDIT (TERIMA BERES — KEKINIAN & PRO) -->
+    <div id="layar-beli-kredit" class="layar-konten space-y-6" style="display: none;">
         <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-slate-800">Langganan</h1>
-            <p class="text-xs sm:text-sm text-slate-500">Kelola plan subscription dan saldo render kamu</p>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Beli Kredit Render</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Paket kuota kilat terima beres tanpa ribet API key (Aktif 24 Jam)</p>
         </div>
 
-        <!-- PLAN SAAT INI -->
-        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Plan Saat Ini</span>
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-xl font-extrabold text-slate-900" id="label-plan-nama">Free</h2>
-                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Akun: 0 (Khusus Pro)</p>
+        <!-- KOTAK SISA KREDIT REAL-TIME -->
+        <div class="bg-gradient-to-br from-violet-600 to-indigo-700 text-white rounded-3xl p-6 sm:p-7 shadow-lg flex items-center justify-between relative overflow-hidden">
+            <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            <div class="relative z-10">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-violet-200 bg-white/10 px-2.5 py-1 rounded-full">Sisa Kredit Anda</span>
+                <div class="flex items-baseline gap-2 mt-2">
+                  <h2 class="text-3xl sm:text-4xl font-black tracking-tight tabular-nums" id="label-box-kredit-angka">0</h2>
+                  <span class="text-sm font-bold text-violet-200">Kredit Video</span>
                 </div>
-                <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">Aktif</span>
+                <p class="text-xs text-violet-100/90 mt-1.5" id="label-box-kredit-info">Belum ada paket kredit aktif</p>
+            </div>
+            <div class="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-3xl shadow-inner relative z-10">
+                ⚡
             </div>
         </div>
 
-        <!-- KARTU UTAMA PEMBAYARAN -->
-        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
-            <div class="flex items-center justify-between flex-wrap gap-2">
-                <h3 class="font-bold text-slate-800 text-base" id="judul-paket-checkout">Beli Paket Render & Pro</h3>
-                <span id="badge-durasi-paket" class="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-lg">Hangus dalam 24 Jam</span>
-            </div>
-            <p class="text-xs text-slate-500" id="subjudul-paket-checkout">Pilih paket kuota render kilat 24 jam atau langganan Pro sepuasnya.</p>
+        <!-- INFO EDUKASI HANGUS 24 JAM -->
+        <div class="bg-amber-50/80 border border-amber-200/90 p-4 sm:p-5 rounded-3xl flex items-start gap-3.5 modern-shadow">
+          <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 text-lg">⏳</div>
+          <div>
+            <h4 class="text-xs sm:text-sm font-bold text-amber-950">100% Terima Beres (Server Cloud KiixMotion)</h4>
+            <p class="text-[11px] sm:text-xs text-amber-800/90 mt-0.5 leading-relaxed">
+              1 Kredit = 1 Video Render. Anda <strong>tidak perlu memasukkan API key</strong> apa pun. Cukup upload bahan dan render langsung. <strong>Kredit akan hangus otomatis setelah 24 jam</strong> sejak pembayaran berhasil.
+            </p>
+          </div>
+        </div>
 
-            <!-- PILIHAN 3 PAKET (KAPSUL MODERN) -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                <button type="button" onclick="pilihPaketCheckout('5k')" id="btn-pkt-5k" class="p-3 rounded-2xl border-2 border-kmViolet bg-violet-50/50 text-left transition cursor-pointer">
-                    <span class="text-[10px] font-bold text-kmViolet uppercase block">13 Video (24 Jam)</span>
-                    <span class="text-sm font-black text-slate-900 mt-0.5 block font-mono">Rp 5.000</span>
+        <!-- KARTU PILIHAN PAKET KREDIT & CHECKOUT MODERN -->
+        <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 modern-shadow space-y-5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 class="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">Pilih Paket Kuota Render</h3>
+                  <p class="text-xs text-slate-400 mt-0.5">Pilih kuota yang kamu butuhkan untuk hari ini</p>
+                </div>
+                <span class="text-[11px] font-bold text-amber-700 bg-amber-100/80 px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Masa Aktif 24 Jam
+                </span>
+            </div>
+
+            <!-- PILIHAN 2 PAKET KREDIT (10 KREDIT & 20 KREDIT) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                <button type="button" onclick="pilihPaketKredit('5k')" id="btn-kredit-5k" class="p-5 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-[10px] font-extrabold uppercase tracking-wider text-kmViolet bg-violet-100/80 px-2.5 py-0.5 rounded-md">10 Kredit</span>
+                      <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md tabular-nums">Rp 500 / video</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 mt-1">
+                      <span class="text-xs font-bold text-slate-400">Rp</span>
+                      <span class="text-2xl font-black text-slate-900 tracking-tight tabular-nums">5.000</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-2 pt-2 border-t border-violet-100/80 text-xs font-semibold text-slate-700">
+                      <span class="w-2 h-2 rounded-full bg-kmViolet"></span>
+                      <strong>10 Kredit (10 Video)</strong> · Hangus 24 Jam
+                    </div>
                 </button>
-                <button type="button" onclick="pilihPaketCheckout('10k')" id="btn-pkt-10k" class="p-3 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase block">25 Video (24 Jam)</span>
-                    <span class="text-sm font-black text-slate-900 mt-0.5 block font-mono">Rp 10.000</span>
-                </button>
-                <button type="button" onclick="pilihPaketCheckout('35k')" id="btn-pkt-35k" class="p-3 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Pro Unlimited (25 Hari)</span>
-                    <span class="text-sm font-black text-slate-900 mt-0.5 block font-mono">Rp 35.000</span>
+
+                <button type="button" onclick="pilihPaketKredit('10k')" id="btn-kredit-10k" class="p-5 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md">20 Kredit</span>
+                      <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md tabular-nums">Rp 500 / video</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 mt-1">
+                      <span class="text-xs font-bold text-slate-400">Rp</span>
+                      <span class="text-2xl font-black text-slate-900 tracking-tight tabular-nums">10.000</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 text-xs font-semibold text-slate-700">
+                      <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                      <strong>20 Kredit (20 Video)</strong> · Hangus 24 Jam
+                    </div>
                 </button>
             </div>
-            
-            <div class="space-y-2 pt-2">
+
+            <div class="space-y-2 pt-1">
                 <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Metode Pembayaran</span>
                 <div class="flex items-center gap-2">
-                    <button type="button" class="px-4 py-2 bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer">
-                        <span>💳</span> QRIS
+                    <button type="button" class="px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
+                        <span>💳</span> QRIS Instant (BCA, Mandiri, Dana, GoPay, OVO, ShopeePay)
                     </button>
                 </div>
             </div>
 
-            <!-- RINCIAN TAGIHAN (BIAYA DIBEBANKAN KE PEMBELI) -->
-            <div class="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-100 text-xs text-slate-600">
-                <div class="flex justify-between">
-                    <span id="txt-rincian-item">Paket 13 Video (5k / 24 Jam)</span>
-                    <span class="font-bold text-slate-800 font-mono" id="txt-rincian-harga">Rp 5.000</span>
+            <!-- RINCIAN TAGIHAN KREDIT -->
+            <div class="bg-slate-50/90 rounded-2xl p-4 sm:p-5 space-y-2.5 border border-slate-200/80 text-xs text-slate-600">
+                <div class="flex justify-between items-center">
+                    <span id="txt-kredit-item" class="font-medium text-slate-700">Paket 10 Kredit (10 Video / 24 Jam)</span>
+                    <span class="font-bold text-slate-900 tabular-nums" id="txt-kredit-harga">Rp 5.000</span>
                 </div>
-                <div class="flex justify-between border-b border-slate-200 pb-2">
-                    <span>Biaya Layanan Pembayaran</span>
-                    <span class="font-bold text-slate-800 font-mono" id="txt-rincian-fee">Rp 800</span>
+                <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
+                    <span class="text-slate-500">Biaya Layanan Pembayaran (QRIS)</span>
+                    <span class="font-bold text-slate-600 tabular-nums" id="txt-kredit-fee">Rp 800</span>
                 </div>
-                <div class="flex justify-between pt-1 text-sm font-extrabold text-slate-900">
-                    <span>Total Bayar</span>
-                    <span class="text-violet-600 font-mono" id="txt-rincian-total">Rp 5.800</span>
+                <div class="flex justify-between items-baseline pt-1">
+                    <div>
+                      <span class="text-sm font-black text-slate-900 block tracking-tight">Total Pembayaran</span>
+                      <span class="text-[10px] text-slate-400 font-medium">Bebas biaya admin tambahan</span>
+                    </div>
+                    <span class="text-xl sm:text-2xl font-black text-kmViolet tracking-tight tabular-nums" id="txt-kredit-total">Rp 5.800</span>
                 </div>
             </div>
 
-            <button type="button" id="btn-eksekusi-bayar" onclick="jalankanBayarPaketTerpilih()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-2xl transition shadow-lg cursor-pointer">
-                Bayar Sekarang via QRIS
+            <button type="button" id="btn-eksekusi-kredit" onclick="jalankanBayarKredit()" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm sm:text-base rounded-2xl transition shadow-lg cursor-pointer flex items-center justify-center gap-2 tracking-wide">
+                <span>Bayar Rp 5.800 via QRIS (10 Kredit)</span> &rarr;
+            </button>
+        </div>
+    </div>
+
+    <!-- 6B. LAYAR TERPISAH: LANGGANAN VIP PRO (UNLIMITED — KEKINIAN & PRO) -->
+    <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Langganan Pro VIP</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Kelola akses unlimited render menggunakan akun RunningHub sendiri</p>
+        </div>
+
+        <!-- STATUS PLAN SAAT INI -->
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 modern-shadow space-y-3">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Akses VIP</span>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-black text-slate-900 tracking-tight" id="label-plan-nama">Free</h2>
+                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlangganan VIP</p>
+                </div>
+                <span class="px-3.5 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-full" id="label-status-vip-badge">Non-Aktif</span>
+            </div>
+        </div>
+
+        <!-- PERINGATAN TEGAS KHUSUS PEMULA -->
+        <div class="bg-rose-50/90 border border-rose-200 p-5 rounded-3xl space-y-2 modern-shadow">
+            <div class="flex items-center gap-2 text-rose-900 font-extrabold text-xs sm:text-sm">
+                <span>⚠️</span> PERHATIAN PENTING SEBELUM UPGRADE:
+            </div>
+            <p class="text-xs text-rose-800 leading-relaxed">
+                Paket <strong>Pro VIP (Rp 35.000)</strong> ini <strong>BUKAN paket terima beres!</strong> Anda <strong>WAJIB</strong> memiliki dan menghubungkan API Key RunningHub milik sendiri di menu <span class="font-bold underline cursor-pointer" onclick="gantiLayarNav('kelola-akun')">Add Apikey</span> (koin dipotong dari akun RunningHub Anda sendiri, minimal 478 koin per render).
+            </p>
+            <p class="text-xs text-rose-800 leading-relaxed pt-1">
+                👉 <em>Jika Anda tidak memiliki API Key RunningHub dan ingin terima beres tanpa ribet, silakan beli kuota di menu <a href="#" onclick="gantiLayarNav('beli-kredit')" class="font-bold underline text-kmViolet">Beli Kredit</a>.</em>
+            </p>
+        </div>
+
+        <!-- KARTU CHECKOUT PRO VIP -->
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 modern-shadow space-y-5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 class="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">Upgrade ke Pro (25 Hari)</h3>
+                  <p class="text-xs text-slate-400 mt-0.5">Render sepuasnya tanpa antrean dengan akun sendiri</p>
+                </div>
+                <span class="text-xs font-bold text-violet-700 bg-violet-100 px-3 py-1 rounded-full">Masa Aktif 25 Hari</span>
+            </div>
+
+            <div class="space-y-2 pt-1">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Metode Pembayaran</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
+                        <span>💳</span> QRIS Instant
+                    </button>
+                </div>
+            </div>
+
+            <!-- RINCIAN TAGIHAN PRO -->
+            <div class="bg-slate-50/90 rounded-2xl p-4 sm:p-5 space-y-2.5 border border-slate-200/80 text-xs text-slate-600">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-slate-700">Langganan Pro VIP (25 Hari)</span>
+                    <span class="font-bold text-slate-900 tabular-nums">Rp 35.000</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
+                    <span class="text-slate-500">Biaya Layanan Pembayaran (QRIS)</span>
+                    <span class="font-bold text-slate-600 tabular-nums">Rp 850</span>
+                </div>
+                <div class="flex justify-between items-baseline pt-1">
+                    <div>
+                      <span class="text-sm font-black text-slate-900 block tracking-tight">Total Pembayaran</span>
+                      <span class="text-[10px] text-slate-400 font-medium">Sekali bayar · Tanpa perpanjangan otomatis</span>
+                    </div>
+                    <span class="text-xl sm:text-2xl font-black text-kmViolet tracking-tight tabular-nums">Rp 35.850</span>
+                </div>
+            </div>
+
+            <button type="button" onclick="jalankanBayarVIP()" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm sm:text-base rounded-2xl transition shadow-lg cursor-pointer flex items-center justify-center gap-2 tracking-wide">
+                <span>Bayar Rp 35.850 via QRIS</span> &rarr;
             </button>
         </div>
 
@@ -419,7 +540,7 @@
             <h3 class="font-bold text-slate-800 text-sm">Kode Promo Spesial</h3>
             <p class="text-xs text-slate-500">Punya kode promo? Masukkan di sini untuk aktifkan atau perpanjang plan.</p>
             <div class="flex gap-2">
-                <input type="text" placeholder="PRO-XXXXXXX" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 font-mono" />
+                <input type="text" placeholder="PRO-XXXXXXX" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 font-bold uppercase tracking-wider" />
                 <button onclick="tampilkanNotif('Kode promo tidak valid', 'error')" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
                     Gunakan
                 </button>
@@ -442,7 +563,7 @@
         <div>
           <div class="flex items-center gap-2 mb-1">
             <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">Master Control Room</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-400">Master Control Room</span>
           </div>
           <h2 class="text-xl sm:text-2xl font-black tracking-tight">Monitor Kolam API RunningHub</h2>
           <p class="text-xs sm:text-sm text-slate-300 mt-1">Kelola dan pantau seluruh kunci API render secara terpusat.</p>
@@ -455,25 +576,25 @@
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
           <p class="text-[11px] font-bold text-slate-400 uppercase">Total Akun</p>
-          <h3 id="stat-pool-total" class="text-2xl font-black text-slate-800 mt-1 font-mono">0</h3>
+          <h3 id="stat-pool-total" class="text-2xl font-black text-slate-900 mt-1 tracking-tight tabular-nums">0</h3>
         </div>
         <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
-          <p class="text-[11px] font-bold text-emerald-500 uppercase">🟢 Siap / Nganggur</p>
-          <h3 id="stat-pool-idle" class="text-2xl font-black text-emerald-600 mt-1 font-mono">0</h3>
+          <p class="text-[11px] font-bold text-emerald-600 uppercase">🟢 Siap / Nganggur</p>
+          <h3 id="stat-pool-idle" class="text-2xl font-black text-emerald-600 mt-1 tracking-tight tabular-nums">0</h3>
         </div>
         <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
-          <p class="text-[11px] font-bold text-amber-500 uppercase">🟡 Sedang Render</p>
-          <h3 id="stat-pool-busy" class="text-2xl font-black text-amber-600 mt-1 font-mono">0</h3>
+          <p class="text-[11px] font-bold text-amber-600 uppercase">🟡 Sedang Render</p>
+          <h3 id="stat-pool-busy" class="text-2xl font-black text-amber-600 mt-1 tracking-tight tabular-nums">0</h3>
         </div>
         <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
-          <p class="text-[11px] font-bold text-rose-500 uppercase">🔴 Koin Habis</p>
-          <h3 id="stat-pool-habis" class="text-2xl font-black text-rose-600 mt-1 font-mono">0</h3>
+          <p class="text-[11px] font-bold text-rose-600 uppercase">🔴 Koin Habis</p>
+          <h3 id="stat-pool-habis" class="text-2xl font-black text-rose-600 mt-1 tracking-tight tabular-nums">0</h3>
         </div>
       </div>
 
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
         <div class="flex items-center justify-between">
-          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
+          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
             <i class="ph-bold ph-plus-circle text-amber-500 text-lg"></i> Tambah Kunci API Massal (Bulk Insert)
           </h3>
           <span class="text-[11px] font-semibold text-slate-400">1 baris = 1 API Key</span>
@@ -491,7 +612,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
 
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
+          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
             <i class="ph-bold ph-list-dashes text-kmViolet text-lg"></i> Live Monitor Kunci Kolam
           </h3>
           <button onclick="sapuBersihAkunHabis()" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto">
@@ -613,48 +734,90 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           try {
               const { data: userRows, error } = await supa
                   .from('users')
-                  .select('is_vip, vip_expires_at')
+                  .select('id, is_vip, vip_expires_at')
                   .ilike('email', emailUser)
                   .limit(1);
 
               const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
               const badgeEl = document.getElementById('label-member-status');
               const expEl = document.getElementById('label-vip-expires');
-              const planNamaEl = document.getElementById('label-plan-nama');
-              const planDescEl = document.getElementById('label-plan-desc');
+              const planNamaVIP = document.getElementById('label-plan-nama');
+              const planDescVIP = document.getElementById('label-plan-desc');
+              const badgeVIP = document.getElementById('label-status-vip-badge');
+              const boxKreditAngka = document.getElementById('label-box-kredit-angka');
+              const boxKreditInfo = document.getElementById('label-box-kredit-info');
 
-              if (!badgeEl) return;
+              var isVipActive = false;
               
               if (!error && userRow && userRow.is_vip === true) {
-                  let isExpired = false;
                   let formattedDate = "";
                   if (userRow.vip_expires_at) {
                       const expDate = new Date(userRow.vip_expires_at);
-                      if (expDate.getTime() < new Date().getTime()) {
-                          isExpired = true;
-                      } else {
+                      if (expDate.getTime() > new Date().getTime()) {
+                          isVipActive = true;
                           formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
                       }
-                  }
-                  if (!isExpired) {
-                      badgeEl.innerText = "⭐ Member Pro";
-                      badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md inline-block";
-                      if (expEl && formattedDate) { expEl.innerText = "Aktif s.d. " + formattedDate; expEl.classList.remove('hidden'); }
-                      if (planNamaEl) planNamaEl.innerText = "Pro VIP";
-                      if (planDescEl) planDescEl.innerText = "Generator: Server Cloud · Unlimited Render (Akun Sendiri)";
                   } else {
-                      badgeEl.innerText = "Member Aktif (Expired)";
-                      badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
-                      if (expEl) expEl.classList.add('hidden');
-                      if (planNamaEl) planNamaEl.innerText = "Free";
-                      if (planDescEl) planDescEl.innerText = "Generator: Server Standar · Akun: 0 (Khusus Pro)";
+                      isVipActive = true;
                   }
-              } else {
+
+                  if (isVipActive) {
+                      if (badgeEl) {
+                        badgeEl.innerText = "⭐ Member Pro";
+                        badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block";
+                      }
+                      if (expEl && formattedDate) { 
+                        expEl.innerText = "Aktif s.d. " + formattedDate; 
+                        expEl.classList.remove('hidden'); 
+                      }
+                      if (planNamaVIP) planNamaVIP.innerText = "Pro VIP (Aktif)";
+                      if (planDescVIP) planDescVIP.innerText = "Masa aktif s.d. " + formattedDate + " · Akses akun RunningHub sendiri";
+                      if (badgeVIP) {
+                        badgeVIP.innerText = "Aktif";
+                        badgeVIP.className = "px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full";
+                      }
+                  }
+              }
+
+              if (!isVipActive) {
+                  if (planNamaVIP) planNamaVIP.innerText = "Free";
+                  if (planDescVIP) planDescVIP.innerText = "Belum berlangganan VIP (Pakai kuota server di Beli Kredit)";
+                  if (badgeVIP) {
+                    badgeVIP.innerText = "Non-Aktif";
+                    badgeVIP.className = "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full";
+                  }
+              }
+
+              // CEK STATUS KREDIT 24 JAM
+              if (userRow && userRow.id) {
+                const { data: userCredit } = await supa.from('user_credits').select('credits_balance, expires_at').eq('user_id', userRow.id).single();
+                if (userCredit && userCredit.credits_balance > 0) {
+                  const expTime = new Date(userCredit.expires_at).getTime();
+                  if (expTime > new Date().getTime()) {
+                    const jamSisa = Math.max(1, Math.round((expTime - new Date().getTime()) / (1000 * 60 * 60)));
+                    if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
+                    if (boxKreditInfo) boxKreditInfo.innerText = "Berlaku untuk " + userCredit.credits_balance + " video · Hangus dalam " + jamSisa + " jam";
+                    
+                    if (!isVipActive && badgeEl) {
+                      badgeEl.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
+                      badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
+                      if (expEl) {
+                        expEl.innerText = "Hangus dalam " + jamSisa + " jam";
+                        expEl.classList.remove('hidden');
+                      }
+                    }
+                    return;
+                  }
+                }
+              }
+
+              if (boxKreditAngka) boxKreditAngka.innerText = "0";
+              if (boxKreditInfo) boxKreditInfo.innerText = "Belum ada paket kredit aktif. Beli paket di bawah untuk render.";
+
+              if (!isVipActive && badgeEl) {
                   badgeEl.innerText = "Member Aktif";
-                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
+                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
                   if (expEl) expEl.classList.add('hidden');
-                  if (planNamaEl) planNamaEl.innerText = "Free";
-                  if (planDescEl) planDescEl.innerText = "Generator: Server Standar · Akun: 0 (Khusus Pro)";
               }
           } catch (err) {
               console.error("Gagal membaca status member:", err);

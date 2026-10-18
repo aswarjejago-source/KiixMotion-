@@ -1,14 +1,13 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (PATOKAN 200 KOIN KOLAM ADMIN)
+// PILAR 3: API ENGINE & RENDER LOGIC
 // File: js/api-engine.js
 // ==========================================
 
-var engineProvider = 'kiix'; // Default aktif di KiixMotion Control
+var engineProvider = 'kiix'; 
 var RUNNINGHUB_WORKFLOW_ID = "2099509417535340546"; 
 var urlBahanFoto = null;
 var urlBahanVideo = null;
 
-// FUNGSI AUTO-RESET FORM BAHAN INPUT
 function resetFormBahanInput() {
   urlBahanFoto = null;
   urlBahanVideo = null;
@@ -30,7 +29,6 @@ function resetFormBahanInput() {
   if (inPrompt) inPrompt.value = '';
 }
 
-// FUNGSI ANIMASI CEKLIS BULAT DI LAYAR
 function tampilkanModalCeklisSukses(taskId) {
   var modal = document.getElementById('modal-ceklis-sukses');
   var lblId = document.getElementById('label-ceklis-taskid');
@@ -50,7 +48,6 @@ function tampilkanModalCeklisSukses(taskId) {
   }
 }
 
-// GANTI ENGINE DI BAGIAN ATAS
 function setProviderUtama(p) {
   engineProvider = p;
   var provs = ['kiix', 'runninghub'];
@@ -107,7 +104,7 @@ function setProviderUtama(p) {
   }
 }
 
-// BANTUAN AMBIL KUNCI DARI KOLAM ADMIN SUPABASE (PATOKAN MINIMAL 200 KOIN)
+// AMBIL KUNCI DARI KOLAM ADMIN (PATOKAN MURNI: MINIMAL 200 KOIN)
 async function ambilKunciKolamTersedia(kecualiIds) {
   if (typeof supa === 'undefined') return null;
   try {
@@ -115,7 +112,7 @@ async function ambilKunciKolamTersedia(kecualiIds) {
       .from('runninghub_pool')
       .select('*')
       .eq('status', 'idle')
-      .gte('koin', 200) // PATOKAN 200 KOIN: Kunci >= 200 koin bisa diambil
+      .gte('koin', 200) // PATOKAN MUTLAK 200 KOIN
       .order('koin', { ascending: false });
     
     if (Array.isArray(kecualiIds) && kecualiIds.length > 0) {
@@ -132,7 +129,6 @@ async function ambilKunciKolamTersedia(kecualiIds) {
   return null;
 }
 
-// UPLOAD BAHAN
 async function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
   var file = input.files[0];
@@ -144,7 +140,6 @@ async function unggahBahanLangsung(input, tipe) {
     keyUpload = akunRunningHub[0].key;
   } else {
     var akunPool = await ambilKunciKolamTersedia();
-    // Fallback: upload file gratis, bisa pinjam kunci apa saja di kolam
     if (!akunPool && typeof supa !== 'undefined') {
       var { data: anyKey } = await supa.from('runninghub_pool').select('api_key').limit(1);
       if (anyKey && anyKey.length > 0) akunPool = anyKey[0];
@@ -154,7 +149,7 @@ async function unggahBahanLangsung(input, tipe) {
 
   if (!keyUpload) {
     input.value = "";
-    return tampilkanNotif('Antrean server upload lagi padat, coba beberapa saat lagi.', 'error');
+    return tampilkanNotif('Antrean server upload sedang padat, coba beberapa saat lagi.', 'error');
   }
 
   if (txtEl) txtEl.innerText = file.name;
@@ -203,9 +198,6 @@ async function unggahBahanLangsung(input, tipe) {
   xhr.send(formData);
 }
 
-// =========================================================================
-// CCTV MONITORING (BATAS TEPAT 1 JAM TIMESTAMP + SMART REFUND)
-// =========================================================================
 function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
@@ -223,7 +215,7 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
 
     var waktuBerjalan = Date.now() - tugas.startedAt;
     
-    // TIMEOUT 1 JAM (KEBAL REFRESH BROWSER)
+    // TIMEOUT 1 JAM WAKTU NYATA
     if (waktuBerjalan >= 3600000) {
       clearInterval(cekInterval);
       tugas.status = "❌ Gagal (Batas Waktu Proses 1 Jam Habis)"; 
@@ -277,7 +269,6 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
         if (match) vidUrl = match[0];
       }
 
-      // RENDER BERHASIL
       if (vidUrl && typeof vidUrl === 'string') {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
@@ -296,7 +287,6 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // CEK STATUS GAGAL RESMI DARI PUSAT
       try {
         var jsonObj2 = JSON.parse(textRaw);
         var topCode = Number(jsonObj2.code || 0);
@@ -378,7 +368,7 @@ async function refreshSaldoAkunOtomatis(apiKey, poolId) {
       if (k !== undefined && k !== null) {
         var koinNum = Number(k);
         if (poolId && typeof supa !== 'undefined') {
-          // PATOKAN 200 KOIN: Hanya dicap habis jika di bawah 200
+          // PATOKAN 200: HANYA dicap habis jika di bawah 200 koin!
           var statusBaru = koinNum < 200 ? 'habis' : 'idle';
           await supa.from('runninghub_pool').update({ koin: koinNum, status: statusBaru }).eq('id', poolId);
           if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
@@ -418,9 +408,6 @@ function updateStatistikDashboard() {
   }
 }
 
-// =========================================================================
-// EKSEKUSI UTAMA SAAT TOMBOL GENERATE DIKLIK
-// =========================================================================
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
   
@@ -453,7 +440,6 @@ async function mulaiProsesGenerate() {
     return tampilkanNotif('Sesi login berakhir, silakan login ulang!', 'error');
   }
 
-  // VALIDASI BAHAN UNGGAHAN
   if (!urlBahanFoto || !urlBahanVideo) {
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
     return tampilkanNotif('Foto karakter dan Video gerakan wajib selesai diunggah!', 'error');
@@ -464,7 +450,7 @@ async function mulaiProsesGenerate() {
   var didDeductCredit = false;
 
   // =====================================================================
-  // JALUR 1: RUNNINGHUB PRO (MEMBER PRO WAJIB PUNYA MINIMAL 478 KOIN)
+  // JALUR 1: RUNNINGHUB PRO (MEMBER PRO DIKUNCI MINIMAL 478 KOIN PRIBADI)
   // =====================================================================
   if (engineProvider === 'runninghub') {
     var isVipActive = false;
@@ -495,6 +481,7 @@ async function mulaiProsesGenerate() {
     var idx = sel ? sel.value : "";
     var akunPribadi = (idx === "random" || idx === "") ? akunRunningHub[0] : akunRunningHub[parseInt(idx, 10)];
 
+    // PENCEGATAN KHUSUS MEMBER PRO (WAJIB MINIMAL 478 KOIN)
     if (realEmail !== 'anggraingki@gmail.com') {
       var koinAkunPribadi = Number(akunPribadi.koin) || 0;
       if (koinAkunPribadi < 478) {
@@ -508,7 +495,7 @@ async function mulaiProsesGenerate() {
 
   } else {
     // =====================================================================
-    // JALUR 2: KIIXMOTION CONTROL (BEBAS DARI PEMBATASAN KOIN PRIBADI)
+    // JALUR 2: KIIXMOTION CONTROL (PENGGUNA KREDIT BEBAS DARI BATASAN 478 KOIN)
     // =====================================================================
     if (typeof supa !== 'undefined') {
       try {
@@ -577,11 +564,11 @@ async function mulaiProsesGenerate() {
 
   var taskIdAsli = null;
   var poolTercoba = poolIdDipakai ? [poolIdDipakai] : [];
-  var poolHabisIds = []; 
   var suksesKirim = false;
 
   // =====================================================================
-  // AUTO-POLLING / AUTO-ROTASI KUNCI DI DATABASE JIKA KOIN HABIS
+  // AUTO-POLLING / AUTO-ROTASI KUNCI JIKA KOIN KURANG
+  // (KUNCI YANG KURANG TIDAK BOLEH DIUBAH MENJADI 'HABIS' DI DATABASE!)
   // =====================================================================
   while (!suksesKirim) {
     try {
@@ -603,13 +590,12 @@ async function mulaiProsesGenerate() {
         )
       );
 
-      // JIKA RUNNINGHUB NOLAK KARENA KOIN KURANG, UBAH STATUS DI DATABASE JADI 'HABIS' & CARI KUNCI LAIN
+      // JIKA KOIN KURANG: STATUS DI DATABASE TETAP 'IDLE', CUKUP ROTASI NYARI KUNCI LAIN!
       if (isKoinKurang && poolIdDipakai) {
-        console.warn(`Kunci kolam #${poolIdDipakai} koinnya kurang. Menandai HABIS di database dan mencari kunci lain...`);
-        poolHabisIds.push(poolIdDipakai);
-        await supa.from('runninghub_pool').update({ status: 'habis' }).eq('id', poolIdDipakai);
+        console.warn(`Kunci #${poolIdDipakai} koinnya kurang saat render. Kembalikan ke 'idle' & switch cari kunci cadangan...`);
+        // TETAPKAN STATUS 'IDLE' DI DATABASE KARENA KOIN MASIH >= 200
+        await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
 
-        // Cari kunci cadangan lain yang koinnya >= 200
         var akunCadangan = await ambilKunciKolamTersedia(poolTercoba);
         if (akunCadangan) {
           apiKeyDipakai = akunCadangan.api_key;
@@ -618,7 +604,7 @@ async function mulaiProsesGenerate() {
           await supa.from('runninghub_pool').update({ status: 'busy', last_used_at: new Date() }).eq('id', poolIdDipakai);
           continue; 
         } else {
-          throw new Error("Semua cadangan kunci kolam sedang tidak mencukupi koin.");
+          throw new Error("Semua kunci cadangan server sedang tidak mencukupi koin.");
         }
       }
 
@@ -630,7 +616,7 @@ async function mulaiProsesGenerate() {
       }
 
     } catch (e) {
-      if (poolIdDipakai && !poolHabisIds.includes(poolIdDipakai) && typeof supa !== 'undefined') {
+      if (poolIdDipakai && typeof supa !== 'undefined') {
         await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
       }
       if (didDeductCredit && typeof supa !== 'undefined') {
@@ -645,7 +631,6 @@ async function mulaiProsesGenerate() {
     }
   }
 
-  // RIWAYAT TUGAS BARU
   var tugasBaru = {
     id: taskIdAsli || ("KM-" + Date.now().toString().slice(-6)),
     key: apiKeyDipakai, 
@@ -682,9 +667,6 @@ async function mulaiProsesGenerate() {
   }
 }
 
-// =========================================================================
-// KELOLA AKUN
-// =========================================================================
 function renderListAkunDiKelola() {
   var wadah = document.getElementById('wadah-kartu-akun-list'), targetAkun = akunRunningHub;
   if (!wadah) return; 
@@ -864,7 +846,6 @@ async function simpanAkunBaruDariModal() {
   setProviderUtama(engineProvider);
 }
 
-// INISIALISASI
 window.onload = function() {
   if (typeof muatStorage === 'function') muatStorage();
   setProviderUtama('kiix'); 

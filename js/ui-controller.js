@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 2: UI CONTROLLER (Sistem Saraf Antarmuka Lengkap)
+// PILAR 2: UI CONTROLLER (Sistem Saraf Antarmuka Terpadu)
 // File: js/ui-controller.js
 // ==========================================
 
@@ -10,8 +10,8 @@ var isModePilih = false;
 var pendingKonfirmasiFn = null;
 var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
 
-// VARIABEL CHECKOUT DINAMIS
-var paketCheckoutAktif = '5k';
+// VARIABEL PAKET KREDIT AKTIF (Default: 5k)
+var paketKreditAktif = '5k';
 
 // ------------------------------------------
 // 1. FITUR PONDASI & NOTIFIKASI
@@ -107,11 +107,11 @@ function togglePanduanKey() {
 }
 
 // ------------------------------------------
-// 2. NAVIGASI LAYAR LENGKAP
+// 2. NAVIGASI LAYAR
 // ------------------------------------------
 function gantiLayarNav(layar) {
   navLayarAktif = layar;
-  var ids = ['dashboard', 'generate', 'history', 'workflow-ugc', 'galeri', 'kelola-akun', 'langganan', 'admin-pool'];
+  var ids = ['dashboard', 'generate', 'history', 'workflow-ugc', 'galeri', 'kelola-akun', 'beli-kredit', 'langganan', 'admin-pool'];
   
   ids.forEach(function(id) {
     var el = document.getElementById('layar-' + id);
@@ -153,9 +153,12 @@ function gantiLayarNav(layar) {
   }
   if (layar === 'galeri') renderGaleri();
   if (layar === 'kelola-akun' && typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
+  if (layar === 'beli-kredit') {
+    updateStatusMemberUI();
+    pilihPaketKredit(paketKreditAktif || '5k');
+  }
   if (layar === 'langganan') {
     updateStatusMemberUI();
-    pilihPaketCheckout(paketCheckoutAktif || '5k');
   }
   if (layar === 'admin-pool') muatDataKolamAdmin();
 }
@@ -286,7 +289,7 @@ window.renderVideoAsliKeGrid = function() {
       areaMedia = `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400">
          <i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i>
          <span class="text-xs font-bold mb-1">Sedang Memproses Video...</span>
-         <span class="text-[10px] text-kmViolet font-bold">${progress}%</span>
+         <span class="text-[10px] text-kmViolet font-bold tabular-nums">${progress}%</span>
       </div>`;
     }
 
@@ -355,7 +358,7 @@ window.renderLayarHistory = function() {
 };
 
 // ------------------------------------------
-// 5. STATUS MEMBER PRO & KREDIT 24 JAM
+// 5. UPDATE STATUS MEMBER (VIP & KREDIT 24 JAM)
 // ------------------------------------------
 async function updateStatusMemberUI(emailUser) {
   if (typeof supa === 'undefined') return;
@@ -370,69 +373,90 @@ async function updateStatusMemberUI(emailUser) {
     if (targetEmail) {
       var { data: profile, error } = await supa.from('users').select('id, is_vip, vip_expires_at').eq('email', targetEmail).single();
       
-      var badgeEl = document.getElementById('label-member-status');
-      var expEl = document.getElementById('label-vip-expires');
-      var planNamaEl = document.getElementById('label-plan-nama');
-      var planDescEl = document.getElementById('label-plan-desc');
-      if (!badgeEl) return;
+      var badgeTop = document.getElementById('label-member-status');
+      var expTop = document.getElementById('label-vip-expires');
       
-      // JALUR 1: CEK VIP PRO
-      if (!error && profile && profile.is_vip === true) {
-        var isExpired = false;
-        var formattedDate = "";
+      var planNamaVIP = document.getElementById('label-plan-nama');
+      var planDescVIP = document.getElementById('label-plan-desc');
+      var badgeVIP = document.getElementById('label-status-vip-badge');
 
+      var boxKreditAngka = document.getElementById('label-box-kredit-angka');
+      var boxKreditInfo = document.getElementById('label-box-kredit-info');
+
+      var isVipActive = false;
+
+      // 1. CEK VIP PRO
+      if (!error && profile && profile.is_vip === true) {
+        var formattedDate = "";
         if (profile.vip_expires_at) {
           var expDate = new Date(profile.vip_expires_at);
-          if (expDate.getTime() < new Date().getTime()) {
-            isExpired = true;
-          } else {
-            formattedDate = expDate.toLocaleDateString('id-ID', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            });
+          if (expDate.getTime() > new Date().getTime()) {
+            isVipActive = true;
+            formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
           }
+        } else {
+          isVipActive = true;
         }
 
-        if (!isExpired) {
-          badgeEl.innerText = "⭐ Member Pro";
-          badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md inline-block";
-          if (expEl && formattedDate) {
-            expEl.innerText = "Aktif s.d. " + formattedDate;
-            expEl.classList.remove('hidden');
+        if (isVipActive) {
+          if (badgeTop) {
+            badgeTop.innerText = "⭐ Member Pro";
+            badgeTop.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block";
           }
-          if (planNamaEl) planNamaEl.innerText = "Pro VIP";
-          if (planDescEl) planDescEl.innerText = "Generator: Server Cloud · Unlimited Render (Akun Sendiri)";
-          return;
+          if (expTop && formattedDate) {
+            expTop.innerText = "Aktif s.d. " + formattedDate;
+            expTop.classList.remove('hidden');
+          }
+          if (planNamaVIP) planNamaVIP.innerText = "Pro VIP (Aktif)";
+          if (planDescVIP) planDescVIP.innerText = "Masa aktif s.d. " + formattedDate + " · Akses akun RunningHub sendiri";
+          if (badgeVIP) {
+            badgeVIP.innerText = "Aktif";
+            badgeVIP.className = "px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full";
+          }
         }
       }
 
-      // JALUR 2: CEK KREDIT 24 JAM DI TABEL user_credits
+      if (!isVipActive) {
+        if (planNamaVIP) planNamaVIP.innerText = "Free";
+        if (planDescVIP) planDescVIP.innerText = "Belum berlangganan VIP (Pakai kuota server di Beli Kredit)";
+        if (badgeVIP) {
+          badgeVIP.innerText = "Non-Aktif";
+          badgeVIP.className = "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full";
+        }
+      }
+
+      // 2. CEK KREDIT 24 JAM
       if (profile && profile.id) {
         var { data: userCredit } = await supa.from('user_credits').select('credits_balance, expires_at').eq('user_id', profile.id).single();
         if (userCredit && userCredit.credits_balance > 0) {
           var expTime = new Date(userCredit.expires_at).getTime();
           if (expTime > new Date().getTime()) {
             var jamSisa = Math.max(1, Math.round((expTime - new Date().getTime()) / (1000 * 60 * 60)));
-            badgeEl.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
-            badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2 py-0.5 rounded-md inline-block";
-            if (expEl) {
-              expEl.innerText = "Hangus dalam " + jamSisa + " jam";
-              expEl.classList.remove('hidden');
+            
+            if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
+            if (boxKreditInfo) boxKreditInfo.innerText = "Berlaku untuk " + userCredit.credits_balance + " video · Hangus dalam " + jamSisa + " jam";
+            
+            if (!isVipActive && badgeTop) {
+              badgeTop.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
+              badgeTop.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
+              if (expTop) {
+                expTop.innerText = "Hangus dalam " + jamSisa + " jam";
+                expTop.classList.remove('hidden');
+              }
             }
-            if (planNamaEl) planNamaEl.innerText = userCredit.credits_balance + " Kredit Render";
-            if (planDescEl) planDescEl.innerText = "Generator: Kiix Server Cloud · Sisa masa aktif " + jamSisa + " jam";
             return;
           }
         }
       }
 
-      // DEFAULT: FREE
-      badgeEl.innerText = "Member Aktif";
-      badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block";
-      if (expEl) expEl.classList.add('hidden');
-      if (planNamaEl) planNamaEl.innerText = "Free";
-      if (planDescEl) planDescEl.innerText = "Generator: Server Standar · Akun: 0 (Khusus Pro)";
+      if (boxKreditAngka) boxKreditAngka.innerText = "0";
+      if (boxKreditInfo) boxKreditInfo.innerText = "Belum ada paket kredit aktif. Beli paket di bawah untuk render.";
+
+      if (!isVipActive && badgeTop) {
+        badgeTop.innerText = "Member Aktif";
+        badgeTop.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
+        if (expTop) expTop.classList.add('hidden');
+      }
     }
   } catch (err) {
     console.error("Gagal membaca status member:", err);
@@ -440,64 +464,56 @@ async function updateStatusMemberUI(emailUser) {
 }
 
 // ------------------------------------------
-// 6. CHECKOUT PAKET KREDIT & PRO (FEE DIBEBANKAN KE PEMBELI)
+// 6. CHECKOUT KREDIT 24 JAM (FLAT 500/VIDEO KEKINIAN)
 // ------------------------------------------
-function pilihPaketCheckout(tipe) {
-  paketCheckoutAktif = tipe;
+function pilihPaketKredit(tipe) {
+  paketKreditAktif = tipe;
 
-  var btn5k = document.getElementById('btn-pkt-5k');
-  var btn10k = document.getElementById('btn-pkt-10k');
-  var btn35k = document.getElementById('btn-pkt-35k');
+  var btn5k = document.getElementById('btn-kredit-5k');
+  var btn10k = document.getElementById('btn-kredit-10k');
 
-  var badgeDurasi = document.getElementById('badge-durasi-paket');
-  var txtItem = document.getElementById('txt-rincian-item');
-  var txtHarga = document.getElementById('txt-rincian-harga');
-  var txtFee = document.getElementById('txt-rincian-fee');
-  var txtTotal = document.getElementById('txt-rincian-total');
+  var txtItem = document.getElementById('txt-kredit-item');
+  var txtHarga = document.getElementById('txt-kredit-harga');
+  var txtFee = document.getElementById('txt-kredit-fee');
+  var txtTotal = document.getElementById('txt-kredit-total');
+  var btnEksekusi = document.getElementById('btn-eksekusi-kredit');
 
-  [btn5k, btn10k, btn35k].forEach(function(b) {
+  [btn5k, btn10k].forEach(function(b) {
     if (!b) return;
-    b.className = "p-3 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer";
-    var sp = b.querySelector('span');
-    if (sp) sp.className = "text-[10px] font-bold text-slate-400 uppercase block";
+    b.className = "p-5 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group";
+    var dot = b.querySelector('.rounded-full');
+    if (dot && dot.classList.contains('bg-kmViolet')) {
+      dot.className = "w-2 h-2 rounded-full bg-slate-300";
+    }
   });
 
   if (tipe === '5k') {
     if (btn5k) {
-      btn5k.className = "p-3 rounded-2xl border-2 border-kmViolet bg-violet-50/50 text-left transition cursor-pointer";
-      btn5k.querySelector('span').className = "text-[10px] font-bold text-kmViolet uppercase block";
+      btn5k.className = "p-5 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
+      var dot5 = btn5k.querySelector('.rounded-full.bg-slate-300');
+      if (dot5) dot5.className = "w-2 h-2 rounded-full bg-kmViolet";
     }
-    if (badgeDurasi) badgeDurasi.innerText = "Hangus dalam 24 Jam";
-    if (txtItem) txtItem.innerText = "Paket 13 Video (5k / 24 Jam)";
+    if (txtItem) txtItem.innerText = "Paket 10 Kredit (10 Video / 24 Jam)";
     if (txtHarga) txtHarga.innerText = "Rp 5.000";
     if (txtFee) txtFee.innerText = "Rp 800";
     if (txtTotal) txtTotal.innerText = "Rp 5.800";
+    if (btnEksekusi) btnEksekusi.innerHTML = '<span>Bayar Rp 5.800 via QRIS (10 Kredit)</span> &rarr;';
 
   } else if (tipe === '10k') {
     if (btn10k) {
-      btn10k.className = "p-3 rounded-2xl border-2 border-kmViolet bg-violet-50/50 text-left transition cursor-pointer";
-      btn10k.querySelector('span').className = "text-[10px] font-bold text-kmViolet uppercase block";
+      btn10k.className = "p-5 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
+      var dot10 = btn10k.querySelector('.rounded-full.bg-slate-300');
+      if (dot10) dot10.className = "w-2 h-2 rounded-full bg-kmViolet";
     }
-    if (badgeDurasi) badgeDurasi.innerText = "Hangus dalam 24 Jam";
-    if (txtItem) txtItem.innerText = "Paket 25 Video (10k / 24 Jam)";
+    if (txtItem) txtItem.innerText = "Paket 20 Kredit (20 Video / 24 Jam)";
     if (txtHarga) txtHarga.innerText = "Rp 10.000";
     if (txtFee) txtFee.innerText = "Rp 800";
     if (txtTotal) txtTotal.innerText = "Rp 10.800";
-
-  } else if (tipe === '35k') {
-    if (btn35k) {
-      btn35k.className = "p-3 rounded-2xl border-2 border-kmViolet bg-violet-50/50 text-left transition cursor-pointer";
-      btn35k.querySelector('span').className = "text-[10px] font-bold text-kmViolet uppercase block";
-    }
-    if (badgeDurasi) badgeDurasi.innerText = "Aktif 25 Hari";
-    if (txtItem) txtItem.innerText = "Langganan Pro (35k / 25 Hari)";
-    if (txtHarga) txtHarga.innerText = "Rp 35.000";
-    if (txtFee) txtFee.innerText = "Rp 850";
-    if (txtTotal) txtTotal.innerText = "Rp 35.850";
+    if (btnEksekusi) btnEksekusi.innerHTML = '<span>Bayar Rp 10.800 via QRIS (20 Kredit)</span> &rarr;';
   }
 }
 
-async function jalankanBayarPaketTerpilih() {
+async function jalankanBayarKredit() {
   tampilkanNotif("Menghubungkan ke secure payment iPaymu...", "info");
 
   var userEmail = "";
@@ -523,22 +539,9 @@ async function jalankanBayarPaketTerpilih() {
     if (!userEmail) return tampilkanNotif("Email wajib diisi untuk transaksi!", "error");
   }
 
-  var nominal = 5800;
-  var namaItem = "Paket 13 Video KiixMotion";
-  var tipeItem = "kredit";
-  var jmlKredit = 13;
-
-  if (paketCheckoutAktif === '10k') {
-    nominal = 10800;
-    namaItem = "Paket 25 Video KiixMotion";
-    tipeItem = "kredit";
-    jmlKredit = 25;
-  } else if (paketCheckoutAktif === '35k') {
-    nominal = 35850;
-    namaItem = "Member Pro KiixMotion";
-    tipeItem = "vip";
-    jmlKredit = 0;
-  }
+  var nominal = (paketKreditAktif === '10k') ? 10800 : 5800;
+  var namaItem = (paketKreditAktif === '10k') ? "Paket 20 Kredit KiixMotion" : "Paket 10 Kredit KiixMotion";
+  var jmlKredit = (paketKreditAktif === '10k') ? 20 : 10;
 
   fetch('/api/bayar', {
     method: 'POST',
@@ -548,7 +551,7 @@ async function jalankanBayarPaketTerpilih() {
       amount: nominal, 
       name: namaItem, 
       phone: "081122334455",
-      tipe: tipeItem,
+      tipe: "kredit",
       kredit: jmlKredit
     })
   })
@@ -570,19 +573,64 @@ async function jalankanBayarPaketTerpilih() {
   });
 }
 
-window.prosesBeliVIP = function() {
-  pilihPaketCheckout('35k');
-  jalankanBayarPaketTerpilih();
-};
+// ------------------------------------------
+// 7. CHECKOUT PRO VIP (Rp 35.850)
+// ------------------------------------------
+async function jalankanBayarVIP() {
+  tampilkanNotif("Menghubungkan ke secure payment iPaymu...", "info");
 
-window.prosesBeliKredit = function(nominal, jumlahKredit) {
-  if (jumlahKredit <= 13) pilihPaketCheckout('5k');
-  else pilihPaketCheckout('10k');
-  jalankanBayarPaketTerpilih();
+  var userEmail = "";
+  if (typeof supa !== 'undefined') {
+    try {
+      var sessionRes = await supa.auth.getSession();
+      userEmail = sessionRes?.data?.session?.user?.email || "";
+    } catch(e) {}
+  }
+
+  if (!userEmail) {
+    userEmail = prompt("Masukkan email aktif Anda untuk tagihan QRIS:", "");
+    if (!userEmail) return tampilkanNotif("Email wajib diisi untuk transaksi!", "error");
+  }
+
+  fetch('/api/bayar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      email: userEmail, 
+      amount: 35850, 
+      name: "Member Pro KiixMotion (25 Hari)", 
+      phone: "081122334455",
+      tipe: "vip",
+      kredit: 0
+    })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.Success === true || data.Status === 200 || data.Data) {
+      tampilkanNotif("Berhasil! Mengarahkan ke pembayaran QRIS...", "sukses");
+      setTimeout(function() {
+        var paymentLink = (data.Data && data.Data.Url) ? data.Data.Url : data.url;
+        if (paymentLink) window.location.href = paymentLink;
+        else tampilkanNotif("Gagal membaca link pembayaran iPaymu", "error");
+      }, 800);
+    } else {
+      tampilkanNotif("Gagal membuat transaksi: " + (data.message || data.Message || "Kesalahan iPaymu"), "error");
+    }
+  })
+  .catch(function() {
+    tampilkanNotif("Gagal koneksi ke server pembayaran.", "error");
+  });
+}
+
+window.prosesBeliVIP = jalankanBayarVIP;
+window.prosesBeliKredit = function(nom, krd) {
+  if (krd <= 10) pilihPaketKredit('5k');
+  else pilihPaketKredit('10k');
+  jalankanBayarKredit();
 };
 
 // ------------------------------------------
-// 7. FITUR MASTER POOL ADMIN (KHUSUS ANGGRAINGKI@GMAIL.COM)
+// 8. MASTER POOL ADMIN (KHUSUS ANGGRAINGKI)
 // ------------------------------------------
 async function cekAksesAdminPool() {
   if (typeof supa === 'undefined') return;
@@ -639,7 +687,7 @@ async function muatDataKolamAdmin() {
       <tr class="hover:bg-slate-50/60 transition">
         <td class="py-3 px-3">${badgeStatus}</td>
         <td class="py-3 px-3 font-mono font-bold text-slate-700">${keyMasked}</td>
-        <td class="py-3 px-3 font-mono font-extrabold ${a.koin < 200 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
+        <td class="py-3 px-3 font-extrabold tabular-nums ${a.koin < 200 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
         <td class="py-3 px-3 text-slate-400 text-[11px]">${tglPakai}</td>
         <td class="py-3 px-3 text-right">
           <button onclick="hapusSatuKunciPool(${a.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus Kunci Ini">
@@ -744,7 +792,7 @@ async function refreshDataKolamAdmin() {
 }
 
 // ------------------------------------------
-// 8. OBSERVER & INISIALISASI HALAMAN
+// 9. OBSERVER & INISIALISASI
 // ------------------------------------------
 const observer = new MutationObserver(function(mutations) {
   mutations.forEach(function(mutation) {

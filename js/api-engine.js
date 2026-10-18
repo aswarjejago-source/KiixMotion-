@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (POOL ENGINE + VIP + KREDIT 24 JAM)
+// PILAR 3: API ENGINE & RENDER LOGIC
 // File: js/api-engine.js
 // ==========================================
 
@@ -60,31 +60,10 @@ function setProviderUtama(p) {
     }
     if (badge) badge.style.display = (pr === p) ? 'inline-block' : 'none';
   });
-  var setTxt = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
-  var dropWrap = document.getElementById('box-wrap-dropdown-akun');
-  if (p === 'roboneo') {
-    setTxt('t-engine-title', "KLING MOTION CONTROL");
-    setTxt('t-engine-sub', "(KIIX MOTION)");
-    setTxt('t-engine-cost', "≈ 4 carrots");
-    setTxt('t-engine-total', "≈ 4 carrots");
-    if (dropWrap) dropWrap.style.display = 'block';
-  } else if (p === 'kiix') {
-    setTxt('t-engine-title', "KIIXMOTION DIRECT CLOUD");
-    setTxt('t-engine-sub', "(DIRECT ENGINE)");
-    setTxt('t-engine-cost', "1 Kredit");
-    setTxt('t-engine-total', "1 kredit");
-    if (dropWrap) dropWrap.style.display = 'none';
-  } else {
-    setTxt('t-engine-title', "WAN MOTION CONTROL 1080HD");
-    setTxt('t-engine-sub', "(KIIX PRO)");
-    setTxt('t-engine-cost', "1 Kredit / Render");
-    setTxt('t-engine-total', "1 Kredit");
-    if (dropWrap) dropWrap.style.display = 'block';
-  }
   sinkronkanDropdownAkunGenerate();
 }
 
-// BANTUAN AMBIL KUNCI KOLAM SUPABASE
+// BANTUAN AMBIL KUNCI DARI KOLAM ADMIN SUPABASE (KHUSUS MEMBER KREDIT)
 async function ambilKunciKolamTersedia(kecualiId) {
   if (typeof supa === 'undefined') return null;
   try {
@@ -107,6 +86,7 @@ async function ambilKunciKolamTersedia(kecualiId) {
   return null;
 }
 
+// REFRESH SALDO KOIN OTOMATIS
 async function refreshSaldoAkunOtomatis(apiKey, poolId) {
   if (!apiKey) return;
   try {
@@ -123,14 +103,14 @@ async function refreshSaldoAkunOtomatis(apiKey, poolId) {
       if (k !== undefined && k !== null) {
         var koinNum = Number(k);
         
-        // Update tabel pool di Supabase jika tugas berasal dari pool
+        // Jika render menggunakan Kolam Admin, update tabel Supabase
         if (poolId && typeof supa !== 'undefined') {
           var statusBaru = koinNum < 200 ? 'habis' : 'idle';
           await supa.from('runninghub_pool').update({ koin: koinNum, status: statusBaru }).eq('id', poolId);
           if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
         }
 
-        // Sinkronkan akun lokal jika ada
+        // Jika render menggunakan Akun Pribadi Member Pro, update storage lokal
         if (typeof akunRunningHub !== 'undefined') {
           var idxKetemu = akunRunningHub.findIndex(function(a) { return a.key === apiKey; });
           if (idxKetemu !== -1) {
@@ -151,10 +131,6 @@ async function manualRefreshAkunSatu(idx) {
   var akun = targetAkun[idx];
   if (!akun) return;
 
-  if (tabAkunAktif !== 'runninghub') {
-    return tampilkanNotif('Saldo akun ini selalu stabil', 'info');
-  }
-
   tampilkanNotif('Menyegarkan status koneksi...', 'info');
   try {
     var res = await fetch('/api/saldo', {
@@ -174,11 +150,7 @@ async function manualRefreshAkunSatu(idx) {
         sinkronkanDropdownAkunGenerate();
         updateStatistikDashboard();
         tampilkanNotif('✓ Status akun berhasil diperbarui', 'sukses');
-      } else {
-        tampilkanNotif('Gagal membaca status akun', 'error');
       }
-    } else {
-      tampilkanNotif('Gagal sinkronisasi antrean', 'error');
     }
   } catch (err) {
     tampilkanNotif('Koneksi terputus: ' + err.message, 'error');
@@ -186,12 +158,8 @@ async function manualRefreshAkunSatu(idx) {
 }
 
 async function refreshSemuaAkunRunningHub() {
-  if (tabAkunAktif !== 'runninghub') {
-    return tampilkanNotif('Sync khusus koneksi utama', 'info');
-  }
-
   if (!akunRunningHub || akunRunningHub.length === 0) {
-    return tampilkanNotif('Belum ada koneksi akun yang terhubung', 'error');
+    return tampilkanNotif('Belum ada akun yang terhubung di Kelola Akun', 'error');
   }
 
   var btn = document.getElementById('btn-sync-all-rh');
@@ -200,7 +168,7 @@ async function refreshSemuaAkunRunningHub() {
     btn.innerHTML = '<i class="ph ph-spinner animate-spin text-sm"></i> Syncing...';
   }
 
-  tampilkanNotif('Menyinkronkan seluruh koneksi antrean...', 'info');
+  tampilkanNotif('Menyinkronkan semua akun...', 'info');
   var suksesHitung = 0;
 
   var antreanSync = akunRunningHub.map(async function(akun) {
@@ -213,8 +181,7 @@ async function refreshSemuaAkunRunningHub() {
       var hasil = await res.json();
       if (res.ok && hasil) {
         var rawData = hasil.data || hasil;
-        var k = rawData.totalCoins !== undefined ? rawData.totalCoins : rawData.coins !== undefined ? rawData.coins : rawData.coin !== undefined ? rawData.coin : rawData.credit !== undefined ? rawData.credit : rawData.balance !== undefined ? rawData.balance : rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
-        
+        var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
         if (k !== undefined && k !== null) {
           akun.koin = Number(k);
           suksesHitung++;
@@ -235,28 +202,30 @@ async function refreshSemuaAkunRunningHub() {
     btn.innerHTML = '<i class="ph ph-arrows-clockwise text-sm"></i> Sync Semua';
   }
 
-  tampilkanNotif('✓ ' + suksesHitung + ' jalur koneksi berhasil disinkronkan!', 'sukses');
+  tampilkanNotif('✓ ' + suksesHitung + ' akun berhasil disinkronkan!', 'sukses');
 }
 
+// UPLOAD BAHAN (OTOMATIS PILIH KUNCI UNTUK UPLOAD)
 async function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
   var file = input.files[0];
   var txtEl = document.getElementById(tipe === 'foto' ? 'txt-file-foto' : 'txt-file-video');
   var stEl = document.getElementById(tipe === 'foto' ? 'st-file-foto' : 'st-file-video');
 
-  // Ambil API key untuk upload (Prioritas: akun lokal, jika kosong ambil 1 key dari kolam)
+  // Ambil API key untuk upload media
   var keyUpload = null;
-  var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
-  if (targetAkun && targetAkun.length > 0) {
-    keyUpload = targetAkun[0].key;
+  // 1. Cek jika member punya akun sendiri di menu Add Apikey
+  if (typeof akunRunningHub !== 'undefined' && akunRunningHub.length > 0) {
+    keyUpload = akunRunningHub[0].key;
   } else {
+    // 2. Jika member kredit (tidak punya akun), gunakan kunci dari kolam admin
     var akunPool = await ambilKunciKolamTersedia();
     if (akunPool) keyUpload = akunPool.api_key;
   }
 
   if (!keyUpload) {
     input.value = "";
-    return tampilkanNotif('Server antrean sedang penuh, silakan coba sesaat lagi.', 'error');
+    return tampilkanNotif('Antrean upload sedang penuh, silakan coba sesaat lagi.', 'error');
   }
 
   if (txtEl) txtEl.innerText = file.name;
@@ -305,25 +274,91 @@ async function unggahBahanLangsung(input, tipe) {
   xhr.send(formData);
 }
 
-function sinkronkanDropdownAkunGenerate() {
-  var sel = document.getElementById('sel-dropdown-akun'), badge = document.getElementById('badge-total-saldo-gen');
+// SINKRONKAN DROPDOWN AKUN DI GENERATE VIEW
+async function sinkronkanDropdownAkunGenerate() {
+  var sel = document.getElementById('sel-dropdown-akun');
+  var badge = document.getElementById('badge-total-saldo-gen');
+  var tTitle = document.getElementById('t-engine-title');
+  var tTotal = document.getElementById('t-engine-total');
   if (!sel) return;
   sel.innerHTML = '';
-  
-  var optAuto = document.createElement('option');
-  optAuto.value = "pool_auto";
-  optAuto.innerText = "⚡ Jalur Cepat KiixMotion Pool (Otomatis)";
-  sel.appendChild(optAuto);
 
-  if (badge) {
-    badge.innerText = "Antrean Aktif";
-    badge.className = "text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
+  // Cek apakah user sedang login sebagai VIP Pro
+  var isVip = false;
+  if (typeof supa !== 'undefined') {
+    try {
+      var sessionRes = await supa.auth.getSession();
+      var emailUser = sessionRes?.data?.session?.user?.email;
+      if (emailUser) {
+        var { data: profile } = await supa.from('users').select('is_vip, vip_expires_at').eq('email', emailUser).single();
+        if (profile && profile.is_vip === true) {
+          if (!profile.vip_expires_at || new Date(profile.vip_expires_at).getTime() > new Date().getTime()) {
+            isVip = true;
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  if (isVip) {
+    // ----------------------------------------------------
+    // JALUR 1: TAMPILAN UNTUK MEMBER PRO (PAKAI AKUN SENDIRI)
+    // ----------------------------------------------------
+    if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
+    if (tTotal) tTotal.innerText = "≈ 478 coin (Akun Sendiri)";
+
+    var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
+    if (!targetAkun || targetAkun.length === 0) {
+      var opt = document.createElement('option');
+      opt.value = "";
+      opt.innerText = "Belum ada akun terhubung (Wajib Add Apikey)";
+      sel.appendChild(opt);
+      if (badge) {
+        badge.innerText = "0 coin";
+        badge.className = "text-xs font-mono text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg";
+      }
+    } else {
+      var optRand = document.createElement('option');
+      optRand.value = "random";
+      optRand.innerText = "🎲 Otomatis (Pilih Acak Akun Sendiri)";
+      sel.appendChild(optRand);
+
+      var totalKoinUser = 0;
+      targetAkun.forEach(function(a, idx) {
+        var koinVal = Number(a.koin) || 0;
+        totalKoinUser += koinVal;
+        var o = document.createElement('option');
+        o.value = idx;
+        o.innerText = "Akun #" + (idx + 1) + ": " + a.key.substring(0, 8) + "... (" + koinVal + " coin)";
+        sel.appendChild(o);
+      });
+
+      if (badge) {
+        badge.innerText = totalKoinUser + " coin";
+        badge.className = "text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
+      }
+    }
+
+  } else {
+    // ----------------------------------------------------
+    // JALUR 2: TAMPILAN UNTUK MEMBER KREDIT 24 JAM (KOLAM ADMIN)
+    // ----------------------------------------------------
+    if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
+    if (tTotal) tTotal.innerText = "1 Kredit / Render";
+
+    var optPool = document.createElement('option');
+    optPool.value = "kiix_pool_auto";
+    optPool.innerText = "⚡ KiixMotion Server Cloud (Bebas API Key)";
+    sel.appendChild(optPool);
+
+    if (badge) {
+      badge.innerText = "Siap Digunakan";
+      badge.className = "text-xs font-mono font-bold text-kmViolet bg-violet-50 border border-violet-200 px-2.5 py-1 rounded-lg";
+    }
   }
 }
 
-// ==========================================
-// CCTV PEMANTAUAN (DENGAN REFUND OTOMATIS)
-// ==========================================
+// CCTV MONITORING TUGAS
 function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
@@ -346,13 +381,13 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
         tugas.selesai = true;
         tugas.progress = 100;
 
-        // Refund kredit jika tugas berasal dari kuota eceran
-        if (didDeductCredit && typeof supa !== 'undefined') {
+        // Refund jika member kredit
+        if (didDeductCredit && typeof supa !== 'undefined' && userId) {
           await supa.rpc('refund_kredit_member', { target_user_id: userId });
           tampilkanNotif('Batas waktu habis. 1 kredit telah dikembalikan otomatis.', 'info');
         }
 
-        // Lepas status akun di kolam
+        // Lepas status akun di kolam admin
         if (poolId && typeof supa !== 'undefined') {
           await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
         }
@@ -434,15 +469,13 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
               tugas.selesai = true;
               tugas.progress = 100;
 
-              // Refund jika bukan akun unlimited
-              if (didDeductCredit && typeof supa !== 'undefined') {
+              if (didDeductCredit && typeof supa !== 'undefined' && userId) {
                 await supa.rpc('refund_kredit_member', { target_user_id: userId });
                 tampilkanNotif('Gagal memproses video. 1 kredit telah dikembalikan otomatis.', 'error');
               } else {
                 tampilkanNotif('Gagal memproses video di server. Silakan coba kembali.', 'error');
               }
 
-              // Lepas status akun di kolam
               if (poolId && typeof supa !== 'undefined') {
                 await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
               }
@@ -465,9 +498,9 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
   }, 10000); 
 }
 
-// ==========================================
-// EKSEKUSI GENERATE: LOGIKA VIP + KREDIT 24 JAM + AUTO SWITCH KOLAM
-// ==========================================
+// =========================================================================
+// EKSEKUSI GENERATE: LOGIKA 2 JALUR (MEMBER PRO vs MEMBER KREDIT)
+// =========================================================================
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
   
@@ -508,9 +541,40 @@ async function mulaiProsesGenerate() {
     } catch (e) { isVipActive = false; }
   }
 
-  // 2. JIKA BUKAN VIP, CEK & POTONG KREDIT 24 JAM
+  var apiKeyDipakai = null;
+  var poolIdDipakai = null;
   var didDeductCredit = false;
-  if (!isVipActive) {
+
+  if (isVipActive) {
+    // =====================================================================
+    // JALUR 1: MEMBER PRO (PAKAI AKUN SENDIRI + DIPATOK MINIMAL 478 KOIN)
+    // =====================================================================
+    var targetAkun = (engineProvider === 'roboneo') ? akunRoboneo : akunRunningHub;
+    if (!targetAkun || targetAkun.length === 0) {
+      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+      return tampilkanNotif('Sebagai Member Pro, hubungkan akun RunningHub Anda di menu Kelola Akun!', 'error');
+    }
+
+    var sel = document.getElementById('sel-dropdown-akun');
+    var idx = sel ? sel.value : "";
+    var akunPribadi = (idx === "random" || idx === "" || idx === "pool_auto") ? targetAkun[0] : targetAkun[parseInt(idx, 10)];
+
+    // Cek syarat patokan 478 koin untuk akun pribadi member Pro
+    if (realEmail.toLowerCase() !== 'anggraingki@gmail.com') {
+      var koinAkunPribadi = Number(akunPribadi.koin) || 0;
+      if (koinAkunPribadi < 478) {
+        if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+        return tampilkanNotif('Koin akun Anda tidak cukup! Minimal 478 koin untuk render.', 'error');
+      }
+    }
+
+    apiKeyDipakai = akunPribadi.key;
+    poolIdDipakai = null; // Bukan dari kolam admin
+
+  } else {
+    // =====================================================================
+    // JALUR 2: MEMBER KREDIT 24 JAM (BEBAS TANPA KEY + PAKAI KOLAM ADMIN)
+    // =====================================================================
     if (typeof supa !== 'undefined') {
       try {
         var { data: potongRes, error: errPotong } = await supa.rpc('potong_kredit_member', { target_user_id: realUserId });
@@ -526,45 +590,40 @@ async function mulaiProsesGenerate() {
         if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
         return tampilkanNotif('Gagal memeriksa saldo kredit Anda.', 'error');
       }
-    } else {
+    }
+
+    // Ambil kunci yang siap dari Kolam Admin Supabase (Ambang batas >= 200 koin)
+    var akunPool = await ambilKunciKolamTersedia();
+    if (!akunPool) {
+      if (didDeductCredit && typeof supa !== 'undefined') {
+        await supa.rpc('refund_kredit_member', { target_user_id: realUserId });
+      }
       if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      return tampilkanNotif('Database tidak terhubung.', 'error');
+      return tampilkanNotif('Antrean render KiixMotion sedang penuh. Silakan coba kembali beberapa saat lagi.', 'error');
+    }
+
+    apiKeyDipakai = akunPool.api_key;
+    poolIdDipakai = akunPool.id;
+
+    // Kunci status akun di kolam menjadi BUSY
+    if (typeof supa !== 'undefined') {
+      await supa.from('runninghub_pool').update({ status: 'busy', last_used_at: new Date() }).eq('id', poolIdDipakai);
     }
   }
 
+  // VALIDASI BAHAN UNGGAHAN
   if (!urlBahanFoto || !urlBahanVideo) {
-    // Refund jika gagal karena bahan belum siap
     if (didDeductCredit && typeof supa !== 'undefined') {
       await supa.rpc('refund_kredit_member', { target_user_id: realUserId });
+    }
+    if (poolIdDipakai && typeof supa !== 'undefined') {
+      await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
     }
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
     return tampilkanNotif('Foto karakter dan Video gerakan wajib selesai diunggah!', 'error');
   }
 
-  // 3. AMBIL KUNCI API DARI KOLAM SUPABASE
-  var akunTerpilih = await ambilKunciKolamTersedia();
-  var isFromPool = true;
-
-  // Fallback ke akun lokal jika kolam Supabase kosong (misal akun admin)
-  if (!akunTerpilih && typeof akunRunningHub !== 'undefined' && akunRunningHub.length > 0) {
-    akunTerpilih = { id: null, api_key: akunRunningHub[0].key, koin: akunRunningHub[0].koin };
-    isFromPool = false;
-  }
-
-  if (!akunTerpilih) {
-    if (didDeductCredit && typeof supa !== 'undefined') {
-      await supa.rpc('refund_kredit_member', { target_user_id: realUserId });
-    }
-    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-    return tampilkanNotif('Antrean render KiixMotion sedang penuh. Silakan coba beberapa saat lagi.', 'error');
-  }
-
   if (btn) { btn.disabled = true; btn.innerText = "⚡ MEMPROSES VIDEO..."; }
-
-  // Tandai akun kolam menjadi BUSY
-  if (isFromPool && akunTerpilih.id && typeof supa !== 'undefined') {
-    await supa.from('runninghub_pool').update({ status: 'busy', last_used_at: new Date() }).eq('id', akunTerpilih.id);
-  }
 
   var nodeParams = [
     { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
@@ -573,8 +632,6 @@ async function mulaiProsesGenerate() {
   ];
 
   var taskIdAsli = null;
-  var apiKeyDipakai = akunTerpilih.api_key;
-  var poolIdDipakai = akunTerpilih.id;
 
   try {
     var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
@@ -587,7 +644,7 @@ async function mulaiProsesGenerate() {
     var data;
     try { data = textRes ? JSON.parse(textRes) : null; } catch(err) { throw new Error("Format server rusak."); }
 
-    // DETEKSI AUTO-SWITCH: KOIN PADA KUNCI INI KURANG (ERROR 806)
+    // AUTO-SWITCH KHUSUS KOLAM ADMIN JIKA KOIN MENDADAK KURANG (ERROR 806)
     var isKoinKurang = (
       data && (
         data.code === 806 || 
@@ -596,18 +653,17 @@ async function mulaiProsesGenerate() {
       )
     );
 
-    if (isKoinKurang && isFromPool) {
+    if (isKoinKurang && poolIdDipakai) {
       console.warn("Kunci kolam kehabisan koin. Menandai habis dan mencari cadangan...");
       await supa.from('runninghub_pool').update({ status: 'habis' }).eq('id', poolIdDipakai);
 
-      // Cari akun cadangan berikutnya dari kolam
+      // Cari akun cadangan berikutnya dari kolam admin
       var akunCadangan = await ambilKunciKolamTersedia(poolIdDipakai);
       if (akunCadangan) {
         apiKeyDipakai = akunCadangan.api_key;
         poolIdDipakai = akunCadangan.id;
         await supa.from('runninghub_pool').update({ status: 'busy', last_used_at: new Date() }).eq('id', poolIdDipakai);
 
-        // Kirim ulang tugas dengan kunci cadangan
         var resRetry = await fetch('https://www.runninghub.ai/task/openapi/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKeyDipakai },
@@ -626,11 +682,9 @@ async function mulaiProsesGenerate() {
     }
 
   } catch (e) {
-    // Kembalikan akun ke status idle jika gagal
-    if (isFromPool && poolIdDipakai && typeof supa !== 'undefined') {
+    if (poolIdDipakai && typeof supa !== 'undefined') {
       await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
     }
-    // Refund kredit member jika terjadi error awal
     if (didDeductCredit && typeof supa !== 'undefined') {
       await supa.rpc('refund_kredit_member', { target_user_id: realUserId });
       tampilkanNotif('Gagal memproses video. 1 kredit telah dikembalikan otomatis.', 'error');
@@ -673,81 +727,8 @@ async function mulaiProsesGenerate() {
 }
 
 // ==========================================
-// RENDER LAYAR HISTORY & KELOLA AKUN
+// KELOLA AKUN
 // ==========================================
-function renderLayarHistory() {
-  var wadah = document.getElementById('wadah-list-history'), counter = document.getElementById('txt-counter-history');
-  if (!wadah) return; wadah.innerHTML = '';
-  if (counter && typeof riwayatGenerateList !== 'undefined') counter.innerText = riwayatGenerateList.length + " tugas";
-  
-  if (typeof riwayatGenerateList === 'undefined' || riwayatGenerateList.length === 0) {
-    wadah.innerHTML = '<div class="p-12 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada riwayat generate video.</div>';
-    return;
-  }
-  
-  riwayatGenerateList.forEach(function(itm, index) {
-    var isDone = (itm.selesai === true && itm.status === "Selesai");
-    var isFailed = (itm.selesai === true && itm.status !== "Selesai");
-    var hasVideo = Boolean(itm.videoUrl);
-    var currentProg = itm.progress !== undefined ? itm.progress : (isDone || isFailed ? 100 : 0);
-    
-    var card = document.createElement('div');
-    card.className = "bg-white border border-kmBorder p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 modern-shadow";
-    
-    var statusBadge = '';
-    if (isFailed) {
-      var textPesanError = itm.status || "❌ Gagal Diproses";
-      statusBadge = '<span class="text-[10px] sm:text-xs bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1.5 rounded-xl font-bold max-w-[200px] truncate" title="' + textPesanError + '">' + textPesanError + '</span>';
-    } else if (isDone) {
-      if (hasVideo) {
-        statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai Dirender</span>' +
-          '<button type="button" onclick="window.open(\'' + itm.videoUrl + '\', \'_blank\')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition cursor-pointer">Putar</button>' +
-          '<a href="' + itm.videoUrl + '" target="_blank" download="kiixmotion-' + itm.id + '.mp4" class="px-4 py-2 text-xs font-bold bg-kmViolet text-white rounded-xl hover:bg-kmVioletHover transition violet-glow">Download</a>';
-      } else {
-        statusBadge = '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">✓ Selesai Dirender</span>';
-      }
-    } else {
-      statusBadge = '<span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full font-bold animate-pulse">⏳ Memproses: ' + currentProg + '%</span>';
-    }
-
-    card.innerHTML = '<div class="flex items-center gap-4">' +
-      '<div class="w-12 h-12 rounded-2xl ' + (isFailed ? 'bg-rose-50 text-rose-600' : 'bg-kmVioletLight text-kmViolet') + ' flex items-center justify-center font-bold text-lg shrink-0 shadow-sm">' + (isFailed ? '✕' : (isDone ? '▶' : '⏳')) + '</div>' +
-      '<div class="min-w-0">' +
-        '<div class="flex items-center gap-2 flex-wrap"><span class="text-base font-bold text-kmTextPrimary truncate">' + itm.model + '</span><span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-semibold border border-slate-200">' + (itm.prov || "KiixMotion") + '</span></div>' +
-        '<div class="text-[11px] sm:text-sm text-kmTextSecondary mt-1">ID: <span class="text-kmViolet font-mono font-bold">' + itm.id + '</span> • ' + itm.tgl + '</div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="flex items-center gap-2.5 shrink-0 pt-2 sm:pt-0">' + 
-      statusBadge + 
-      '<button type="button" onclick="hapusRiwayatSatu(' + index + ')" class="px-3 py-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition cursor-pointer border border-rose-200" title="Hapus Riwayat">Hapus</button>' +
-    '</div>';
-    
-    wadah.appendChild(card);
-  });
-}
-
-function hapusRiwayatSatu(idx) {
-  mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
-    var tgs = riwayatGenerateList[idx];
-    if (tgs && tgs.intervalObj) clearInterval(tgs.intervalObj);
-    riwayatGenerateList.splice(idx, 1);
-    if (typeof simpanStorage === 'function') simpanStorage();
-    renderLayarHistory();
-    tampilkanNotif('Riwayat tugas berhasil dihapus', 'sukses');
-  });
-}
-
-function bersihkanSemuaHistory() {
-  if (typeof riwayatGenerateList === 'undefined' || riwayatGenerateList.length === 0) return tampilkanNotif('History sudah kosong.', 'info');
-  mintaKonfirmasi('Hapus seluruh riwayat generate?', function() {
-    riwayatGenerateList.forEach(function(t) { if (t.intervalObj) clearInterval(t.intervalObj); });
-    riwayatGenerateList = []; 
-    if (typeof simpanStorage === 'function') simpanStorage(); 
-    renderLayarHistory(); 
-    tampilkanNotif('History berhasil dibersihkan', 'sukses');
-  });
-}
-
 function gantiTabAkunProvider(prov) {
   tabAkunAktif = prov;
   var tRb = document.getElementById('tab-pilih-roboneo'), tRh = document.getElementById('tab-pilih-rh');
@@ -764,7 +745,7 @@ function renderListAkunDiKelola() {
   var totalKredit = 0;
 
   if (!targetAkun || targetAkun.length === 0) {
-    wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Tambah kunci antrean lewat Master Pool API.</div>';
+    wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Tambah API Key" di atas.</div>';
     var setTxt0 = function(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; };
     setTxt0('txt-stat-aktif', 0); setTxt0('txt-stat-akun', 0); setTxt0('txt-stat-kredit', 0);
     return;

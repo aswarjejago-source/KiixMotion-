@@ -1,5 +1,5 @@
 // ========================================================
-// ENDPOINT WEBHOOK IPAYMU (10 & 20 KREDIT 24 JAM + VIP PRO)
+// ENDPOINT WEBHOOK IPAYMU (4, 10 & 20 KREDIT 24 JAM + VIP PRO)
 // File: api/notify.js
 // ========================================================
 
@@ -71,16 +71,18 @@ export default async function handler(req, res) {
 
       const finalUserId = authUserId || (targetUser ? targetUser.id : null);
 
-      // 3. IDENTIFIKASI PAKET BERDASARKAN NOMINAL TAGIHAN
+      // 3. IDENTIFIKASI PAKET BERDASARKAN NOMINAL TAGIHAN (DITAMBAH PAKET 4 KREDIT)
+      const isPaket4  = (amount >= 2000 && amount < 4500);    // Tagihan Rp 2.800 (4 Kredit)
       const isPaket10 = (amount >= 4500 && amount <= 8000);   // Tagihan Rp 5.800 (10 Kredit)
       const isPaket20 = (amount > 8000 && amount <= 18000);   // Tagihan Rp 10.800 (20 Kredit)
-      const isPaketVIP = (amount > 18000) || (!isPaket10 && !isPaket20); // Tagihan Rp 35.850 (Pro VIP)
+      const isPaketVIP = (amount > 18000) || (!isPaket4 && !isPaket10 && !isPaket20); // Tagihan Rp 35.850 (Pro VIP)
 
       // ======================================================
-      // EKSEKUSI A: JIKA PEMBELIAN PAKET KREDIT 24 JAM (10 / 20)
+      // EKSEKUSI A: JIKA PEMBELIAN PAKET KREDIT 24 JAM (4 / 10 / 20)
       // ======================================================
-      if ((isPaket10 || isPaket20) && finalUserId) {
-        const jumlahKreditTambah = isPaket10 ? 10 : 20;
+      if ((isPaket4 || isPaket10 || isPaket20) && finalUserId) {
+        // Logika penentuan jumlah kredit
+        const jumlahKreditTambah = isPaket4 ? 4 : (isPaket10 ? 10 : 20);
         const exp24Jam = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
         // Panggil fungsi database tambah_kredit_member

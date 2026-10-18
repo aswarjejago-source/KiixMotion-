@@ -94,7 +94,7 @@ function centangSemuaAkun(master) {
 // ------------------------------------------
 function gantiLayarNav(layar) {
   navLayarAktif = layar;
-  var ids = ['dashboard', 'generate', 'history', 'workflow-ugc', 'galeri', 'kelola-akun', 'langganan'];
+  var ids = ['dashboard', 'generate', 'history', 'workflow-ugc', 'galeri', 'kelola-akun', 'langganan', 'admin-pool'];
   
   ids.forEach(function(id) {
     var el = document.getElementById('layar-' + id);
@@ -103,13 +103,19 @@ function gantiLayarNav(layar) {
     if (el) el.style.display = (layar === id) ? 'block' : 'none';
     
     if (btn) {
-      var baseClass = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
-      if (layar === id) {
-        if (!btn.classList.contains('bg-violet-50')) {
-          btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]"; 
+      if (id === 'admin-pool') {
+        if (layar === 'admin-pool') {
+          btn.className = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500 text-white border border-amber-500 cursor-pointer whitespace-nowrap transition mt-2 shadow-sm";
+        } else {
+          btn.className = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500/10 text-amber-600 border border-amber-300 hover:bg-amber-500 hover:text-white cursor-pointer whitespace-nowrap transition mt-2";
         }
       } else {
-        btn.className = baseClass + "text-slate-600 hover:bg-slate-50 hover:text-slate-800"; 
+        var baseClass = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
+        if (layar === id) {
+          btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]"; 
+        } else {
+          btn.className = baseClass + "text-slate-600 hover:bg-slate-50 hover:text-slate-800"; 
+        }
       }
     }
   });
@@ -126,6 +132,7 @@ function gantiLayarNav(layar) {
   }
   if (layar === 'galeri') renderGaleri();
   if (layar === 'kelola-akun' && typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
+  if (layar === 'admin-pool') muatDataKolamAdmin();
 }
 
 function togglePanduanKey() {
@@ -219,7 +226,7 @@ window.renderGaleri = function() {
 }
 
 // ------------------------------------------
-// FITUR BARU: RENDER VIDEO KE GRID
+// FITUR RENDER VIDEO KE GRID
 // ------------------------------------------
 window.renderVideoAsliKeGrid = function() {
   var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
@@ -413,19 +420,6 @@ const observer = new MutationObserver(function(mutations) {
     });
 });
 
-document.addEventListener("DOMContentLoaded", function() {
-    var wadahHist = document.getElementById('wadah-list-history');
-    var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
-    if(wadahHist) observer.observe(wadahHist, { childList: true, subtree: true });
-    if(wadahDash) observer.observe(wadahDash, { childList: true, subtree: true });
-    
-    updateStatusMemberUI();
-    
-    setTimeout(function() {
-        gantiLayarNav('dashboard');
-    }, 500);
-});
-
 // =========================================================================
 // INTEGRASI API IPAYMU
 // =========================================================================
@@ -480,90 +474,187 @@ window.prosesBeliVIP = function() {
 };
 
 // =========================================================================
-// KONTROL TAMPILAN SIDEBAR & DUAL ENGINE STUDIO (NEXABOT SYNC)
+// FITUR MASTER POOL ADMIN (KHUSUS ANGGRAINGKI@GMAIL.COM)
 // =========================================================================
 
-function toggleSubmenuGenerate() {
-  var wrap = document.getElementById('submenu-generate-wrap');
-  var icon = document.getElementById('icon-chevron-gen');
-  var btnMain = document.getElementById('nav-btn-generate');
-  
-  gantiLayarNav('generate');
-
-  if (wrap) {
-    if (wrap.classList.contains('hidden')) {
-      wrap.classList.remove('hidden');
-      wrap.classList.add('flex');
-      if (icon) icon.style.transform = 'rotate(-180deg)';
-      if (btnMain) btnMain.classList.add('bg-violet-50', 'text-kmViolet');
-    } else {
-      wrap.classList.add('hidden');
-      wrap.classList.remove('flex');
-      if (icon) icon.style.transform = 'rotate(0deg)';
+// 1. Periksa Akses & Tampilkan Tombol Navigasi Admin
+async function cekAksesAdminPool() {
+  if (typeof supa === 'undefined') return;
+  try {
+    const { data: { session } } = await supa.auth.getSession();
+    const email = session?.user?.email?.toLowerCase().trim();
+    if (email === 'anggraingki@gmail.com') {
+      const btnAdminNav = document.getElementById('nav-btn-admin-pool');
+      if (btnAdminNav) btnAdminNav.style.display = 'flex';
     }
-  }
+  } catch (err) {}
 }
 
-function pilihStudioMode(mode) {
-  var areaMotion = document.getElementById('area-workspace-motion');
-  var areaNano = document.getElementById('area-workspace-nano');
-  var subMotion = document.getElementById('subnav-motion');
-  var subNano = document.getElementById('subnav-nano');
+// 2. Render Tabel dan Statistik Kolam Akun dari Supabase
+async function muatDataKolamAdmin() {
+  if (typeof supa === 'undefined') return;
+  var wadah = document.getElementById('wadah-baris-pool-admin');
+  if (!wadah) return;
 
-  if (mode === 'motion') {
-    if (areaMotion) { areaMotion.classList.remove('hidden'); areaMotion.classList.add('block'); }
-    if (areaNano) { areaNano.classList.remove('block'); areaNano.classList.add('hidden'); }
+  wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Mengambil data dari Supabase...</td></tr>';
+
+  const { data: listAkun, error } = await supa
+    .from('runninghub_pool')
+    .select('*')
+    .order('id', { ascending: false });
+
+  if (error || !listAkun || listAkun.length === 0) {
+    wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Belum ada akun di kolam. Masukkan API key di form atas.</td></tr>';
+    updateStatistikPool(0, 0, 0, 0);
+    return;
+  }
+
+  var total = listAkun.length;
+  var idle = listAkun.filter(a => a.status === 'idle').length;
+  var busy = listAkun.filter(a => a.status === 'busy').length;
+  var habis = listAkun.filter(a => a.status === 'habis').length;
+  updateStatistikPool(total, idle, busy, habis);
+
+  var html = '';
+  listAkun.forEach(function(a) {
+    var keyMasked = a.api_key.substring(0, 8) + '••••••••' + a.api_key.slice(-6);
     
-    if (subMotion) { subMotion.classList.add('text-kmViolet', 'bg-violet-50'); subMotion.classList.remove('text-slate-500'); }
-    if (subNano) { subNano.classList.remove('text-kmViolet', 'bg-violet-50'); subNano.classList.add('text-slate-500'); }
+    var badgeStatus = '';
+    if (a.status === 'idle') {
+      badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">🟢 IDLE</span>';
+    } else if (a.status === 'busy') {
+      badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 animate-pulse">🟡 RENDERING</span>';
+    } else {
+      badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">🔴 HABIS</span>';
+    }
+
+    var tglPakai = a.last_used_at ? new Date(a.last_used_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+
+    html += `
+      <tr class="hover:bg-slate-50/60 transition">
+        <td class="py-3 px-3">${badgeStatus}</td>
+        <td class="py-3 px-3 font-mono font-bold text-slate-700">${keyMasked}</td>
+        <td class="py-3 px-3 font-mono font-extrabold ${a.koin < 200 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
+        <td class="py-3 px-3 text-slate-400 text-[11px]">${tglPakai}</td>
+        <td class="py-3 px-3 text-right">
+          <button onclick="hapusSatuKunciPool(${a.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus Kunci Ini">
+            <i class="ph-bold ph-trash text-base"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+  wadah.innerHTML = html;
+}
+
+function updateStatistikPool(tot, idl, bsy, hbs) {
+  var sTot = document.getElementById('stat-pool-total');
+  var sIdl = document.getElementById('stat-pool-idle');
+  var sBsy = document.getElementById('stat-pool-busy');
+  var sHbs = document.getElementById('stat-pool-habis');
+  if (sTot) sTot.innerText = tot;
+  if (sIdl) sIdl.innerText = idl;
+  if (sBsy) sBsy.innerText = bsy;
+  if (sHbs) sHbs.innerText = hbs;
+}
+
+// 3. Simpan Kunci Massal (Bulk Insert)
+async function simpanBulkKeysKeSupabase() {
+  var area = document.getElementById('in-bulk-keys');
+  var btn = document.getElementById('btn-submit-bulk-pool');
+  if (!area || !area.value.trim()) return tampilkanNotif('Tempel minimal satu API Key!', 'error');
+
+  var baris = area.value.split('\n').map(k => k.trim()).filter(k => k.length > 10);
+  if (baris.length === 0) return tampilkanNotif('Format API key tidak valid!', 'error');
+
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Menyimpan...'; }
+
+  var dataInsert = baris.map(k => ({
+    api_key: k,
+    status: 'idle',
+    koin: 0
+  }));
+
+  const { error } = await supa
+    .from('runninghub_pool')
+    .upsert(dataInsert, { onConflict: 'api_key' });
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam'; }
+
+  if (!error) {
+    area.value = '';
+    tampilkanNotif(`✓ Berhasil menambahkan ${baris.length} API Key ke kolam!`, 'sukses');
+    muatDataKolamAdmin();
+    refreshDataKolamAdmin();
   } else {
-    if (areaMotion) { areaMotion.classList.remove('block'); areaMotion.classList.add('hidden'); }
-    if (areaNano) { areaNano.classList.remove('hidden'); areaNano.classList.add('block'); }
+    tampilkanNotif('Gagal menyimpan: ' + error.message, 'error');
+  }
+}
+
+// 4. Hapus Satu Kunci dari Kolam
+async function hapusSatuKunciPool(id) {
+  mintaKonfirmasi("Yakin ingin menghapus kunci ini dari kolam?", async function() {
+    const { error } = await supa.from('runninghub_pool').delete().eq('id', id);
+    if (!error) {
+      tampilkanNotif('Kunci berhasil dihapus dari database', 'sukses');
+      muatDataKolamAdmin();
+    }
+  });
+}
+
+// 5. Sapu Bersih Semua Akun dengan Status 'HABIS'
+async function sapuBersihAkunHabis() {
+  mintaKonfirmasi("Hapus semua akun yang statusnya 'HABIS' dari database?", async function() {
+    const { error } = await supa.from('runninghub_pool').delete().eq('status', 'habis');
+    if (!error) {
+      tampilkanNotif('Seluruh akun koin habis berhasil dibersihkan!', 'sukses');
+      muatDataKolamAdmin();
+    }
+  });
+}
+
+// 6. Sinkronkan Saldo Semua Kunci Kolam Sekaligus
+async function refreshDataKolamAdmin() {
+  tampilkanNotif('Menyinkronkan saldo seluruh kunci kolam...', 'info');
+  const { data: listAkun } = await supa.from('runninghub_pool').select('id, api_key');
+  if (!listAkun || listAkun.length === 0) return;
+
+  for (let akun of listAkun) {
+    try {
+      const res = await fetch('/api/saldo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: akun.api_key })
+      });
+      const hasil = await res.json();
+      if (res.ok && hasil) {
+        var rawData = hasil.data || hasil;
+        var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
+        if (k !== undefined && k !== null) {
+          var koinVal = Number(k);
+          var statusBaru = koinVal < 200 ? 'habis' : 'idle';
+          await supa.from('runninghub_pool').update({ koin: koinVal, status: statusBaru }).eq('id', akun.id);
+        }
+      }
+    } catch (e) {}
+  }
+  tampilkanNotif('✓ Sinkronisasi saldo kolam selesai!', 'sukses');
+  muatDataKolamAdmin();
+}
+
+// ------------------------------------------
+// INISIALISASI SAAT HALAMAN DIMUAT
+// ------------------------------------------
+document.addEventListener("DOMContentLoaded", function() {
+    var wadahHist = document.getElementById('wadah-list-history');
+    var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
+    if(wadahHist) observer.observe(wadahHist, { childList: true, subtree: true });
+    if(wadahDash) observer.observe(wadahDash, { childList: true, subtree: true });
     
-    if (subNano) { subNano.classList.add('text-kmViolet', 'bg-violet-50'); subNano.classList.remove('text-slate-500'); }
-    if (subMotion) { subMotion.classList.remove('text-kmViolet', 'bg-violet-50'); subMotion.classList.add('text-slate-500'); }
-  }
-}
-
-// FUNGSI INI 100% SINKRON DENGAN DOKUMEN RESMI NEXA: t2v, sfv, i2v, r2v
-function pilihModeGenerate(mode) {
-  var labelMode = document.getElementById('label-mode-aktif');
-  var iconMode = document.getElementById('icon-mode-aktif');
-  var areaBahan = document.getElementById('v-bahan-nano');
-  var boxFoto = document.getElementById('upload-foto-nano');
-  var boxVideo = document.getElementById('upload-video-nano');
-
-  if (!labelMode || !iconMode || !areaBahan || !boxFoto || !boxVideo) return;
-
-  // 1. Tampilkan wadah media input jika bukan teks murni (t2v)
-  if (mode !== 't2v') {
-    areaBahan.classList.remove('hidden');
-    areaBahan.classList.add('grid');
-  } else {
-    areaBahan.classList.remove('grid');
-    areaBahan.classList.add('hidden');
-  }
-
-  // 2. Sesuaikan label, icon, dan visibilitas kotak upload
-  if (mode === 't2v') {
-    labelMode.innerText = 'Text to Video';
-    iconMode.className = 'ph-fill ph-text-t';
-    boxFoto.classList.remove('flex'); boxFoto.classList.add('hidden');
-    boxVideo.classList.remove('flex'); boxVideo.classList.add('hidden');
-  } else if (mode === 'sfv') {
-    labelMode.innerText = 'Start Frame to Video';
-    iconMode.className = 'ph-fill ph-image';
-    boxFoto.classList.remove('hidden'); boxFoto.classList.add('flex');
-    boxVideo.classList.remove('flex'); boxVideo.classList.add('hidden');
-  } else if (mode === 'i2v') {
-    labelMode.innerText = 'Ingredients to Video';
-    iconMode.className = 'ph-fill ph-images';
-    boxFoto.classList.remove('hidden'); boxFoto.classList.add('flex');
-    boxVideo.classList.remove('flex'); boxVideo.classList.add('hidden');
-  } else if (mode === 'r2v') {
-    labelMode.innerText = 'Reference Video to Video';
-    iconMode.className = 'ph-fill ph-film-strip';
-    boxFoto.classList.remove('hidden'); boxFoto.classList.add('flex');
-    boxVideo.classList.remove('hidden'); boxVideo.classList.add('flex');
-  }
-}
+    updateStatusMemberUI();
+    cekAksesAdminPool();
+    
+    setTimeout(function() {
+        gantiLayarNav('dashboard');
+    }, 500);
+});

@@ -1,5 +1,6 @@
 // ========================================================
-// ENDPOINT WEBHOOK IPAYMU (KREDIT 24 JAM & VIP PRO TERPADU)
+// ENDPOINT WEBHOOK IPAYMU (10 & 20 KREDIT 24 JAM + VIP PRO)
+// File: api/notify.js
 // ========================================================
 
 export default async function handler(req, res) {
@@ -55,7 +56,6 @@ export default async function handler(req, res) {
         }
       } catch (eAuth) {}
 
-      // Jika user belum ada di tabel public.users, buatkan barisnya
       if (!targetUser) {
         const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
           method: 'POST',
@@ -71,16 +71,16 @@ export default async function handler(req, res) {
 
       const finalUserId = authUserId || (targetUser ? targetUser.id : null);
 
-      // 3. IDENTIFIKASI PAKET BERDASARKAN NOMINAL PEMBAYARAN
-      const isPaket13 = (amount >= 4500 && amount <= 8000);   // Tagihan Rp 5.800
-      const isPaket25 = (amount > 8000 && amount <= 18000);    // Tagihan Rp 10.800
-      const isPaketVIP = (amount > 18000) || (!isPaket13 && !isPaket25); // Tagihan Rp 35.850 (Pro VIP)
+      // 3. IDENTIFIKASI PAKET BERDASARKAN NOMINAL TAGIHAN
+      const isPaket10 = (amount >= 4500 && amount <= 8000);   // Tagihan Rp 5.800 (10 Kredit)
+      const isPaket20 = (amount > 8000 && amount <= 18000);   // Tagihan Rp 10.800 (20 Kredit)
+      const isPaketVIP = (amount > 18000) || (!isPaket10 && !isPaket20); // Tagihan Rp 35.850 (Pro VIP)
 
       // ======================================================
-      // EKSEKUSI A: JIKA PEMBELIAN PAKET KREDIT 24 JAM (13 / 25)
+      // EKSEKUSI A: JIKA PEMBELIAN PAKET KREDIT 24 JAM (10 / 20)
       // ======================================================
-      if ((isPaket13 || isPaket25) && finalUserId) {
-        const jumlahKreditTambah = isPaket13 ? 13 : 25;
+      if ((isPaket10 || isPaket20) && finalUserId) {
+        const jumlahKreditTambah = isPaket10 ? 10 : 20;
         const exp24Jam = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
         // Panggil fungsi database tambah_kredit_member
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
         });
       }
 
-      // 5. Tambah bonus +7 hari ke pemilik referral jika ada
+      // 5. Tambah bonus +7 hari ke referral jika ada
       if (targetUser && targetUser.referred_by) {
         try {
           const inviterRes = await fetch(`${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(targetUser.referred_by)}&select=*`, { headers });

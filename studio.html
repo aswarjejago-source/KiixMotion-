@@ -45,7 +45,6 @@
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
   <script src="js/workflow-ugc.js" defer></script>
-  <script src="js/nexa-engine.js" defer></script>
 </head>
 <body class="selection:bg-kmViolet selection:text-white pb-14 md:pb-0 md:flex md:h-screen md:overflow-hidden bg-kmBg">
   
@@ -73,21 +72,10 @@
         <i class="ph ph-squares-four text-lg"></i> Dashboard
       </button>
       
-      <!-- MENU GENERATE BERTINGKAT -->
-      <div class="flex flex-col gap-1 w-full">
-        <button id="nav-btn-generate" onclick="toggleSubmenuGenerate()" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap flex items-center justify-between w-full">
-          <div class="flex items-center gap-1.5 sm:gap-2"><i class="ph ph-magic-wand text-lg"></i> Generate Studio</div>
-          <i id="icon-chevron-gen" class="ph ph-caret-down text-sm transition-transform duration-200"></i>
-        </button>
-        <div id="submenu-generate-wrap" class="hidden flex-col gap-1 pl-4 sm:pl-6 border-l-2 border-slate-100 ml-3 sm:ml-4 my-1">
-          <button onclick="pilihStudioMode('motion')" id="subnav-motion" class="text-left px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold text-kmViolet bg-violet-50 transition cursor-pointer flex items-center gap-2">
-            <i class="ph ph-video-camera text-sm"></i> Motion Control
-          </button>
-          <button onclick="pilihStudioMode('nano')" id="subnav-nano" class="text-left px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold text-slate-500 hover:text-kmViolet hover:bg-violet-50 transition cursor-pointer flex items-center gap-2">
-            <i class="ph-fill ph-lightning text-amber-500 text-sm animate-pulse"></i> Veo 3 & Omni Flash
-          </button>
-        </div>
-      </div>
+      <!-- GENERATE BERSIH (SEMULA) -->
+      <button id="nav-btn-generate" onclick="gantiLayarNav('generate')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-magic-wand text-lg"></i> Generate
+      </button>
 
       <button id="nav-btn-history" onclick="gantiLayarNav('history')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-clock-counter-clockwise text-lg"></i> History
@@ -112,6 +100,11 @@
       </button>
       <button id="nav-btn-langganan" onclick="gantiLayarNav('langganan')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-crown text-lg text-amber-500"></i> Langganan VIP
+      </button>
+
+      <!-- TOMBOL KHUSUS ADMIN (MUNCUL HANYA UNTUK ANGGRAINGKI) -->
+      <button id="nav-btn-admin-pool" onclick="gantiLayarNav('admin-pool')" style="display: none;" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500/10 text-amber-600 border border-amber-300 hover:bg-amber-500 hover:text-white cursor-pointer whitespace-nowrap transition mt-2">
+        <i class="ph-fill ph-shield-check text-lg"></i> Master Pool API
       </button>
     </nav>
   </header>
@@ -192,184 +185,92 @@
       </div>
     </div>
 
-    <!-- 2. GENERATE VIEW -->
+    <!-- 2. GENERATE VIEW (BERSIH SEMULA) -->
     <div id="layar-generate" class="layar-konten space-y-6" style="display: none;">
-      
-      <!-- A. STUDIO MOTION CONTROL (RUNNINGHUB & ROBONEO) -->
-      <div id="area-workspace-motion" class="space-y-6 block">
-        <div>
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI (MOTION)</label>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div id="c-prov-runninghub" class="bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer">
-              <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">R</div><span class="text-sm font-bold text-kmTextPrimary">RunningHub</span></div><span class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span></div>
-              <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p><p class="text-xs text-kmViolet mt-3 font-mono font-bold">≈ 478 coin / render</p>
-            </div>
-            <div onclick="alert('Provider Roboneo Coming Soon!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
-              <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">🥕</div><span class="text-sm font-bold text-kmTextPrimary">Roboneo</span></div></div>
-              <p class="text-xs text-kmTextSecondary">Motion Control Kling</p><p class="text-xs text-amber-600 mt-3 font-mono font-bold">≈ 4 carrots / render</p>
-            </div>
-            <div onclick="alert('Provider Kling 2.6 Coming Soon!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
-              <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">K</div><span class="text-sm font-bold text-kmTextPrimary">Kling 2.6</span></div></div>
-              <p class="text-xs text-kmTextSecondary">Cinematic Motion Engine</p><p class="text-xs text-indigo-600 mt-3 font-mono font-bold">1 Coin VIP / render</p>
-            </div>
+      <div>
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div id="c-prov-runninghub" class="bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer">
+            <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">R</div><span class="text-sm font-bold text-kmTextPrimary">RunningHub</span></div><span class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span></div>
+            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p><p class="text-xs text-kmViolet mt-3 font-mono font-bold">≈ 478 coin / render</p>
           </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
-            <div class="flex items-center justify-between">
-              <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
-              </h2>
-              <div class="flex gap-1 bg-slate-100 p-1 rounded-xl border border-kmBorder">
-                <span class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm">File Upload</span>
-              </div>
-            </div>
-
-            <div id="v-mode-upload" class="grid grid-cols-2 gap-4">
-              <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
-                <span class="text-4xl mb-2 group-hover:scale-105 transition">🖼️</span>
-                <span id="txt-file-foto" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Foto Karakter</span>
-                <span id="st-file-foto" class="text-[11px] text-slate-400 mt-1">JPG / PNG</span>
-                <input id="input-file-foto" type="file" accept="image/*" class="hidden" onchange="unggahBahanLangsung(this, 'foto')" />
-              </label>
-
-              <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
-                <span class="text-4xl mb-2 group-hover:scale-105 transition">🎬</span>
-                <span id="txt-file-video" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Video Gerakan</span>
-                <span id="st-file-video" class="text-[11px] text-slate-400 mt-1">MP4 (Maks 10s)</span>
-                <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
-              </label>
-            </div>
-
-            <div>
-              <label class="text-xs font-bold uppercase tracking-wide text-slate-400 block mb-2">Prompt Gerakan Tambahan (Opsional)</label>
-              <textarea id="in-prompt-gerak" placeholder="Contoh: cinematic dancing, smooth fluid motion, high details..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs sm:text-sm text-kmTextPrimary focus:outline-none focus:border-kmViolet focus:bg-white h-24 resize-none leading-relaxed"></textarea>
-            </div>
+          <div onclick="alert('Provider Roboneo Coming Soon!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">🥕</div><span class="text-sm font-bold text-kmTextPrimary">Roboneo</span></div></div>
+            <p class="text-xs text-kmTextSecondary">Motion Control Kling</p><p class="text-xs text-amber-600 mt-3 font-mono font-bold">≈ 4 carrots / render</p>
           </div>
-
-          <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
-            <div class="space-y-5">
-              <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
-              </h2>
-
-              <div id="box-wrap-dropdown-akun" class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Pilih Akun Pemotong Saldo</label>
-                  <span id="badge-total-saldo-gen" class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">0 coin</span>
-                </div>
-                <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
-                  <option value="">Belum ada akun terhubung</option>
-                </select>
-              </div>
-
-              <div class="bg-slate-50 border border-kmBorder rounded-2xl p-5 space-y-3.5">
-                <div class="flex justify-between items-center text-xs sm:text-sm">
-                  <span class="text-kmTextSecondary font-medium">Model Engine:</span>
-                  <span id="t-engine-title" class="font-bold text-kmTextPrimary font-mono">WAN MOTION CONTROL 1080HD</span>
-                </div>
-                <div class="border-t border-kmBorder pt-3 flex justify-between items-center">
-                  <span class="text-xs sm:text-sm font-bold text-kmTextPrimary">Total Terpotong:</span>
-                  <span id="t-engine-total" class="text-lg sm:text-xl font-black text-kmViolet font-mono">≈ 478 coin</span>
-                </div>
-              </div>
-            </div>
-
-            <button id="btn-submit-generate" onclick="mulaiProsesGenerate()" class="w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer">
-              GENERATE VIDEO
-            </button>
+          <div onclick="alert('Provider Kling 2.6 Coming Soon!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">K</div><span class="text-sm font-bold text-kmTextPrimary">Kling 2.6</span></div></div>
+            <p class="text-xs text-kmTextSecondary">Cinematic Motion Engine</p><p class="text-xs text-indigo-600 mt-3 font-mono font-bold">1 Coin VIP / render</p>
           </div>
         </div>
       </div>
 
-      <!-- B. STUDIO VEO 3 & OMNI FLASH (TERHUBUNG KE NEXABOT) -->
-      <div id="area-workspace-nano" class="space-y-6 hidden">
-        
-        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-6 modern-shadow mt-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-kmBorder pb-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
+          <div class="flex items-center justify-between">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Studio Prompting
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
             </h2>
-            
-            <!-- PILIHAN MODE RENDER (NEXABOT COMPLIANT) -->
-            <div class="relative group w-full sm:w-auto z-20">
-              <button class="w-full sm:w-auto px-4 py-2.5 bg-slate-900 text-amber-400 text-xs sm:text-sm font-bold rounded-xl flex items-center justify-between sm:justify-center gap-3 transition shadow-md border border-slate-700 hover:border-amber-400">
-                <div class="flex items-center gap-2"><i id="icon-mode-aktif" class="ph-fill ph-text-t"></i> <span id="label-mode-aktif">Text to Video</span></div>
-                <i class="ph ph-caret-down text-slate-400"></i>
-              </button>
-              <div class="absolute right-0 mt-2 w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 overflow-hidden origin-top-right">
-                <button onclick="pilihModeGenerate('t2v')" class="w-full px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-amber-400 transition flex items-center justify-between">
-                  <div class="flex items-center gap-2.5"><i class="ph-fill ph-text-t text-sm"></i> Text to Video</div>
-                </button>
-                <button onclick="pilihModeGenerate('sfv')" class="w-full px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-amber-400 transition flex items-center justify-between">
-                  <div class="flex items-center gap-2.5"><i class="ph-fill ph-image text-sm"></i> Start Frame to Video</div><span class="text-[9px] text-slate-500 font-mono">1 img</span>
-                </button>
-                <button onclick="pilihModeGenerate('i2v')" class="w-full px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-amber-400 transition flex items-center justify-between">
-                  <div class="flex items-center gap-2.5"><i class="ph-fill ph-images text-sm"></i> Ingredients to Video</div><span class="text-[9px] text-slate-500 font-mono">1-3 img</span>
-                </button>
-                <button onclick="pilihModeGenerate('r2v')" class="w-full px-4 py-3 text-left text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-amber-400 transition flex items-center justify-between">
-                  <div class="flex items-center gap-2.5"><i class="ph-fill ph-film-strip text-sm"></i> Reference Video to Video</div><span class="text-[9px] text-slate-500 font-mono">vid+img</span>
-                </button>
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-xl border border-kmBorder">
+              <span class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm">File Upload</span>
+            </div>
+          </div>
+
+          <div id="v-mode-upload" class="grid grid-cols-2 gap-4">
+            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+              <span class="text-4xl mb-2 group-hover:scale-105 transition">🖼️</span>
+              <span id="txt-file-foto" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Foto Karakter</span>
+              <span id="st-file-foto" class="text-[11px] text-slate-400 mt-1">JPG / PNG</span>
+              <input id="input-file-foto" type="file" accept="image/*" class="hidden" onchange="unggahBahanLangsung(this, 'foto')" />
+            </label>
+
+            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+              <span class="text-4xl mb-2 group-hover:scale-105 transition">🎬</span>
+              <span id="txt-file-video" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Video Gerakan</span>
+              <span id="st-file-video" class="text-[11px] text-slate-400 mt-1">MP4 (Maks 10s)</span>
+              <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
+            </label>
+          </div>
+
+          <div>
+            <label class="text-xs font-bold uppercase tracking-wide text-slate-400 block mb-2">Prompt Gerakan Tambahan (Opsional)</label>
+            <textarea id="in-prompt-gerak" placeholder="Contoh: cinematic dancing, smooth fluid motion, high details..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs sm:text-sm text-kmTextPrimary focus:outline-none focus:border-kmViolet focus:bg-white h-24 resize-none leading-relaxed"></textarea>
+          </div>
+        </div>
+
+        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
+          <div class="space-y-5">
+            <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
+            </h2>
+
+            <div id="box-wrap-dropdown-akun" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Pilih Akun Pemotong Saldo</label>
+                <span id="badge-total-saldo-gen" class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">0 coin</span>
+              </div>
+              <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
+                <option value="">Belum ada akun terhubung</option>
+              </select>
+            </div>
+
+            <div class="bg-slate-50 border border-kmBorder rounded-2xl p-5 space-y-3.5">
+              <div class="flex justify-between items-center text-xs sm:text-sm">
+                <span class="text-kmTextSecondary font-medium">Model Engine:</span>
+                <span id="t-engine-title" class="font-bold text-kmTextPrimary font-mono">WAN MOTION CONTROL 1080HD</span>
+              </div>
+              <div class="border-t border-kmBorder pt-3 flex justify-between items-center">
+                <span class="text-xs sm:text-sm font-bold text-kmTextPrimary">Total Terpotong:</span>
+                <span id="t-engine-total" class="text-lg sm:text-xl font-black text-kmViolet font-mono">≈ 478 coin</span>
               </div>
             </div>
           </div>
 
-          <!-- KOTAK UPLOAD BAHAN (DINAMIS MUNCUL JIKA MEMBUTUHKAN MEDIA) -->
-          <div id="v-bahan-nano" class="hidden grid-cols-2 gap-4 pb-2 border-b border-kmBorder/60">
-            <label id="upload-foto-nano" class="border-2 border-dashed border-kmBorder hover:border-amber-400 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-amber-50/30 group">
-              <span class="text-3xl mb-1 group-hover:scale-105 transition">🖼️</span>
-              <span id="txt-foto-nano" class="text-xs font-bold text-kmTextPrimary">Foto Referensi</span>
-              <span class="text-[10px] text-slate-400 mt-1">Upload Gambar</span>
-              <input type="file" accept="image/*" class="hidden" onchange="var el = document.getElementById('txt-foto-nano'); if(el && this.files[0]) el.innerText = this.files[0].name;" />
-            </label>
-            <label id="upload-video-nano" class="hidden border-2 border-dashed border-kmBorder hover:border-amber-400 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-amber-50/30 group">
-              <span class="text-3xl mb-1 group-hover:scale-105 transition">🎬</span>
-              <span id="txt-video-nano" class="text-xs font-bold text-kmTextPrimary">Video Referensi</span>
-              <span class="text-[10px] text-slate-400 mt-1">Upload MP4</span>
-              <input type="file" accept="video/*" class="hidden" onchange="var el = document.getElementById('txt-video-nano'); if(el && this.files[0]) el.innerText = this.files[0].name;" />
-            </label>
-          </div>
-
-          <div class="space-y-4">
-            <label class="text-xs font-bold uppercase tracking-wide text-slate-400 block">Jelaskan Video yang Ingin Dibuat</label>
-            <div class="relative">
-              <textarea id="in-prompt-veo" placeholder="A cinematic hyper-realistic shot of a futuristic neon city in Tokyo, raining, neon reflections on wet street, 4k resolution..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 pl-4 pr-12 text-sm text-kmTextPrimary focus:outline-none focus:border-amber-400 focus:bg-white h-36 resize-none leading-relaxed transition shadow-inner"></textarea>
-              <button type="button" class="absolute bottom-4 right-4 w-8 h-8 rounded-xl bg-amber-100 text-amber-600 hover:bg-amber-500 hover:text-white flex items-center justify-center transition" title="Enhance Prompt (Segera Hadir)"><i class="ph-fill ph-magic-wand"></i></button>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
-             <div class="space-y-2">
-               <label class="text-xs font-bold text-slate-500">Aspek Rasio</label>
-               <select class="w-full bg-slate-50 border border-kmBorder rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-amber-400">
-                 <option value="16:9">Landscape (16:9) - YouTube</option>
-                 <option value="9:16">Portrait (9:16) - TikTok/Reels</option>
-                 <option value="1:1">Square (1:1) - Instagram</option>
-               </select>
-             </div>
-             <div class="space-y-2">
-               <label class="text-xs font-bold text-slate-500">Kualitas & Resolusi</label>
-               <select class="w-full bg-slate-50 border border-kmBorder rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-amber-400">
-                 <option value="720">Standar HD (720p)</option>
-                 <option value="1080">Full HD (1080p Upscale) - Ekstra 1 Kredit</option>
-               </select>
-             </div>
-          </div>
-
-          <div class="pt-4 mt-4 border-t border-kmBorder flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div class="flex items-center gap-3 w-full sm:w-auto">
-               <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600"><i class="ph-fill ph-coin text-xl"></i></div>
-               <div><p class="text-[10px] font-bold text-slate-400 uppercase">Estimasi Biaya</p><p class="text-sm font-black text-slate-800 font-mono">0.15 Kredit Nexa</p></div>
-            </div>
-            <!-- TOMBOL GENERATE VEO & OMNI TERHUBUNG KE NEXA-ENGINE.JS -->
-            <button id="btn-submit-nano" onclick="mulaiProsesNexa()" class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-extrabold text-sm uppercase tracking-wider rounded-xl shadow-[0_8px_20px_-4px_rgba(245,158,11,0.4)] transition transform active:scale-95 cursor-pointer flex items-center justify-center gap-2">
-              <i class="ph-fill ph-play-circle text-lg"></i> GENERATE SEKARANG
-            </button>
-          </div>
+          <button id="btn-submit-generate" onclick="mulaiProsesGenerate()" class="w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer">
+            GENERATE VIDEO
+          </button>
         </div>
       </div>
-      
     </div>
 
     <!-- 3. HISTORY VIEW -->
@@ -514,6 +415,94 @@
         </div>
     </div>
 
+    <!-- 7. MASTER DASHBOARD POOL (KHUSUS ADMIN) -->
+    <div id="layar-admin-pool" class="layar-konten space-y-6 pt-10 md:pt-0" style="display: none;">
+      
+      <!-- HEADER ADMIN -->
+      <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 sm:p-8 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">Master Control Room</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-black tracking-tight">Monitor Kolam API RunningHub</h2>
+          <p class="text-xs sm:text-sm text-slate-300 mt-1">Kelola dan pantau seluruh kunci API render secara terpusat.</p>
+        </div>
+        <button onclick="refreshDataKolamAdmin()" class="px-5 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border border-white/20">
+          <i class="ph ph-arrows-clockwise text-base"></i> Sync Saldo Semua
+        </button>
+      </div>
+
+      <!-- KARTU STATISTIK POOL -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-slate-400 uppercase">Total Akun</p>
+          <h3 id="stat-pool-total" class="text-2xl font-black text-slate-800 mt-1 font-mono">0</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-emerald-500 uppercase">🟢 Siap / Nganggur</p>
+          <h3 id="stat-pool-idle" class="text-2xl font-black text-emerald-600 mt-1 font-mono">0</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-amber-500 uppercase">🟡 Sedang Render</p>
+          <h3 id="stat-pool-busy" class="text-2xl font-black text-amber-600 mt-1 font-mono">0</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-rose-500 uppercase">🔴 Koin Habis</p>
+          <h3 id="stat-pool-habis" class="text-2xl font-black text-rose-600 mt-1 font-mono">0</h3>
+        </div>
+      </div>
+
+      <!-- KOTAK MASSAL / BULK INSERT -->
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
+            <i class="ph-bold ph-plus-circle text-amber-500 text-lg"></i> Tambah Kunci API Massal (Bulk Insert)
+          </h3>
+          <span class="text-[11px] font-semibold text-slate-400">1 baris = 1 API Key</span>
+        </div>
+        <textarea id="in-bulk-keys" placeholder="Tempel banyak API Key di sini sekaligus...
+rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx
+rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy
+rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-amber-400 focus:bg-white h-28 resize-none leading-relaxed"></textarea>
+        <div class="flex justify-end">
+          <button id="btn-submit-bulk-pool" onclick="simpanBulkKeysKeSupabase()" class="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center gap-2">
+            <i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam
+          </button>
+        </div>
+      </div>
+
+      <!-- TABEL DAFTAR KUNCI & MONITOR STATUS -->
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
+            <i class="ph-bold ph-list-dashes text-kmViolet text-lg"></i> Live Monitor Kunci Kolam
+          </h3>
+          <button onclick="sapuBersihAkunHabis()" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto">
+            <i class="ph-bold ph-trash text-sm"></i> Hapus Semua Akun Koin Habis
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-sans">
+            <thead>
+              <tr class="border-b border-kmBorder text-slate-400 uppercase tracking-wider text-[10px]">
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3">API Key (Masked)</th>
+                <th class="py-3 px-3">Sisa Koin</th>
+                <th class="py-3 px-3">Terakhir Dipakai</th>
+                <th class="py-3 px-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="wadah-baris-pool-admin" class="divide-y divide-kmBorder/60">
+              <!-- Baris Akun Di-render Otomatis via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
   </main>
 
   <!-- POP-UP MODAL ADD APIKEY -->
@@ -559,6 +548,12 @@
                   document.getElementById('profil-email-drop').innerText = emailUser;
                   document.getElementById('profil-inisial').innerText = namaAsli.charAt(0).toUpperCase();
                   
+                  // BUKA MENU KHUSUS ADMIN JIKA EMAIL ANGGRAINGKI
+                  if (emailUser === 'anggraingki@gmail.com') {
+                      const btnAdminNav = document.getElementById('nav-btn-admin-pool');
+                      if (btnAdminNav) btnAdminNav.style.display = 'flex';
+                  }
+
                   let storageKey = 'km_referral_code_' + emailUser;
                   let cachedCode = localStorage.getItem(storageKey);
 

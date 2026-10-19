@@ -1,884 +1,980 @@
-// ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (DIRECT REFUND & ANTI-FAIL)
-// File: js/api-engine.js
-// ==========================================
-
-var engineProvider = 'kiix'; 
-var RUNNINGHUB_WORKFLOW_ID = "2099509417535340546"; 
-var urlBahanFoto = null;
-var urlBahanVideo = null;
-
-function resetFormBahanInput() {
-  urlBahanFoto = null;
-  urlBahanVideo = null;
-
-  var inFoto = document.getElementById('input-file-foto');
-  var inVideo = document.getElementById('input-file-video');
-  var txtFoto = document.getElementById('txt-file-foto');
-  var txtVideo = document.getElementById('txt-file-video');
-  var stFoto = document.getElementById('st-file-foto');
-  var stVideo = document.getElementById('st-file-video');
-  var inPrompt = document.getElementById('in-prompt-gerak');
-
-  if (inFoto) inFoto.value = '';
-  if (inVideo) inVideo.value = '';
-  if (txtFoto) txtFoto.innerText = 'Foto Karakter';
-  if (txtVideo) txtVideo.innerText = 'Video Gerakan';
-  if (stFoto) stFoto.innerHTML = 'JPG / PNG';
-  if (stVideo) stVideo.innerHTML = 'MP4 (Maks 10s)';
-  if (inPrompt) inPrompt.value = '';
-}
-
-function tampilkanModalCeklisSukses(taskId) {
-  var modal = document.getElementById('modal-ceklis-sukses');
-  var lblId = document.getElementById('label-ceklis-taskid');
-  if (lblId) lblId.innerText = 'ID: ' + taskId;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>KiixMotion Studio — AI Video & Image Generation Platform</title>
   
-  if (modal) {
-    modal.style.display = 'flex';
-    setTimeout(function() {
-      modal.style.opacity = '0';
-      modal.style.transition = 'opacity 0.35s ease';
-      setTimeout(function() {
-        modal.style.display = 'none';
-        modal.style.opacity = '1';
-        if (typeof gantiLayarNav === 'function') gantiLayarNav('history');
-      }, 350);
-    }, 1800);
-  }
-}
-
-function setProviderUtama(p) {
-  engineProvider = p;
-  var provs = ['kiix', 'runninghub'];
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  provs.forEach(function(pr) {
-    var card = document.getElementById('c-prov-' + pr);
-    var badge = document.getElementById('b-prov-' + pr);
-    if (card) {
-      card.className = (pr === p) ?
-        "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition" :
-        "bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
-    }
-    if (badge) badge.style.display = (pr === p) ? 'inline-block' : 'none';
-  });
-
-  var tTitle = document.getElementById('t-engine-title');
-  var tTotal = document.getElementById('t-engine-total');
-  var dropWrap = document.getElementById('box-wrap-dropdown-akun');
-  var sel = document.getElementById('sel-dropdown-akun');
-  var badgeSaldo = document.getElementById('badge-total-saldo-gen');
-
-  if (p === 'kiix') {
-    if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
-    if (tTotal) tTotal.innerText = "1 Kredit";
-    if (dropWrap) dropWrap.style.display = 'none';
-
-  } else if (p === 'runninghub') {
-    if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
-    if (tTotal) tTotal.innerText = "≈ 478 coin";
-    if (dropWrap) dropWrap.style.display = 'block';
-
-    if (sel && typeof akunRunningHub !== 'undefined') {
-      sel.innerHTML = '';
-      if (akunRunningHub.length === 0) {
-        sel.innerHTML = '<option value="">Belum ada akun (Wajib Add Apikey)</option>';
-        if (badgeSaldo) {
-          badgeSaldo.innerText = "0 coin";
-          badgeSaldo.className = "text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg";
-        }
-      } else {
-        var total = 0;
-        sel.innerHTML = '<option value="random">🎲 Otomatis (Pilih Acak Akun)</option>';
-        akunRunningHub.forEach(function(a, idx) {
-          var k = Number(a.koin) || 0;
-          total += k;
-          sel.innerHTML += '<option value="' + idx + '">Akun #' + (idx + 1) + ': ' + a.key.substring(0, 8) + '... (' + k + ' coin)</option>';
-        });
-        if (badgeSaldo) {
-          badgeSaldo.innerText = total + " coin";
-          badgeSaldo.className = "text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Ikon Phosphor -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
+          colors: {
+            kmBg: '#FBF9F5', kmCard: '#FFFFFF', kmBorder: '#EFECE6',
+            kmTextPrimary: '#1A1816', kmTextSecondary: '#736B63',
+            kmViolet: '#7C3AED', kmVioletHover: '#6D28D9',
+            kmVioletLight: '#F3EEFF', kmAccent: '#D97706'
+          }
         }
       }
-    }
-  }
-}
-
-// FUNGSI REFUND PASTI MASUK (LANGSUNG TULIS KE TABEL)
-async function eksekusiRefundKreditPasti(targetUid, emailUser) {
-  if (!targetUid || typeof supa === 'undefined') return;
-  try {
-    // 1. Coba lewat RPC
-    var { error: rpcErr } = await supa.rpc('refund_kredit_member', { target_user_id: String(targetUid) });
-    
-    // 2. Jika RPC ditolak/gagal, tulis langsung ke tabel user_credits
-    if (rpcErr) {
-      var { data: cRow } = await supa.from('user_credits').select('credits_balance').eq('user_id', String(targetUid)).maybeSingle();
-      if (cRow) {
-        var saldoBaru = (Number(cRow.credits_balance) || 0) + 1;
-        await supa.from('user_credits').update({ credits_balance: saldoBaru }).eq('user_id', String(targetUid));
-      }
-    }
-
-    // 3. Perbarui tampilan UI seketika
-    if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(emailUser);
-  } catch (err) {
-    console.error('Gagal memproses refund:', err);
-  }
-}
-
-// AMBIL KUNCI KOLAM (PATOKAN 200 KOIN)
-async function ambilKunciKolamTersedia(kecualiIds) {
-  if (typeof supa === 'undefined') return null;
-  try {
-    var q = supa
-      .from('runninghub_pool')
-      .select('*')
-      .eq('status', 'idle')
-      .gte('koin', 200)
-      .order('koin', { ascending: false });
-    
-    if (Array.isArray(kecualiIds) && kecualiIds.length > 0) {
-      if (kecualiIds.length === 1) {
-        q = q.neq('id', kecualiIds[0]);
-      } else {
-        q = q.not('id', 'in', '(' + kecualiIds.join(',') + ')');
-      }
-    } else if (kecualiIds && typeof kecualiIds === 'number') {
-      q = q.neq('id', kecualiIds);
-    }
-    
-    var { data, error } = await q.limit(1);
-    if (!error && data && data.length > 0) return data[0];
-  } catch (err) {
-    console.error('Gagal mengambil kunci kolam:', err);
-  }
-  return null;
-}
-
-async function unggahBahanLangsung(input, tipe) {
-  if (!input.files || !input.files[0]) return;
-  var file = input.files[0];
-  var txtEl = document.getElementById(tipe === 'foto' ? 'txt-file-foto' : 'txt-file-video');
-  var stEl = document.getElementById(tipe === 'foto' ? 'st-file-foto' : 'st-file-video');
-
-  var keyUpload = null;
-  if (engineProvider === 'runninghub' && typeof akunRunningHub !== 'undefined' && akunRunningHub.length > 0) {
-    keyUpload = akunRunningHub[0].key;
-  } else {
-    var akunPool = await ambilKunciKolamTersedia();
-    if (!akunPool && typeof supa !== 'undefined') {
-      var { data: anyKey } = await supa.from('runninghub_pool').select('api_key').limit(1);
-      if (anyKey && anyKey.length > 0) akunPool = anyKey[0];
-    }
-    if (akunPool) keyUpload = akunPool.api_key;
-  }
-
-  if (!keyUpload) {
-    input.value = "";
-    return tampilkanNotif('Antrean server upload sedang padat, coba beberapa saat lagi.', 'error');
-  }
-
-  if (txtEl) txtEl.innerText = file.name;
-  if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah: 0%</span>';
-
-  var formData = new FormData();
-  formData.append("file", file);
-  formData.append("apiKey", keyUpload);
-  formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
-
-  var xhr = new XMLHttpRequest();
-  xhr.open("POST", "https://www.runninghub.ai/task/openapi/upload");
-  xhr.setRequestHeader("Authorization", "Bearer " + keyUpload);
+    };
+  </script>
   
-  xhr.upload.onprogress = function(e) {
-    if (e.lengthComputable && stEl) {
-      var pct = Math.round((e.loaded / e.total) * 100);
-      stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah: ' + pct + '%</span>';
-    }
-  };
-  
-  xhr.onload = function() {
-    try {
-      var json = JSON.parse(xhr.responseText);
-      var serverFile = null;
-      if (json) {
-        if (typeof json.data === 'string') serverFile = json.data;
-        else if (json.data && typeof json.data === 'object') serverFile = json.data.fileName || json.data.fileUrl || json.data.url || json.data.path;
-        else if (typeof json === 'string') serverFile = json;
-      }
-      if (serverFile && typeof serverFile === 'string') {
-        if (tipe === 'foto') urlBahanFoto = serverFile; else urlBahanVideo = serverFile;
-        var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
-        if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-        tampilkanNotif('File berhasil diunggah ke studio!', 'sukses');
-      } else throw new Error("Gagal mengurai file");
-    } catch (err) {
-      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-      tampilkanNotif('Gagal mengunggah media: Format tidak didukung', 'error');
-    }
-  };
-  xhr.onerror = function() {
-    if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Jaringan</span>';
-    tampilkanNotif('Koneksi internet bermasalah pas unggah file', 'error');
-  };
-  xhr.send(formData);
-}
-
-function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
-  if (tugas.selesai) return; 
-  if (!tugas.progress) tugas.progress = 0; 
-  if (!tugas.startedAt) tugas.startedAt = Date.now();
-
-  if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-
-  var cekInterval = setInterval(async function() {
-    tugas.intervalObj = cekInterval;
-
-    if (tugas.selesai) {
-      clearInterval(cekInterval);
-      return;
-    }
-
-    var waktuBerjalan = Date.now() - tugas.startedAt;
+  <style>
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background-color: #FBF9F5; color: #1A1816; -webkit-tap-highlight-color: transparent; }
+    .modern-shadow { box-shadow: 0 10px 30px -5px rgba(26, 24, 22, 0.04), 0 4px 6px -2px rgba(26, 24, 22, 0.02); }
+    .violet-glow { box-shadow: 0 8px 20px -4px rgba(124, 58, 237, 0.2); }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .nav-btn-smooth { display: flex; align-items: center; gap: 12px; transition: all 0.2s ease-in-out; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
     
-    // TIMEOUT 1 JAM WAKTU NYATA
-    if (waktuBerjalan >= 3600000) {
-      clearInterval(cekInterval);
-      tugas.status = "❌ Gagal (Batas Waktu Proses 1 Jam Habis)"; 
-      tugas.selesai = true;
-      tugas.progress = 100;
-
-      var targetUser = userId || tugas.user_id;
-      if (didDeductCredit && !tugas.refunded && targetUser) {
-        tugas.refunded = true;
-        tugas.did_deduct = false;
-        await eksekusiRefundKreditPasti(targetUser, tugas.user_email);
-        tampilkanNotif('Batas waktu 1 jam habis. 1 kredit dikembalikan otomatis.', 'info');
-      }
-
-      if (poolId && typeof supa !== 'undefined') {
-        await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
-      }
-
-      if (typeof simpanStorage === 'function') simpanStorage();
-      if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-      return;
+    @keyframes checkmarkPop {
+      0% { transform: scale(0.6); opacity: 0; }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); opacity: 1; }
     }
+    .anim-check-pop { animation: checkmarkPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  </style>
 
-    try {
-      var res = await fetch('/api/outputs', { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-        body: JSON.stringify({ taskId: tugas.id, apiKey: apiKey })
-      });
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="js/database.js" defer></script>
+  <script src="js/ui-controller.js" defer></script>
+  <script src="js/api-engine.js" defer></script>
+  <script src="js/workflow-ugc.js" defer></script>
+</head>
+<body class="selection:bg-kmViolet selection:text-white pb-14 md:pb-0 md:flex md:h-screen md:overflow-hidden bg-kmBg">
+  
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
+
+  <!-- MODAL CEKLIS SUKSES RENDER -->
+  <div id="modal-ceklis-sukses" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-kmBorder rounded-3xl p-6 sm:p-7 max-w-xs w-full text-center shadow-2xl space-y-3.5 anim-check-pop">
+      <div class="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-400 text-emerald-600 flex items-center justify-center mx-auto text-2xl shadow-sm">
+        <i class="ph-bold ph-check"></i>
+      </div>
+      <div>
+        <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Tugas Berhasil Terkirim!</h3>
+        <p class="text-xs text-slate-500 mt-1">Video kamu sedang diproses di antrean studio.</p>
+        <div class="mt-2 text-[11px] font-mono font-bold text-kmViolet bg-violet-50 px-2.5 py-1 rounded-lg inline-block" id="label-ceklis-taskid">
+          ID: KM-000000
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <header id="main-header-nav" class="bg-white/90 backdrop-blur-md md:bg-white border-b md:border-b-0 md:border-r border-kmBorder px-4 sm:px-6 md:px-5 py-3.5 md:py-6 flex md:flex-col flex-wrap items-center md:items-start justify-between md:justify-start sticky top-0 z-40 gap-3 md:gap-6 md:w-[260px] shrink-0 h-auto md:h-screen transition-all shadow-[2px_0_15px_rgba(0,0,0,0.02)] overflow-y-auto hide-scrollbar">
+    <div class="flex items-center gap-3 w-full">
+      <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
+        <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="14" fill="#F3EEFF"/><path d="M14 10L22 22L14 34V10Z" fill="#7C3AED"/><path d="M22 22L30 10H22V22Z" fill="#A78BFA"/><path d="M22 22L30 34H22V22Z" fill="#6D28D9"/></svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-base font-black tracking-tight text-kmTextPrimary">KiixMotion</span>
+          <span class="text-[9px] uppercase font-bold tracking-widest bg-violet-100 text-kmViolet px-2 py-0.5 rounded-full border border-violet-200">Studio</span>
+        </div>
+        <p class="text-[11px] text-kmTextSecondary font-medium">AI Motion Control</p>
+      </div>
+    </div>
+    
+    <div class="w-full mt-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 pl-2">Meja Kerja</p></div>
+
+    <nav class="flex md:flex-col items-center md:items-stretch gap-1 bg-slate-50 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-kmBorder md:border-none w-full overflow-x-auto hide-scrollbar">
+      <button id="nav-btn-dashboard" onclick="gantiLayarNav('dashboard')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED] cursor-pointer whitespace-nowrap">
+        <i class="ph ph-squares-four text-lg"></i> Dashboard
+      </button>
       
-      if (!res.ok) return; 
+      <button id="nav-btn-generate" onclick="gantiLayarNav('generate')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-magic-wand text-lg"></i> Generate
+      </button>
 
-      var textRaw = await res.text(); 
-      var parsedText = textRaw.replace(/\\/g, ''); 
-      var cleanString = parsedText.toUpperCase(); 
+      <button id="nav-btn-history" onclick="gantiLayarNav('history')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-clock-counter-clockwise text-lg"></i> History
+      </button>
+      <button id="nav-btn-workflow-ugc" onclick="gantiLayarNav('workflow-ugc')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-sparkle text-lg text-kmViolet"></i> Workflow UGC <span class="text-[9px] bg-violet-100 text-kmViolet px-1.5 py-0.2 rounded-md font-bold">PRO</span>
+      </button>
+      <button id="nav-btn-galeri" onclick="gantiLayarNav('galeri')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-images text-lg"></i> Galeri <span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-md font-bold">Maks 50</span>
+      </button>
       
-      var vidUrl = null;
-      try {
-        var jsonObj = JSON.parse(textRaw);
-        var dataObj = jsonObj.data || jsonObj;
-        if (typeof dataObj === 'string' && dataObj.toUpperCase().includes('.MP4')) {
-          vidUrl = dataObj;
-        } else if (dataObj && typeof dataObj === 'object') {
-          vidUrl = dataObj.fileUrl || dataObj.url || dataObj.videoUrl || dataObj.path || dataObj.fileUrls;
-        }
-      } catch (e) {}
+      <div class="w-full mt-3 mb-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Kelola akun</p></div>
 
-      if (!vidUrl && cleanString.includes('.MP4')) {
-        var match = parsedText.match(/https?:\/\/[^"'\s]+\.mp4/i);
-        if (match) vidUrl = match[0];
-      }
+      <button id="nav-btn-kelola-akun" onclick="gantiLayarNav('kelola-akun')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-key text-lg"></i> Add Apikey
+      </button>
 
-      // RENDER BERHASIL
-      if (vidUrl && typeof vidUrl === 'string') {
-        clearInterval(cekInterval);
-        tugas.status = "Selesai"; 
-        tugas.selesai = true;
-        tugas.progress = 100; 
-        tugas.videoUrl = vidUrl.replace(/\\/g, '');
+      <button id="nav-btn-beli-kredit" onclick="gantiLayarNav('beli-kredit')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-lightning text-lg text-amber-500"></i> Beli Kredit
+      </button>
+
+      <button id="nav-btn-langganan" onclick="gantiLayarNav('langganan')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-crown text-lg text-kmViolet"></i> Langganan VIP
+      </button>
+
+      <button id="nav-btn-admin-pool" onclick="gantiLayarNav('admin-pool')" style="display: none;" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500/10 text-amber-600 border border-amber-300 hover:bg-amber-500 hover:text-white cursor-pointer whitespace-nowrap transition mt-2">
+        <i class="ph-fill ph-shield-check text-lg"></i> Master Pool API
+      </button>
+    </nav>
+  </header>
+
+  <!-- KONTEN UTAMA -->
+  <main id="view-workbench" class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6 md:overflow-y-auto md:h-screen relative">
+    
+    <!-- TOP BAR PROFIL -->
+    <div class="absolute top-4 right-4 sm:top-6 sm:right-8 flex items-center gap-3 z-50">
+        <button onclick="alert('Fitur Dark Mode coming soon!')" class="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-kmBorder hover:bg-slate-50 shadow-sm transition cursor-pointer text-slate-500 hover:text-slate-800">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        </button>
         
-        if (poolId && typeof supa !== 'undefined') {
-          await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
-        }
+        <div class="relative group">
+            <button class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-200 border border-kmBorder font-bold text-slate-700 text-sm shadow-sm hover:ring-2 hover:ring-kmViolet transition cursor-pointer"><span id="profil-inisial">U</span></button>
+            <div class="absolute right-0 mt-2 w-56 bg-white border border-kmBorder rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 origin-top-right">
+                <div class="px-4 py-2 border-b border-kmBorder mb-1">
+                    <p class="text-xs font-bold text-slate-800 truncate" id="profil-email-drop">Memuat...</p>
+                    <p id="label-member-status" class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
+                    <p id="label-vip-expires" class="text-[9px] text-slate-400 font-medium mt-1 hidden"></p>
+                </div>
+                <a href="#" onclick="gantiLayarNav('beli-kredit')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚡ Beli Kredit (24 Jam)</a>
+                <a href="#" onclick="gantiLayarNav('langganan')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro VIP</a>
+                <a href="#" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙ Add Apikey</a>
+                <div class="border-t border-kmBorder mt-1 pt-1"><a href="#" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a></div>
+            </div>
+        </div>
+    </div>
 
-        if (typeof simpanStorage === 'function') simpanStorage();
-        if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-        refreshSaldoAkunOtomatis(apiKey, poolId);
-        tampilkanNotif('✓ Video berhasil selesai diproses!', 'sukses');
-        return;
-      }
+    <!-- 1. DASHBOARD VIEW -->
+    <div id="layar-dashboard" class="layar-konten space-y-6 pt-10 md:pt-0">
+      <div class="mb-4">
+          <h1 class="text-2xl sm:text-3xl font-black text-kmTextPrimary tracking-tight">Halo, <span id="user-greeting-name" class="capitalize">Member</span></h1>
+          <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Ringkasan akun dan aktivitas generate kamu.</p>
+      </div>
 
-      // CEK STATUS ERROR RESMI DARI PUSAT (ATAU USER CANCEL DI RUNNINGHUB)
-      try {
-        var jsonObj2 = JSON.parse(textRaw);
-        var topCode = Number(jsonObj2.code || 0);
-        var topMsg = (jsonObj2.msg || "").toString().toUpperCase();
-        var dataObj2 = jsonObj2.data || jsonObj2;
-        var statusLuar = (dataObj2.status || jsonObj2.status || "").toString().toUpperCase();
-        var errorCode = (dataObj2.errorCode || jsonObj2.errorCode || "").toString();
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div></button>
+          <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Simpan media</p></div></button>
+          <button onclick="gantiLayarNav('beli-kredit')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-600 text-lg">⚡</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Beli Kredit</h4><p class="text-[10px] text-slate-400">Render 24 jam</p></div></button>
+          
+          <button onclick="gantiLayarNav('langganan')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden">
+              <div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div>
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div>
+              <div class="relative z-10">
+                  <h4 class="text-xs sm:text-sm font-bold text-slate-800">Upgrade ke Pro</h4>
+                  <p class="text-[10px] text-slate-400">Pakai akun sendiri</p>
+              </div>
+          </button>
+      </div>
 
-        var taskStatusDalam = "";
-        var usageArr = dataObj2.taskUsageList || jsonObj2.taskUsageList;
-        if (usageArr && Array.isArray(usageArr) && usageArr.length > 0) {
-          taskStatusDalam = (usageArr[0].taskStatus || usageArr[0].status || "").toString().toUpperCase();
-        }
+      <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 modern-shadow">
+          <div class="flex items-center gap-3.5">
+              <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-xl shrink-0">🎁</div>
+              <div>
+                  <h4 class="text-sm font-bold text-slate-900">Program Referral KiiXMotion</h4>
+                  <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Sebar link referral-mu! Dapatkan bonus masa aktif VIP +7 hari setiap ada yang checkout.</p>
+              </div>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+              <span id="kode-referral-user" class="hidden"></span>
+              <button type="button" onclick="salinLinkReferral()" class="w-full sm:w-auto px-5 py-2.5 bg-kmViolet hover:bg-kmVioletHover text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer flex items-center justify-center gap-2">
+                  <i class="ph ph-copy text-base"></i> Salin Link Referral
+              </button>
+          </div>
+      </div>
 
-        var isRenderFailed = (
-          topCode === 807 ||
-          topMsg.includes("TASK_NOT_FOUND") ||
-          statusLuar === "FAILED" || 
-          statusLuar === "ERROR" || 
-          statusLuar === "CANCELLED" || 
-          taskStatusDalam === "FAILED" || 
-          taskStatusDalam === "ERROR" ||
-          (errorCode && errorCode !== "0" && errorCode !== "")
-        );
+      <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+        <div class="flex items-center gap-3.5"><div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30"><svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg></div><div><div class="flex items-center gap-2"><h4 class="text-sm font-bold text-slate-900">Join Komunitas Kreator</h4><span class="text-[10px] bg-[#229ED9]/10 text-[#229ED9] px-2 py-0.5 rounded-full font-bold">TELEGRAM RESMI</span></div><p class="text-xs text-slate-500 mt-0.5">Sharing trik affiliate dan info event.</p></div></div>
+        <button onclick="bukaGrupTelegram()" class="px-5 py-2.5 bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs sm:text-sm font-bold rounded-xl transition shadow-sm">Gabung Komunitas</button>
+      </div>
 
-        if (isRenderFailed) {
-          clearInterval(cekInterval);
-          tugas.status = "❌ Gagal Diproses Studio";
-          tugas.selesai = true;
-          tugas.progress = 100;
+      <div class="pt-2">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> Job Terbaru</h2>
+          <button onclick="gantiLayarNav('history')" class="text-xs sm:text-sm font-bold text-kmViolet hover:text-kmVioletHover cursor-pointer">Lihat Semua &rarr;</button>
+        </div>
+        <div id="wadah-job-terbaru-dashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      </div>
+    </div>
 
-          // REFUND LANGSUNG KE TABEL SECARA MANDIRI
-          var targetUserErr = userId || tugas.user_id;
-          if (didDeductCredit && !tugas.refunded && targetUserErr) {
-            tugas.refunded = true;
-            tugas.did_deduct = false;
-            await eksekusiRefundKreditPasti(targetUserErr, tugas.user_email);
-            tampilkanNotif('Gagal memproses video. 1 kredit dikembalikan otomatis.', 'error');
-          } else {
-            tampilkanNotif('Gagal memproses video di server. Silakan coba lagi.', 'error');
+    <!-- 2. GENERATE VIEW -->
+    <div id="layar-generate" class="layar-konten space-y-6" style="display: none;">
+      <div>
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          
+          <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer transition">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-kmViolet text-white flex items-center justify-center font-black text-xs shadow-sm">⚡</div>
+                <span class="text-sm font-extrabold text-kmTextPrimary">KiixMotion Control</span>
+              </div>
+              <span id="b-prov-kiix" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p>
+            <p class="text-xs text-kmViolet mt-3 font-bold">1 Kredit / render</p>
+          </div>
+
+          <div id="c-prov-runninghub" onclick="setProviderUtama('runninghub')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">R</div>
+                <span class="text-sm font-bold text-kmTextPrimary">RunningHub Pro</span>
+              </div>
+              <span id="b-prov-runninghub" style="display:none;" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p>
+            <p class="text-xs text-kmViolet mt-3 font-bold">≈ 478 coin / render</p>
+          </div>
+
+          <div onclick="alert('Provider Kling 2.6 Segera Hadir!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">K</div>
+                <span class="text-sm font-bold text-kmTextPrimary">Kling 2.6</span>
+              </div>
+            </div>
+            <p class="text-xs text-kmTextSecondary">Cinematic Motion Engine</p>
+            <p class="text-xs text-indigo-600 mt-3 font-bold">1 Coin VIP / render</p>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
+            </h2>
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-xl border border-kmBorder">
+              <span class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm">File Upload</span>
+            </div>
+          </div>
+
+          <div id="v-mode-upload" class="grid grid-cols-2 gap-4">
+            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+              <span class="text-4xl mb-2 group-hover:scale-105 transition">🖼️</span>
+              <span id="txt-file-foto" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Foto Karakter</span>
+              <span id="st-file-foto" class="text-[11px] text-slate-400 mt-1">JPG / PNG</span>
+              <input id="input-file-foto" type="file" accept="image/*" class="hidden" onchange="unggahBahanLangsung(this, 'foto')" />
+            </label>
+
+            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+              <span class="text-4xl mb-2 group-hover:scale-105 transition">🎬</span>
+              <span id="txt-file-video" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Video Gerakan</span>
+              <span id="st-file-video" class="text-[11px] text-slate-400 mt-1">MP4 (Maks 10s)</span>
+              <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
+            </label>
+          </div>
+        </div>
+
+        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
+          <div class="space-y-5">
+            <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
+            </h2>
+
+            <div id="box-wrap-dropdown-akun" class="space-y-2" style="display: none;">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Pilih Akun Pemotong Saldo</label>
+                <span id="badge-total-saldo-gen" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">0 coin</span>
+              </div>
+              <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
+                <option value="">Memuat akun...</option>
+              </select>
+            </div>
+
+            <div class="bg-slate-50 border border-kmBorder rounded-2xl p-5 space-y-3.5">
+              <div class="flex justify-between items-center text-xs sm:text-sm">
+                <span class="text-kmTextSecondary font-medium">Model Engine:</span>
+                <span id="t-engine-title" class="font-bold text-kmTextPrimary tracking-tight">WAN MOTION CONTROL 1080HD</span>
+              </div>
+              <div class="border-t border-kmBorder pt-3 flex justify-between items-center">
+                <span class="text-xs sm:text-sm font-bold text-kmTextPrimary">Biaya Render:</span>
+                <span id="t-engine-total" class="text-lg sm:text-xl font-black text-kmViolet tracking-tight">1 Kredit</span>
+              </div>
+            </div>
+          </div>
+
+          <button id="btn-submit-generate" onclick="mulaiProsesGenerate()" class="w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer">
+            GENERATE VIDEO
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. HISTORY VIEW -->
+    <div id="layar-history" class="layar-konten space-y-6" style="display: none;">
+      <div class="flex items-center justify-between bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
+        <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Riwayat Generate Video</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Daftar render motion control yang pernah kamu buat.</p></div>
+        <div class="flex items-center gap-3"><span id="txt-counter-history" class="text-xs sm:text-sm font-bold text-kmViolet bg-violet-50 px-3.5 py-1.5 rounded-xl border border-violet-100 tabular-nums">0 tugas</span></div>
+      </div>
+      <div id="wadah-list-history" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    </div>
+
+    <!-- 3B. WORKFLOW UGC VIEW -->
+    <div id="layar-workflow-ugc" class="layar-konten space-y-6 pt-10 md:pt-0" style="display: none;">
+      <div id="wadah-utama-workflow-ugc"></div>
+    </div>
+
+    <!-- 4. GALERI VIEW -->
+    <div id="layar-galeri" class="layar-konten space-y-6" style="display: none;">
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Foto & video referensi</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Simpan foto & video untuk referensi. (Format max 20MB)</p></div>
+        <div class="flex items-center gap-4 bg-slate-50 border border-kmBorder px-4 py-2.5 rounded-2xl">
+          <div class="text-right"><p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Terpakai</p><p id="txt-info-kuota-galeri" class="text-xs font-bold text-slate-800">0 foto · 0 video</p></div>
+          <div class="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-kmViolet font-bold text-xs"><span id="txt-persen-kuota">0%</span></div>
+        </div>
+      </div>
+      <div class="bg-white border border-kmBorder rounded-3xl p-8 text-center modern-shadow space-y-4">
+        <label class="block border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-10 cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/10 group">
+          <div class="w-12 h-12 rounded-2xl bg-violet-100 text-kmViolet flex items-center justify-center mx-auto text-xl mb-3 group-hover:scale-110 transition">🖼</div>
+          <p class="text-xs sm:text-sm font-bold text-slate-800">Klik atau seret file ke sini untuk mengunggah</p>
+          <p class="text-[11px] text-slate-400 mt-1">(Maksimal total 50 file)</p>
+          <input type="file" accept="image/*,video/*" class="hidden" onchange="unggahKeGaleri(this)" />
+        </label>
+        <div id="wadah-grid-galeri" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-2"></div>
+      </div>
+    </div>
+
+    <!-- 5. ADD APIKEY VIEW -->
+    <div id="layar-kelola-akun" class="layar-konten space-y-6" style="display: none;">
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub kamu.</p></div>
+          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-violet-50 hover:bg-violet-100 text-kmViolet border border-violet-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2"><i class="ph ph-key text-base"></i> + Add Apikey</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-kmBorder">
+          <button class="px-4 py-2 rounded-xl bg-violet-50 border border-violet-200 text-kmViolet text-xs font-bold flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">R</span> Akun RunningHub</button>
+        </div>
+      </div>
+      
+      <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow">
+        <button onclick="togglePanduanKey()" class="w-full px-5 py-4 flex items-center justify-between text-left bg-slate-50/70 hover:bg-slate-100/80 transition cursor-pointer">
+          <div class="flex items-center gap-2.5"><span class="text-base">📖</span><span class="text-xs sm:text-sm font-bold text-slate-800">Cara Ambil API Key RunningHub</span></div><i id="icon-panah-panduan" class="ph ph-caret-down text-slate-500 text-base transition-transform duration-200"></i>
+        </button>
+        <div id="konten-panduan-key" style="display: none;" class="p-5 border-t border-kmBorder text-xs sm:text-sm text-slate-600 space-y-2 bg-white leading-relaxed">
+          <div class="flex items-start gap-2"><span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">1</span><p>Login ke situs RunningHub, lalu buka halaman <span class="font-bold text-slate-800">APIKey</span> dan salin key-nya.</p></div>
+          <div class="flex items-start gap-2"><span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">2</span><p>Klik tombol <span class="font-bold text-slate-800">+ Add Apikey</span> di atas, lalu *paste* token API Anda.</p></div>
+        </div>
+      </div>
+      
+      <div class="space-y-3">
+        <div id="wadah-kartu-akun-list" class="space-y-3"></div>
+      </div>
+    </div>
+
+    <!-- 6A. LAYAR TERPISAH: BELI KREDIT -->
+    <div id="layar-beli-kredit" class="layar-konten space-y-6" style="display: none;">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Beli Kredit Render</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Paket kuota kilat terima beres tanpa ribet API key (Aktif 24 Jam)</p>
+        </div>
+
+        <div class="bg-gradient-to-br from-violet-600 to-indigo-700 text-white rounded-3xl p-6 sm:p-7 shadow-lg flex items-center justify-between relative overflow-hidden">
+            <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            <div class="relative z-10">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-violet-200 bg-white/10 px-2.5 py-1 rounded-full">Sisa Kredit Anda</span>
+                <div class="flex items-baseline gap-2 mt-2">
+                  <h2 class="text-3xl sm:text-4xl font-black tracking-tight tabular-nums" id="label-box-kredit-angka">0</h2>
+                  <span class="text-sm font-bold text-violet-200">Kredit Video</span>
+                </div>
+                <p class="text-xs text-violet-100/90 mt-1.5" id="label-box-kredit-info">Belum ada paket kredit aktif</p>
+            </div>
+            <div class="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-3xl shadow-inner relative z-10">
+                ⚡
+            </div>
+        </div>
+
+        <div class="bg-amber-50/80 border border-amber-200/90 p-4 sm:p-5 rounded-3xl flex items-start gap-3.5 modern-shadow">
+          <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 text-lg">⏳</div>
+          <div>
+            <h4 class="text-xs sm:text-sm font-bold text-amber-950">100% Terima Beres (Server Cloud KiixMotion)</h4>
+            <p class="text-[11px] sm:text-xs text-amber-800/90 mt-0.5 leading-relaxed">
+              1 Kredit = 1 Video Render. Anda <strong>tidak perlu memasukkan API key</strong> apa pun. Cukup upload bahan dan render langsung. <strong>Kredit akan hangus otomatis setelah 24 jam</strong> sejak pembayaran berhasil.
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 modern-shadow space-y-5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 class="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">Pilih Paket Kuota Render</h3>
+                  <p class="text-xs text-slate-400 mt-0.5">Pilih kuota yang kamu butuhkan untuk hari ini</p>
+                </div>
+                <span class="text-[11px] font-bold text-amber-700 bg-amber-100/80 px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Masa Aktif 24 Jam
+                </span>
+            </div>
+
+            <!-- PILIHAN 3 PAKET KREDIT -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                
+                <button type="button" onclick="pilihPaketKredit('2k')" id="btn-kredit-2k" class="p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">4 Kredit</span>
+                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md tabular-nums">Rp 500/vid</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 mt-0.5">
+                      <span class="text-xs font-bold text-slate-400">Rp</span>
+                      <span class="text-xl font-black text-slate-900 tracking-tight tabular-nums">2.000</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100 text-[11px] font-semibold text-slate-700">
+                      <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                      <strong>4 Kredit (4 Video)</strong> · 24 Jam
+                    </div>
+                </button>
+
+                <button type="button" onclick="pilihPaketKredit('5k')" id="btn-kredit-5k" class="p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-[10px] font-extrabold uppercase tracking-wider text-kmViolet bg-violet-100/80 px-2 py-0.5 rounded-md">10 Kredit</span>
+                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md tabular-nums">Rp 500/vid</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 mt-0.5">
+                      <span class="text-xs font-bold text-slate-400">Rp</span>
+                      <span class="text-xl font-black text-slate-900 tracking-tight tabular-nums">5.000</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-violet-100/80 text-[11px] font-semibold text-slate-700">
+                      <span class="w-2 h-2 rounded-full bg-kmViolet"></span>
+                      <strong>10 Kredit (10 Video)</strong> · 24 Jam
+                    </div>
+                </button>
+
+                <button type="button" onclick="pilihPaketKredit('10k')" id="btn-kredit-10k" class="p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">20 Kredit</span>
+                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md tabular-nums">Rp 500/vid</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 mt-0.5">
+                      <span class="text-xs font-bold text-slate-400">Rp</span>
+                      <span class="text-xl font-black text-slate-900 tracking-tight tabular-nums">10.000</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100 text-[11px] font-semibold text-slate-700">
+                      <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                      <strong>20 Kredit (20 Video)</strong> · 24 Jam
+                    </div>
+                </button>
+
+            </div>
+
+            <div class="space-y-2 pt-1">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Metode Pembayaran</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
+                        <span>💳</span> QRIS Instant (BCA, Mandiri, Dana, GoPay, OVO, ShopeePay)
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-50/90 rounded-2xl p-4 sm:p-5 space-y-2.5 border border-slate-200/80 text-xs text-slate-600">
+                <div class="flex justify-between items-center">
+                    <span id="txt-kredit-item" class="font-medium text-slate-700">Paket 10 Kredit (10 Video / 24 Jam)</span>
+                    <span class="font-bold text-slate-900 tabular-nums" id="txt-kredit-harga">Rp 5.000</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
+                    <span class="text-slate-500">Biaya Layanan Pembayaran (QRIS)</span>
+                    <span class="font-bold text-slate-600 tabular-nums" id="txt-kredit-fee">Rp 800</span>
+                </div>
+                <div class="flex justify-between items-baseline pt-1">
+                    <div>
+                      <span class="text-sm font-black text-slate-900 block tracking-tight">Total Pembayaran</span>
+                      <span class="text-[10px] text-slate-400 font-medium">Bebas biaya admin tambahan</span>
+                    </div>
+                    <span class="text-xl sm:text-2xl font-black text-kmViolet tracking-tight tabular-nums" id="txt-kredit-total">Rp 5.800</span>
+                </div>
+            </div>
+
+            <button type="button" id="btn-eksekusi-kredit" onclick="jalankanBayarKredit()" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm sm:text-base rounded-2xl transition shadow-lg cursor-pointer flex items-center justify-center gap-2 tracking-wide">
+                <span>Bayar Rp 5.800 via QRIS (10 Kredit)</span> &rarr;
+            </button>
+        </div>
+    </div>
+
+    <!-- 6B. LAYAR TERPISAH: LANGGANAN VIP PRO -->
+    <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Langganan Pro VIP</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Kelola akses unlimited render menggunakan akun RunningHub sendiri</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 modern-shadow space-y-3">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Akses VIP</span>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-black text-slate-900 tracking-tight" id="label-plan-nama">Free</h2>
+                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlangganan VIP</p>
+                </div>
+                <span class="px-3.5 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-full" id="label-status-vip-badge">Non-Aktif</span>
+            </div>
+        </div>
+
+        <div class="bg-rose-50/90 border border-rose-200 p-5 rounded-3xl space-y-2 modern-shadow">
+            <div class="flex items-center gap-2 text-rose-900 font-extrabold text-xs sm:text-sm">
+                <span>⚠️</span> PERHATIAN PENTING SEBELUM UPGRADE:
+            </div>
+            <p class="text-xs text-rose-800 leading-relaxed">
+                Paket <strong>Pro VIP (Rp 35.000)</strong> ini <strong>BUKAN paket terima beres!</strong> Anda <strong>WAJIB</strong> memiliki dan menghubungkan API Key RunningHub milik sendiri di menu <span class="font-bold underline cursor-pointer" onclick="gantiLayarNav('kelola-akun')">Add Apikey</span> (koin dipotong dari akun RunningHub Anda sendiri, minimal 478 koin per render).
+            </p>
+            <p class="text-xs text-rose-800 leading-relaxed pt-1">
+                👉 <em>Jika Anda tidak memiliki API Key RunningHub dan ingin terima beres tanpa ribet, silakan beli kuota di menu <a href="#" onclick="gantiLayarNav('beli-kredit')" class="font-bold underline text-kmViolet">Beli Kredit</a>.</em>
+            </p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 modern-shadow space-y-5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 class="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">Upgrade ke Pro (25 Hari)</h3>
+                  <p class="text-xs text-slate-400 mt-0.5">Render sepuasnya tanpa antrean dengan akun sendiri</p>
+                </div>
+                <span class="text-xs font-bold text-violet-700 bg-violet-100 px-3 py-1 rounded-full">Masa Aktif 25 Hari</span>
+            </div>
+
+            <div class="space-y-2 pt-1">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Metode Pembayaran</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
+                        <span>💳</span> QRIS Instant
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-50/90 rounded-2xl p-4 sm:p-5 space-y-2.5 border border-slate-200/80 text-xs text-slate-600">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-slate-700">Langganan Pro VIP (25 Hari)</span>
+                    <span class="font-bold text-slate-900 tabular-nums">Rp 35.000</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
+                    <span class="text-slate-500">Biaya Layanan Pembayaran (QRIS)</span>
+                    <span class="font-bold text-slate-600 tabular-nums">Rp 850</span>
+                </div>
+                <div class="flex justify-between items-baseline pt-1">
+                    <div>
+                      <span class="text-sm font-black text-slate-900 block tracking-tight">Total Pembayaran</span>
+                      <span class="text-[10px] text-slate-400 font-medium">Sekali bayar · Tanpa perpanjangan otomatis</span>
+                    </div>
+                    <span class="text-xl sm:text-2xl font-black text-kmViolet tracking-tight tabular-nums">Rp 35.850</span>
+                </div>
+            </div>
+
+            <button type="button" onclick="jalankanBayarVIP()" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm sm:text-base rounded-2xl transition shadow-lg cursor-pointer flex items-center justify-center gap-2 tracking-wide">
+                <span>Bayar Rp 35.850 via QRIS</span> &rarr;
+            </button>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+            <h3 class="font-bold text-slate-800 text-sm">Kode Promo Spesial</h3>
+            <p class="text-xs text-slate-500">Punya kode promo? Masukkan di sini untuk aktifkan atau perpanjang plan.</p>
+            <div class="flex gap-2">
+                <input type="text" placeholder="PRO-XXXXXXX" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 font-bold uppercase tracking-wider" />
+                <button onclick="tampilkanNotif('Kode promo tidak valid', 'error')" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                    Gunakan
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+            <h3 class="font-bold text-slate-800 text-sm">Riwayat Transaksi</h3>
+            <div class="p-6 border border-slate-200 border-dashed rounded-2xl text-center text-slate-400 text-xs font-medium">
+                Belum ada riwayat transaksi.
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. MASTER DASHBOARD POOL (KHUSUS ADMIN) -->
+    <div id="layar-admin-pool" class="layar-konten space-y-6 pt-10 md:pt-0" style="display: none;">
+      
+      <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 sm:p-8 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-400">Master Control Room</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-black tracking-tight">Monitor Kolam API RunningHub</h2>
+          <p class="text-xs sm:text-sm text-slate-300 mt-1">Kelola dan pantau seluruh kunci API render secara terpusat.</p>
+        </div>
+        <button onclick="refreshDataKolamAdmin()" class="px-5 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border border-white/20">
+          <i class="ph ph-arrows-clockwise text-base"></i> Sync Saldo Semua
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-slate-400 uppercase">Total Akun</p>
+          <h3 id="stat-pool-total" class="text-2xl font-black text-slate-900 mt-1 tracking-tight tabular-nums">0</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-emerald-600 uppercase">🟢 Siap / Nganggur</p>
+          <h3 id="stat-pool-idle" class="text-2xl font-black text-emerald-600 mt-1 tracking-tight tabular-nums">0</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-amber-600 uppercase">🟡 Sedang Render</p>
+          <h3 id="stat-pool-busy" class="text-2xl font-black text-amber-600 mt-1 tracking-tight tabular-nums">0</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-rose-600 uppercase">🔴 Koin Habis</p>
+          <h3 id="stat-pool-habis" class="text-2xl font-black text-rose-600 mt-1 tracking-tight tabular-nums">0</h3>
+        </div>
+      </div>
+
+      <!-- FITUR BARU: API KEY CHECKER (LOKAL) -->
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-6 rounded-3xl modern-shadow space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
+              <i class="ph-bold ph-magnifying-glass text-blue-600 text-lg"></i> Checker API Key (Tanpa Simpan DB)
+            </h3>
+            <p class="text-[11px] font-semibold text-slate-500 mt-1">Cek saldo koin dari anak-anak sebelum dimasukin ke kolam utama.</p>
+          </div>
+          <button onclick="bersihkanChecker()" class="px-4 py-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shadow-sm">
+            <i class="ph-bold ph-trash text-sm"></i> Bersihkan Semua
+          </button>
+        </div>
+
+        <textarea id="in-checker-keys" placeholder="Tempel API Key yang mau dicek di sini...
+rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx
+rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy" class="w-full bg-white border border-blue-200 rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-blue-400 h-28 resize-none leading-relaxed shadow-inner"></textarea>
+        
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-3 rounded-2xl border border-blue-100">
+            <div class="flex items-center gap-4 w-full sm:w-auto px-2">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Akun</p>
+                    <p id="checker-stat-akun" class="text-lg font-black text-slate-800 tabular-nums leading-none">0</p>
+                </div>
+                <div class="w-px h-8 bg-blue-100"></div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Koin</p>
+                    <p id="checker-stat-koin" class="text-lg font-black text-kmViolet tabular-nums leading-none">0</p>
+                </div>
+            </div>
+            <button id="btn-submit-checker" onclick="jalankanCheckerKeys()" class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2">
+              <i class="ph-bold ph-play text-sm"></i> Cek Saldo Sekarang
+            </button>
+        </div>
+
+        <div id="wadah-hasil-checker" class="space-y-2 mt-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            <!-- Hasil checker masuk ke sini -->
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
+            <i class="ph-bold ph-plus-circle text-amber-500 text-lg"></i> Tambah Kunci API Massal (Bulk Insert)
+          </h3>
+          <span class="text-[11px] font-semibold text-slate-400">1 baris = 1 API Key</span>
+        </div>
+        <textarea id="in-bulk-keys" placeholder="Tempel banyak API Key di sini sekaligus...
+rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx
+rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy
+rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-amber-400 focus:bg-white h-28 resize-none leading-relaxed"></textarea>
+        <div class="flex justify-end">
+          <button id="btn-submit-bulk-pool" onclick="simpanBulkKeysKeSupabase()" class="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center gap-2">
+            <i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
+            <i class="ph-bold ph-list-dashes text-kmViolet text-lg"></i> Live Monitor Kunci Kolam
+          </h3>
+          <button onclick="sapuBersihAkunHabis()" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto">
+            <i class="ph-bold ph-trash text-sm"></i> Hapus Semua Akun Koin Habis
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-sans">
+            <thead>
+              <tr class="border-b border-kmBorder text-slate-400 uppercase tracking-wider text-[10px]">
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3">API Key (Masked)</th>
+                <th class="py-3 px-3">Sisa Koin</th>
+                <th class="py-3 px-3">Terakhir Dipakai</th>
+                <th class="py-3 px-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="wadah-baris-pool-admin" class="divide-y divide-kmBorder/60">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- POP-UP MODAL ADD APIKEY -->
+  <div id="modal-popup-key" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-kmBorder max-w-lg w-full p-6 sm:p-8 rounded-3xl space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between"><h3 class="text-lg font-bold text-kmTextPrimary">Tambah API Key RunningHub</h3><button onclick="tutupModalFormKey()" class="text-slate-400 hover:text-slate-700 font-bold text-xl cursor-pointer p-1">✕</button></div>
+      <p class="text-xs text-slate-500">Tempel API key dari halaman <span class="text-kmViolet font-bold">API Key RunningHub</span>.</p>
+      <div class="space-y-3 pt-1"><label class="text-[11px] font-bold uppercase text-slate-400 block">API KEY</label><input id="in-modal-key" type="password" placeholder="Paste RunningHub API key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-xs sm:text-sm text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" /></div>
+      <div class="flex gap-3 pt-3">
+        <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold rounded-2xl hover:bg-slate-200 transition">Batal</button>
+        <button id="btn-simpan-key" onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-[#7C3AED]/80 hover:bg-[#7C3AED] text-white text-xs sm:text-sm font-bold rounded-2xl transition cursor-pointer">Tambah</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KONFIRMASI -->
+  <div id="modal-konfirmasi-box" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-kmBorder max-w-sm w-full p-6 rounded-3xl space-y-4 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold">❓</div>
+      <p id="modal-konfirmasi-teks" class="text-sm font-semibold text-slate-700 leading-relaxed">Apakah Anda yakin ingin melanjutkan?</p>
+      <div class="flex gap-2.5 pt-2">
+        <button onclick="tutupModalKonfirmasi(false)" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Batal</button>
+        <button onclick="tutupModalKonfirmasi(true)" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT SUPABASE & ENGINE REFERRAL TERPADU -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+      const supabaseUrl = 'https://fybyupwcburndxulqqnn.supabase.co';
+      const supabaseAnonKey = 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
+      const supa = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+      async function ambilDataLoginAsli() {
+          try {
+              const { data: { session } } = await supa.auth.getSession();
+              if (session && session.user) {
+                  const emailUser = session.user.email.toLowerCase().trim();
+                  const namaAsli = emailUser.split('@')[0];
+                  
+                  document.getElementById('user-greeting-name').innerText = namaAsli;
+                  document.getElementById('profil-email-drop').innerText = emailUser;
+                  document.getElementById('profil-inisial').innerText = namaAsli.charAt(0).toUpperCase();
+                  
+                  if (emailUser === 'anggraingki@gmail.com') {
+                      const btnAdminNav = document.getElementById('nav-btn-admin-pool');
+                      if (btnAdminNav) btnAdminNav.style.display = 'flex';
+                  }
+
+                  let storageKey = 'km_referral_code_' + emailUser;
+                  let cachedCode = localStorage.getItem(storageKey);
+
+                  const { data: userRows, error } = await supa
+                      .from('users')
+                      .select('id, is_vip, vip_expires_at, referral_code, referred_by')
+                      .ilike('email', emailUser)
+                      .limit(1);
+
+                  const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
+                  let kodeReferral = userRow?.referral_code || cachedCode;
+
+                  if (!kodeReferral) {
+                      let randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+                      kodeReferral = 'KIIX-' + randomString;
+                      let pendingRef = localStorage.getItem('km_pending_ref') || session.user.user_metadata?.referred_by || null;
+                      if (userRow) {
+                          let updateData = { referral_code: kodeReferral };
+                          if (!userRow.referred_by && pendingRef) updateData.referred_by = pendingRef;
+                          await supa.from('users').update(updateData).eq('id', userRow.id);
+                      } else {
+                          await supa.from('users').insert({
+                              email: emailUser, referral_code: kodeReferral, referred_by: pendingRef, is_vip: false
+                          });
+                      }
+                  } else if (userRow && !userRow.referral_code) {
+                      await supa.from('users').update({ referral_code: kodeReferral }).eq('id', userRow.id);
+                  }
+
+                  localStorage.setItem(storageKey, kodeReferral);
+                  const elKode = document.getElementById('kode-referral-user');
+                  if (elKode) { elKode.innerText = kodeReferral; }
+                  window.kodeReferralAktifUser = kodeReferral;
+                  
+                  updateStatusMemberUI(emailUser);
+              }
+          } catch (err) {
+              console.error("Gagal memuat sesi pengguna:", err);
           }
+      }
 
-          if (poolId && typeof supa !== 'undefined') {
-            await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
+      async function updateStatusMemberUI(emailUser) {
+          try {
+              let targetEmail = emailUser;
+              if (!targetEmail) {
+                  const { data: { session } } = await supa.auth.getSession();
+                  targetEmail = session?.user?.email;
+              }
+              if (!targetEmail) return;
+              targetEmail = targetEmail.toLowerCase().trim();
+
+              const { data: { session } } = await supa.auth.getSession();
+              const authId = session?.user?.id;
+
+              const { data: userRows, error } = await supa
+                  .from('users')
+                  .select('id, is_vip, vip_expires_at')
+                  .ilike('email', targetEmail)
+                  .limit(1);
+
+              const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
+              const badgeEl = document.getElementById('label-member-status');
+              const expEl = document.getElementById('label-vip-expires');
+              const planNamaVIP = document.getElementById('label-plan-nama');
+              const planDescVIP = document.getElementById('label-plan-desc');
+              const badgeVIP = document.getElementById('label-status-vip-badge');
+              const boxKreditAngka = document.getElementById('label-box-kredit-angka');
+              const boxKreditInfo = document.getElementById('label-box-kredit-info');
+
+              var isVipActive = false;
+              
+              if (!error && userRow && userRow.is_vip === true) {
+                  let formattedDate = "";
+                  if (userRow.vip_expires_at) {
+                      const expDate = new Date(userRow.vip_expires_at);
+                      if (expDate.getTime() > new Date().getTime()) {
+                          isVipActive = true;
+                          formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                      }
+                  } else {
+                      isVipActive = true;
+                  }
+
+                  if (isVipActive) {
+                      if (badgeEl) {
+                        badgeEl.innerText = "⭐ Member Pro";
+                        badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block";
+                      }
+                      if (expEl && formattedDate) { 
+                        expEl.innerText = "Aktif s.d. " + formattedDate; 
+                        expEl.classList.remove('hidden'); 
+                      }
+                      if (planNamaVIP) planNamaVIP.innerText = "Pro VIP (Aktif)";
+                      if (planDescVIP) planDescVIP.innerText = "Masa aktif s.d. " + formattedDate + " · Akses akun RunningHub sendiri";
+                      if (badgeVIP) {
+                        badgeVIP.innerText = "Aktif";
+                        badgeVIP.className = "px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full";
+                      }
+                  }
+              }
+
+              if (!isVipActive) {
+                  if (planNamaVIP) planNamaVIP.innerText = "Free";
+                  if (planDescVIP) planDescVIP.innerText = "Belum berlangganan VIP (Pakai kuota server di Beli Kredit)";
+                  if (badgeVIP) {
+                    badgeVIP.innerText = "Non-Aktif";
+                    badgeVIP.className = "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full";
+                  }
+              }
+
+              let queryOr = [];
+              if (userRow && userRow.id) queryOr.push(`user_id.eq.${userRow.id}`);
+              if (authId && (!userRow || authId !== userRow.id)) queryOr.push(`user_id.eq.${authId}`);
+
+              if (queryOr.length > 0) {
+                const { data: userCredit } = await supa
+                    .from('user_credits')
+                    .select('credits_balance, expires_at')
+                    .or(queryOr.join(','))
+                    .order('credits_balance', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (userCredit && userCredit.credits_balance > 0) {
+                  const expDate = new Date(userCredit.expires_at);
+                  const expTime = expDate.getTime();
+                  
+                  if (expTime > new Date().getTime()) {
+                    const diffMs = expTime - new Date().getTime();
+                    const jamSisa = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
+                    
+                    const tglFormat = expDate.toLocaleDateString('id-ID', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    
+                    const jamFormat = expDate.toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }).replace('.', ':');
+
+                    const teksExpiredLengkap = `${tglFormat} pukul ${jamFormat} WIB`;
+
+                    if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
+                    if (boxKreditInfo) boxKreditInfo.innerText = `Berlaku untuk ${userCredit.credits_balance} video · Hangus: ${teksExpiredLengkap} (${jamSisa} jam lagi)`;
+                    
+                    if (!isVipActive && badgeEl) {
+                      badgeEl.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
+                      badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
+                      if (expEl) {
+                        expEl.innerText = "Hangus: " + teksExpiredLengkap;
+                        expEl.classList.remove('hidden');
+                      }
+                    }
+                    return;
+                  }
+                }
+              }
+
+              if (boxKreditAngka) boxKreditAngka.innerText = "0";
+              if (boxKreditInfo) boxKreditInfo.innerText = "Belum ada paket kredit aktif. Beli paket di bawah untuk render.";
+
+              if (!isVipActive && badgeEl) {
+                  badgeEl.innerText = "Member Aktif";
+                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
+                  if (expEl) expEl.classList.add('hidden');
+              }
+          } catch (err) {
+              console.error("Gagal membaca status member:", err);
           }
-
-          if (typeof simpanStorage === 'function') simpanStorage();
-          if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-          refreshSaldoAkunOtomatis(apiKey, poolId);
-          return;
-        }
-      } catch (jsonErr2) {}
-      
-      if (tugas.progress < 95) {
-        tugas.progress += Math.floor(Math.random() * 3) + 2; 
-      }
-      tugas.status = "Sedang Memproses Video...";
-      if (typeof simpanStorage === 'function') simpanStorage();
-      if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-
-    } catch (err) {}
-  }, 10000); 
-}
-
-// REFRESH SALDO KOIN (PATOKAN 200 KOIN)
-async function refreshSaldoAkunOtomatis(apiKey, poolId) {
-  if (!apiKey) return;
-  try {
-    var res = await fetch('/api/saldo', {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ apiKey: apiKey })
-    });
-    var hasil = await res.json();
-    if (res.ok && hasil) {
-      var rawData = hasil.data || hasil;
-      var k = rawData.totalCoins !== undefined ? rawData.totalCoins : rawData.coins !== undefined ? rawData.coins : rawData.coin !== undefined ? rawData.coin : rawData.credit !== undefined ? rawData.credit : rawData.balance !== undefined ? rawData.balance : rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
-      
-      if (k !== undefined && k !== null) {
-        var koinNum = Number(k);
-        if (poolId && typeof supa !== 'undefined') {
-          var statusBaru = koinNum < 200 ? 'habis' : 'idle';
-          await supa.from('runninghub_pool').update({ koin: koinNum, status: statusBaru }).eq('id', poolId);
-          if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
-        }
-        if (typeof akunRunningHub !== 'undefined') {
-          var idxKetemu = akunRunningHub.findIndex(function(a) { return a.key === apiKey; });
-          if (idxKetemu !== -1) {
-            akunRunningHub[idxKetemu].koin = koinNum;
-            if (typeof simpanStorage === 'function') simpanStorage();
-            updateStatistikDashboard();
-            if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
-          }
-        }
-      }
-    }
-  } catch (err) {}
-}
-
-function updateStatistikDashboard() {
-  var totalRhKoin = 0, maxRhKoin = 0;
-  if (typeof akunRunningHub !== 'undefined') {
-    akunRunningHub.forEach(function(a) {
-      var k = Number(a.koin) || 0;
-      totalRhKoin += k;
-      if (k > maxRhKoin) maxRhKoin = k;
-    });
-  }
-  var setTxt = function(id, val) {
-    var el = document.getElementById(id);
-    if (el) el.innerText = val;
-  };
-  setTxt('dash-rh-total-koin', totalRhKoin);
-  setTxt('dash-rh-total-akun', typeof akunRunningHub !== 'undefined' ? akunRunningHub.length : 0);
-  setTxt('dash-rh-max-koin', maxRhKoin);
-  if (typeof riwayatGenerateList !== 'undefined') {
-    setTxt('dash-stat-video-selesai', riwayatGenerateList.filter(function(r) { return r.selesai; }).length);
-  }
-}
-
-// EKSEKUSI UTAMA (POTONG & REFUND DIJAMIN KEDAP CELAH)
-async function mulaiProsesGenerate() {
-  var btn = document.getElementById('btn-submit-generate');
-  
-  var realEmail = null;
-  var realUserId = null;
-  var authId = null;
-
-  if (typeof supa !== 'undefined') {
-    if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA STATUS AKSES..."; }
-    try {
-      var sessionRes = await supa.auth.getSession();
-      var sessionUser = sessionRes?.data?.session?.user;
-      if (sessionUser && sessionUser.email) {
-        realEmail = sessionUser.email.toLowerCase().trim();
-        authId = sessionUser.id;
-      }
-      
-      if (realEmail) {
-        var { data: dbUser } = await supa
-          .from('users')
-          .select('id, is_vip, vip_expires_at')
-          .ilike('email', realEmail)
-          .maybeSingle();
-        if (dbUser) realUserId = dbUser.id;
-      }
-    } catch (err) {}
-  }
-
-  if (!realEmail || (!realUserId && !authId)) {
-    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-    return tampilkanNotif('Sesi login berakhir, silakan login ulang!', 'error');
-  }
-
-  if (!urlBahanFoto || !urlBahanVideo) {
-    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-    return tampilkanNotif('Foto karakter dan Video gerakan wajib selesai diunggah!', 'error');
-  }
-
-  var apiKeyDipakai = null;
-  var poolIdDipakai = null;
-  var didDeductCredit = false;
-  var idTempatKredit = null;
-
-  // JALUR 1: RUNNINGHUB PRO
-  if (engineProvider === 'runninghub') {
-    var isVipActive = false;
-    if (typeof supa !== 'undefined') {
-      try {
-        var { data: profile } = await supa.from('users').select('is_vip, vip_expires_at').ilike('email', realEmail).maybeSingle();
-        if (profile && profile.is_vip === true) {
-          if (!profile.vip_expires_at || new Date(profile.vip_expires_at).getTime() > new Date().getTime()) {
-            isVipActive = true; 
-          }
-        }
-      } catch (e) { isVipActive = false; }
-    }
-
-    if (!isVipActive) {
-      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      tampilkanNotif('Engine RunningHub khusus Member Pro! Untuk terima beres, gunakan KiixMotion Control.', 'error');
-      if (typeof gantiLayarNav === 'function') gantiLayarNav('langganan');
-      return;
-    }
-
-    if (!akunRunningHub || akunRunningHub.length === 0) {
-      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      return tampilkanNotif('Hubungkan akun RunningHub kamu di menu Add Apikey!', 'error');
-    }
-
-    var sel = document.getElementById('sel-dropdown-akun');
-    var idx = sel ? sel.value : "";
-    var akunPribadi = (idx === "random" || idx === "") ? akunRunningHub[0] : akunRunningHub[parseInt(idx, 10)];
-
-    if (realEmail !== 'anggraingki@gmail.com') {
-      var koinAkunPribadi = Number(akunPribadi.koin) || 0;
-      if (koinAkunPribadi < 478) {
-        if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-        return tampilkanNotif('Koin akun RunningHub kamu kurang! Minimal butuh 478 koin untuk render video.', 'error');
-      }
-    }
-
-    apiKeyDipakai = akunPribadi.key;
-    poolIdDipakai = null;
-
-  } else {
-    // JALUR 2: KIIXMOTION CONTROL
-    if (typeof supa !== 'undefined') {
-      try {
-        var queryOr = [];
-        if (realUserId) queryOr.push('user_id.eq.' + realUserId);
-        if (authId && authId !== realUserId) queryOr.push('user_id.eq.' + authId);
-
-        var { data: userCredit } = await supa
-          .from('user_credits')
-          .select('user_id, credits_balance, expires_at')
-          .or(queryOr.join(','))
-          .order('credits_balance', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (!userCredit || Number(userCredit.credits_balance) <= 0) {
-          tampilkanNotif('Sisa kredit Anda sudah habis. Silakan beli paket di Beli Kredit.', 'error');
-          if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-          if (typeof gantiLayarNav === 'function') gantiLayarNav('beli-kredit');
-          return;
-        }
-
-        if (new Date(userCredit.expires_at).getTime() <= Date.now()) {
-          tampilkanNotif('Paket kredit Anda sudah kedaluwarsa (lewat 24 jam). Silakan beli kuota baru.', 'error');
-          if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-          if (typeof gantiLayarNav === 'function') gantiLayarNav('beli-kredit');
-          return;
-        }
-
-        idTempatKredit = userCredit.user_id;
-
-        // Potong kredit langsung ke tabel
-        var saldoBaru = Number(userCredit.credits_balance) - 1;
-        await supa.from('user_credits').update({ credits_balance: saldoBaru }).eq('user_id', idTempatKredit);
-
-        didDeductCredit = true;
-        if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(realEmail);
-      } catch (errKredit) {
-        if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-        return tampilkanNotif('Gagal memeriksa saldo kredit kamu.', 'error');
-      }
-    }
-
-    // Ambil kunci pertama di database kolam yang idle & koin >= 200
-    var akunPool = await ambilKunciKolamTersedia();
-    if (!akunPool) {
-      // JIKA SERVER PENUH: LANGSUNG REFUND KE TABEL DETIK ITU JUGA
-      if (didDeductCredit && idTempatKredit) {
-        await eksekusiRefundKreditPasti(idTempatKredit, realEmail);
-      }
-      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      return tampilkanNotif('Semua server KiixMotion sedang sibuk. 1 kredit dikembalikan otomatis.', 'error');
-    }
-
-    apiKeyDipakai = akunPool.api_key;
-    poolIdDipakai = akunPool.id;
-
-    if (typeof supa !== 'undefined') {
-      await supa.from('runninghub_pool').update({ status: 'busy', last_used_at: new Date() }).eq('id', poolIdDipakai);
-    }
-  }
-
-  if (btn) { btn.disabled = true; btn.innerText = "⚡ MEMPROSES VIDEO..."; }
-
-  var nodeParams = [
-    { nodeId: "30", fieldName: "image", fieldValue: urlBahanFoto },
-    { nodeId: "33", fieldName: "video", fieldValue: urlBahanVideo },
-    { nodeId: "308", fieldName: "upscale_method", fieldValue: "bicubic" }
-  ];
-
-  var taskIdAsli = null;
-  var poolTercoba = poolIdDipakai ? [poolIdDipakai] : [];
-  var suksesKirim = false;
-
-  while (!suksesKirim) {
-    try {
-      var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKeyDipakai },
-        body: JSON.stringify({ workflowId: RUNNINGHUB_WORKFLOW_ID, apiKey: apiKeyDipakai, nodeInfoList: nodeParams })
-      });
-      
-      var textRes = await res.text();
-      var data;
-      try { data = textRes ? JSON.parse(textRes) : null; } catch(err) { throw new Error("Format server rusak."); }
-
-      var isKoinKurang = (
-        data && (
-          data.code === 806 || 
-          (data.msg && data.msg.toLowerCase().includes('coin')) ||
-          (data.msg && data.msg.toLowerCase().includes('balance'))
-        )
-      );
-
-      if (isKoinKurang && poolIdDipakai) {
-        console.warn(`Kunci #${poolIdDipakai} koinnya kurang saat render. Kembalikan ke 'idle' & switch cari kunci cadangan...`);
-        await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
-
-        var akunCadangan = await ambilKunciKolamTersedia(poolTercoba);
-        if (akunCadangan) {
-          apiKeyDipakai = akunCadangan.api_key;
-          poolIdDipakai = akunCadangan.id;
-          poolTercoba.push(akunCadangan.id);
-          await supa.from('runninghub_pool').update({ status: 'busy', last_used_at: new Date() }).eq('id', poolIdDipakai);
-          continue; 
-        } else {
-          throw new Error("Semua kunci cadangan server sedang tidak mencukupi koin.");
-        }
       }
 
-      if (data && (data.code === 0 || data.data) && (data.data?.taskId || data.taskId)) { 
-        taskIdAsli = data.data?.taskId || data.taskId; 
-        suksesKirim = true;
-      } else { 
-        throw new Error(data ? (data.msg || "Server sedang padat") : "Respon server kosong");
+      function salinLinkReferral() {
+          if (!window.kodeReferralAktifUser) { alert('Kode referral sedang dimuat, coba sesaat lagi ya!'); return; }
+          let domainWeb = window.location.origin;
+          let linkLengkap = domainWeb + '/register.html?ref=' + window.kodeReferralAktifUser;
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(linkLengkap).then(function() {
+                  if (typeof tampilkanNotif === 'function') { tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses'); } else { alert('Link referral berhasil disalin:\n' + linkLengkap); }
+              }).catch(function() { fallbackSalinTeks(linkLengkap); });
+          } else { fallbackSalinTeks(linkLengkap); }
       }
 
-    } catch (e) {
-      if (poolIdDipakai && typeof supa !== 'undefined') {
-        await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
+      function fallbackSalinTeks(text) {
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-9999px";
+          textArea.style.top = "0";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+              document.execCommand('copy');
+              if (typeof tampilkanNotif === 'function') { tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses'); } else { alert('Link referral berhasil disalin:\n' + text); }
+          } catch (err) { prompt('Salin link referral Anda di bawah ini:', text); }
+          document.body.removeChild(textArea);
       }
-      var targetRefund = idTempatKredit || realUserId || authId;
-      if (didDeductCredit && targetRefund) {
-        await eksekusiRefundKreditPasti(targetRefund, realEmail);
-        tampilkanNotif('Antrean/koin server sedang tidak tersedia. 1 kredit dikembalikan otomatis.', 'error');
-      } else {
-        tampilkanNotif(e.message || 'Gagal memproses render ke server.', 'error');
+
+      async function prosesLogout() { 
+          await supa.auth.signOut(); 
+          window.location.href = 'register.html'; 
       }
-      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      return;
-    }
-  }
 
-  var tugasBaru = {
-    id: taskIdAsli || ("KM-" + Date.now().toString().slice(-6)),
-    key: apiKeyDipakai, 
-    pool_id: poolIdDipakai,
-    user_id: idTempatKredit || realUserId || authId,
-    user_email: realEmail,
-    did_deduct: didDeductCredit,
-    refunded: false,
-    startedAt: Date.now(),
-    model: "Wan Motion Control", 
-    provider: (engineProvider === 'runninghub') ? "RunningHub Pro" : "KiixMotion Control",
-    engine: "Wan Motion Control 1080HD",
-    prov: (engineProvider === 'runninghub') ? "RunningHub" : "KiixMotion",
-    tgl: "Baru saja", 
-    biaya: didDeductCredit ? "1 Kredit" : "≈ 478 coin", 
-    videoUrl: null,
-    status: "Sedang Memproses Video...", 
-    selesai: false, 
-    progress: 0
-  };
-  
-  if (typeof riwayatGenerateList !== 'undefined') {
-    riwayatGenerateList.unshift(tugasBaru); 
-    if (typeof simpanStorage === 'function') simpanStorage(); 
-  }
-  
-  if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-  
-  resetFormBahanInput();
-  tampilkanModalCeklisSukses(tugasBaru.id);
-
-  if (taskIdAsli) {
-    pantauTaskRunningHub(tugasBaru, apiKeyDipakai, poolIdDipakai, tugasBaru.user_id, didDeductCredit);
-  }
-}
-
-function renderListAkunDiKelola() {
-  var wadah = document.getElementById('wadah-kartu-akun-list'), targetAkun = akunRunningHub;
-  if (!wadah) return; 
-  wadah.innerHTML = '';
-  var totalKredit = 0;
-
-  if (!targetAkun || targetAkun.length === 0) {
-    wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Add Apikey" di atas.</div>';
-    return;
-  }
-
-  var toolbarEl = document.createElement('div');
-  toolbarEl.className = "flex items-center justify-between px-1 pb-1 pt-1";
-  toolbarEl.innerHTML = '<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Daftar API Key (' + targetAkun.length + ')</span>' +
-    '<button id="btn-sync-all-rh" type="button" onclick="refreshSemuaAkunRunningHub()" class="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 hover:text-kmViolet border border-kmBorder rounded-xl text-xs font-bold transition shadow-sm cursor-pointer flex items-center gap-1.5">' +
-      '<i class="ph ph-arrows-clockwise text-sm"></i> Sync Semua' +
-    '</button>';
-  wadah.appendChild(toolbarEl);
-
-  targetAkun.forEach(function(a, i) {
-    var koinVal = Number(a.koin) || 0; totalKredit += koinVal;
-    var el = document.createElement('div');
-    el.className = "bg-white border border-kmBorder p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
-    
-    var refreshBtnHtml = '<button type="button" onclick="manualRefreshAkunSatu(' + i + ')" class="p-2 text-slate-400 hover:text-kmViolet bg-slate-50 hover:bg-violet-50 rounded-xl transition cursor-pointer border border-slate-200" title="Refresh Saldo">' +
-        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' +
-      '</button>';
-
-    el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-xs sm:text-sm font-bold text-kmTextPrimary font-mono break-all w-28 sm:w-56 truncate" title="' + a.key + '">' + a.nama + '</span></div>' +
-    '<div class="flex items-center gap-2 sm:gap-3">' +
-      '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span>' +
-      '<span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + ' coin</span>' +
-      refreshBtnHtml +
-      '<button type="button" onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans px-2 py-1">Hapus</button>' +
-    '</div>';
-    wadah.appendChild(el);
-  });
-}
-
-async function manualRefreshAkunSatu(idx) {
-  var akun = akunRunningHub[idx];
-  if (!akun) return;
-
-  tampilkanNotif('Menyegarkan status koneksi...', 'info');
-  try {
-    var res = await fetch('/api/saldo', {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ apiKey: akun.key })
-    });
-    var hasil = await res.json();
-    if (res.ok && hasil) {
-      var rawData = hasil.data || hasil;
-      var k = rawData.totalCoins !== undefined ? rawData.totalCoins : rawData.coins !== undefined ? rawData.coins : rawData.coin !== undefined ? rawData.coin : rawData.credit !== undefined ? rawData.credit : rawData.balance !== undefined ? rawData.balance : rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
-      
-      if (k !== undefined && k !== null) {
-        akun.koin = Number(k);
-        if (typeof simpanStorage === 'function') simpanStorage();
-        if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
-        updateStatistikDashboard();
-        tampilkanNotif('✓ Status akun berhasil diperbarui', 'sukses');
-      }
-    }
-  } catch (err) {
-    tampilkanNotif('Koneksi terputus: ' + err.message, 'error');
-  }
-}
-
-async function refreshSemuaAkunRunningHub() {
-  if (!akunRunningHub || akunRunningHub.length === 0) {
-    return tampilkanNotif('Belum ada akun yang terhubung di Kelola Akun', 'error');
-  }
-
-  var btn = document.getElementById('btn-sync-all-rh');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="ph ph-spinner animate-spin text-sm"></i> Syncing...';
-  }
-
-  tampilkanNotif('Menyinkronkan semua akun...', 'info');
-  var suksesHitung = 0;
-
-  var antreanSync = akunRunningHub.map(async function(akun) {
-    try {
-      var res = await fetch('/api/saldo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: akun.key })
-      });
-      var hasil = await res.json();
-      if (res.ok && hasil) {
-        var rawData = hasil.data || hasil;
-        var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
-        if (k !== undefined && k !== null) {
-          akun.koin = Number(k);
-          suksesHitung++;
-        }
-      }
-    } catch (e) {}
-  });
-
-  await Promise.allSettled(antreanSync);
-
-  if (typeof simpanStorage === 'function') simpanStorage();
-  if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
-  if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
-
-  if (btn) {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="ph ph-arrows-clockwise text-sm"></i> Sync Semua';
-  }
-
-  tampilkanNotif('✓ ' + suksesHitung + ' akun berhasil disinkronkan!', 'sukses');
-}
-
-function hapusAkunSatu(idx) {
-  mintaKonfirmasi("Yakin ingin menghapus akun ini?", function() {
-    akunRunningHub.splice(idx, 1); 
-    if (typeof simpanStorage === 'function') simpanStorage(); 
-    renderListAkunDiKelola(); 
-    setProviderUtama(engineProvider);
-    tampilkanNotif('Akun berhasil dihapus', 'sukses');
-  });
-}
-
-function eksekusiHapusAkun() {
-  var checkedBoxes = document.querySelectorAll('.chk-seleksi-akun:checked');
-  if (checkedBoxes.length === 0) return tampilkanNotif('Pilih minimal satu akun!', 'error');
-  mintaKonfirmasi('Hapus ' + checkedBoxes.length + ' akun terpilih?', function() {
-    var toDel = [];
-    checkedBoxes.forEach(function(c) { toDel.push(parseInt(c.getAttribute('data-idx'), 10)); });
-    toDel.sort(function(a, b) { return b - a; }).forEach(function(idx) { akunRunningHub.splice(idx, 1); });
-    if (typeof simpanStorage === 'function') simpanStorage(); 
-    toggleModePilihHapus(); 
-    renderListAkunDiKelola(); 
-    setProviderUtama(engineProvider);
-    tampilkanNotif('Akun terpilih berhasil dihapus', 'sukses');
-  });
-}
-
-async function simpanAkunBaruDariModal() {
-  var inKey = document.getElementById('in-modal-key'), valKey = inKey ? inKey.value.trim() : "";
-  if (!valKey) return tampilkanNotif('Masukkan API Key terlebih dahulu!', 'error');
-  var btnSimpan = document.getElementById('btn-simpan-key');
-  if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan...'; btnSimpan.disabled = true; }
-  var saldoDidapat = 0;
-
-  try {
-    var res = await fetch('/api/saldo', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: valKey })
-    });
-    var hasil = await res.json();
-    if (res.ok && hasil && (hasil.code === 0 || hasil.code === 200 || hasil.data)) {
-      var rawData = hasil.data || hasil;
-      var k = rawData.totalCoins !== undefined ? rawData.totalCoins : rawData.coins !== undefined ? rawData.coins : rawData.coin !== undefined ? rawData.coin : rawData.credit !== undefined ? rawData.credit : rawData.balance !== undefined ? rawData.balance : rawData.remainCoins !== undefined ? rawData.remainCoins : undefined;
-      saldoDidapat = (k !== undefined && k !== null) ? Number(k) : 0;
-    } else {
-      if (btnSimpan) { btnSimpan.innerText = 'Tambah'; btnSimpan.disabled = false; }
-      return tampilkanNotif('API Key tidak valid atau ditolak sistem', 'error');
-    }
-  } catch (err) {
-    if (btnSimpan) { btnSimpan.innerText = 'Tambah'; btnSimpan.disabled = false; }
-    return tampilkanNotif('Gagal terhubung ke verifikasi server', 'error');
-  }
-
-  if (btnSimpan) { btnSimpan.innerText = 'Tambah'; btnSimpan.disabled = false; }
-  
-  var indexKetemu = akunRunningHub.findIndex(function(a) { return a.key === valKey; });
-  if (indexKetemu !== -1) {
-    akunRunningHub[indexKetemu].koin = Number(saldoDidapat); tampilkanNotif('✓ Jalur akun berhasil disinkronkan!', 'sukses');
-  } else {
-    akunRunningHub.push({ nama: valKey, key: valKey, koin: Number(saldoDidapat) }); tampilkanNotif('✓ Jalur akun baru berhasil ditambahkan!', 'sukses');
-  }
-  if (typeof simpanStorage === 'function') simpanStorage(); 
-  tutupModalFormKey(); 
-  renderListAkunDiKelola(); 
-  setProviderUtama(engineProvider);
-}
-
-window.onload = function() {
-  if (typeof muatStorage === 'function') muatStorage();
-  setProviderUtama('kiix'); 
-  if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-
-  if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
-    riwayatGenerateList.forEach(function(tugas) {
-      if (!tugas.selesai && tugas.id && tugas.key) {
-        pantauTaskRunningHub(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
-      }
-    });
-  }
-};
+      ambilDataLoginAsli();
+  </script>
+</body>
+</html>

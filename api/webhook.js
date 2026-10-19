@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   }
 
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fybyupwcburndxulqqnn.supabase.co';
-  const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
   try {
     const payload = req.body || {};
@@ -56,29 +56,27 @@ export default async function handler(req, res) {
         targetUser = insertData && insertData.length > 0 ? insertData[0] : null;
       }
 
-      // Selalu gunakan ID dari public.users agar sinkron dengan frontend
       const finalUserId = targetUser ? targetUser.id : null;
 
       if (!finalUserId) {
-        console.error('User ID tidak dapat ditemukan atau dibuat');
         return res.status(200).json({ success: false, message: 'User ID tidak ditemukan' });
       }
 
-      // 3. IDENTIFIKASI PAKET BERDASARKAN NOMINAL TAGIHAN
+      // 3. IDENTIFIKASI PAKET SECARA KETAT & TEPAT
       const isPaket4   = (amount >= 2000 && amount < 4500);   // Tagihan Rp 2.800 (4 Kredit)
       const isPaket10  = (amount >= 4500 && amount <= 8000);  // Tagihan Rp 5.800 (10 Kredit)
       const isPaket20  = (amount > 8000 && amount <= 18000);  // Tagihan Rp 10.800 (20 Kredit)
-      const isPaketVIP = (amount > 18000);                    // Tagihan Rp 35.850 (Pro VIP)
+      const isPaketVIP = (amount > 18000);                    // Tagihan Rp 35.850 (VIP Pro)
 
       // ======================================================
-      // EKSEKUSI A: PAKET KREDIT 24 JAM (ANTI-DOUBLE CREDITS)
+      // EKSEKUSI A: PAKET KREDIT 24 JAM (4, 10, atau 20)
       // ======================================================
       if (isPaket4 || isPaket10 || isPaket20) {
         const jumlahKreditTambah = isPaket4 ? 4 : (isPaket10 ? 10 : 20);
         const exp24Jam = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
         let rpcSukses = false;
 
-        // Panggil fungsi database RPC tambah_kredit_member
+        // Coba jalur utama via fungsi database RPC
         try {
           const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/tambah_kredit_member`, {
             method: 'POST',
@@ -90,13 +88,10 @@ export default async function handler(req, res) {
           });
           if (rpcRes.ok) {
             rpcSukses = true;
-            console.log(`RPC tambah_kredit_member berhasil untuk: ${buyerEmail}`);
           }
-        } catch (eRpc) {
-          console.warn('RPC gagal, beralih ke fallback:', eRpc);
-        }
+        } catch (eRpc) {}
 
-        // Fallback HANYA dieksekusi jika RPC gagal
+        // Fallback langsung tulis ke tabel user_credits jika RPC belum terpasang
         if (!rpcSukses) {
           try {
             const credCheckRes = await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${finalUserId}&select=*`, { headers });
@@ -114,10 +109,7 @@ export default async function handler(req, res) {
                 updated_at: now.toISOString()
               })
             });
-            console.log(`Fallback upsert user_credits berhasil untuk: ${buyerEmail}`);
-          } catch (eCred) {
-            console.error('Gagal fallback upsert user_credits:', eCred);
-          }
+          } catch (eCred) {}
         }
       }
 
@@ -138,10 +130,9 @@ export default async function handler(req, res) {
             vip_expires_at: updatedExpiry.toISOString()
           })
         });
-        console.log(`VIP Pro 25 hari aktif untuk: ${buyerEmail}`);
       }
 
-      // 4. Catat transaksi
+      // 4. Catat riwayat ke tabel transactions
       await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
         method: 'POST',
         headers,
@@ -153,40 +144,11 @@ export default async function handler(req, res) {
         })
       });
 
-      // 5. Bonus referral (+7 hari)
-      if (targetUser && targetUser.referred_by) {
-        try {
-          const inviterRes = await fetch(`${SUPABASE_URL}/rest/v1/users?referral_code=eq.${encodeURIComponent(targetUser.referred_by)}&select=*`, { headers });
-          const inviters = await inviterRes.json();
-          const inviter = inviters && inviters.length > 0 ? inviters[0] : null;
-
-          if (inviter) {
-            const invCurrentExp = inviter.vip_expires_at && new Date(inviter.vip_expires_at) > now
-              ? new Date(inviter.vip_expires_at)
-              : now;
-            const invNewExp = new Date(invCurrentExp.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-            await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${inviter.id}`, {
-              method: 'PATCH',
-              headers,
-              body: JSON.stringify({
-                is_vip: true,
-                vip_expires_at: invNewExp.toISOString()
-              })
-            });
-            console.log(`Bonus +7 hari masuk ke referral: ${inviter.email}`);
-          }
-        } catch (refErr) {
-          console.error('Error proses bonus referral:', refErr);
-        }
-      }
-
       return res.status(200).json({ success: true, message: 'Pembayaran berhasil diproses otomatis' });
     }
 
     return res.status(200).json({ success: true, message: 'Status pembayaran belum berhasil' });
   } catch (err) {
-    console.error('Error webhook iPaymu:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }

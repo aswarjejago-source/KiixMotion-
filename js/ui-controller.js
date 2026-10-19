@@ -134,13 +134,13 @@ function gantiLayarNav(layar) {
   if (layar === 'dashboard') {
     if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
     if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
-    setTimeout(renderVideoAsliKeGrid, 100);
+    setTimeout(renderVideoGridUtama, 100);
   }
   if (layar === 'generate') {
-    if (typeof setProviderUtama === 'function') setProviderUtama(engineProvider || 'kiix');
+    if (typeof setProviderUtama === 'function') setProviderUtama(typeof engineProvider !== 'undefined' ? engineProvider : 'kiix');
   }
   if (layar === 'history') {
-    setTimeout(renderVideoAsliKeGrid, 100); // MEMUAT RIWAYAT VIDEO OTOMATIS
+    setTimeout(renderVideoGridUtama, 100); // MEMUAT RIWAYAT VIDEO OTOMATIS
   }
   if (layar === 'workflow-ugc' && typeof initWorkflowUGC === 'function') {
     initWorkflowUGC();
@@ -159,7 +159,8 @@ function gantiLayarNav(layar) {
   if (layar === 'admin-pool' && typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
 }
 
-var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1'] || '[]');
+// FIX 1: Perbaikan kurung tutup ')' pada localStorage.getItem
+var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
 
 window.unggahKeGaleri = function(input) {
   if (!input.files || !input.files[0]) return;
@@ -232,7 +233,8 @@ window.renderGaleri = function() {
   wadah.innerHTML = html;
 };
 
-window.renderVideoAsliKeGrid = function() {
+// FIX 2: Gunakan referensi fungsi internal agar tidak ketimpa api-engine.js & tidak infinite loop
+function renderVideoGridUtama() {
   var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
   var wadahHistory = document.getElementById('wadah-list-history');
   var txtCounter = document.getElementById('txt-counter-history');
@@ -324,7 +326,9 @@ window.renderVideoAsliKeGrid = function() {
     dataTerbaru.slice(0, 3).forEach(function(v) { htmlDashboard += bikinKartuHTML(v); });
     wadahDashboard.innerHTML = htmlDashboard;
   }
-};
+}
+
+window.renderVideoAsliKeGrid = renderVideoGridUtama;
 
 window.hapusTugasBerdasarkanId = function(id) {
   if (typeof mintaKonfirmasi === 'function') {
@@ -335,7 +339,7 @@ window.hapusTugasBerdasarkanId = function(id) {
           if (riwayatGenerateList[idx].intervalObj) clearInterval(riwayatGenerateList[idx].intervalObj);
           riwayatGenerateList.splice(idx, 1);
           if (typeof simpanStorage === 'function') simpanStorage();
-          renderVideoAsliKeGrid();
+          renderVideoGridUtama();
           tampilkanNotif('Riwayat tugas berhasil dihapus', 'sukses');
         }
       }
@@ -344,7 +348,7 @@ window.hapusTugasBerdasarkanId = function(id) {
 };
 
 window.renderLayarHistory = function() { 
-  renderVideoAsliKeGrid(); 
+  renderVideoGridUtama(); 
 };
 
 function pilihPaketKredit(tipe) {
@@ -841,17 +845,25 @@ window.salinSatuKey = function(key) {
     }
 }
 
+var kunciObserver = false;
 const observer = new MutationObserver(function(mutations) {
+  if (kunciObserver) return;
   mutations.forEach(function(mutation) {
     if (mutation.target.id === 'wadah-list-history' || mutation.target.id === 'wadah-job-terbaru-dashboard') {
       if (mutation.target.innerHTML.includes('text-slate-700 font-bold')) {
-        renderVideoAsliKeGrid();
+        kunciObserver = true;
+        renderVideoGridUtama();
+        setTimeout(function() { kunciObserver = false; }, 100);
       }
     }
   });
 });
 
 document.addEventListener("DOMContentLoaded", function() {
+  // Pastikan fungsi render tidak ketimpa oleh api-engine.js
+  window.renderVideoAsliKeGrid = renderVideoGridUtama;
+  window.renderLayarHistory = renderVideoGridUtama;
+
   var wadahHist = document.getElementById('wadah-list-history');
   var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
   if (wadahHist) observer.observe(wadahHist, { childList: true, subtree: true });

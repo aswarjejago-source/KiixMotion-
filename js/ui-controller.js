@@ -8,9 +8,6 @@ var pendingKonfirmasiFn = null;
 var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
 var paketKreditAktif = '5k';
 
-// -------------------------------------------------------------
-// FUNGSI NOTIFIKASI & MODAL GLOBAL
-// -------------------------------------------------------------
 function tampilkanNotif(pesan, jenis) {
   var wadah = document.getElementById('toast-container');
   if (!wadah) return;
@@ -25,6 +22,14 @@ function tampilkanNotif(pesan, jenis) {
     el.style.transition = 'all 0.3s ease';
     setTimeout(function() { el.remove(); }, 300);
   }, 4500);
+}
+
+function aturTampilanHalamanUtama() {
+  var vWorkbench = document.getElementById('view-workbench');
+  var navHeader = document.getElementById('main-header-nav');
+  if (vWorkbench) vWorkbench.style.display = 'block';
+  if (navHeader) navHeader.style.display = 'flex';
+  gantiLayarNav(navLayarAktif);
 }
 
 function mintaKonfirmasi(pesan, callbackYa) {
@@ -45,7 +50,9 @@ function tutupModalKonfirmasi(apakahYa) {
   pendingKonfirmasiFn = null;
 }
 
-function bukaGrupTelegram() { window.open(linkTelegramResmi, '_blank'); }
+function bukaGrupTelegram() {
+  window.open(linkTelegramResmi, '_blank');
+}
 
 function bukaModalFormKey() {
   var modal = document.getElementById('modal-popup-key');
@@ -73,7 +80,7 @@ function togglePanduanKey() {
 }
 
 // -------------------------------------------------------------
-// NAVIGASI UTAMA & RENDER OTOMATIS SAAT PINDAH TAB
+// NAVIGASI UTAMA
 // -------------------------------------------------------------
 window.gantiLayarNav = function(layar) {
   navLayarAktif = layar;
@@ -97,14 +104,14 @@ window.gantiLayarNav = function(layar) {
     }
   });
   
-  // PEMANGGILAN OTOMATIS RENDER DATA
+  // PEMANGGILAN OTOMATIS SAAT PINDAH TAB
   if (layar === 'dashboard') {
     if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
     renderVideoAsliKeGrid();
   }
   if (layar === 'generate') {
     setProviderUtama(window.engineProvider || 'kiix');
-    renderListAkunDiKelola(); // Supaya dropdown API di generate ikut terupdate
+    renderListAkunDiKelola(); 
   }
   if (layar === 'history') {
     renderVideoAsliKeGrid();
@@ -124,14 +131,13 @@ window.gantiLayarNav = function(layar) {
 };
 
 // -------------------------------------------------------------
-// FITUR GENERATE (PILIH ENGINE) - FIX TOMBOL RUNNINGHUB
+// FITUR GENERATE (PILIH ENGINE)
 // -------------------------------------------------------------
 window.engineProvider = 'kiix';
 
 window.setProviderUtama = function(prov) {
     window.engineProvider = prov;
     
-    // Matikan semua border & badge aktif dulu
     ['kiix', 'runninghub'].forEach(p => {
         let card = document.getElementById('c-prov-' + p);
         let badge = document.getElementById('b-prov-' + p);
@@ -142,7 +148,6 @@ window.setProviderUtama = function(prov) {
         if(badge) badge.style.display = 'none';
     });
     
-    // Nyalakan border & badge untuk engine yg dipilih
     let activeCard = document.getElementById('c-prov-' + prov);
     let activeBadge = document.getElementById('b-prov-' + prov);
     if(activeCard) {
@@ -151,7 +156,6 @@ window.setProviderUtama = function(prov) {
     }
     if(activeBadge) activeBadge.style.display = 'inline-block';
 
-    // Update detail di dalam "2. Akun & Estimasi"
     let title = document.getElementById('t-engine-title');
     let cost = document.getElementById('t-engine-total');
     let boxAkun = document.getElementById('box-wrap-dropdown-akun');
@@ -159,30 +163,59 @@ window.setProviderUtama = function(prov) {
     if(prov === 'kiix') {
         if(title) title.innerText = 'WAN MOTION CONTROL 1080HD';
         if(cost) cost.innerText = '1 Kredit';
-        if(boxAkun) boxAkun.style.display = 'none'; // Kalo pake Kiix, ga usah pilih API Key
+        if(boxAkun) boxAkun.style.display = 'none'; 
     } else if(prov === 'runninghub') {
         if(title) title.innerText = 'RUNNINGHUB PRO (WAN)';
         if(cost) cost.innerText = '≈ 478 coin';
-        if(boxAkun) boxAkun.style.display = 'block'; // Kalo pake RH, wajib pilih API Key
+        if(boxAkun) boxAkun.style.display = 'block'; 
+        updateBadgeKoinGenerate(); // Pas pindah ke runninghub, langsung perbarui badge
     }
 };
 
 // -------------------------------------------------------------
-// HISTORY RENDER - FIX LIST KOSONG
+// UPDATE BADGE KOIN BERDASARKAN DROPDOWN PILIHAN
+// -------------------------------------------------------------
+window.updateBadgeKoinGenerate = function() {
+    var drop = document.getElementById('sel-dropdown-akun');
+    var badge = document.getElementById('badge-total-saldo-gen');
+    if(!drop || !badge) return;
+    
+    var val = drop.value;
+    var dbAkun = window.dbAkun || JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
+    
+    var selected = dbAkun.find(a => String(a.id) === String(val));
+    if(selected) {
+        badge.innerText = selected.saldo + " coin";
+        badge.className = selected.saldo >= 478 
+            ? "text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg" 
+            : "text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg";
+    } else {
+        badge.innerText = "0 coin";
+        badge.className = "text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg";
+    }
+};
+
+// -------------------------------------------------------------
+// HISTORY RENDER (BACA DARI DATABASE.JS ATAU LOKAL)
 // -------------------------------------------------------------
 window.renderVideoAsliKeGrid = function() {
   var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
   var wadahHistory = document.getElementById('wadah-list-history');
   var txtCounter = document.getElementById('txt-counter-history');
   
-  // Narik data beneran dari localStorage
-  var riwayatLokal = JSON.parse(localStorage.getItem('kiix_riwayat_gen_v1') || '[]');
-  window.riwayatGenerateList = riwayatLokal; // Sinkronisasi variabel global
+  var riwayatLokal = [];
+  
+  // Deteksi jika riwayatGenerateList dari database.js tersedia
+  if (typeof window.riwayatGenerateList !== 'undefined' && window.riwayatGenerateList.length > 0) {
+      riwayatLokal = window.riwayatGenerateList;
+  } else {
+      riwayatLokal = JSON.parse(localStorage.getItem('kiix_riwayat_gen_v1') || '[]');
+  }
   
   var dataTerbaru = [];
 
   if (riwayatLokal.length > 0) {
-    dataTerbaru = [...riwayatLokal].reverse(); // Urutkan dari yg terbaru
+    dataTerbaru = [...riwayatLokal].reverse(); // Tampilkan yg paling baru di atas
     if (txtCounter) txtCounter.innerText = riwayatLokal.length + ' tugas';
   } else {
     var htmlKosong = `
@@ -204,26 +237,49 @@ window.renderVideoAsliKeGrid = function() {
     var areaMedia = '';
 
     if (linkVideo) {
-      areaMedia = `<video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata" playsinline></video>
-      <div class="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm z-10 pointer-events-none"><i class="ph ph-check-circle"></i> Selesai</div>`;
+      areaMedia = `
+      <video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata" playsinline></video>
+      <div class="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm z-10 pointer-events-none">
+         <i class="ph ph-check-circle"></i> Selesai
+      </div>`;
     } else if (isFailed || (isSelesai && !linkVideo)) {
       var teksError = video.status || "❌ Gagal Dirender Server";
-      areaMedia = `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-rose-500 p-4 text-center"><i class="ph-fill ph-warning-circle text-4xl mb-2 drop-shadow-md"></i><span class="text-xs sm:text-sm font-bold leading-tight">${teksError}</span></div>`;
+      areaMedia = `
+      <div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-rose-500 p-4 text-center">
+         <i class="ph-fill ph-warning-circle text-4xl mb-2 drop-shadow-md"></i>
+         <span class="text-xs sm:text-sm font-bold leading-tight">${teksError}</span>
+      </div>`;
     } else {
       var progress = video.progress || 0;
-      areaMedia = `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400"><i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i><span class="text-xs font-bold mb-1">Sedang Memproses Video...</span><span class="text-[10px] text-kmViolet font-bold tabular-nums">${progress}%</span></div>`;
+      areaMedia = `
+      <div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400">
+         <i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i>
+         <span class="text-xs font-bold mb-1">Sedang Memproses Video...</span>
+         <span class="text-[10px] text-kmViolet font-bold tabular-nums">${progress}%</span>
+      </div>`;
     }
 
-    var tombolDownload = linkVideo ? `<a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download"><i class="ph ph-download-simple text-lg hover:scale-110"></i></a>` : '';
+    var tombolDownload = linkVideo ? 
+      `<a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download"><i class="ph ph-download-simple text-lg hover:scale-110"></i></a>` : '';
 
     return `
     <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow hover:shadow-lg transition flex flex-col group">
       <div class="bg-black aspect-video relative flex items-center justify-center overflow-hidden">${areaMedia}</div>
       <div class="p-4 space-y-3">
-         <div class="flex items-center gap-2.5"><span class="w-2 h-2 rounded-full ${isFailed ? 'bg-rose-500 shadow-[0_0_8px_#ef4444]' : 'bg-kmViolet shadow-[0_0_8px_#7C3AED]'}"></span><h4 class="text-sm font-bold text-slate-800 truncate">${namaEngine}</h4></div>
+         <div class="flex items-center gap-2.5">
+            <span class="w-2 h-2 rounded-full ${isFailed ? 'bg-rose-500 shadow-[0_0_8px_#ef4444]' : 'bg-kmViolet shadow-[0_0_8px_#7C3AED]'}"></span>
+            <h4 class="text-sm font-bold text-slate-800 truncate">${namaEngine}</h4>
+         </div>
          <div class="flex items-center justify-between border-t border-kmBorder pt-3 mt-2">
-            <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium truncate max-w-[60%]"><i class="ph-fill ph-tiktok-logo text-sm text-slate-800"></i> ID: ${video.id || '-'}</div>
-            <div class="flex items-center gap-4">${tombolDownload}<button onclick="hapusTugasBerdasarkanId('${video.id}')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus Tugas"><i class="ph ph-trash text-lg hover:scale-110"></i></button></div>
+            <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium truncate max-w-[60%]">
+               <i class="ph-fill ph-tiktok-logo text-sm text-slate-800"></i> ID: ${video.id || '-'}
+            </div>
+            <div class="flex items-center gap-4">
+               ${tombolDownload}
+               <button onclick="hapusTugasBerdasarkanId('${video.id}')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus Tugas">
+                  <i class="ph ph-trash text-lg hover:scale-110"></i>
+               </button>
+            </div>
          </div>
       </div>
     </div>`;
@@ -244,20 +300,31 @@ window.renderVideoAsliKeGrid = function() {
 
 window.hapusTugasBerdasarkanId = function(id) {
   mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
-      var rwLokal = JSON.parse(localStorage.getItem('kiix_riwayat_gen_v1') || '[]');
-      var findIdx = rwLokal.findIndex(t => String(t.id) === String(id));
-      if(findIdx > -1) {
-          if (rwLokal[findIdx].intervalObj) clearInterval(rwLokal[findIdx].intervalObj);
-          rwLokal.splice(findIdx, 1);
+      // Prioritaskan hapus dari global database.js jika ada
+      if (typeof window.riwayatGenerateList !== 'undefined' && window.riwayatGenerateList.length > 0) {
+          var findIdx = window.riwayatGenerateList.findIndex(t => String(t.id) === String(id));
+          if(findIdx > -1) {
+              if (window.riwayatGenerateList[findIdx].intervalObj) clearInterval(window.riwayatGenerateList[findIdx].intervalObj);
+              window.riwayatGenerateList.splice(findIdx, 1);
+              if (typeof simpanStorage === 'function') simpanStorage();
+          }
+      } else {
+          // Fallback hapus via localStorage
+          var rwLokal = JSON.parse(localStorage.getItem('kiix_riwayat_gen_v1') || '[]');
+          rwLokal = rwLokal.filter(t => String(t.id) !== String(id));
           localStorage.setItem('kiix_riwayat_gen_v1', JSON.stringify(rwLokal));
-          renderVideoAsliKeGrid();
-          tampilkanNotif('Riwayat tugas berhasil dihapus', 'sukses');
       }
+      renderVideoAsliKeGrid();
+      tampilkanNotif('Riwayat tugas berhasil dihapus', 'sukses');
   });
 };
 
+window.renderLayarHistory = function() { 
+  renderVideoAsliKeGrid(); 
+};
+
 // -------------------------------------------------------------
-// FITUR KELOLA AKUN API KEY (LOKAL) & SINKRONISASI
+// KELOLA AKUN API KEY (LOKAL) & SINKRONISASI
 // -------------------------------------------------------------
 window.renderListAkunDiKelola = function() {
     var wadah = document.getElementById('wadah-kartu-akun-list');
@@ -273,7 +340,10 @@ window.renderListAkunDiKelola = function() {
             <p class="text-sm font-bold">Belum ada API key terhubung</p>
             <p class="text-xs mt-1">Klik "+ Add Apikey" di atas untuk menambahkan.</p>
         </div>`;
-        if(dropAkun) dropAkun.innerHTML = '<option value="">(Kosong) Tambah API Key dulu</option>';
+        if(dropAkun) {
+            dropAkun.innerHTML = '<option value="">(Kosong) Tambah API Key dulu</option>';
+            updateBadgeKoinGenerate(); // update badge 0 coin
+        }
         return;
     }
 
@@ -310,7 +380,10 @@ window.renderListAkunDiKelola = function() {
     });
 
     if(wadah) wadah.innerHTML = html;
-    if(dropAkun) dropAkun.innerHTML = dropHtml;
+    if(dropAkun) {
+        dropAkun.innerHTML = dropHtml;
+        updateBadgeKoinGenerate(); // update badge coin
+    }
 };
 
 window.hapusAkunLokal = function(id) {
@@ -366,12 +439,11 @@ window.simpanAkunBaruDariModal = async function() {
     if (btn) { btn.disabled = false; btn.innerText = 'Tambah'; }
 };
 
-// FITUR BARU: FUNGSI REFRESH SALDO SEMUA AKUN LOKAL
 window.refreshSemuaAkunLokal = async function() {
     var dbAkun = JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
     if (dbAkun.length === 0) return tampilkanNotif('Belum ada API Key terhubung untuk di-refresh.', 'error');
 
-    tampilkanNotif('Sedang menyinkronkan saldo koin ke server...', 'info');
+    tampilkanNotif('Menyinkronkan saldo koin ke server...', 'info');
 
     var berhasilsync = 0;
     for (let i = 0; i < dbAkun.length; i++) {
@@ -397,7 +469,7 @@ window.refreshSemuaAkunLokal = async function() {
 
     localStorage.setItem('kiix_akun_local_v1', JSON.stringify(dbAkun));
     window.dbAkun = dbAkun;
-    renderListAkunDiKelola(); // Update UI listnya
+    renderListAkunDiKelola(); 
     
     if (berhasilsync > 0) {
         tampilkanNotif('✓ Saldo berhasil disinkronisasi ulang!', 'sukses');
@@ -542,6 +614,14 @@ window.jalankanBayarVIP = async function() {
     if (data.Success || data.Data) window.location.href = data.Data.Url || data.url;
     else tampilkanNotif("Gagal membuat transaksi", "error");
   }).catch(() => tampilkanNotif("Gagal koneksi ke server pembayaran.", "error"));
+};
+
+window.prosesBeliVIP = jalankanBayarVIP;
+window.prosesBeliKredit = function(nom, krd) {
+  if (krd <= 4) pilihPaketKredit('2k');
+  else if (krd <= 10) pilihPaketKredit('5k');
+  else pilihPaketKredit('10k');
+  jalankanBayarKredit();
 };
 
 // -------------------------------------------------------------

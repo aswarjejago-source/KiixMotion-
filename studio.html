@@ -52,6 +52,15 @@
   </style>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  
+  <!-- SCRIPT SUPABASE -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+      var supabaseUrl = window.supabaseUrl || 'https://fybyupwcburndxulqqnn.supabase.co';
+      var supabaseAnonKey = window.supabaseAnonKey || 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
+      window.supa = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+  </script>
+
   <script src="js/database.js" defer></script>
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
@@ -428,14 +437,13 @@
     <div id="layar-kelola-akun" class="layar-konten space-y-6" style="display: none;">
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
         
-        <!-- FITUR BARU: TOMBOL SYNC SALDO DITAMBAHKAN DI SINI -->
+        <!-- FIX TOMBOL SYNC: Tombol Sync Saldo ada disini -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2>
             <p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub kamu.</p>
           </div>
           <div class="flex items-center gap-2">
-            <!-- TOMBOL SYNC SALDO -->
             <button onclick="refreshSemuaAkunLokal()" class="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-sm">
                 <i class="ph ph-arrows-clockwise text-base"></i> Sync Saldo
             </button>
@@ -927,8 +935,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
               const planNamaVIP = document.getElementById('label-plan-nama');
               const planDescVIP = document.getElementById('label-plan-desc');
               const badgeVIP = document.getElementById('label-status-vip-badge');
-              const boxKreditAngka = document.getElementById('label-box-kredit-angka');
-              const boxKreditInfo = document.getElementById('label-box-kredit-info');
 
               var isVipActive = false;
               if (!error && userRow && userRow.is_vip === true) {
@@ -951,52 +957,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   if (planNamaVIP) planNamaVIP.innerText = "Free";
                   if (planDescVIP) planDescVIP.innerText = "Belum berlangganan VIP (Pakai kuota server di Beli Kredit)";
                   if (badgeVIP) { badgeVIP.innerText = "Non-Aktif"; badgeVIP.className = "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full"; }
-              }
-
-              let queryOr = [];
-              if (userRow && userRow.id) queryOr.push(`user_id.eq.${userRow.id}`);
-              if (authId && (!userRow || authId !== userRow.id)) queryOr.push(`user_id.eq.${authId}`);
-
-              if (queryOr.length > 0) {
-                const { data: userCredit } = await supa
-                    .from('user_credits')
-                    .select('credits_balance, expires_at')
-                    .or(queryOr.join(','))
-                    .order('credits_balance', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
-
-                if (userCredit && userCredit.credits_balance > 0) {
-                  const expDate = new Date(userCredit.expires_at);
-                  const expTime = expDate.getTime();
-                  
-                  if (expTime > new Date().getTime()) {
-                    const diffMs = expTime - new Date().getTime();
-                    const jamSisa = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
-                    const tglFormat = expDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
-                    const jamFormat = expDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-                    const teksExpiredLengkap = `${tglFormat} pukul ${jamFormat} WIB`;
-
-                    if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
-                    if (boxKreditInfo) boxKreditInfo.innerText = `Berlaku untuk ${userCredit.credits_balance} video · Hangus: ${teksExpiredLengkap} (${jamSisa} jam lagi)`;
-                    
-                    if (!isVipActive && badgeEl) {
-                      badgeEl.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
-                      badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
-                      if (expEl) { expEl.innerText = "Hangus: " + teksExpiredLengkap; expEl.classList.remove('hidden'); }
-                    }
-                    return;
-                  }
-                }
-              }
-
-              if (boxKreditAngka) boxKreditAngka.innerText = "0";
-              if (boxKreditInfo) boxKreditInfo.innerText = "Belum ada paket kredit aktif. Beli paket di bawah untuk render.";
-
-              if (!isVipActive && badgeEl) {
-                  badgeEl.innerText = "Member Aktif";
-                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
-                  if (expEl) expEl.classList.add('hidden');
+                  if (badgeEl) { badgeEl.innerText = "Member Aktif"; badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block"; if (expEl) expEl.classList.add('hidden'); }
               }
           } catch (err) { console.error("Gagal membaca status member:", err); } finally { sedangUpdateMemberUI = false; }
       }

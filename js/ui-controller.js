@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 2: UI CONTROLLER
+// PILAR 2: UI CONTROLLER (LENGKAP DENGAN TOMBOL NUKLIR)
 // File: js/ui-controller.js
 // ==========================================
 
@@ -390,7 +390,7 @@ function pilihPaketKredit(tipe) {
 
   } else if (tipe === '10k') {
     if (btn10k) {
-      btn10k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
+      btn10k.className = "p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group";
       var dot10 = btn10k.querySelector('.rounded-full');
       if (dot10) dot10.className = "w-2 h-2 rounded-full bg-kmViolet";
     }
@@ -676,6 +676,27 @@ async function sapuBersihAkunHabis() {
     }
   });
 }
+
+window.kosongkanSeluruhKolam = async function() {
+  mintaKonfirmasi("PERINGATAN NUKLIR: Yakin ingin MENGHAPUS SELURUH AKUN di kolam tanpa terkecuali?", async function() {
+    if (typeof supa === 'undefined') return;
+    
+    var btn = document.querySelector('button[onclick="kosongkanSeluruhKolam()"]');
+    var teksAsli = btn ? btn.innerHTML : '';
+    if (btn) btn.innerHTML = '<i class="ph ph-spinner animate-spin text-sm"></i> Menghapus...';
+    
+    const { error } = await supa.from('runninghub_pool').delete().not('id', 'is', null);
+    
+    if (btn) btn.innerHTML = teksAsli;
+
+    if (!error) {
+      tampilkanNotif('Seluruh akun di kolam berhasil dihapus total!', 'sukses');
+      muatDataKolamAdmin();
+    } else {
+      tampilkanNotif('Gagal mengosongkan kolam: ' + error.message, 'error');
+    }
+  });
+};
 
 async function refreshDataKolamAdmin() {
   tampilkanNotif('Menyinkronkan saldo seluruh kunci kolam...', 'info');

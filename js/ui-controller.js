@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 2: UI CONTROLLER
+// PILAR 2: UI CONTROLLER (FINAL FIX HISTORY & APIKEY)
 // File: js/ui-controller.js
 // ==========================================
 
@@ -102,6 +102,7 @@ function togglePanduanKey() {
   }
 }
 
+// NAVIGASI UTAMA (DILENGKAPI PEMANGGILAN OTOMATIS RENDER & KELOLA AKUN)
 function gantiLayarNav(layar) {
   navLayarAktif = layar;
   var ids = ['dashboard', 'generate', 'history', 'workflow-ugc', 'galeri', 'kelola-akun', 'beli-kredit', 'langganan', 'admin-pool'];
@@ -139,13 +140,15 @@ function gantiLayarNav(layar) {
     if (typeof setProviderUtama === 'function') setProviderUtama(engineProvider || 'kiix');
   }
   if (layar === 'history') {
-    setTimeout(renderVideoAsliKeGrid, 100);
+    setTimeout(renderVideoAsliKeGrid, 100); // MEMUAT RIWAYAT VIDEO OTOMATIS
   }
   if (layar === 'workflow-ugc' && typeof initWorkflowUGC === 'function') {
     initWorkflowUGC();
   }
   if (layar === 'galeri') renderGaleri();
-  if (layar === 'kelola-akun' && typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
+  if (layar === 'kelola-akun') {
+    if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola(); // MEMUAT AKUN APIKEY LOKAL
+  }
   if (layar === 'beli-kredit') {
     if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
     pilihPaketKredit(paketKreditAktif || '5k');
@@ -156,7 +159,7 @@ function gantiLayarNav(layar) {
   if (layar === 'admin-pool' && typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
 }
 
-var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
+var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1'] || '[]');
 
 window.unggahKeGaleri = function(input) {
   if (!input.files || !input.files[0]) return;
@@ -390,7 +393,7 @@ function pilihPaketKredit(tipe) {
 
   } else if (tipe === '10k') {
     if (btn10k) {
-      btn10k.className = "p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group";
+      btn10k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
       var dot10 = btn10k.querySelector('.rounded-full');
       if (dot10) dot10.className = "w-2 h-2 rounded-full bg-kmViolet";
     }

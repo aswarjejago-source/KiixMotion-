@@ -1,898 +1,1000 @@
-// ==========================================
-// PILAR 2: UI CONTROLLER (FINAL FIX HISTORY & APIKEY)
-// File: js/ui-controller.js
-// ==========================================
-
-var currentView = 'workbench';
-var navLayarAktif = 'dashboard';
-var tabAkunAktif = 'runninghub';
-var isModePilih = false;
-var pendingKonfirmasiFn = null;
-var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
-
-var paketKreditAktif = '5k';
-
-function tampilkanNotif(pesan, jenis) {
-  var wadah = document.getElementById('toast-container');
-  if (!wadah) return;
-  var el = document.createElement('div');
-  var warnaBg = jenis === 'error' ? 'bg-rose-600 text-white' : (jenis === 'sukses' ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white');
-  el.className = 'animate-toast px-5 py-3 rounded-2xl shadow-xl font-bold text-xs sm:text-sm flex items-center gap-2 mb-2 ' + warnaBg;
-  el.innerHTML = '<span>' + (jenis === 'error' ? '⚠️' : (jenis === 'sukses' ? '✓' : 'ℹ️')) + '</span> <span>' + pesan + '</span>';
-  wadah.appendChild(el);
-  setTimeout(function() {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(-10px)';
-    el.style.transition = 'all 0.3s ease';
-    setTimeout(function() { el.remove(); }, 300);
-  }, 4500);
-}
-
-function aturTampilanHalamanUtama() {
-  var vWorkbench = document.getElementById('view-workbench');
-  var navHeader = document.getElementById('main-header-nav');
-  if (vWorkbench) vWorkbench.style.display = 'block';
-  if (navHeader) navHeader.style.display = 'flex';
-  gantiLayarNav(navLayarAktif);
-}
-
-function mintaKonfirmasi(pesan, callbackYa) {
-  var modal = document.getElementById('modal-konfirmasi-box');
-  var txt = document.getElementById('modal-konfirmasi-teks');
-  if (!modal || !txt) return;
-  txt.innerText = pesan;
-  pendingKonfirmasiFn = callbackYa;
-  modal.style.display = 'flex';
-}
-
-function tutupModalKonfirmasi(apakahYa) {
-  var modal = document.getElementById('modal-konfirmasi-box');
-  if (modal) modal.style.display = 'none';
-  if (apakahYa && typeof pendingKonfirmasiFn === 'function') {
-    pendingKonfirmasiFn();
-  }
-  pendingKonfirmasiFn = null;
-}
-
-function bukaGrupTelegram() {
-  window.open(linkTelegramResmi, '_blank');
-}
-
-function bukaModalFormKey() {
-  var modal = document.getElementById('modal-popup-key');
-  var inKey = document.getElementById('in-modal-key');
-  if (inKey) inKey.value = ''; 
-  if (modal) modal.style.display = 'flex';
-}
-
-function tutupModalFormKey() {
-  var modal = document.getElementById('modal-popup-key');
-  if (modal) modal.style.display = 'none';
-}
-
-function toggleModePilihHapus() {
-  isModePilih = !isModePilih;
-  var btn = document.getElementById('btn-toggle-pilih'), bar = document.getElementById('bar-aksi-hapus');
-  var chks = document.querySelectorAll('.chk-seleksi-akun');
-  if (btn) {
-    btn.innerText = isModePilih ? 'Batal' : 'Pilih';
-    btn.className = isModePilih ? "px-4 py-2 bg-rose-50 text-rose-600 text-sm font-bold rounded-xl border border-rose-200 cursor-pointer" : "px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition cursor-pointer";
-  }
-  if (bar) bar.style.display = isModePilih ? 'flex' : 'none';
-  chks.forEach(function(c) {
-    if (isModePilih) c.classList.remove('hidden'); else { c.checked = false; c.classList.add('hidden'); }
-  });
-}
-
-function centangSemuaAkun(master) {
-  document.querySelectorAll('.chk-seleksi-akun').forEach(function(c) { c.checked = master.checked; });
-}
-
-function togglePanduanKey() {
-  var konten = document.getElementById('konten-panduan-key');
-  var panah = document.getElementById('icon-panah-panduan');
-  if (!konten || !panah) return;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>KiixMotion Studio — AI Video & Image Generation Platform</title>
   
-  if (konten.style.display === 'none') {
-    konten.style.display = 'block';
-    panah.style.transform = 'rotate(180deg)';
-  } else {
-    konten.style.display = 'none';
-    panah.style.transform = 'rotate(0deg)';
-  }
-}
-
-// NAVIGASI UTAMA (DILENGKAPI PEMANGGILAN OTOMATIS RENDER & KELOLA AKUN)
-function gantiLayarNav(layar) {
-  navLayarAktif = layar;
-  var ids = ['dashboard', 'generate', 'history', 'workflow-ugc', 'galeri', 'kelola-akun', 'beli-kredit', 'langganan', 'admin-pool'];
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  ids.forEach(function(id) {
-    var el = document.getElementById('layar-' + id);
-    var btn = document.getElementById('nav-btn-' + id); 
-    
-    if (el) el.style.display = (layar === id) ? 'block' : 'none';
-    
-    if (btn) {
-      if (id === 'admin-pool') {
-        if (layar === 'admin-pool') {
-          btn.className = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500 text-white border border-amber-500 cursor-pointer whitespace-nowrap transition mt-2 shadow-sm";
-        } else {
-          btn.className = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500/10 text-amber-600 border border-amber-300 hover:bg-amber-500 hover:text-white cursor-pointer whitespace-nowrap transition mt-2";
-        }
-      } else {
-        var baseClass = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
-        if (layar === id) {
-          btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]"; 
-        } else {
-          btn.className = baseClass + "text-slate-600 hover:bg-slate-50 hover:text-slate-800"; 
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Ikon Phosphor (Defer agar tidak memblokir render saat CDN lambat) -->
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
+          colors: {
+            kmBg: '#FBF9F5', kmCard: '#FFFFFF', kmBorder: '#EFECE6',
+            kmTextPrimary: '#1A1816', kmTextSecondary: '#736B63',
+            kmViolet: '#7C3AED', kmVioletHover: '#6D28D9',
+            kmVioletLight: '#F3EEFF', kmAccent: '#D97706'
+          }
         }
       }
-    }
-  });
+    };
+  </script>
   
-  if (layar === 'dashboard') {
-    if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
-    if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
-    setTimeout(renderVideoAsliKeGrid, 100);
-  }
-  if (layar === 'generate') {
-    var provAktif = (typeof engineProvider !== 'undefined' && engineProvider) ? engineProvider : 'kiix';
-    if (typeof setProviderUtama === 'function') setProviderUtama(provAktif);
-  }
-  if (layar === 'history') {
-    setTimeout(renderVideoAsliKeGrid, 100); // MEMUAT RIWAYAT VIDEO OTOMATIS
-  }
-  if (layar === 'workflow-ugc' && typeof initWorkflowUGC === 'function') {
-    initWorkflowUGC();
-  }
-  if (layar === 'galeri') renderGaleri();
-  if (layar === 'kelola-akun') {
-    if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola(); // MEMUAT AKUN APIKEY LOKAL
-  }
-  if (layar === 'beli-kredit') {
-    if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
-    pilihPaketKredit(paketKreditAktif || '5k');
-  }
-  if (layar === 'langganan') {
-    if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
-  }
-  if (layar === 'admin-pool' && typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
-}
-
-var galeriList = [];
-try {
-  galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
-  if (!Array.isArray(galeriList)) galeriList = [];
-} catch (e) {
-  galeriList = [];
-}
-
-window.unggahKeGaleri = function(input) {
-  if (!input.files || !input.files[0]) return;
-  if (galeriList.length >= 50) {
-    tampilkanNotif('Kapasitas galeri sudah penuh (Maksimal 50 file).', 'error');
-    return;
-  }
-  var file = input.files[0];
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    galeriList.push({
-      id: Date.now(),
-      type: file.type.startsWith('video') ? 'video' : 'image',
-      url: e.target.result,
-      nama: file.name
-    });
-    try {
-      localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
-      renderGaleri();
-      tampilkanNotif('Media berhasil diunggah ke Galeri!', 'sukses');
-    } catch (err) {
-      galeriList.pop();
-      tampilkanNotif('Ukuran file terlalu besar untuk penyimpanan browser!', 'error');
-    }
-  };
-  reader.readAsDataURL(file);
-};
-
-window.hapusDariGaleri = function(id) {
-  mintaKonfirmasi("Apakah Anda yakin ingin menghapus media ini dari galeri?", function() {
-    galeriList = galeriList.filter(function(item) { return item.id !== id; });
-    try {
-      localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
-    } catch (e) {}
-    renderGaleri();
-    tampilkanNotif('File berhasil dihapus.', 'sukses');
-  });
-};
-
-window.renderGaleri = function() {
-  var wadah = document.getElementById('wadah-grid-galeri');
-  var txtInfo = document.getElementById('txt-info-kuota-galeri');
-  var txtPersen = document.getElementById('txt-persen-kuota');
-  
-  var totalFoto = galeriList.filter(function(i) { return i.type === 'image'; }).length;
-  var totalVideo = galeriList.filter(function(i) { return i.type === 'video'; }).length;
-  
-  if (txtInfo) txtInfo.innerText = totalFoto + ' foto · ' + totalVideo + ' video';
-  if (txtPersen) txtPersen.innerText = Math.round((galeriList.length / 50) * 100) + '%';
-
-  if (!wadah) return;
-
-  if (galeriList.length === 0) {
-    wadah.innerHTML = `
-    <div class="col-span-full py-8 text-center text-slate-400">
-       <p class="text-xs font-semibold">Belum ada file media yang diunggah.</p>
-    </div>`;
-    return;
-  }
-
-  var html = '';
-  galeriList.forEach(function(item) {
-    if (item.type === 'video') {
-      html += `
-      <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden relative group aspect-square modern-shadow">
-         <video src="${item.url}" class="w-full h-full object-cover"></video>
-         <button onclick="hapusDariGaleri(${item.id})" class="absolute top-2 right-2 w-7 h-7 bg-rose-600/90 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-md">✕</button>
-      </div>`;
-    } else {
-      html += `
-      <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden relative group aspect-square modern-shadow">
-         <img src="${item.url}" class="w-full h-full object-cover" />
-         <button onclick="hapusDariGaleri(${item.id})" class="absolute top-2 right-2 w-7 h-7 bg-rose-600/90 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-md">✕</button>
-      </div>`;
-    }
-  });
-  wadah.innerHTML = html;
-};
-
-var sedangRenderGrid = false;
-
-window.renderVideoAsliKeGrid = function() {
-  if (sedangRenderGrid) return;
-  sedangRenderGrid = true;
-
-  try {
-    var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
-    var wadahHistory = document.getElementById('wadah-list-history');
-    var txtCounter = document.getElementById('txt-counter-history');
+  <style>
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background-color: #FBF9F5; color: #1A1816; -webkit-tap-highlight-color: transparent; }
+    .modern-shadow { box-shadow: 0 10px 30px -5px rgba(26, 24, 22, 0.04), 0 4px 6px -2px rgba(26, 24, 22, 0.02); }
+    .violet-glow { box-shadow: 0 8px 20px -4px rgba(124, 58, 237, 0.2); }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .nav-btn-smooth { display: flex; align-items: center; gap: 12px; transition: all 0.2s ease-in-out; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
     
-    var dataTerbaru = [];
-
-    if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList && riwayatGenerateList.length > 0) {
-      dataTerbaru = [...riwayatGenerateList].reverse();
-      if (txtCounter) txtCounter.innerText = riwayatGenerateList.length + ' tugas';
-    } else {
-      var htmlKosong = `
-         <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
-            <span class="text-2xl">🎬</span>
-            Belum ada video yang di-generate.
-         </div>`;
-      if (wadahDashboard) wadahDashboard.innerHTML = htmlKosong;
-      if (wadahHistory) wadahHistory.innerHTML = htmlKosong;
-      if (txtCounter) txtCounter.innerText = '0 tugas';
-      return;
+    @keyframes checkmarkPop {
+      0% { transform: scale(0.6); opacity: 0; }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); opacity: 1; }
     }
+    .anim-check-pop { animation: checkmarkPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  </style>
 
-    function bikinKartuHTML(video) {
-      var linkVideo = video.url || video.video_url || video.hasil_url || video.videoUrl || '';
-      var namaEngine = video.engine || video.provider || video.model || 'Wan Motion Control';
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="js/database.js" defer></script>
+  <script src="js/ui-controller.js" defer></script>
+  <script src="js/api-engine.js" defer></script>
+  <script src="js/workflow-ugc.js" defer></script>
+</head>
+<body class="selection:bg-kmViolet selection:text-white pb-14 md:pb-0 md:flex md:h-screen md:overflow-hidden bg-kmBg">
+  
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
+
+  <!-- MODAL CEKLIS SUKSES RENDER -->
+  <div id="modal-ceklis-sukses" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-kmBorder rounded-3xl p-6 sm:p-7 max-w-xs w-full text-center shadow-2xl space-y-3.5 anim-check-pop">
+      <div class="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-400 text-emerald-600 flex items-center justify-center mx-auto text-2xl shadow-sm">
+        <i class="ph-bold ph-check"></i>
+      </div>
+      <div>
+        <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Tugas Berhasil Terkirim!</h3>
+        <p class="text-xs text-slate-500 mt-1">Video kamu sedang diproses di antrean studio.</p>
+        <div class="mt-2 text-[11px] font-mono font-bold text-kmViolet bg-violet-50 px-2.5 py-1 rounded-lg inline-block" id="label-ceklis-taskid">
+          ID: KM-000000
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <header id="main-header-nav" class="bg-white/90 backdrop-blur-md md:bg-white border-b md:border-b-0 md:border-r border-kmBorder px-4 sm:px-6 md:px-5 py-3.5 md:py-6 flex md:flex-col flex-wrap items-center md:items-start justify-between md:justify-start sticky top-0 z-40 gap-3 md:gap-6 md:w-[260px] shrink-0 h-auto md:h-screen transition-all shadow-[2px_0_15px_rgba(0,0,0,0.02)] overflow-y-auto hide-scrollbar">
+    <div class="flex items-center gap-3 w-full">
+      <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
+        <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="14" fill="#F3EEFF"/><path d="M14 10L22 22L14 34V10Z" fill="#7C3AED"/><path d="M22 22L30 10H22V22Z" fill="#A78BFA"/><path d="M22 22L30 34H22V22Z" fill="#6D28D9"/></svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-base font-black tracking-tight text-kmTextPrimary">KiixMotion</span>
+          <span class="text-[9px] uppercase font-bold tracking-widest bg-violet-100 text-kmViolet px-2 py-0.5 rounded-full border border-violet-200">Studio</span>
+        </div>
+        <p class="text-[11px] text-kmTextSecondary font-medium">AI Motion Control</p>
+      </div>
+    </div>
+    
+    <div class="w-full mt-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 pl-2">Meja Kerja</p></div>
+
+    <nav class="flex md:flex-col items-center md:items-stretch gap-1 bg-slate-50 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-kmBorder md:border-none w-full overflow-x-auto hide-scrollbar">
+      <button id="nav-btn-dashboard" onclick="gantiLayarNav('dashboard')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED] cursor-pointer whitespace-nowrap">
+        <i class="ph ph-squares-four text-lg"></i> Dashboard
+      </button>
       
-      var isFailed = (video.status && (video.status.toLowerCase().includes('gagal') || video.status.includes('❌')));
-      var isSelesai = video.selesai === true;
+      <button id="nav-btn-generate" onclick="gantiLayarNav('generate')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-magic-wand text-lg"></i> Generate
+      </button>
 
-      var areaMedia = '';
+      <button id="nav-btn-history" onclick="gantiLayarNav('history')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-clock-counter-clockwise text-lg"></i> History
+      </button>
+      <button id="nav-btn-workflow-ugc" onclick="gantiLayarNav('workflow-ugc')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-sparkle text-lg text-kmViolet"></i> Workflow UGC <span class="text-[9px] bg-violet-100 text-kmViolet px-1.5 py-0.2 rounded-md font-bold">PRO</span>
+      </button>
+      <button id="nav-btn-galeri" onclick="gantiLayarNav('galeri')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-images text-lg"></i> Galeri <span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-md font-bold">Maks 50</span>
+      </button>
+      
+      <div class="w-full mt-3 mb-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Kelola akun</p></div>
 
-      if (linkVideo) {
-        areaMedia = `<video src="${linkVideo}" class="w-full h-full object-cover bg-slate-900" controls preload="metadata" playsinline></video>
-        <div class="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm z-10 pointer-events-none">
-           <i class="ph ph-check-circle"></i> Selesai
-        </div>`;
-      } else if (isFailed || (isSelesai && !linkVideo)) {
-        var teksError = video.status || "❌ Gagal Dirender Server";
-        areaMedia = `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-rose-500 p-4 text-center">
-           <i class="ph-fill ph-warning-circle text-4xl mb-2 drop-shadow-md"></i>
-           <span class="text-xs sm:text-sm font-bold leading-tight">${teksError}</span>
-        </div>`;
-      } else {
-        var progress = video.progress || 0;
-        areaMedia = `<div class="w-full h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400">
-           <i class="ph-fill ph-spinner animate-spin text-3xl text-kmViolet mb-2"></i>
-           <span class="text-xs font-bold mb-1">Sedang Memproses Video...</span>
-           <span class="text-[10px] text-kmViolet font-bold tabular-nums">${progress}%</span>
-        </div>`;
-      }
+      <button id="nav-btn-kelola-akun" onclick="gantiLayarNav('kelola-akun')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-key text-lg"></i> Add Apikey
+      </button>
 
-      var tombolDownload = linkVideo ? 
-        `<a href="${linkVideo}" target="_blank" class="text-slate-400 hover:text-kmViolet transition cursor-pointer" title="Download">
-            <i class="ph ph-download-simple text-lg hover:scale-110"></i>
-         </a>` : '';
+      <!-- TAB TERPISAH 1: BELI KREDIT -->
+      <button id="nav-btn-beli-kredit" onclick="gantiLayarNav('beli-kredit')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-lightning text-lg text-amber-500"></i> Beli Kredit
+      </button>
 
-      return `
-      <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow hover:shadow-lg transition flex flex-col group">
-        <div class="bg-black aspect-video relative flex items-center justify-center overflow-hidden">
-           ${areaMedia}
-        </div>
-        <div class="p-4 space-y-3">
-           <div class="flex items-center gap-2.5">
-              <span class="w-2 h-2 rounded-full ${isFailed ? 'bg-rose-500 shadow-[0_0_8px_#ef4444]' : 'bg-kmViolet shadow-[0_0_8px_#7C3AED]'}"></span>
-              <h4 class="text-sm font-bold text-slate-800 truncate">${namaEngine}</h4>
-           </div>
-           <div class="flex items-center justify-between border-t border-kmBorder pt-3 mt-2">
-              <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium truncate max-w-[60%]">
-                 <i class="ph-fill ph-tiktok-logo text-sm text-slate-800"></i> ID: ${video.id || '-'}
-              </div>
-              <div class="flex items-center gap-4">
-                 ${tombolDownload}
-                 <button onclick="hapusTugasBerdasarkanId('${video.id}')" class="text-slate-400 hover:text-rose-500 transition cursor-pointer" title="Hapus Tugas">
-                    <i class="ph ph-trash text-lg hover:scale-110"></i>
-                 </button>
-              </div>
-           </div>
-        </div>
-      </div>`;
-    }
+      <!-- TAB TERPISAH 2: LANGGANAN VIP PRO -->
+      <button id="nav-btn-langganan" onclick="gantiLayarNav('langganan')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
+        <i class="ph ph-crown text-lg text-kmViolet"></i> Langganan VIP
+      </button>
 
-    if (wadahHistory) {
-      var htmlHistory = '';
-      dataTerbaru.forEach(function(v) { htmlHistory += bikinKartuHTML(v); });
-      wadahHistory.innerHTML = htmlHistory;
-    }
+      <!-- TOMBOL ADMIN -->
+      <button id="nav-btn-admin-pool" onclick="gantiLayarNav('admin-pool')" style="display: none;" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500/10 text-amber-600 border border-amber-300 hover:bg-amber-500 hover:text-white cursor-pointer whitespace-nowrap transition mt-2">
+        <i class="ph-fill ph-shield-check text-lg"></i> Master Pool API
+      </button>
+    </nav>
+  </header>
 
-    if (wadahDashboard) {
-      var htmlDashboard = '';
-      dataTerbaru.slice(0, 3).forEach(function(v) { htmlDashboard += bikinKartuHTML(v); });
-      wadahDashboard.innerHTML = htmlDashboard;
-    }
-  } finally {
-    setTimeout(function() { sedangRenderGrid = false; }, 50);
-  }
-};
-
-window.hapusTugasBerdasarkanId = function(id) {
-  if (typeof mintaKonfirmasi === 'function') {
-    mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
-      if (typeof riwayatGenerateList !== 'undefined') {
-        var idx = riwayatGenerateList.findIndex(function(t) { return String(t.id) === String(id); });
-        if (idx > -1) {
-          if (riwayatGenerateList[idx].intervalObj) clearInterval(riwayatGenerateList[idx].intervalObj);
-          riwayatGenerateList.splice(idx, 1);
-          if (typeof simpanStorage === 'function') simpanStorage();
-          renderVideoAsliKeGrid();
-          tampilkanNotif('Riwayat tugas berhasil dihapus', 'sukses');
-        }
-      }
-    });
-  }
-};
-
-window.renderLayarHistory = function() { 
-  renderVideoAsliKeGrid(); 
-};
-
-function pilihPaketKredit(tipe) {
-  paketKreditAktif = tipe;
-
-  var btn2k = document.getElementById('btn-kredit-2k');
-  var btn5k = document.getElementById('btn-kredit-5k');
-  var btn10k = document.getElementById('btn-kredit-10k');
-
-  var txtItem = document.getElementById('txt-kredit-item');
-  var txtHarga = document.getElementById('txt-kredit-harga');
-  var txtFee = document.getElementById('txt-kredit-fee');
-  var txtTotal = document.getElementById('txt-kredit-total');
-  var btnEksekusi = document.getElementById('btn-eksekusi-kredit');
-
-  [btn2k, btn5k, btn10k].forEach(function(b) {
-    if (!b) return;
-    b.className = "p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group";
-    var dot = b.querySelector('.rounded-full');
-    if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-300";
-  });
-
-  if (tipe === '2k') {
-    if (btn2k) {
-      btn2k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
-      var dot2 = btn2k.querySelector('.rounded-full');
-      if (dot2) dot2.className = "w-2 h-2 rounded-full bg-kmViolet";
-    }
-    if (txtItem) txtItem.innerText = "Paket 4 Kredit (4 Video / 24 Jam)";
-    if (txtHarga) txtHarga.innerText = "Rp 2.000";
-    if (txtFee) txtFee.innerText = "Rp 800";
-    if (txtTotal) txtTotal.innerText = "Rp 2.800";
-    if (btnEksekusi) btnEksekusi.innerHTML = '<span>Bayar Rp 2.800 via QRIS (4 Kredit)</span> &rarr;';
-
-  } else if (tipe === '5k') {
-    if (btn5k) {
-      btn5k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
-      var dot5 = btn5k.querySelector('.rounded-full');
-      if (dot5) dot5.className = "w-2 h-2 rounded-full bg-kmViolet";
-    }
-    if (txtItem) txtItem.innerText = "Paket 10 Kredit (10 Video / 24 Jam)";
-    if (txtHarga) txtHarga.innerText = "Rp 5.000";
-    if (txtFee) txtFee.innerText = "Rp 800";
-    if (txtTotal) txtTotal.innerText = "Rp 5.800";
-    if (btnEksekusi) btnEksekusi.innerHTML = '<span>Bayar Rp 5.800 via QRIS (10 Kredit)</span> &rarr;';
-
-  } else if (tipe === '10k') {
-    if (btn10k) {
-      btn10k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
-      var dot10 = btn10k.querySelector('.rounded-full');
-      if (dot10) dot10.className = "w-2 h-2 rounded-full bg-kmViolet";
-    }
-    if (txtItem) txtItem.innerText = "Paket 20 Kredit (20 Video / 24 Jam)";
-    if (txtHarga) txtHarga.innerText = "Rp 10.000";
-    if (txtFee) txtFee.innerText = "Rp 800";
-    if (txtTotal) txtTotal.innerText = "Rp 10.800";
-    if (btnEksekusi) btnEksekusi.innerHTML = '<span>Bayar Rp 10.800 via QRIS (20 Kredit)</span> &rarr;';
-  }
-}
-
-async function jalankanBayarKredit() {
-  tampilkanNotif("Menghubungkan ke secure payment iPaymu...", "info");
-
-  var userEmail = "";
-  if (typeof supa !== 'undefined') {
-    try {
-      var sessionRes = await supa.auth.getSession();
-      userEmail = sessionRes?.data?.session?.user?.email || "";
-    } catch(e) {}
-  }
-  
-  if (!userEmail) {
-    try {
-      var sbData = localStorage.getItem('sb-fybyupwcburndxulqqnn-auth-token');
-      if (sbData) {
-        var parsed = JSON.parse(sbData);
-        userEmail = parsed?.user?.email || "";
-      }
-    } catch(e) {}
-  }
-
-  if (!userEmail) {
-    userEmail = prompt("Masukkan email aktif Anda untuk tagihan QRIS:", "");
-    if (!userEmail) return tampilkanNotif("Email wajib diisi untuk transaksi!", "error");
-  }
-
-  var nominal = 5800;
-  var namaItem = "Paket 10 Kredit KiixMotion";
-  var jmlKredit = 10;
-
-  if (paketKreditAktif === '2k') {
-    nominal = 2800;
-    namaItem = "Paket 4 Kredit KiixMotion";
-    jmlKredit = 4;
-  } else if (paketKreditAktif === '10k') {
-    nominal = 10800;
-    namaItem = "Paket 20 Kredit KiixMotion";
-    jmlKredit = 20;
-  }
-
-  fetch('/api/bayar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      email: userEmail, 
-      amount: nominal, 
-      name: namaItem, 
-      phone: "081122334455",
-      tipe: "kredit",
-      kredit: jmlKredit
-    })
-  })
-  .then(function(res) { return res.json(); })
-  .then(function(data) {
-    if (data.Success === true || data.Status === 200 || data.Data) {
-      tampilkanNotif("Berhasil! Mengarahkan ke pembayaran QRIS...", "sukses");
-      setTimeout(function() {
-        var paymentLink = (data.Data && data.Data.Url) ? data.Data.Url : data.url;
-        if (paymentLink) window.location.href = paymentLink;
-        else tampilkanNotif("Gagal membaca link pembayaran iPaymu", "error");
-      }, 800);
-    } else {
-      tampilkanNotif("Gagal membuat transaksi: " + (data.message || data.Message || "Kesalahan iPaymu"), "error");
-    }
-  })
-  .catch(function() {
-    tampilkanNotif("Gagal koneksi ke server pembayaran.", "error");
-  });
-}
-
-async function jalankanBayarVIP() {
-  tampilkanNotif("Menghubungkan ke secure payment iPaymu...", "info");
-
-  var userEmail = "";
-  if (typeof supa !== 'undefined') {
-    try {
-      var sessionRes = await supa.auth.getSession();
-      userEmail = sessionRes?.data?.session?.user?.email || "";
-    } catch(e) {}
-  }
-
-  if (!userEmail) {
-    userEmail = prompt("Masukkan email aktif Anda untuk tagihan QRIS:", "");
-    if (!userEmail) return tampilkanNotif("Email wajib diisi untuk transaksi!", "error");
-  }
-
-  fetch('/api/bayar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      email: userEmail, 
-      amount: 35850, 
-      name: "Member Pro KiixMotion (25 Hari)", 
-      phone: "081122334455",
-      tipe: "vip",
-      kredit: 0
-    })
-  })
-  .then(function(res) { return res.json(); })
-  .then(function(data) {
-    if (data.Success === true || data.Status === 200 || data.Data) {
-      tampilkanNotif("Berhasil! Mengarahkan ke pembayaran QRIS...", "sukses");
-      setTimeout(function() {
-        var paymentLink = (data.Data && data.Data.Url) ? data.Data.Url : data.url;
-        if (paymentLink) window.location.href = paymentLink;
-        else tampilkanNotif("Gagal membaca link pembayaran iPaymu", "error");
-      }, 800);
-    } else {
-      tampilkanNotif("Gagal membuat transaksi: " + (data.message || data.Message || "Kesalahan iPaymu"), "error");
-    }
-  })
-  .catch(function() {
-    tampilkanNotif("Gagal koneksi ke server pembayaran.", "error");
-  });
-}
-
-window.prosesBeliVIP = jalankanBayarVIP;
-window.prosesBeliKredit = function(nom, krd) {
-  if (krd <= 4) pilihPaketKredit('2k');
-  else if (krd <= 10) pilihPaketKredit('5k');
-  else pilihPaketKredit('10k');
-  jalankanBayarKredit();
-};
-
-async function cekAksesAdminPool() {
-  if (typeof supa === 'undefined') return;
-  try {
-    const { data: { session } } = await supa.auth.getSession();
-    const email = session?.user?.email?.toLowerCase().trim();
-    if (email === 'anggraingki@gmail.com') {
-      const btnAdminNav = document.getElementById('nav-btn-admin-pool');
-      if (btnAdminNav) btnAdminNav.style.display = 'flex';
-    }
-  } catch (err) {}
-}
-
-async function muatDataKolamAdmin() {
-  if (typeof supa === 'undefined') return;
-  var wadah = document.getElementById('wadah-baris-pool-admin');
-  if (!wadah) return;
-
-  wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Mengambil data dari Supabase...</td></tr>';
-
-  const { data: listAkun, error } = await supa
-    .from('runninghub_pool')
-    .select('*')
-    .order('id', { ascending: false });
-
-  if (error || !listAkun || listAkun.length === 0) {
-    wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Belum ada akun di kolam. Masukkan API key di form atas.</td></tr>';
-    updateStatistikPool(0, 0, 0, 0);
-    return;
-  }
-
-  var total = listAkun.length;
-  var idle = listAkun.filter(a => a.status === 'idle').length;
-  var busy = listAkun.filter(a => a.status === 'busy').length;
-  var habis = listAkun.filter(a => a.status === 'habis').length;
-  updateStatistikPool(total, idle, busy, habis);
-
-  var html = '';
-  listAkun.forEach(function(a) {
-    var keyMasked = a.api_key.substring(0, 8) + '••••••••' + a.api_key.slice(-6);
+  <!-- KONTEN UTAMA -->
+  <main id="view-workbench" class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6 md:overflow-y-auto md:h-screen relative">
     
-    var badgeStatus = '';
-    if (a.status === 'idle') {
-      badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">🟢 IDLE</span>';
-    } else if (a.status === 'busy') {
-      badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 animate-pulse">🟡 RENDERING</span>';
-    } else {
-      badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">🔴 HABIS</span>';
-    }
-
-    var tglPakai = a.last_used_at ? new Date(a.last_used_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
-
-    html += `
-      <tr class="hover:bg-slate-50/60 transition">
-        <td class="py-3 px-3">${badgeStatus}</td>
-        <td class="py-3 px-3 font-mono font-bold text-slate-700">${keyMasked}</td>
-        <td class="py-3 px-3 font-extrabold tabular-nums ${a.koin < 200 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
-        <td class="py-3 px-3 text-slate-400 text-[11px]">${tglPakai}</td>
-        <td class="py-3 px-3 text-right">
-          <button onclick="hapusSatuKunciPool(${a.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus Kunci Ini">
-            <i class="ph-bold ph-trash text-base"></i>
-          </button>
-        </td>
-      </tr>
-    `;
-  });
-  wadah.innerHTML = html;
-}
-
-function updateStatistikPool(tot, idl, bsy, hbs) {
-  var sTot = document.getElementById('stat-pool-total');
-  var sIdl = document.getElementById('stat-pool-idle');
-  var sBsy = document.getElementById('stat-pool-busy');
-  var sHbs = document.getElementById('stat-pool-habis');
-  if (sTot) sTot.innerText = tot;
-  if (sIdl) sIdl.innerText = idl;
-  if (sBsy) sBsy.innerText = bsy;
-  if (sHbs) sHbs.innerText = hbs;
-}
-
-async function simpanBulkKeysKeSupabase() {
-  var area = document.getElementById('in-bulk-keys');
-  var btn = document.getElementById('btn-submit-bulk-pool');
-  if (!area || !area.value.trim()) return tampilkanNotif('Tempel minimal satu API Key!', 'error');
-
-  var baris = area.value.split('\n').map(k => k.trim()).filter(k => k.length > 10);
-  if (baris.length === 0) return tampilkanNotif('Format API key tidak valid!', 'error');
-
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Cek Saldo & Simpan...'; }
-
-  var dataInsert = [];
-  for (var k of baris) {
-    var koinAsli = 0;
-    try {
-      var resSaldo = await fetch('/api/saldo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: k })
-      });
-      var hasilSaldo = await resSaldo.json();
-      if (resSaldo.ok && hasilSaldo) {
-        var rawData = hasilSaldo.data || hasilSaldo;
-        var c = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
-        if (c !== undefined && c !== null) koinAsli = Number(c);
-      }
-    } catch (e) {}
-
-    var statusOtomatis = koinAsli >= 200 ? 'idle' : 'habis';
-    dataInsert.push({
-      api_key: k,
-      koin: koinAsli,
-      status: statusOtomatis,
-      last_used_at: new Date()
-    });
-  }
-
-  const { error } = await supa
-    .from('runninghub_pool')
-    .upsert(dataInsert, { onConflict: 'api_key' });
-
-  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam'; }
-
-  if (!error) {
-    area.value = '';
-    tampilkanNotif(`✓ Berhasil! ${dataInsert.length} API Key dicek & status otomatis aktif.`, 'sukses');
-    muatDataKolamAdmin();
-    refreshDataKolamAdmin();
-  } else {
-    tampilkanNotif('Gagal menyimpan: ' + error.message, 'error');
-  }
-}
-
-async function hapusSatuKunciPool(id) {
-  mintaKonfirmasi("Yakin ingin menghapus kunci ini dari kolam?", async function() {
-    const { error } = await supa.from('runninghub_pool').delete().eq('id', id);
-    if (!error) {
-      tampilkanNotif('Kunci berhasil dihapus dari database', 'sukses');
-      muatDataKolamAdmin();
-    }
-  });
-}
-
-async function sapuBersihAkunHabis() {
-  mintaKonfirmasi("Hapus semua akun yang statusnya 'HABIS' dari database?", async function() {
-    const { error } = await supa.from('runninghub_pool').delete().eq('status', 'habis');
-    if (!error) {
-      tampilkanNotif('Seluruh akun koin habis berhasil dibersihkan!', 'sukses');
-      muatDataKolamAdmin();
-    }
-  });
-}
-
-window.kosongkanSeluruhKolam = async function() {
-  mintaKonfirmasi("PERINGATAN NUKLIR: Yakin ingin MENGHAPUS SELURUH AKUN di kolam tanpa terkecuali?", async function() {
-    if (typeof supa === 'undefined') return;
-    
-    var btn = document.querySelector('button[onclick="kosongkanSeluruhKolam()"]');
-    var teksAsli = btn ? btn.innerHTML : '';
-    if (btn) btn.innerHTML = '<i class="ph ph-spinner animate-spin text-sm"></i> Menghapus...';
-    
-    const { error } = await supa.from('runninghub_pool').delete().not('id', 'is', null);
-    
-    if (btn) btn.innerHTML = teksAsli;
-
-    if (!error) {
-      tampilkanNotif('Seluruh akun di kolam berhasil dihapus total!', 'sukses');
-      muatDataKolamAdmin();
-    } else {
-      tampilkanNotif('Gagal mengosongkan kolam: ' + error.message, 'error');
-    }
-  });
-};
-
-async function refreshDataKolamAdmin() {
-  tampilkanNotif('Menyinkronkan saldo seluruh kunci kolam...', 'info');
-  const { data: listAkun } = await supa.from('runninghub_pool').select('id, api_key');
-  if (!listAkun || listAkun.length === 0) return;
-
-  for (let akun of listAkun) {
-    try {
-      const res = await fetch('/api/saldo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: akun.api_key })
-      });
-      const hasil = await res.json();
-      if (res.ok && hasil) {
-        var rawData = hasil.data || hasil;
-        var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
-        if (k !== undefined && k !== null) {
-          var koinVal = Number(k);
-          var statusBaru = koinVal < 200 ? 'habis' : 'idle';
-          await supa.from('runninghub_pool').update({ koin: koinVal, status: statusBaru }).eq('id', akun.id);
-        }
-      }
-    } catch (e) {}
-  }
-  tampilkanNotif('✓ Sinkronisasi saldo kolam selesai!', 'sukses');
-  muatDataKolamAdmin();
-}
-
-// =========================================================================
-// FITUR CHECKER API KEY (LOKAL - KHUSUS ADMIN)
-// =========================================================================
-var checkerResults = [];
-
-window.jalankanCheckerKeys = async function() {
-    var area = document.getElementById('in-checker-keys');
-    var btn = document.getElementById('btn-submit-checker');
-    var wadah = document.getElementById('wadah-hasil-checker');
-    var statAkun = document.getElementById('checker-stat-akun');
-    var statKoin = document.getElementById('checker-stat-koin');
-
-    if (!area || !area.value.trim()) {
-        if (typeof tampilkanNotif === 'function') tampilkanNotif('Tempel minimal satu API Key buat dicek!', 'error');
-        return;
-    }
-
-    var baris = area.value.split('\n').map(k => k.trim()).filter(k => k.length > 10);
-    if (baris.length === 0) {
-        if (typeof tampilkanNotif === 'function') tampilkanNotif('Format API key tidak valid!', 'error');
-        return;
-    }
-
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner animate-spin text-sm"></i> Mengecek...'; }
-    
-    if (wadah) wadah.innerHTML = '<div class="text-center text-xs text-slate-500 py-4 font-semibold">Sedang mengecek ' + baris.length + ' akun ke server RunningHub...</div>';
-    checkerResults = [];
-    var totalKoinDitemukan = 0;
-
-    for (var k of baris) {
-        var koinAsli = 0;
-        var statusCek = 'gagal';
-        try {
-            var resSaldo = await fetch('/api/saldo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ apiKey: k })
-            });
-            var hasilSaldo = await resSaldo.json();
-            if (resSaldo.ok && hasilSaldo) {
-                var rawData = hasilSaldo.data || hasilSaldo;
-                var c = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
-                if (c !== undefined && c !== null) {
-                    koinAsli = Number(c);
-                    statusCek = 'sukses';
-                    totalKoinDitemukan += koinAsli;
-                }
-            }
-        } catch (e) {
-            console.error('Gagal cek key', k, e);
-        }
-
-        checkerResults.push({ key: k, koin: koinAsli, status: statusCek });
-    }
-
-    if (wadah) wadah.innerHTML = '';
-    checkerResults.forEach(function(item) {
-        var keyMasked = item.key.substring(0, 8) + '••••••••' + item.key.slice(-6);
-        var colorKoin = item.koin >= 478 ? 'text-emerald-600' : (item.koin >= 200 ? 'text-amber-500' : 'text-rose-500');
-        var iconStatus = item.status === 'sukses' ? '<i class="ph-fill ph-check-circle text-emerald-500 text-base"></i>' : '<i class="ph-fill ph-x-circle text-rose-500 text-base"></i>';
+    <!-- TOP BAR PROFIL -->
+    <div class="absolute top-4 right-4 sm:top-6 sm:right-8 flex items-center gap-3 z-50">
+        <button onclick="alert('Fitur Dark Mode coming soon!')" class="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-kmBorder hover:bg-slate-50 shadow-sm transition cursor-pointer text-slate-500 hover:text-slate-800">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        </button>
         
-        var el = document.createElement('div');
-        el.className = "flex items-center justify-between bg-white p-3 rounded-xl border border-blue-100 shadow-sm hover:border-blue-300 transition group";
-        el.innerHTML = `
-            <div class="flex items-center gap-3">
-                ${iconStatus}
-                <span class="font-mono text-xs font-bold text-slate-700">${keyMasked}</span>
+        <div class="relative group">
+            <button class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-200 border border-kmBorder font-bold text-slate-700 text-sm shadow-sm hover:ring-2 hover:ring-kmViolet transition cursor-pointer"><span id="profil-inisial">U</span></button>
+            <div class="absolute right-0 mt-2 w-56 bg-white border border-kmBorder rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 origin-top-right">
+                <div class="px-4 py-2 border-b border-kmBorder mb-1">
+                    <p class="text-xs font-bold text-slate-800 truncate" id="profil-email-drop">Memuat...</p>
+                    <p id="label-member-status" class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
+                    <p id="label-vip-expires" class="text-[9px] text-slate-400 font-medium mt-1 hidden"></p>
+                </div>
+                <a href="javascript:void(0)" onclick="gantiLayarNav('beli-kredit')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚡ Beli Kredit (24 Jam)</a>
+                <a href="javascript:void(0)" onclick="gantiLayarNav('langganan')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro VIP</a>
+                <a href="javascript:void(0)" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙ Add Apikey</a>
+                <div class="border-t border-kmBorder mt-1 pt-1"><a href="javascript:void(0)" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a></div>
             </div>
-            <div class="flex items-center gap-4">
-                <span class="text-sm font-black ${colorKoin} tabular-nums">${item.koin} <span class="text-[9px] font-bold text-slate-400 uppercase">coin</span></span>
-                <button onclick="salinSatuKey('${item.key}')" class="text-blue-400 hover:text-blue-600 transition cursor-pointer" title="Salin Key Lengkap">
-                    <i class="ph-bold ph-copy text-sm"></i>
+        </div>
+    </div>
+
+    <!-- 1. DASHBOARD VIEW -->
+    <div id="layar-dashboard" class="layar-konten space-y-6 pt-10 md:pt-0">
+      <div class="mb-4">
+          <h1 class="text-2xl sm:text-3xl font-black text-kmTextPrimary tracking-tight">Halo, <span id="user-greeting-name" class="capitalize">Member</span></h1>
+          <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Ringkasan akun dan aktivitas generate kamu.</p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div></button>
+          <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Simpan media</p></div></button>
+          <button onclick="gantiLayarNav('beli-kredit')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-600 text-lg">⚡</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Beli Kredit</h4><p class="text-[10px] text-slate-400">Render 24 jam</p></div></button>
+          
+          <button onclick="gantiLayarNav('langganan')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden">
+              <div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div>
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div>
+              <div class="relative z-10">
+                  <h4 class="text-xs sm:text-sm font-bold text-slate-800">Upgrade ke Pro</h4>
+                  <p class="text-[10px] text-slate-400">Pakai akun sendiri</p>
+              </div>
+          </button>
+      </div>
+
+      <div class="bg-gradient-to-r from-violet-50 to-white border border-violet-100 p-4 sm:p-5 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 modern-shadow">
+          <div class="flex items-center gap-3.5">
+              <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-xl shrink-0">🎁</div>
+              <div>
+                  <h4 class="text-sm font-bold text-slate-900">Program Referral KiiXMotion</h4>
+                  <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Sebar link referral-mu! Dapatkan bonus masa aktif VIP +7 hari setiap ada yang checkout.</p>
+              </div>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+              <span id="kode-referral-user" class="hidden"></span>
+              <button type="button" onclick="salinLinkReferral()" class="w-full sm:w-auto px-5 py-2.5 bg-kmViolet hover:bg-kmVioletHover text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer flex items-center justify-center gap-2">
+                  <i class="ph ph-copy text-base"></i> Salin Link Referral
+              </button>
+          </div>
+      </div>
+
+      <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+        <div class="flex items-center gap-3.5"><div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30"><svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg></div><div><div class="flex items-center gap-2"><h4 class="text-sm font-bold text-slate-900">Join Komunitas Kreator</h4><span class="text-[10px] bg-[#229ED9]/10 text-[#229ED9] px-2 py-0.5 rounded-full font-bold">TELEGRAM RESMI</span></div><p class="text-xs text-slate-500 mt-0.5">Sharing trik affiliate dan info event.</p></div></div>
+        <button onclick="bukaGrupTelegram()" class="px-5 py-2.5 bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs sm:text-sm font-bold rounded-xl transition shadow-sm">Gabung Komunitas</button>
+      </div>
+
+      <div class="pt-2">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> Job Terbaru</h2>
+          <button onclick="gantiLayarNav('history')" class="text-xs sm:text-sm font-bold text-kmViolet hover:text-kmVioletHover cursor-pointer">Lihat Semua &rarr;</button>
+        </div>
+        <div id="wadah-job-terbaru-dashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+      </div>
+    </div>
+
+    <!-- 2. GENERATE VIEW -->
+    <div id="layar-generate" class="layar-konten space-y-6" style="display: none;">
+      <div>
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          
+          <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer transition">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-kmViolet text-white flex items-center justify-center font-black text-xs shadow-sm">⚡</div>
+                <span class="text-sm font-extrabold text-kmTextPrimary">KiixMotion Control</span>
+              </div>
+              <span id="b-prov-kiix" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p>
+            <p class="text-xs text-kmViolet mt-3 font-bold">1 Kredit / render</p>
+          </div>
+
+          <div id="c-prov-runninghub" onclick="setProviderUtama('runninghub')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">R</div>
+                <span class="text-sm font-bold text-kmTextPrimary">RunningHub Pro</span>
+              </div>
+              <span id="b-prov-runninghub" style="display:none;" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
+            </div>
+            <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p>
+            <p class="text-xs text-kmViolet mt-3 font-bold">≈ 478 coin / render</p>
+          </div>
+
+          <div onclick="alert('Provider Kling 2.6 Segera Hadir!')" class="bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">K</div>
+                <span class="text-sm font-bold text-kmTextPrimary">Kling 2.6</span>
+              </div>
+            </div>
+            <p class="text-xs text-kmTextSecondary">Cinematic Motion Engine</p>
+            <p class="text-xs text-indigo-600 mt-3 font-bold">1 Coin VIP / render</p>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
+            </h2>
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-xl border border-kmBorder">
+              <span class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm">File Upload</span>
+            </div>
+          </div>
+
+          <div id="v-mode-upload" class="grid grid-cols-2 gap-4">
+            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+              <span class="text-4xl mb-2 group-hover:scale-105 transition">🖼️</span>
+              <span id="txt-file-foto" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Foto Karakter</span>
+              <span id="st-file-foto" class="text-[11px] text-slate-400 mt-1">JPG / PNG</span>
+              <input id="input-file-foto" type="file" accept="image/*" class="hidden" onchange="unggahBahanLangsung(this, 'foto')" />
+            </label>
+
+            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+              <span class="text-4xl mb-2 group-hover:scale-105 transition">🎬</span>
+              <span id="txt-file-video" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Video Gerakan</span>
+              <span id="st-file-video" class="text-[11px] text-slate-400 mt-1">MP4 (Maks 10s)</span>
+              <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
+            </label>
+          </div>
+        </div>
+
+        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
+          <div class="space-y-5">
+            <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
+            </h2>
+
+            <div id="box-wrap-dropdown-akun" class="space-y-2" style="display: none;">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Pilih Akun Pemotong Saldo</label>
+                <span id="badge-total-saldo-gen" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">0 coin</span>
+              </div>
+              <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
+                <option value="">Memuat akun...</option>
+              </select>
+            </div>
+
+            <div class="bg-slate-50 border border-kmBorder rounded-2xl p-5 space-y-3.5">
+              <div class="flex justify-between items-center text-xs sm:text-sm">
+                <span class="text-kmTextSecondary font-medium">Model Engine:</span>
+                <span id="t-engine-title" class="font-bold text-kmTextPrimary tracking-tight">WAN MOTION CONTROL 1080HD</span>
+              </div>
+              <div class="border-t border-kmBorder pt-3 flex justify-between items-center">
+                <span class="text-xs sm:text-sm font-bold text-kmTextPrimary">Biaya Render:</span>
+                <span id="t-engine-total" class="text-lg sm:text-xl font-black text-kmViolet tracking-tight">1 Kredit</span>
+              </div>
+            </div>
+          </div>
+
+          <button id="btn-submit-generate" onclick="mulaiProsesGenerate()" class="w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer">
+            GENERATE VIDEO
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. HISTORY VIEW -->
+    <div id="layar-history" class="layar-konten space-y-6" style="display: none;">
+      <div class="flex items-center justify-between bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
+        <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Riwayat Generate Video</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Daftar render motion control yang pernah kamu buat.</p></div>
+        <div class="flex items-center gap-3"><span id="txt-counter-history" class="text-xs sm:text-sm font-bold text-kmViolet bg-violet-50 px-3.5 py-1.5 rounded-xl border border-violet-100 tabular-nums">0 tugas</span></div>
+      </div>
+      <div id="wadah-list-history" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    </div>
+
+    <!-- 3B. WORKFLOW UGC VIEW -->
+    <div id="layar-workflow-ugc" class="layar-konten space-y-6 pt-10 md:pt-0" style="display: none;">
+      <div id="wadah-utama-workflow-ugc"></div>
+    </div>
+
+    <!-- 4. GALERI VIEW -->
+    <div id="layar-galeri" class="layar-konten space-y-6" style="display: none;">
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Foto & video referensi</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Simpan foto & video untuk referensi. (Format max 20MB)</p></div>
+        <div class="flex items-center gap-4 bg-slate-50 border border-kmBorder px-4 py-2.5 rounded-2xl">
+          <div class="text-right"><p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Terpakai</p><p id="txt-info-kuota-galeri" class="text-xs font-bold text-slate-800">0 foto · 0 video</p></div>
+          <div class="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-kmViolet font-bold text-xs"><span id="txt-persen-kuota">0%</span></div>
+        </div>
+      </div>
+      <div class="bg-white border border-kmBorder rounded-3xl p-8 text-center modern-shadow space-y-4">
+        <label class="block border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-10 cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/10 group">
+          <div class="w-12 h-12 rounded-2xl bg-violet-100 text-kmViolet flex items-center justify-center mx-auto text-xl mb-3 group-hover:scale-110 transition">🖼</div>
+          <p class="text-xs sm:text-sm font-bold text-slate-800">Klik atau seret file ke sini untuk mengunggah</p>
+          <p class="text-[11px] text-slate-400 mt-1">(Maksimal total 50 file)</p>
+          <input type="file" accept="image/*,video/*" class="hidden" onchange="unggahKeGaleri(this)" />
+        </label>
+        <div id="wadah-grid-galeri" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-2"></div>
+      </div>
+    </div>
+
+    <!-- 5. ADD APIKEY VIEW -->
+    <div id="layar-kelola-akun" class="layar-konten space-y-6" style="display: none;">
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub kamu.</p></div>
+          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-violet-50 hover:bg-violet-100 text-kmViolet border border-violet-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2"><i class="ph ph-key text-base"></i> + Add Apikey</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-kmBorder">
+          <button class="px-4 py-2 rounded-xl bg-violet-50 border border-violet-200 text-kmViolet text-xs font-bold flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">R</span> Akun RunningHub</button>
+        </div>
+      </div>
+      
+      <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow">
+        <button onclick="togglePanduanKey()" class="w-full px-5 py-4 flex items-center justify-between text-left bg-slate-50/70 hover:bg-slate-100/80 transition cursor-pointer">
+          <div class="flex items-center gap-2.5"><span class="text-base">📖</span><span class="text-xs sm:text-sm font-bold text-slate-800">Cara Ambil API Key RunningHub</span></div><i id="icon-panah-panduan" class="ph ph-caret-down text-slate-500 text-base transition-transform duration-200"></i>
+        </button>
+        <div id="konten-panduan-key" style="display: none;" class="p-5 border-t border-kmBorder text-xs sm:text-sm text-slate-600 space-y-2 bg-white leading-relaxed">
+          <div class="flex items-start gap-2"><span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">1</span><p>Login ke situs RunningHub, lalu buka halaman <span class="font-bold text-slate-800">APIKey</span> dan salin key-nya.</p></div>
+          <div class="flex items-start gap-2"><span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">2</span><p>Klik tombol <span class="font-bold text-slate-800">+ Add Apikey</span> di atas, lalu *paste* token API Anda.</p></div>
+        </div>
+      </div>
+      
+      <div class="space-y-3">
+        <div id="wadah-kartu-akun-list" class="space-y-3"></div>
+      </div>
+    </div>
+
+    <!-- 6A. LAYAR TERPISAH: BELI KREDIT -->
+    <div id="layar-beli-kredit" class="layar-konten space-y-6" style="display: none;">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Beli Kredit Render</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Paket kuota kilat terima beres tanpa ribet API key (Aktif 24 Jam)</p>
+        </div>
+
+        <div class="bg-gradient-to-br from-violet-600 to-indigo-700 text-white rounded-3xl p-6 sm:p-7 shadow-lg flex items-center justify-between relative overflow-hidden">
+            <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            <div class="relative z-10">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-violet-200 bg-white/10 px-2.5 py-1 rounded-full">Sisa Kredit Anda</span>
+                <div class="flex items-baseline gap-2 mt-2">
+                  <h2 class="text-3xl sm:text-4xl font-black tracking-tight tabular-nums" id="label-box-kredit-angka">0</h2>
+                  <span class="text-sm font-bold text-violet-200">Kredit Video</span>
+                </div>
+                <p class="text-xs text-violet-100/90 mt-1.5" id="label-box-kredit-info">Belum ada paket kredit aktif</p>
+            </div>
+            <div class="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-3xl shadow-inner relative z-10">
+                ⚡
+            </div>
+        </div>
+
+        <div class="bg-amber-50/80 border border-amber-200/90 p-4 sm:p-5 rounded-3xl flex items-start gap-3.5 modern-shadow">
+          <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 text-lg">⏳</div>
+          <div>
+            <h4 class="text-xs sm:text-sm font-bold text-amber-950">100% Terima Beres (Server Cloud KiixMotion)</h4>
+            <p class="text-[11px] sm:text-xs text-amber-800/90 mt-0.5 leading-relaxed">
+              1 Kredit = 1 Video Render. Anda <strong>tidak perlu memasukkan API key</strong> apa pun. Cukup upload bahan dan render langsung. <strong>Kredit akan hangus otomatis setelah 24 jam</strong> sejak pembayaran berhasil.
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 modern-shadow space-y-5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 class="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">Pilih Paket Kuota Render</h3>
+                  <p class="text-xs text-slate-400 mt-0.5">Pilih kuota yang kamu butuhkan untuk hari ini</p>
+                </div>
+                <span class="text-[11px] font-bold text-amber-700 bg-amber-100/80 px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Masa Aktif 24 Jam
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                
+                <button type="button" onclick="pilihPaketKredit('2k')" id="btn-kredit-2k" class="p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">4 Kredit</span>
+                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md tabular-nums">Rp 500/vid</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 mt-0.5">
+                      <span class="text-xs font-bold text-slate-400">Rp</span>
+                      <span class="text-xl font-black text-slate-900 tracking-tight tabular-nums">2.000</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100 text-[11px] font-semibold text-slate-700">
+                      <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                      <strong>4 Kredit (4 Video)</strong> · 24 Jam
+                    </div>
+                </button>
+
+                <button type="button" onclick="pilihPaketKredit('5k')" id="btn-kredit-5k" class="p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-[10px] font-extrabold uppercase tracking-wider text-kmViolet bg-violet-100/80 px-2 py-0.5 rounded-md">10 Kredit</span>
+                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md tabular-nums">Rp 500/vid</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 mt-0.5">
+                      <span class="text-xs font-bold text-slate-400">Rp</span>
+                      <span class="text-xl font-black text-slate-900 tracking-tight tabular-nums">5.000</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-violet-100/80 text-[11px] font-semibold text-slate-700">
+                      <span class="w-2 h-2 rounded-full bg-kmViolet"></span>
+                      <strong>10 Kredit (10 Video)</strong> · 24 Jam
+                    </div>
+                </button>
+
+                <button type="button" onclick="pilihPaketKredit('10k')" id="btn-kredit-10k" class="p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">20 Kredit</span>
+                      <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md tabular-nums">Rp 500/vid</span>
+                    </div>
+                    <div class="flex items-baseline gap-1 mt-0.5">
+                      <span class="text-xs font-bold text-slate-400">Rp</span>
+                      <span class="text-xl font-black text-slate-900 tracking-tight tabular-nums">10.000</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-100 text-[11px] font-semibold text-slate-700">
+                      <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                      <strong>20 Kredit (20 Video)</strong> · 24 Jam
+                    </div>
+                </button>
+
+            </div>
+
+            <div class="space-y-2 pt-1">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Metode Pembayaran</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
+                        <span>💳</span> QRIS Instant (BCA, Mandiri, Dana, GoPay, OVO, ShopeePay)
+                    </button>
+                </div>
+            </div>
+
+            <!-- RINCIAN TAGIHAN KREDIT -->
+            <div class="bg-slate-50/90 rounded-2xl p-4 sm:p-5 space-y-2.5 border border-slate-200/80 text-xs text-slate-600">
+                <div class="flex justify-between items-center">
+                    <span id="txt-kredit-item" class="font-medium text-slate-700">Paket 10 Kredit (10 Video / 24 Jam)</span>
+                    <span class="font-bold text-slate-900 tabular-nums" id="txt-kredit-harga">Rp 5.000</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
+                    <span class="text-slate-500">Biaya Layanan Pembayaran (QRIS)</span>
+                    <span class="font-bold text-slate-600 tabular-nums" id="txt-kredit-fee">Rp 800</span>
+                </div>
+                <div class="flex justify-between items-baseline pt-1">
+                    <div>
+                      <span class="text-sm font-black text-slate-900 block tracking-tight">Total Pembayaran</span>
+                      <span class="text-[10px] text-slate-400 font-medium">Bebas biaya admin tambahan</span>
+                    </div>
+                    <span class="text-xl sm:text-2xl font-black text-kmViolet tracking-tight tabular-nums" id="txt-kredit-total">Rp 5.800</span>
+                </div>
+            </div>
+
+            <button type="button" id="btn-eksekusi-kredit" onclick="jalankanBayarKredit()" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm sm:text-base rounded-2xl transition shadow-lg cursor-pointer flex items-center justify-center gap-2 tracking-wide">
+                <span>Bayar Rp 5.800 via QRIS (10 Kredit)</span> &rarr;
+            </button>
+        </div>
+    </div>
+
+    <!-- 6B. LAYAR TERPISAH: LANGGANAN VIP PRO -->
+    <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Langganan Pro VIP</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Kelola akses unlimited render menggunakan akun RunningHub sendiri</p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 modern-shadow space-y-3">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Akses VIP</span>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-black text-slate-900 tracking-tight" id="label-plan-nama">Free</h2>
+                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlangganan VIP</p>
+                </div>
+                <span class="px-3.5 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-full" id="label-status-vip-badge">Non-Aktif</span>
+            </div>
+        </div>
+
+        <div class="bg-rose-50/90 border border-rose-200 p-5 rounded-3xl space-y-2 modern-shadow">
+            <div class="flex items-center gap-2 text-rose-900 font-extrabold text-xs sm:text-sm">
+                <span>⚠️</span> PERHATIAN PENTING SEBELUM UPGRADE:
+            </div>
+            <p class="text-xs text-rose-800 leading-relaxed">
+                Paket <strong>Pro VIP (Rp 35.000)</strong> ini <strong>BUKAN paket terima beres!</strong> Anda <strong>WAJIB</strong> memiliki dan menghubungkan API Key RunningHub milik sendiri di menu <span class="font-bold underline cursor-pointer" onclick="gantiLayarNav('kelola-akun')">Add Apikey</span> (koin dipotong dari akun RunningHub Anda sendiri, minimal 478 koin per render).
+            </p>
+            <p class="text-xs text-rose-800 leading-relaxed pt-1">
+                👉 <em>Jika Anda tidak memiliki API Key RunningHub dan ingin terima beres tanpa ribet, silakan beli kuota di menu <a href="javascript:void(0)" onclick="gantiLayarNav('beli-kredit')" class="font-bold underline text-kmViolet">Beli Kredit</a>.</em>
+            </p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 modern-shadow space-y-5">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 class="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">Upgrade ke Pro (25 Hari)</h3>
+                  <p class="text-xs text-slate-400 mt-0.5">Render sepuasnya tanpa antrean dengan akun sendiri</p>
+                </div>
+                <span class="text-xs font-bold text-violet-700 bg-violet-100 px-3 py-1 rounded-full">Masa Aktif 25 Hari</span>
+            </div>
+
+            <div class="space-y-2 pt-1">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Metode Pembayaran</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl flex items-center gap-2 cursor-pointer shadow-sm">
+                        <span>💳</span> QRIS Instant
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-50/90 rounded-2xl p-4 sm:p-5 space-y-2.5 border border-slate-200/80 text-xs text-slate-600">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-slate-700">Langganan Pro VIP (25 Hari)</span>
+                    <span class="font-bold text-slate-900 tabular-nums">Rp 35.000</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-200 pb-2.5">
+                    <span class="text-slate-500">Biaya Layanan Pembayaran (QRIS)</span>
+                    <span class="font-bold text-slate-600 tabular-nums">Rp 850</span>
+                </div>
+                <div class="flex justify-between items-baseline pt-1">
+                    <div>
+                      <span class="text-sm font-black text-slate-900 block tracking-tight">Total Pembayaran</span>
+                      <span class="text-[10px] text-slate-400 font-medium">Sekali bayar · Tanpa perpanjangan otomatis</span>
+                    </div>
+                    <span class="text-xl sm:text-2xl font-black text-kmViolet tracking-tight tabular-nums">Rp 35.850</span>
+                </div>
+            </div>
+
+            <button type="button" onclick="jalankanBayarVIP()" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm sm:text-base rounded-2xl transition shadow-lg cursor-pointer flex items-center justify-center gap-2 tracking-wide">
+                <span>Bayar Rp 35.850 via QRIS</span> &rarr;
+            </button>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+            <h3 class="font-bold text-slate-800 text-sm">Kode Promo Spesial</h3>
+            <p class="text-xs text-slate-500">Punya kode promo? Masukkan di sini untuk aktifkan atau perpanjang plan.</p>
+            <div class="flex gap-2">
+                <input type="text" placeholder="PRO-XXXXXXX" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-slate-400 font-bold uppercase tracking-wider" />
+                <button onclick="tampilkanNotif('Kode promo tidak valid', 'error')" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                    Gunakan
                 </button>
             </div>
-        `;
-        if (wadah) wadah.appendChild(el);
-    });
+        </div>
 
-    if (statAkun) statAkun.innerText = checkerResults.length;
-    if (statKoin) statKoin.innerText = totalKoinDitemukan;
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+            <h3 class="font-bold text-slate-800 text-sm">Riwayat Transaksi</h3>
+            <div class="p-6 border border-slate-200 border-dashed rounded-2xl text-center text-slate-400 text-xs font-medium">
+                Belum ada riwayat transaksi.
+            </div>
+        </div>
+    </div>
 
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-play text-sm"></i> Cek Saldo Sekarang'; }
-    if (typeof tampilkanNotif === 'function') tampilkanNotif('Selesai mengecek ' + checkerResults.length + ' API Key!', 'sukses');
-};
+    <!-- 7. MASTER DASHBOARD POOL (KHUSUS ADMIN) -->
+    <div id="layar-admin-pool" class="layar-konten space-y-6 pt-10 md:pt-0" style="display: none;">
+      
+      <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-6 sm:p-8 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-400">Master Control Room</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-black tracking-tight">Monitor Kolam API RunningHub</h2>
+          <p class="text-xs sm:text-sm text-slate-300 mt-1">Kelola dan pantau seluruh kunci API render secara terpusat.</p>
+        </div>
+        <button onclick="refreshDataKolamAdmin()" class="px-5 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border border-white/20">
+          <i class="ph ph-arrows-clockwise text-base"></i> Sync Saldo Semua
+        </button>
+      </div>
 
-window.bersihkanChecker = function() {
-    checkerResults = [];
-    var area = document.getElementById('in-checker-keys');
-    var wadah = document.getElementById('wadah-hasil-checker');
-    var statAkun = document.getElementById('checker-stat-akun');
-    var statKoin = document.getElementById('checker-stat-koin');
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-slate-400 uppercase">Total Akun</p>
+          <h3 id="stat-pool-total" class="text-2xl font-black text-slate-900 mt-1 tracking-tight tabular-nums">0</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-emerald-600 uppercase">🟢 Siap / Nganggur</p>
+          <h3 id="stat-pool-idle" class="text-2xl font-black text-emerald-600 mt-1 tracking-tight tabular-nums">0</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-amber-600 uppercase">🟡 Sedang Render</p>
+          <h3 id="stat-pool-busy" class="text-2xl font-black text-amber-600 mt-1 tracking-tight tabular-nums">0</h3>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-kmBorder modern-shadow">
+          <p class="text-[11px] font-bold text-rose-600 uppercase">🔴 Koin Habis</p>
+          <h3 id="stat-pool-habis" class="text-2xl font-black text-rose-600 mt-1 tracking-tight tabular-nums">0</h3>
+        </div>
+      </div>
 
-    if (area) area.value = '';
-    if (wadah) wadah.innerHTML = '';
-    if (statAkun) statAkun.innerText = '0';
-    if (statKoin) statKoin.innerText = '0';
+      <!-- FITUR BARU: API KEY CHECKER (LOKAL) -->
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-6 rounded-3xl modern-shadow space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
+              <i class="ph-bold ph-magnifying-glass text-blue-600 text-lg"></i> Checker API Key (Tanpa Simpan DB)
+            </h3>
+            <p class="text-[11px] font-semibold text-slate-500 mt-1">Cek saldo koin dari anak-anak sebelum dimasukin ke kolam utama.</p>
+          </div>
+          <button onclick="bersihkanChecker()" class="px-4 py-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shadow-sm">
+            <i class="ph-bold ph-trash text-sm"></i> Bersihkan Semua
+          </button>
+        </div>
 
-    if (typeof tampilkanNotif === 'function') tampilkanNotif('Area checker berhasil dibersihkan', 'info');
-};
+        <textarea id="in-checker-keys" placeholder="Tempel API Key yang mau dicek di sini...
+rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx
+rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy" class="w-full bg-white border border-blue-200 rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-blue-400 h-28 resize-none leading-relaxed shadow-inner"></textarea>
+        
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-3 rounded-2xl border border-blue-100">
+            <div class="flex items-center gap-4 w-full sm:w-auto px-2">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Akun</p>
+                    <p id="checker-stat-akun" class="text-lg font-black text-slate-800 tabular-nums leading-none">0</p>
+                </div>
+                <div class="w-px h-8 bg-blue-100"></div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Koin</p>
+                    <p id="checker-stat-koin" class="text-lg font-black text-kmViolet tabular-nums leading-none">0</p>
+                </div>
+            </div>
+            <button id="btn-submit-checker" onclick="jalankanCheckerKeys()" class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2">
+              <i class="ph-bold ph-play text-sm"></i> Cek Saldo Sekarang
+            </button>
+        </div>
 
-window.salinSatuKey = function(key) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(key).then(() => {
-            if (typeof tampilkanNotif === 'function') tampilkanNotif('API Key disalin!', 'sukses');
-        }).catch(() => {
-            prompt('Salin teks ini:', key);
-        });
-    } else {
-        prompt('Salin teks ini:', key);
-    }
-};
+        <div id="wadah-hasil-checker" class="space-y-2 mt-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            <!-- Hasil checker masuk ke sini -->
+        </div>
+      </div>
 
-const observer = new MutationObserver(function(mutations) {
-  if (sedangRenderGrid) return;
-  var perluRenderUlang = false;
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
+            <i class="ph-bold ph-plus-circle text-amber-500 text-lg"></i> Tambah Kunci API Massal (Bulk Insert)
+          </h3>
+          <span class="text-[11px] font-semibold text-slate-400">1 baris = 1 API Key</span>
+        </div>
+        <textarea id="in-bulk-keys" placeholder="Tempel banyak API Key di sini sekaligus...
+rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx
+rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy
+rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-amber-400 focus:bg-white h-28 resize-none leading-relaxed"></textarea>
+        <div class="flex justify-end">
+          <button id="btn-submit-bulk-pool" onclick="simpanBulkKeysKeSupabase()" class="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center gap-2">
+            <i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam
+          </button>
+        </div>
+      </div>
 
-  for (var i = 0; i < mutations.length; i++) {
-    var mutation = mutations[i];
-    if (mutation.target && (mutation.target.id === 'wadah-list-history' || mutation.target.id === 'wadah-job-terbaru-dashboard')) {
-      if (mutation.target.innerHTML && mutation.target.innerHTML.includes('text-slate-700 font-bold')) {
-        perluRenderUlang = true;
-        break;
+      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
+            <i class="ph-bold ph-list-dashes text-kmViolet text-lg"></i> Live Monitor Kunci Kolam
+          </h3>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button onclick="sapuBersihAkunHabis()" class="flex-1 sm:flex-none px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm">
+              <i class="ph-bold ph-trash text-sm"></i> Koin Habis
+            </button>
+            <button onclick="kosongkanSeluruhKolam()" class="flex-1 sm:flex-none px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm">
+              <i class="ph-bold ph-warning-octagon text-sm"></i> Kosongkan Semua
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-sans">
+            <thead>
+              <tr class="border-b border-kmBorder text-slate-400 uppercase tracking-wider text-[10px]">
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3">API Key (Masked)</th>
+                <th class="py-3 px-3">Sisa Koin</th>
+                <th class="py-3 px-3">Terakhir Dipakai</th>
+                <th class="py-3 px-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="wadah-baris-pool-admin" class="divide-y divide-kmBorder/60">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- POP-UP MODAL ADD APIKEY -->
+  <div id="modal-popup-key" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-kmBorder max-w-lg w-full p-6 sm:p-8 rounded-3xl space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between"><h3 class="text-lg font-bold text-kmTextPrimary">Tambah API Key RunningHub</h3><button onclick="tutupModalFormKey()" class="text-slate-400 hover:text-slate-700 font-bold text-xl cursor-pointer p-1">✕</button></div>
+      <p class="text-xs text-slate-500">Tempel API key dari halaman <span class="text-kmViolet font-bold">API Key RunningHub</span>.</p>
+      <div class="space-y-3 pt-1"><label class="text-[11px] font-bold uppercase text-slate-400 block">API KEY</label><input id="in-modal-key" type="password" placeholder="Paste RunningHub API key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-xs sm:text-sm text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" /></div>
+      <div class="flex gap-3 pt-3">
+        <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold rounded-2xl hover:bg-slate-200 transition">Batal</button>
+        <button id="btn-simpan-key" onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-[#7C3AED]/80 hover:bg-[#7C3AED] text-white text-xs sm:text-sm font-bold rounded-2xl transition cursor-pointer">Tambah</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL KONFIRMASI -->
+  <div id="modal-konfirmasi-box" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white border border-kmBorder max-w-sm w-full p-6 rounded-3xl space-y-4 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl font-bold">❓</div>
+      <p id="modal-konfirmasi-teks" class="text-sm font-semibold text-slate-700 leading-relaxed">Apakah Anda yakin ingin melanjutkan?</p>
+      <div class="flex gap-2.5 pt-2">
+        <button onclick="tutupModalKonfirmasi(false)" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Batal</button>
+        <button onclick="tutupModalKonfirmasi(true)" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT SUPABASE & ENGINE REFERRAL TERPADU -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+      var supabaseUrl = window.supabaseUrl || 'https://fybyupwcburndxulqqnn.supabase.co';
+      var supabaseAnonKey = window.supabaseAnonKey || 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
+      var supa = window.supa || window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+      window.supa = supa;
+
+      var sedangUpdateMemberUI = false;
+
+      async function ambilDataLoginAsli() {
+          try {
+              const { data: { session } } = await supa.auth.getSession();
+              if (session && session.user) {
+                  const emailUser = session.user.email.toLowerCase().trim();
+                  const namaAsli = emailUser.split('@')[0];
+                  
+                  const elGreet = document.getElementById('user-greeting-name');
+                  const elEmail = document.getElementById('profil-email-drop');
+                  const elInisial = document.getElementById('profil-inisial');
+                  if (elGreet) elGreet.innerText = namaAsli;
+                  if (elEmail) elEmail.innerText = emailUser;
+                  if (elInisial) elInisial.innerText = namaAsli.charAt(0).toUpperCase();
+                  
+                  if (emailUser === 'anggraingki@gmail.com') {
+                      const btnAdminNav = document.getElementById('nav-btn-admin-pool');
+                      if (btnAdminNav) btnAdminNav.style.display = 'flex';
+                  }
+
+                  let storageKey = 'km_referral_code_' + emailUser;
+                  let cachedCode = localStorage.getItem(storageKey);
+
+                  const { data: userRows, error } = await supa
+                      .from('users')
+                      .select('id, is_vip, vip_expires_at, referral_code, referred_by')
+                      .ilike('email', emailUser)
+                      .limit(1);
+
+                  const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
+                  let kodeReferral = userRow?.referral_code || cachedCode;
+
+                  if (!kodeReferral) {
+                      let randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+                      kodeReferral = 'KIIX-' + randomString;
+                      let pendingRef = localStorage.getItem('km_pending_ref') || session.user.user_metadata?.referred_by || null;
+                      if (userRow) {
+                          let updateData = { referral_code: kodeReferral };
+                          if (!userRow.referred_by && pendingRef) updateData.referred_by = pendingRef;
+                          await supa.from('users').update(updateData).eq('id', userRow.id);
+                      } else {
+                          await supa.from('users').insert({
+                              email: emailUser, referral_code: kodeReferral, referred_by: pendingRef, is_vip: false
+                          });
+                      }
+                  } else if (userRow && !userRow.referral_code) {
+                      await supa.from('users').update({ referral_code: kodeReferral }).eq('id', userRow.id);
+                  }
+
+                  localStorage.setItem(storageKey, kodeReferral);
+                  const elKode = document.getElementById('kode-referral-user');
+                  if (elKode) { elKode.innerText = kodeReferral; }
+                  window.kodeReferralAktifUser = kodeReferral;
+                  
+                  await updateStatusMemberUI(emailUser, session);
+              }
+          } catch (err) {
+              console.error("Gagal memuat sesi pengguna:", err);
+          }
       }
-    }
-  }
 
-  if (perluRenderUlang) {
-    renderVideoAsliKeGrid();
-  }
-});
+      async function updateStatusMemberUI(emailUser, cachedSession) {
+          if (sedangUpdateMemberUI) return;
+          sedangUpdateMemberUI = true;
 
-document.addEventListener("DOMContentLoaded", function() {
-  var wadahHist = document.getElementById('wadah-list-history');
-  var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
-  if (wadahHist) observer.observe(wadahHist, { childList: true, subtree: true });
-  if (wadahDash) observer.observe(wadahDash, { childList: true, subtree: true });
-  
-  if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
-  cekAksesAdminPool();
-  
-  setTimeout(function() {
-    gantiLayarNav('dashboard');
-  }, 500);
-});
+          try {
+              let session = cachedSession;
+              if (!session) {
+                  const sessionRes = await supa.auth.getSession();
+                  session = sessionRes?.data?.session;
+              }
+
+              let targetEmail = emailUser || session?.user?.email;
+              if (!targetEmail) return;
+              targetEmail = targetEmail.toLowerCase().trim();
+
+              const authId = session?.user?.id;
+
+              const { data: userRows, error } = await supa
+                  .from('users')
+                  .select('id, is_vip, vip_expires_at')
+                  .ilike('email', targetEmail)
+                  .limit(1);
+
+              const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
+              const badgeEl = document.getElementById('label-member-status');
+              const expEl = document.getElementById('label-vip-expires');
+              const planNamaVIP = document.getElementById('label-plan-nama');
+              const planDescVIP = document.getElementById('label-plan-desc');
+              const badgeVIP = document.getElementById('label-status-vip-badge');
+              const boxKreditAngka = document.getElementById('label-box-kredit-angka');
+              const boxKreditInfo = document.getElementById('label-box-kredit-info');
+
+              var isVipActive = false;
+              
+              if (!error && userRow && userRow.is_vip === true) {
+                  let formattedDate = "";
+                  if (userRow.vip_expires_at) {
+                      const expDate = new Date(userRow.vip_expires_at);
+                      if (expDate.getTime() > new Date().getTime()) {
+                          isVipActive = true;
+                          formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                      }
+                  } else {
+                      isVipActive = true;
+                  }
+
+                  if (isVipActive) {
+                      if (badgeEl) {
+                        badgeEl.innerText = "⭐ Member Pro";
+                        badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block";
+                      }
+                      if (expEl && formattedDate) { 
+                        expEl.innerText = "Aktif s.d. " + formattedDate; 
+                        expEl.classList.remove('hidden'); 
+                      }
+                      if (planNamaVIP) planNamaVIP.innerText = "Pro VIP (Aktif)";
+                      if (planDescVIP) planDescVIP.innerText = "Masa aktif s.d. " + formattedDate + " · Akses akun RunningHub sendiri";
+                      if (badgeVIP) {
+                        badgeVIP.innerText = "Aktif";
+                        badgeVIP.className = "px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full";
+                      }
+                  }
+              }
+
+              if (!isVipActive) {
+                  if (planNamaVIP) planNamaVIP.innerText = "Free";
+                  if (planDescVIP) planDescVIP.innerText = "Belum berlangganan VIP (Pakai kuota server di Beli Kredit)";
+                  if (badgeVIP) {
+                    badgeVIP.innerText = "Non-Aktif";
+                    badgeVIP.className = "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full";
+                  }
+              }
+
+              let queryOr = [];
+              if (userRow && userRow.id) queryOr.push(`user_id.eq.${userRow.id}`);
+              if (authId && (!userRow || authId !== userRow.id)) queryOr.push(`user_id.eq.${authId}`);
+
+              if (queryOr.length > 0) {
+                const { data: userCredit } = await supa
+                    .from('user_credits')
+                    .select('credits_balance, expires_at')
+                    .or(queryOr.join(','))
+                    .order('credits_balance', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (userCredit && userCredit.credits_balance > 0) {
+                  const expDate = new Date(userCredit.expires_at);
+                  const expTime = expDate.getTime();
+                  
+                  if (expTime > new Date().getTime()) {
+                    const diffMs = expTime - new Date().getTime();
+                    const jamSisa = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
+                    
+                    const tglFormat = expDate.toLocaleDateString('id-ID', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    
+                    const jamFormat = expDate.toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }).replace('.', ':');
+
+                    const teksExpiredLengkap = `${tglFormat} pukul ${jamFormat} WIB`;
+
+                    if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
+                    if (boxKreditInfo) boxKreditInfo.innerText = `Berlaku untuk ${userCredit.credits_balance} video · Hangus: ${teksExpiredLengkap} (${jamSisa} jam lagi)`;
+                    
+                    if (!isVipActive && badgeEl) {
+                      badgeEl.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
+                      badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
+                      if (expEl) {
+                        expEl.innerText = "Hangus: " + teksExpiredLengkap;
+                        expEl.classList.remove('hidden');
+                      }
+                    }
+                    return;
+                  }
+                }
+              }
+
+              if (boxKreditAngka) boxKreditAngka.innerText = "0";
+              if (boxKreditInfo) boxKreditInfo.innerText = "Belum ada paket kredit aktif. Beli paket di bawah untuk render.";
+
+              if (!isVipActive && badgeEl) {
+                  badgeEl.innerText = "Member Aktif";
+                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
+                  if (expEl) expEl.classList.add('hidden');
+              }
+          } catch (err) {
+              console.error("Gagal membaca status member:", err);
+          } finally {
+              sedangUpdateMemberUI = false;
+          }
+      }
+
+      function salinLinkReferral() {
+          if (!window.kodeReferralAktifUser) { alert('Kode referral sedang dimuat, coba sesaat lagi ya!'); return; }
+          let domainWeb = window.location.origin;
+          let linkLengkap = domainWeb + '/register.html?ref=' + window.kodeReferralAktifUser;
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(linkLengkap).then(function() {
+                  if (typeof tampilkanNotif === 'function') { tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses'); } else { alert('Link referral berhasil disalin:\n' + linkLengkap); }
+              }).catch(function() { fallbackSalinTeks(linkLengkap); });
+          } else { fallbackSalinTeks(linkLengkap); }
+      }
+
+      function fallbackSalinTeks(text) {
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-9999px";
+          textArea.style.top = "0";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+              document.execCommand('copy');
+              if (typeof tampilkanNotif === 'function') { tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses'); } else { alert('Link referral berhasil disalin:\n' + text); }
+          } catch (err) { prompt('Salin link referral Anda di bawah ini:', text); }
+          document.body.removeChild(textArea);
+      }
+
+      async function prosesLogout() { 
+          await supa.auth.signOut(); 
+          window.location.href = 'register.html'; 
+      }
+
+      ambilDataLoginAsli();
+  </script>
+</body>
+</html>

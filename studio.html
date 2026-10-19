@@ -9,10 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Ikon Phosphor (Defer agar tidak memblokir render saat CDN lambat) -->
   <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
   
   <script>
@@ -52,6 +49,14 @@
   </style>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+      var supabaseUrl = window.supabaseUrl || 'https://fybyupwcburndxulqqnn.supabase.co';
+      var supabaseAnonKey = window.supabaseAnonKey || 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
+      window.supa = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+  </script>
+
   <script src="js/database.js" defer></script>
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
@@ -61,7 +66,6 @@
   
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
-  <!-- MODAL CEKLIS SUKSES RENDER -->
   <div id="modal-ceklis-sukses" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white border border-kmBorder rounded-3xl p-6 sm:p-7 max-w-xs w-full text-center shadow-2xl space-y-3.5 anim-check-pop">
       <div class="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-400 text-emerald-600 flex items-center justify-center mx-auto text-2xl shadow-sm">
@@ -77,7 +81,6 @@
     </div>
   </div>
 
-  <!-- SIDEBAR -->
   <header id="main-header-nav" class="bg-white/90 backdrop-blur-md md:bg-white border-b md:border-b-0 md:border-r border-kmBorder px-4 sm:px-6 md:px-5 py-3.5 md:py-6 flex md:flex-col flex-wrap items-center md:items-start justify-between md:justify-start sticky top-0 z-40 gap-3 md:gap-6 md:w-[260px] shrink-0 h-auto md:h-screen transition-all shadow-[2px_0_15px_rgba(0,0,0,0.02)] overflow-y-auto hide-scrollbar">
     <div class="flex items-center gap-3 w-full">
       <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
@@ -119,27 +122,22 @@
         <i class="ph ph-key text-lg"></i> Add Apikey
       </button>
 
-      <!-- TAB TERPISAH 1: BELI KREDIT -->
       <button id="nav-btn-beli-kredit" onclick="gantiLayarNav('beli-kredit')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-lightning text-lg text-amber-500"></i> Beli Kredit
       </button>
 
-      <!-- TAB TERPISAH 2: LANGGANAN VIP PRO -->
       <button id="nav-btn-langganan" onclick="gantiLayarNav('langganan')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-crown text-lg text-kmViolet"></i> Langganan VIP
       </button>
 
-      <!-- TOMBOL ADMIN -->
       <button id="nav-btn-admin-pool" onclick="gantiLayarNav('admin-pool')" style="display: none;" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500/10 text-amber-600 border border-amber-300 hover:bg-amber-500 hover:text-white cursor-pointer whitespace-nowrap transition mt-2">
         <i class="ph-fill ph-shield-check text-lg"></i> Master Pool API
       </button>
     </nav>
   </header>
 
-  <!-- KONTEN UTAMA -->
   <main id="view-workbench" class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-6 md:overflow-y-auto md:h-screen relative">
     
-    <!-- TOP BAR PROFIL -->
     <div class="absolute top-4 right-4 sm:top-6 sm:right-8 flex items-center gap-3 z-50">
         <button onclick="alert('Fitur Dark Mode coming soon!')" class="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-kmBorder hover:bg-slate-50 shadow-sm transition cursor-pointer text-slate-500 hover:text-slate-800">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
@@ -359,13 +357,9 @@
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub kamu.</p></div>
-          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-violet-50 hover:bg-violet-100 text-kmViolet border border-violet-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2"><i class="ph ph-key text-base"></i> + Add Apikey</button>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-kmBorder">
-          <button class="px-4 py-2 rounded-xl bg-violet-50 border border-violet-200 text-kmViolet text-xs font-bold flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">R</span> Akun RunningHub</button>
+          <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-violet-50 hover:bg-violet-100 text-kmViolet border border-violet-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-sm"><i class="ph ph-key text-base"></i> + Add Apikey</button>
         </div>
       </div>
-      
       <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow">
         <button onclick="togglePanduanKey()" class="w-full px-5 py-4 flex items-center justify-between text-left bg-slate-50/70 hover:bg-slate-100/80 transition cursor-pointer">
           <div class="flex items-center gap-2.5"><span class="text-base">📖</span><span class="text-xs sm:text-sm font-bold text-slate-800">Cara Ambil API Key RunningHub</span></div><i id="icon-panah-panduan" class="ph ph-caret-down text-slate-500 text-base transition-transform duration-200"></i>
@@ -375,13 +369,10 @@
           <div class="flex items-start gap-2"><span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">2</span><p>Klik tombol <span class="font-bold text-slate-800">+ Add Apikey</span> di atas, lalu *paste* token API Anda.</p></div>
         </div>
       </div>
-      
-      <div class="space-y-3">
-        <div id="wadah-kartu-akun-list" class="space-y-3"></div>
-      </div>
+      <div class="space-y-3"><div id="wadah-kartu-akun-list" class="space-y-3"></div></div>
     </div>
 
-    <!-- 6A. LAYAR TERPISAH: BELI KREDIT -->
+    <!-- 6A. BELI KREDIT -->
     <div id="layar-beli-kredit" class="layar-konten space-y-6" style="display: none;">
         <div>
             <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Beli Kredit Render</h1>
@@ -507,7 +498,7 @@
         </div>
     </div>
 
-    <!-- 6B. LAYAR TERPISAH: LANGGANAN VIP PRO -->
+    <!-- 6B. LANGGANAN VIP PRO -->
     <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
         <div>
             <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Langganan Pro VIP</h1>
@@ -735,7 +726,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
       <div class="space-y-3 pt-1"><label class="text-[11px] font-bold uppercase text-slate-400 block">API KEY</label><input id="in-modal-key" type="password" placeholder="Paste RunningHub API key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-xs sm:text-sm text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" /></div>
       <div class="flex gap-3 pt-3">
         <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold rounded-2xl hover:bg-slate-200 transition">Batal</button>
-        <button id="btn-simpan-key" onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-[#7C3AED]/80 hover:bg-[#7C3AED] text-white text-xs sm:text-sm font-bold rounded-2xl transition cursor-pointer">Tambah</button>
+        <button id="btn-simpan-key" onclick="if(typeof simpanAkunBaruDariModal === 'function') simpanAkunBaruDariModal();" class="flex-1 py-3.5 bg-[#7C3AED]/80 hover:bg-[#7C3AED] text-white text-xs sm:text-sm font-bold rounded-2xl transition cursor-pointer">Tambah</button>
       </div>
     </div>
   </div>
@@ -753,16 +744,10 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
   </div>
 
   <!-- SCRIPT SUPABASE & ENGINE REFERRAL TERPADU -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-      var supabaseUrl = window.supabaseUrl || 'https://fybyupwcburndxulqqnn.supabase.co';
-      var supabaseAnonKey = window.supabaseAnonKey || 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
-      var supa = window.supa || window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-      window.supa = supa;
-
       var sedangUpdateMemberUI = false;
-
       async function ambilDataLoginAsli() {
+          if (!window.supa) return;
           try {
               const { data: { session } } = await supa.auth.getSession();
               if (session && session.user) {
@@ -802,9 +787,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                           if (!userRow.referred_by && pendingRef) updateData.referred_by = pendingRef;
                           await supa.from('users').update(updateData).eq('id', userRow.id);
                       } else {
-                          await supa.from('users').insert({
-                              email: emailUser, referral_code: kodeReferral, referred_by: pendingRef, is_vip: false
-                          });
+                          await supa.from('users').insert({ email: emailUser, referral_code: kodeReferral, referred_by: pendingRef, is_vip: false });
                       }
                   } else if (userRow && !userRow.referral_code) {
                       await supa.from('users').update({ referral_code: kodeReferral }).eq('id', userRow.id);
@@ -823,29 +806,21 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
       }
 
       async function updateStatusMemberUI(emailUser, cachedSession) {
-          if (sedangUpdateMemberUI) return;
+          if (!window.supa || sedangUpdateMemberUI) return;
           sedangUpdateMemberUI = true;
 
           try {
               let session = cachedSession;
-              if (!session) {
-                  const sessionRes = await supa.auth.getSession();
-                  session = sessionRes?.data?.session;
-              }
+              if (!session) { const sessionRes = await supa.auth.getSession(); session = sessionRes?.data?.session; }
 
               let targetEmail = emailUser || session?.user?.email;
               if (!targetEmail) return;
               targetEmail = targetEmail.toLowerCase().trim();
-
               const authId = session?.user?.id;
 
-              const { data: userRows, error } = await supa
-                  .from('users')
-                  .select('id, is_vip, vip_expires_at')
-                  .ilike('email', targetEmail)
-                  .limit(1);
-
+              const { data: userRows, error } = await supa.from('users').select('id, is_vip, vip_expires_at').ilike('email', targetEmail).limit(1);
               const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
+
               const badgeEl = document.getElementById('label-member-status');
               const expEl = document.getElementById('label-vip-expires');
               const planNamaVIP = document.getElementById('label-plan-nama');
@@ -855,44 +830,26 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
               const boxKreditInfo = document.getElementById('label-box-kredit-info');
 
               var isVipActive = false;
-              
               if (!error && userRow && userRow.is_vip === true) {
                   let formattedDate = "";
                   if (userRow.vip_expires_at) {
                       const expDate = new Date(userRow.vip_expires_at);
-                      if (expDate.getTime() > new Date().getTime()) {
-                          isVipActive = true;
-                          formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-                      }
-                  } else {
-                      isVipActive = true;
-                  }
+                      if (expDate.getTime() > new Date().getTime()) { isVipActive = true; formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }); }
+                  } else { isVipActive = true; }
 
                   if (isVipActive) {
-                      if (badgeEl) {
-                        badgeEl.innerText = "⭐ Member Pro";
-                        badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block";
-                      }
-                      if (expEl && formattedDate) { 
-                        expEl.innerText = "Aktif s.d. " + formattedDate; 
-                        expEl.classList.remove('hidden'); 
-                      }
+                      if (badgeEl) { badgeEl.innerText = "⭐ Member Pro"; badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block"; }
+                      if (expEl && formattedDate) { expEl.innerText = "Aktif s.d. " + formattedDate; expEl.classList.remove('hidden'); }
                       if (planNamaVIP) planNamaVIP.innerText = "Pro VIP (Aktif)";
                       if (planDescVIP) planDescVIP.innerText = "Masa aktif s.d. " + formattedDate + " · Akses akun RunningHub sendiri";
-                      if (badgeVIP) {
-                        badgeVIP.innerText = "Aktif";
-                        badgeVIP.className = "px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full";
-                      }
+                      if (badgeVIP) { badgeVIP.innerText = "Aktif"; badgeVIP.className = "px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full"; }
                   }
               }
 
               if (!isVipActive) {
                   if (planNamaVIP) planNamaVIP.innerText = "Free";
                   if (planDescVIP) planDescVIP.innerText = "Belum berlangganan VIP (Pakai kuota server di Beli Kredit)";
-                  if (badgeVIP) {
-                    badgeVIP.innerText = "Non-Aktif";
-                    badgeVIP.className = "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full";
-                  }
+                  if (badgeVIP) { badgeVIP.innerText = "Non-Aktif"; badgeVIP.className = "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full"; }
               }
 
               let queryOr = [];
@@ -915,19 +872,8 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   if (expTime > new Date().getTime()) {
                     const diffMs = expTime - new Date().getTime();
                     const jamSisa = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
-                    
-                    const tglFormat = expDate.toLocaleDateString('id-ID', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                    });
-                    
-                    const jamFormat = expDate.toLocaleTimeString('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }).replace('.', ':');
-
+                    const tglFormat = expDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+                    const jamFormat = expDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
                     const teksExpiredLengkap = `${tglFormat} pukul ${jamFormat} WIB`;
 
                     if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
@@ -936,10 +882,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                     if (!isVipActive && badgeEl) {
                       badgeEl.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
                       badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
-                      if (expEl) {
-                        expEl.innerText = "Hangus: " + teksExpiredLengkap;
-                        expEl.classList.remove('hidden');
-                      }
+                      if (expEl) { expEl.innerText = "Hangus: " + teksExpiredLengkap; expEl.classList.remove('hidden'); }
                     }
                     return;
                   }
@@ -954,47 +897,20 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
                   if (expEl) expEl.classList.add('hidden');
               }
-          } catch (err) {
-              console.error("Gagal membaca status member:", err);
-          } finally {
-              sedangUpdateMemberUI = false;
-          }
+          } catch (err) { console.error("Gagal membaca status member:", err); } finally { sedangUpdateMemberUI = false; }
       }
 
       function salinLinkReferral() {
           if (!window.kodeReferralAktifUser) { alert('Kode referral sedang dimuat, coba sesaat lagi ya!'); return; }
           let domainWeb = window.location.origin;
           let linkLengkap = domainWeb + '/register.html?ref=' + window.kodeReferralAktifUser;
-
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(linkLengkap).then(function() {
-                  if (typeof tampilkanNotif === 'function') { tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses'); } else { alert('Link referral berhasil disalin:\n' + linkLengkap); }
-              }).catch(function() { fallbackSalinTeks(linkLengkap); });
-          } else { fallbackSalinTeks(linkLengkap); }
+          if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(linkLengkap).then(function() { alert('Link referral berhasil disalin:\n' + linkLengkap); }).catch(function() { prompt('Salin teks ini:', linkLengkap); });
+          } else { prompt('Salin teks ini:', linkLengkap); }
       }
 
-      function fallbackSalinTeks(text) {
-          const textArea = document.createElement("textarea");
-          textArea.value = text;
-          textArea.style.position = "fixed";
-          textArea.style.left = "-9999px";
-          textArea.style.top = "0";
-          document.body.appendChild(textArea);
-          textArea.focus();
-          textArea.select();
-          try {
-              document.execCommand('copy');
-              if (typeof tampilkanNotif === 'function') { tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses'); } else { alert('Link referral berhasil disalin:\n' + text); }
-          } catch (err) { prompt('Salin link referral Anda di bawah ini:', text); }
-          document.body.removeChild(textArea);
-      }
+      async function prosesLogout() { if(window.supa) { await supa.auth.signOut(); } window.location.href = 'register.html'; }
 
-      async function prosesLogout() { 
-          await supa.auth.signOut(); 
-          window.location.href = 'register.html'; 
-      }
-
-      ambilDataLoginAsli();
+      document.addEventListener("DOMContentLoaded", function() { setTimeout(ambilDataLoginAsli, 500); });
   </script>
 </body>
 </html>

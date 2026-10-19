@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 2: UI CONTROLLER (LENGKAP & UTUH)
+// PILAR 2: UI CONTROLLER
 // File: js/ui-controller.js
 // ==========================================
 
@@ -10,12 +10,8 @@ var isModePilih = false;
 var pendingKonfirmasiFn = null;
 var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
 
-// VARIABEL PAKET KREDIT AKTIF (Default: 5k / 10 Kredit)
 var paketKreditAktif = '5k';
 
-// ------------------------------------------
-// 1. FITUR PONDASI & NOTIFIKASI
-// ------------------------------------------
 function tampilkanNotif(pesan, jenis) {
   var wadah = document.getElementById('toast-container');
   if (!wadah) return;
@@ -106,9 +102,6 @@ function togglePanduanKey() {
   }
 }
 
-// ------------------------------------------
-// 2. NAVIGASI LAYAR
-// ------------------------------------------
 function gantiLayarNav(layar) {
   navLayarAktif = layar;
   var ids = ['dashboard', 'generate', 'history', 'workflow-ugc', 'galeri', 'kelola-akun', 'beli-kredit', 'langganan', 'admin-pool'];
@@ -163,9 +156,6 @@ function gantiLayarNav(layar) {
   if (layar === 'admin-pool' && typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
 }
 
-// ------------------------------------------
-// 3. GALERI MEDIA
-// ------------------------------------------
 var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
 
 window.unggahKeGaleri = function(input) {
@@ -239,9 +229,6 @@ window.renderGaleri = function() {
   wadah.innerHTML = html;
 };
 
-// ------------------------------------------
-// 4. RENDER VIDEO KE GRID
-// ------------------------------------------
 window.renderVideoAsliKeGrid = function() {
   var wadahDashboard = document.getElementById('wadah-job-terbaru-dashboard');
   var wadahHistory = document.getElementById('wadah-list-history');
@@ -357,9 +344,6 @@ window.renderLayarHistory = function() {
   renderVideoAsliKeGrid(); 
 };
 
-// ------------------------------------------
-// 5. CHECKOUT KREDIT 24 JAM (2K, 5K, 10K)
-// ------------------------------------------
 function pilihPaketKredit(tipe) {
   paketKreditAktif = tipe;
 
@@ -488,9 +472,6 @@ async function jalankanBayarKredit() {
   });
 }
 
-// ------------------------------------------
-// 6. CHECKOUT PRO VIP (Rp 35.850)
-// ------------------------------------------
 async function jalankanBayarVIP() {
   tampilkanNotif("Menghubungkan ke secure payment iPaymu...", "info");
 
@@ -545,9 +526,6 @@ window.prosesBeliKredit = function(nom, krd) {
   jalankanBayarKredit();
 };
 
-// ------------------------------------------
-// 7. MASTER POOL ADMIN (PATOKAN 200 KOIN)
-// ------------------------------------------
 async function cekAksesAdminPool() {
   if (typeof supa === 'undefined') return;
   try {
@@ -627,7 +605,6 @@ function updateStatistikPool(tot, idl, bsy, hbs) {
   if (sHbs) sHbs.innerText = hbs;
 }
 
-// SIMPAN BULK: CEK SALDO LANGSUNG KE RUNNINGHUB & SET IDLE JIKA >= 200
 async function simpanBulkKeysKeSupabase() {
   var area = document.getElementById('in-bulk-keys');
   var btn = document.getElementById('btn-submit-bulk-pool');
@@ -655,7 +632,6 @@ async function simpanBulkKeysKeSupabase() {
       }
     } catch (e) {}
 
-    // PATOKAN 200: Koin >= 200 langsung diset 'idle'
     var statusOtomatis = koinAsli >= 200 ? 'idle' : 'habis';
     dataInsert.push({
       api_key: k,
@@ -675,6 +651,7 @@ async function simpanBulkKeysKeSupabase() {
     area.value = '';
     tampilkanNotif(`✓ Berhasil! ${dataInsert.length} API Key dicek & status otomatis aktif.`, 'sukses');
     muatDataKolamAdmin();
+    refreshDataKolamAdmin();
   } else {
     tampilkanNotif('Gagal menyimpan: ' + error.message, 'error');
   }
@@ -700,7 +677,6 @@ async function sapuBersihAkunHabis() {
   });
 }
 
-// SYNC SALDO: CEK KE RUNNINGHUB, HANYA HABIS JIKA KOIN < 200
 async function refreshDataKolamAdmin() {
   tampilkanNotif('Menyinkronkan saldo seluruh kunci kolam...', 'info');
   const { data: listAkun } = await supa.from('runninghub_pool').select('id, api_key');
@@ -719,7 +695,6 @@ async function refreshDataKolamAdmin() {
         var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
         if (k !== undefined && k !== null) {
           var koinVal = Number(k);
-          // PATOKAN 200: Koin >= 200 tetap IDLE
           var statusBaru = koinVal < 200 ? 'habis' : 'idle';
           await supa.from('runninghub_pool').update({ koin: koinVal, status: statusBaru }).eq('id', akun.id);
         }
@@ -728,6 +703,118 @@ async function refreshDataKolamAdmin() {
   }
   tampilkanNotif('✓ Sinkronisasi saldo kolam selesai!', 'sukses');
   muatDataKolamAdmin();
+}
+
+// =========================================================================
+// FITUR CHECKER API KEY (LOKAL - KHUSUS ADMIN)
+// =========================================================================
+var checkerResults = [];
+
+window.jalankanCheckerKeys = async function() {
+    var area = document.getElementById('in-checker-keys');
+    var btn = document.getElementById('btn-submit-checker');
+    var wadah = document.getElementById('wadah-hasil-checker');
+    var statAkun = document.getElementById('checker-stat-akun');
+    var statKoin = document.getElementById('checker-stat-koin');
+
+    if (!area || !area.value.trim()) {
+        if (typeof tampilkanNotif === 'function') tampilkanNotif('Tempel minimal satu API Key buat dicek!', 'error');
+        return;
+    }
+
+    var baris = area.value.split('\n').map(k => k.trim()).filter(k => k.length > 10);
+    if (baris.length === 0) {
+        if (typeof tampilkanNotif === 'function') tampilkanNotif('Format API key tidak valid!', 'error');
+        return;
+    }
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner animate-spin text-sm"></i> Mengecek...'; }
+    
+    if (wadah) wadah.innerHTML = '<div class="text-center text-xs text-slate-500 py-4 font-semibold">Sedang mengecek ' + baris.length + ' akun ke server RunningHub...</div>';
+    checkerResults = [];
+    var totalKoinDitemukan = 0;
+
+    for (var k of baris) {
+        var koinAsli = 0;
+        var statusCek = 'gagal';
+        try {
+            var resSaldo = await fetch('/api/saldo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ apiKey: k })
+            });
+            var hasilSaldo = await resSaldo.json();
+            if (resSaldo.ok && hasilSaldo) {
+                var rawData = hasilSaldo.data || hasilSaldo;
+                var c = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
+                if (c !== undefined && c !== null) {
+                    koinAsli = Number(c);
+                    statusCek = 'sukses';
+                    totalKoinDitemukan += koinAsli;
+                }
+            }
+        } catch (e) {
+            console.error('Gagal cek key', k, e);
+        }
+
+        checkerResults.push({ key: k, koin: koinAsli, status: statusCek });
+    }
+
+    if (wadah) wadah.innerHTML = '';
+    checkerResults.forEach(function(item) {
+        var keyMasked = item.key.substring(0, 8) + '••••••••' + item.key.slice(-6);
+        var colorKoin = item.koin >= 478 ? 'text-emerald-600' : (item.koin >= 200 ? 'text-amber-500' : 'text-rose-500');
+        var iconStatus = item.status === 'sukses' ? '<i class="ph-fill ph-check-circle text-emerald-500 text-base"></i>' : '<i class="ph-fill ph-x-circle text-rose-500 text-base"></i>';
+        
+        var el = document.createElement('div');
+        el.className = "flex items-center justify-between bg-white p-3 rounded-xl border border-blue-100 shadow-sm hover:border-blue-300 transition group";
+        el.innerHTML = `
+            <div class="flex items-center gap-3">
+                ${iconStatus}
+                <span class="font-mono text-xs font-bold text-slate-700">${keyMasked}</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-sm font-black ${colorKoin} tabular-nums">${item.koin} <span class="text-[9px] font-bold text-slate-400 uppercase">coin</span></span>
+                <button onclick="salinSatuKey('${item.key}')" class="text-blue-400 hover:text-blue-600 transition cursor-pointer" title="Salin Key Lengkap">
+                    <i class="ph-bold ph-copy text-sm"></i>
+                </button>
+            </div>
+        `;
+        if (wadah) wadah.appendChild(el);
+    });
+
+    if (statAkun) statAkun.innerText = checkerResults.length;
+    if (statKoin) statKoin.innerText = totalKoinDitemukan;
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-play text-sm"></i> Cek Saldo Sekarang'; }
+    if (typeof tampilkanNotif === 'function') tampilkanNotif('Selesai mengecek ' + checkerResults.length + ' API Key!', 'sukses');
+}
+
+window.bersihkanChecker = function() {
+    checkerResults = [];
+    var area = document.getElementById('in-checker-keys');
+    var wadah = document.getElementById('wadah-hasil-checker');
+    var statAkun = document.getElementById('checker-stat-akun');
+    var statKoin = document.getElementById('checker-stat-koin');
+
+    if (area) area.value = '';
+    if (wadah) wadah.innerHTML = '';
+    if (statAkun) statAkun.innerText = '0';
+    if (statKoin) statKoin.innerText = '0';
+
+    if (typeof tampilkanNotif === 'function') tampilkanNotif('Area checker berhasil dibersihkan', 'info');
+}
+
+window.salinSatuKey = function(key) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(key).then(() => {
+            if (typeof tampilkanNotif === 'function') tampilkanNotif('API Key disalin!', 'sukses');
+        }).catch(() => {
+            prompt('Salin teks ini:', key);
+        });
+    } else {
+        prompt('Salin teks ini:', key);
+    }
 }
 
 const observer = new MutationObserver(function(mutations) {

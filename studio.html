@@ -237,13 +237,6 @@
 
     <!-- GALERI VIEW -->
     <div id="layar-galeri" class="layar-konten space-y-6" style="display: none;">
-      <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Foto & video referensi</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Simpan foto & video untuk referensi. (Format max 20MB)</p></div>
-        <div class="flex items-center gap-4 bg-slate-50 border border-kmBorder px-4 py-2.5 rounded-2xl">
-          <div class="text-right"><p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Terpakai</p><p id="txt-info-kuota-galeri" class="text-xs font-bold text-slate-800">0 foto · 0 video</p></div>
-          <div class="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-kmViolet font-bold text-xs"><span id="txt-persen-kuota">0%</span></div>
-        </div>
-      </div>
       <div class="bg-white border border-kmBorder rounded-3xl p-8 text-center modern-shadow space-y-4">
         <label class="block border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-10 cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/10 group">
           <div class="w-12 h-12 rounded-2xl bg-violet-100 text-kmViolet flex items-center justify-center mx-auto text-xl mb-3 group-hover:scale-110 transition">🖼</div>
@@ -362,11 +355,13 @@ rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx" class="w-full bg-slate-50 border border-kmBo
         <div class="flex justify-end"><button id="btn-submit-bulk-pool" onclick="simpanBulkKeysKeSupabase()" class="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center gap-2"><i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam</button></div>
       </div>
 
+      <!-- TABEL MONITOR & TOMBOL HAPUS LENGKAP -->
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight"><i class="ph-bold ph-list-dashes text-kmViolet text-lg"></i> Live Monitor Kunci Kolam</h3>
+          <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
+            <i class="ph-bold ph-list-dashes text-kmViolet text-lg"></i> Live Monitor Kunci Kolam
+          </h3>
           
-          <!-- TOMBOL HAPUS (KOIN HABIS & NUKLIR KOSONGKAN SEMUA) -->
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <button onclick="sapuBersihAkunHabis()" class="flex-1 sm:flex-none px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm">
               <i class="ph-bold ph-trash text-sm"></i> Koin Habis
@@ -375,6 +370,7 @@ rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx" class="w-full bg-slate-50 border border-kmBo
               <i class="ph-bold ph-warning-octagon text-sm"></i> Kosongkan Semua
             </button>
           </div>
+          
         </div>
 
         <div class="overflow-x-auto">

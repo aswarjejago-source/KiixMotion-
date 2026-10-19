@@ -46,6 +46,9 @@
       100% { transform: scale(1); opacity: 1; }
     }
     .anim-check-pop { animation: checkmarkPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
   </style>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -116,17 +119,14 @@
         <i class="ph ph-key text-lg"></i> Add Apikey
       </button>
 
-      <!-- TAB TERPISAH 1: BELI KREDIT -->
       <button id="nav-btn-beli-kredit" onclick="gantiLayarNav('beli-kredit')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-lightning text-lg text-amber-500"></i> Beli Kredit
       </button>
 
-      <!-- TAB TERPISAH 2: LANGGANAN VIP PRO -->
       <button id="nav-btn-langganan" onclick="gantiLayarNav('langganan')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-crown text-lg text-kmViolet"></i> Langganan VIP
       </button>
 
-      <!-- TOMBOL ADMIN -->
       <button id="nav-btn-admin-pool" onclick="gantiLayarNav('admin-pool')" style="display: none;" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500/10 text-amber-600 border border-amber-300 hover:bg-amber-500 hover:text-white cursor-pointer whitespace-nowrap transition mt-2">
         <i class="ph-fill ph-shield-check text-lg"></i> Master Pool API
       </button>
@@ -378,7 +378,7 @@
       </div>
     </div>
 
-    <!-- 6A. LAYAR TERPISAH: BELI KREDIT (2K, 5K, 10K DENGAN KREDIT TERTULIS JELAS) -->
+    <!-- 6A. LAYAR TERPISAH: BELI KREDIT -->
     <div id="layar-beli-kredit" class="layar-konten space-y-6" style="display: none;">
         <div>
             <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Beli Kredit Render</h1>
@@ -424,7 +424,6 @@
             <!-- PILIHAN 3 PAKET KREDIT -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 
-                <!-- Paket 2k -->
                 <button type="button" onclick="pilihPaketKredit('2k')" id="btn-kredit-2k" class="p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group">
                     <div class="flex items-center justify-between mb-1.5">
                       <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">4 Kredit</span>
@@ -440,7 +439,6 @@
                     </div>
                 </button>
 
-                <!-- Paket 5k (Default Aktif) -->
                 <button type="button" onclick="pilihPaketKredit('5k')" id="btn-kredit-5k" class="p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm">
                     <div class="flex items-center justify-between mb-1.5">
                       <span class="text-[10px] font-extrabold uppercase tracking-wider text-kmViolet bg-violet-100/80 px-2 py-0.5 rounded-md">10 Kredit</span>
@@ -456,7 +454,6 @@
                     </div>
                 </button>
 
-                <!-- Paket 10k -->
                 <button type="button" onclick="pilihPaketKredit('10k')" id="btn-kredit-10k" class="p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group">
                     <div class="flex items-center justify-between mb-1.5">
                       <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">20 Kredit</span>
@@ -483,7 +480,6 @@
                 </div>
             </div>
 
-            <!-- RINCIAN TAGIHAN KREDIT -->
             <div class="bg-slate-50/90 rounded-2xl p-4 sm:p-5 space-y-2.5 border border-slate-200/80 text-xs text-slate-600">
                 <div class="flex justify-between items-center">
                     <span id="txt-kredit-item" class="font-medium text-slate-700">Paket 10 Kredit (10 Video / 24 Jam)</span>
@@ -634,6 +630,46 @@
         </div>
       </div>
 
+      <!-- FITUR BARU: API KEY CHECKER (LOKAL) -->
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-6 rounded-3xl modern-shadow space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
+              <i class="ph-bold ph-magnifying-glass text-blue-600 text-lg"></i> Checker API Key (Tanpa Simpan DB)
+            </h3>
+            <p class="text-[11px] font-semibold text-slate-500 mt-1">Cek saldo koin dari anak-anak sebelum dimasukin ke kolam utama.</p>
+          </div>
+          <button onclick="bersihkanChecker()" class="px-4 py-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shadow-sm">
+            <i class="ph-bold ph-trash text-sm"></i> Bersihkan Semua
+          </button>
+        </div>
+
+        <textarea id="in-checker-keys" placeholder="Tempel API Key yang mau dicek di sini...
+rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx
+rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy" class="w-full bg-white border border-blue-200 rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-blue-400 h-28 resize-none leading-relaxed shadow-inner"></textarea>
+        
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-3 rounded-2xl border border-blue-100">
+            <div class="flex items-center gap-4 w-full sm:w-auto px-2">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Akun</p>
+                    <p id="checker-stat-akun" class="text-lg font-black text-slate-800 tabular-nums leading-none">0</p>
+                </div>
+                <div class="w-px h-8 bg-blue-100"></div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Koin</p>
+                    <p id="checker-stat-koin" class="text-lg font-black text-kmViolet tabular-nums leading-none">0</p>
+                </div>
+            </div>
+            <button id="btn-submit-checker" onclick="jalankanCheckerKeys()" class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2">
+              <i class="ph-bold ph-play text-sm"></i> Cek Saldo Sekarang
+            </button>
+        </div>
+
+        <div id="wadah-hasil-checker" class="space-y-2 mt-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            <!-- Hasil checker masuk ke sini -->
+        </div>
+      </div>
+
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
         <div class="flex items-center justify-between">
           <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
@@ -775,13 +811,14 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
       async function updateStatusMemberUI(emailUser) {
           try {
               let targetEmail = emailUser;
-              const { data: { session } } = await supa.auth.getSession();
               if (!targetEmail) {
+                  const { data: { session } } = await supa.auth.getSession();
                   targetEmail = session?.user?.email;
               }
               if (!targetEmail) return;
               targetEmail = targetEmail.toLowerCase().trim();
 
+              const { data: { session } } = await supa.auth.getSession();
               const authId = session?.user?.id;
 
               const { data: userRows, error } = await supa
@@ -840,7 +877,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   }
               }
 
-              // CEK STATUS KREDIT (Cek user_id dari public.users maupun auth.users)
               let queryOr = [];
               if (userRow && userRow.id) queryOr.push(`user_id.eq.${userRow.id}`);
               if (authId && (!userRow || authId !== userRow.id)) queryOr.push(`user_id.eq.${authId}`);
@@ -862,7 +898,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                     const diffMs = expTime - new Date().getTime();
                     const jamSisa = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
                     
-                    // Format Tanggal: "Selasa, 20 Okt 2026"
                     const tglFormat = expDate.toLocaleDateString('id-ID', {
                         weekday: 'long',
                         day: 'numeric',
@@ -870,13 +905,12 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                         year: 'numeric'
                     });
                     
-                    // Format Jam: "12:17"
                     const jamFormat = expDate.toLocaleTimeString('id-ID', {
                         hour: '2-digit',
                         minute: '2-digit'
                     }).replace('.', ':');
 
-                    const teksExpiredLengkap = `${tglFormat} pukul ${jamFormat}`;
+                    const teksExpiredLengkap = `${tglFormat} pukul ${jamFormat} WIB`;
 
                     if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
                     if (boxKreditInfo) boxKreditInfo.innerText = `Berlaku untuk ${userCredit.credits_balance} video · Hangus: ${teksExpiredLengkap} (${jamSisa} jam lagi)`;

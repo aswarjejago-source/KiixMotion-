@@ -774,14 +774,15 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
 
       async function updateStatusMemberUI(emailUser) {
           try {
-              // PENGAMAN 1: Ambil dari sesi aktif jika parameter email kosong saat ganti tab / refund
               let targetEmail = emailUser;
+              const { data: { session } } = await supa.auth.getSession();
               if (!targetEmail) {
-                  const { data: { session } } = await supa.auth.getSession();
                   targetEmail = session?.user?.email;
               }
               if (!targetEmail) return;
               targetEmail = targetEmail.toLowerCase().trim();
+
+              const authId = session?.user?.id;
 
               const { data: userRows, error } = await supa
                   .from('users')
@@ -815,7 +816,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   if (isVipActive) {
                       if (badgeEl) {
                         badgeEl.innerText = "⭐ Member Pro";
-                        badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-md inline-block";
+                        badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block";
                       }
                       if (expEl && formattedDate) { 
                         expEl.innerText = "Aktif s.d. " + formattedDate; 
@@ -839,26 +840,52 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   }
               }
 
-              // PENGAMAN 2: Gunakan .maybeSingle() agar akun baru tanpa saldo tidak memicu error
-              if (userRow && userRow.id) {
+              // CEK STATUS KREDIT (Cek user_id dari public.users maupun auth.users)
+              let queryOr = [];
+              if (userRow && userRow.id) queryOr.push(`user_id.eq.${userRow.id}`);
+              if (authId && (!userRow || authId !== userRow.id)) queryOr.push(`user_id.eq.${authId}`);
+
+              if (queryOr.length > 0) {
                 const { data: userCredit } = await supa
                     .from('user_credits')
                     .select('credits_balance, expires_at')
-                    .eq('user_id', String(userRow.id))
+                    .or(queryOr.join(','))
+                    .order('credits_balance', { ascending: false })
+                    .limit(1)
                     .maybeSingle();
 
                 if (userCredit && userCredit.credits_balance > 0) {
-                  const expTime = new Date(userCredit.expires_at).getTime();
+                  const expDate = new Date(userCredit.expires_at);
+                  const expTime = expDate.getTime();
+                  
                   if (expTime > new Date().getTime()) {
-                    const jamSisa = Math.max(1, Math.round((expTime - new Date().getTime()) / (1000 * 60 * 60)));
+                    const diffMs = expTime - new Date().getTime();
+                    const jamSisa = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
+                    
+                    // Format Tanggal: "Selasa, 20 Okt 2026"
+                    const tglFormat = expDate.toLocaleDateString('id-ID', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    
+                    // Format Jam: "12:17"
+                    const jamFormat = expDate.toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }).replace('.', ':');
+
+                    const teksExpiredLengkap = `${tglFormat} pukul ${jamFormat}`;
+
                     if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
-                    if (boxKreditInfo) boxKreditInfo.innerText = "Berlaku untuk " + userCredit.credits_balance + " video · Hangus dalam " + jamSisa + " jam";
+                    if (boxKreditInfo) boxKreditInfo.innerText = `Berlaku untuk ${userCredit.credits_balance} video · Hangus: ${teksExpiredLengkap} (${jamSisa} jam lagi)`;
                     
                     if (!isVipActive && badgeEl) {
                       badgeEl.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
-                      badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-md inline-block";
+                      badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
                       if (expEl) {
-                        expEl.innerText = "Hangus dalam " + jamSisa + " jam";
+                        expEl.innerText = "Hangus: " + teksExpiredLengkap;
                         expEl.classList.remove('hidden');
                       }
                     }
@@ -872,7 +899,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
 
               if (!isVipActive && badgeEl) {
                   badgeEl.innerText = "Member Aktif";
-                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md inline-block";
+                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
                   if (expEl) expEl.classList.add('hidden');
               }
           } catch (err) {

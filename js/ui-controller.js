@@ -137,7 +137,7 @@ function gantiLayarNav(layar) {
     setTimeout(renderVideoAsliKeGrid, 100);
   }
   if (layar === 'generate') {
-    if (typeof setProviderUtama === 'function') setProviderUtama(engineProvider || 'kiix');
+    if (typeof setProviderUtama === 'function') setProviderUtama(window.engineProvider || 'kiix');
   }
   if (layar === 'history') {
     setTimeout(renderVideoAsliKeGrid, 100); // MEMUAT RIWAYAT VIDEO OTOMATIS
@@ -147,7 +147,7 @@ function gantiLayarNav(layar) {
   }
   if (layar === 'galeri') renderGaleri();
   if (layar === 'kelola-akun') {
-    if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola(); // MEMUAT AKUN APIKEY LOKAL
+    setTimeout(renderListAkunDiKelola, 100); // MEMUAT AKUN APIKEY LOKAL
   }
   if (layar === 'beli-kredit') {
     if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
@@ -159,7 +159,7 @@ function gantiLayarNav(layar) {
   if (layar === 'admin-pool' && typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
 }
 
-var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1'] || '[]');
+var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
 
 window.unggahKeGaleri = function(input) {
   if (!input.files || !input.files[0]) return;
@@ -238,10 +238,11 @@ window.renderVideoAsliKeGrid = function() {
   var txtCounter = document.getElementById('txt-counter-history');
   
   var dataTerbaru = [];
+  var riwayatLokal = window.riwayatGenerateList || JSON.parse(localStorage.getItem('kiix_riwayat_gen_v1') || '[]');
 
-  if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList && riwayatGenerateList.length > 0) {
-    dataTerbaru = [...riwayatGenerateList].reverse();
-    if (txtCounter) txtCounter.innerText = riwayatGenerateList.length + ' tugas';
+  if (riwayatLokal.length > 0) {
+    dataTerbaru = [...riwayatLokal].reverse();
+    if (txtCounter) txtCounter.innerText = riwayatLokal.length + ' tugas';
   } else {
     var htmlKosong = `
        <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
@@ -329,15 +330,22 @@ window.renderVideoAsliKeGrid = function() {
 window.hapusTugasBerdasarkanId = function(id) {
   if (typeof mintaKonfirmasi === 'function') {
     mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
-      if (typeof riwayatGenerateList !== 'undefined') {
-        var idx = riwayatGenerateList.findIndex(function(t) { return String(t.id) === String(id); });
+      if (typeof window.riwayatGenerateList !== 'undefined') {
+        var idx = window.riwayatGenerateList.findIndex(function(t) { return String(t.id) === String(id); });
         if (idx > -1) {
-          if (riwayatGenerateList[idx].intervalObj) clearInterval(riwayatGenerateList[idx].intervalObj);
-          riwayatGenerateList.splice(idx, 1);
+          if (window.riwayatGenerateList[idx].intervalObj) clearInterval(window.riwayatGenerateList[idx].intervalObj);
+          window.riwayatGenerateList.splice(idx, 1);
           if (typeof simpanStorage === 'function') simpanStorage();
           renderVideoAsliKeGrid();
           tampilkanNotif('Riwayat tugas berhasil dihapus', 'sukses');
         }
+      } else {
+         // Fallback hapus via localStorage lgsg kalau variable global ga ada
+         var rwLokal = JSON.parse(localStorage.getItem('kiix_riwayat_gen_v1') || '[]');
+         rwLokal = rwLokal.filter(t => String(t.id) !== String(id));
+         localStorage.setItem('kiix_riwayat_gen_v1', JSON.stringify(rwLokal));
+         renderVideoAsliKeGrid();
+         tampilkanNotif('Riwayat tugas berhasil dihapus', 'sukses');
       }
     });
   }
@@ -347,6 +355,130 @@ window.renderLayarHistory = function() {
   renderVideoAsliKeGrid(); 
 };
 
+// -------------------------------------------------------------
+// FITUR KELOLA AKUN (API KEY LOKAL)
+// -------------------------------------------------------------
+window.renderListAkunDiKelola = function() {
+    var wadah = document.getElementById('wadah-kartu-akun-list');
+    var dropAkun = document.getElementById('sel-dropdown-akun');
+    if (!wadah) return;
+    
+    // Ambil data akun lokal yg disimpan di db local
+    var dbAkun = window.dbAkun || JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
+
+    if (dbAkun.length === 0) {
+        wadah.innerHTML = `
+        <div class="text-center py-10 bg-slate-50/50 border border-kmBorder border-dashed rounded-3xl text-slate-400">
+            <span class="text-3xl mb-2 block">🔑</span>
+            <p class="text-sm font-bold">Belum ada API key terhubung</p>
+            <p class="text-xs mt-1">Klik "+ Add Apikey" di atas untuk menambahkan.</p>
+        </div>`;
+        if(dropAkun) dropAkun.innerHTML = '<option value="">(Kosong) Tambah API Key dulu</option>';
+        return;
+    }
+
+    var html = '';
+    var dropHtml = '';
+    dbAkun.forEach(function(akun, index) {
+        var isAktif = (akun.id === (window.akunAktifId || dbAkun[0].id));
+        var maskedKey = akun.key ? (akun.key.substring(0, 8) + '••••••••' + akun.key.slice(-6)) : '••••••••';
+        
+        // Kartu untuk Menu Kelola Akun
+        html += `
+        <div class="bg-white border ${isAktif ? 'border-kmViolet shadow-sm' : 'border-kmBorder'} rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:shadow-md">
+            <div class="flex items-start gap-4">
+                <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0">R</div>
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <h4 class="text-sm font-bold text-slate-900">${akun.nama || 'RunningHub Account'}</h4>
+                        ${isAktif ? '<span class="px-2 py-0.5 bg-kmViolet/10 text-kmViolet text-[10px] font-black rounded uppercase tracking-wider">Default</span>' : ''}
+                    </div>
+                    <p class="text-[11px] font-mono font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">${maskedKey}</p>
+                </div>
+            </div>
+            <div class="flex flex-row items-center gap-2 w-full sm:w-auto">
+                <div class="flex-1 sm:flex-none text-left sm:text-right px-3 py-1.5 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <p class="text-[9px] uppercase font-bold text-emerald-600 mb-0.5 tracking-wider">Sisa Koin</p>
+                    <p class="text-sm font-black text-emerald-700 tabular-nums leading-none">${akun.saldo || 0}</p>
+                </div>
+                <button onclick="hapusAkunLokal(${akun.id})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 transition cursor-pointer" title="Hapus Akun">
+                    <i class="ph ph-trash text-lg"></i>
+                </button>
+            </div>
+        </div>`;
+
+        // Opsi untuk Dropdown di Menu Generate
+        dropHtml += `<option value="${akun.id}" ${isAktif ? 'selected' : ''}>${akun.nama || 'RunningHub'} - ${akun.saldo || 0} coin</option>`;
+    });
+
+    wadah.innerHTML = html;
+    if(dropAkun) dropAkun.innerHTML = dropHtml;
+};
+
+window.hapusAkunLokal = function(id) {
+    mintaKonfirmasi("Yakin ingin menghapus API Key ini dari perangkat?", function() {
+        var dbAkun = window.dbAkun || JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
+        dbAkun = dbAkun.filter(a => String(a.id) !== String(id));
+        localStorage.setItem('kiix_akun_local_v1', JSON.stringify(dbAkun));
+        window.dbAkun = dbAkun;
+        renderListAkunDiKelola();
+        tampilkanNotif("API Key berhasil dihapus", "sukses");
+    });
+};
+
+window.simpanAkunBaruDariModal = async function() {
+    var inKey = document.getElementById('in-modal-key');
+    var btn = document.getElementById('btn-simpan-key');
+    
+    if (!inKey || !inKey.value.trim()) return tampilkanNotif('API Key tidak boleh kosong!', 'error');
+    var newKey = inKey.value.trim();
+
+    // Cek duplikat
+    var dbAkun = window.dbAkun || JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
+    var exists = dbAkun.find(a => a.key === newKey);
+    if(exists) return tampilkanNotif('API Key sudah pernah ditambahkan!', 'error');
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Mengecek...'; }
+
+    try {
+        var res = await fetch('/api/saldo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: newKey })
+        });
+        var hasil = await res.json();
+        
+        if(res.ok && hasil) {
+            var rawData = hasil.data || hasil;
+            var c = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
+            var saldo = c !== undefined && c !== null ? Number(c) : 0;
+
+            dbAkun.push({
+                id: Date.now(),
+                key: newKey,
+                nama: 'RunningHub Account',
+                saldo: saldo
+            });
+            localStorage.setItem('kiix_akun_local_v1', JSON.stringify(dbAkun));
+            window.dbAkun = dbAkun;
+            
+            tutupModalFormKey();
+            renderListAkunDiKelola();
+            tampilkanNotif('Berhasil menambahkan API Key!', 'sukses');
+        } else {
+            tampilkanNotif('API Key tidak valid atau server bermasalah!', 'error');
+        }
+    } catch(e) {
+        tampilkanNotif('Gagal mengecek API Key. Coba lagi nanti.', 'error');
+    }
+
+    if (btn) { btn.disabled = false; btn.innerText = 'Tambah'; }
+};
+
+
+// -------------------------------------------------------------
+// BELI KREDIT & LANGGANAN
+// -------------------------------------------------------------
 function pilihPaketKredit(tipe) {
   paketKreditAktif = tipe;
 
@@ -393,7 +525,7 @@ function pilihPaketKredit(tipe) {
 
   } else if (tipe === '10k') {
     if (btn10k) {
-      btn10k.className = "p-4 rounded-2xl border-2 border-kmViolet bg-violet-50/40 text-left transition cursor-pointer relative group shadow-sm";
+      btn10k.className = "p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group";
       var dot10 = btn10k.querySelector('.rounded-full');
       if (dot10) dot10.className = "w-2 h-2 rounded-full bg-kmViolet";
     }
@@ -841,26 +973,9 @@ window.salinSatuKey = function(key) {
     }
 }
 
-const observer = new MutationObserver(function(mutations) {
-  mutations.forEach(function(mutation) {
-    if (mutation.target.id === 'wadah-list-history' || mutation.target.id === 'wadah-job-terbaru-dashboard') {
-      if (mutation.target.innerHTML.includes('text-slate-700 font-bold')) {
-        renderVideoAsliKeGrid();
-      }
-    }
-  });
-});
-
 document.addEventListener("DOMContentLoaded", function() {
-  var wadahHist = document.getElementById('wadah-list-history');
-  var wadahDash = document.getElementById('wadah-job-terbaru-dashboard');
-  if (wadahHist) observer.observe(wadahHist, { childList: true, subtree: true });
-  if (wadahDash) observer.observe(wadahDash, { childList: true, subtree: true });
-  
-  if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
   cekAksesAdminPool();
-  
   setTimeout(function() {
     gantiLayarNav('dashboard');
-  }, 500);
+  }, 300);
 });

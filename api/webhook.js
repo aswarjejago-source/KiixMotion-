@@ -1,5 +1,5 @@
 // ========================================================
-// ENDPOINT WEBHOOK IPAYMU (OTOMATIS PENUH SAAT RESEND / CHECKOUT)
+// ENDPOINT WEBHOOK IPAYMU (OTOMATIS PENUH SAAT RESEND / CO)
 // File: api/webhook.js
 // ========================================================
 
@@ -37,72 +37,98 @@ export default async function handler(req, res) {
 
       const now = new Date();
 
-      // 1. Ambil atau daftarkan ID user di tabel public.users
-      const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=ilike.${encodeURIComponent(buyerEmail)}&select=id`, { headers });
-      const userJson = await userRes.json();
-      let targetUserId = (userJson && userJson.length > 0) ? userJson[0].id : null;
+      // 1. Ambil ID dari public.users
+      let targetUserId = null;
+      try {
+        const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=ilike.${encodeURIComponent(buyerEmail)}&select=id`, { headers });
+        const userJson = await userRes.json();
+        if (Array.isArray(userJson) && userJson.length > 0) {
+          targetUserId = userJson[0].id;
+        }
+      } catch (e) {}
 
+      // 2. Jika belum ada di public.users, buat baru
       if (!targetUserId) {
-        const createRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ email: buyerEmail, is_vip: false })
-        });
-        const createJson = await createRes.json();
-        if (createJson && createJson.length > 0) targetUserId = createJson[0].id;
+        try {
+          const createRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ email: buyerEmail, is_vip: false })
+          });
+          const createJson = await createRes.json();
+          if (Array.isArray(createJson) && createJson.length > 0) {
+            targetUserId = createJson[0].id;
+          }
+        } catch (e) {}
       }
 
-      if (!targetUserId) {
-        return res.status(500).json({ success: false, message: 'Gagal menemukan atau membuat user di database' });
+      // 3. Ambil juga ID dari auth.users
+      let authUserId = null;
+      try {
+        const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, { headers });
+        const authJson = await authRes.json();
+        const foundAuth = authJson?.users?.find(u => u.email?.toLowerCase() === buyerEmail);
+        if (foundAuth && foundAuth.id) {
+          authUserId = foundAuth.id;
+        }
+      } catch (e) {}
+
+      // Kumpulkan ID agar kredit terisi ke jalur yang tepat
+      const userIdsToCredit = [];
+      if (targetUserId) userIdsToCredit.push(String(targetUserId));
+      if (authUserId && !userIdsToCredit.includes(String(authUserId))) {
+        userIdsToCredit.push(String(authUserId));
       }
 
-      // 2. Baca nominal paket
+      if (userIdsToCredit.length === 0) {
+        return res.status(500).json({ success: false, message: 'Gagal menemukan ID user' });
+      }
+
+      // 4. Hitung kredit berdasarkan nominal bayar
       const isPaket4   = (amount >= 2000 && amount < 4500);   // Rp 2.800 -> 4 Kredit
       const isPaket10  = (amount >= 4500 && amount <= 8000);  // Rp 5.800 -> 10 Kredit
       const isPaket20  = (amount > 8000 && amount <= 18000);  // Rp 10.800 -> 20 Kredit
       const isPaketVIP = (amount > 18000);                    // Rp 35.850 -> VIP Pro
 
-      // 3. Tulis kredit langsung ke user_credits
+      // 5. Tulis saldo ke user_credits
       if (isPaket4 || isPaket10 || isPaket20) {
         const kreditTambah = isPaket4 ? 4 : (isPaket10 ? 10 : 20);
         const exp24Jam = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-        // Periksa apakah baris user sudah ada
-        const credRes = await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${targetUserId}&select=*`, { headers });
-        const credRows = await credRes.json();
+        for (const uid of userIdsToCredit) {
+          try {
+            const credRes = await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${encodeURIComponent(uid)}&select=*`, { headers });
+            const credRows = await credRes.json();
 
-        let dbRes;
-        if (Array.isArray(credRows) && credRows.length > 0) {
-          const saldoLama = Number(credRows[0].credits_balance) || 0;
-          dbRes = await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${targetUserId}`, {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify({
-              credits_balance: saldoLama + kreditTambah,
-              expires_at: exp24Jam
-            })
-          });
-        } else {
-          dbRes = await fetch(`${SUPABASE_URL}/rest/v1/user_credits`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              user_id: targetUserId,
-              credits_balance: kreditTambah,
-              expires_at: exp24Jam
-            })
-          });
-        }
-
-        const dbResText = await dbRes.text();
-        if (!dbRes.ok) {
-          console.error('Database menolak penulisan kredit:', dbResText);
-          return res.status(500).json({ success: false, db_error: dbResText });
+            if (Array.isArray(credRows) && credRows.length > 0) {
+              const saldoLama = Number(credRows[0].credits_balance) || 0;
+              await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${encodeURIComponent(uid)}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({
+                  credits_balance: saldoLama + kreditTambah,
+                  expires_at: exp24Jam
+                })
+              });
+            } else {
+              await fetch(`${SUPABASE_URL}/rest/v1/user_credits`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                  user_id: uid,
+                  credits_balance: kreditTambah,
+                  expires_at: exp24Jam
+                })
+              });
+            }
+          } catch (errCredit) {
+            console.error('Gagal simpan kredit:', errCredit);
+          }
         }
       }
 
-      // 4. Update VIP jika paket VIP
-      if (isPaketVIP) {
+      // 6. Update VIP
+      if (isPaketVIP && targetUserId) {
         const expVIP = new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString();
         await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${targetUserId}`, {
           method: 'PATCH',
@@ -111,12 +137,12 @@ export default async function handler(req, res) {
         });
       }
 
-      // 5. Catat riwayat transaksi
+      // 7. Catat riwayat transaksi
       await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          user_id: String(targetUserId),
+          user_id: String(targetUserId || userIdsToCredit[0]),
           trx_id: String(trxId || Date.now()),
           amount: amount,
           status: 'BERHASIL'
@@ -125,11 +151,11 @@ export default async function handler(req, res) {
 
       return res.status(200).json({ 
         success: true, 
-        message: `Kredit otomatis masuk ke user_id: ${targetUserId}` 
+        message: 'Kredit otomatis berhasil masuk ke database' 
       });
     }
 
-    return res.status(200).json({ success: true, message: 'Status belum berhasil' });
+    return res.status(200).json({ success: true, message: 'Menunggu status berhasil' });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }

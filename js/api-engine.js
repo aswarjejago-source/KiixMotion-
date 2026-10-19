@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC
+// PILAR 3: API ENGINE & RENDER LOGIC (DIRECT REFUND & ANTI-FAIL)
 // File: js/api-engine.js
 // ==========================================
 
@@ -104,7 +104,30 @@ function setProviderUtama(p) {
   }
 }
 
-// AMBIL KUNCI DARI KOLAM ADMIN (PATOKAN MURNI: MINIMAL 200 KOIN)
+// FUNGSI REFUND PASTI MASUK (LANGSUNG TULIS KE TABEL)
+async function eksekusiRefundKreditPasti(targetUid, emailUser) {
+  if (!targetUid || typeof supa === 'undefined') return;
+  try {
+    // 1. Coba lewat RPC
+    var { error: rpcErr } = await supa.rpc('refund_kredit_member', { target_user_id: String(targetUid) });
+    
+    // 2. Jika RPC ditolak/gagal, tulis langsung ke tabel user_credits
+    if (rpcErr) {
+      var { data: cRow } = await supa.from('user_credits').select('credits_balance').eq('user_id', String(targetUid)).maybeSingle();
+      if (cRow) {
+        var saldoBaru = (Number(cRow.credits_balance) || 0) + 1;
+        await supa.from('user_credits').update({ credits_balance: saldoBaru }).eq('user_id', String(targetUid));
+      }
+    }
+
+    // 3. Perbarui tampilan UI seketika
+    if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(emailUser);
+  } catch (err) {
+    console.error('Gagal memproses refund:', err);
+  }
+}
+
+// AMBIL KUNCI KOLAM (PATOKAN 200 KOIN)
 async function ambilKunciKolamTersedia(kecualiIds) {
   if (typeof supa === 'undefined') return null;
   try {
@@ -112,7 +135,7 @@ async function ambilKunciKolamTersedia(kecualiIds) {
       .from('runninghub_pool')
       .select('*')
       .eq('status', 'idle')
-      .gte('koin', 200) // PATOKAN MUTLAK 200 KOIN
+      .gte('koin', 200)
       .order('koin', { ascending: false });
     
     if (Array.isArray(kecualiIds) && kecualiIds.length > 0) {
@@ -227,17 +250,10 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
       tugas.progress = 100;
 
       var targetUser = userId || tugas.user_id;
-      if (didDeductCredit && !tugas.refunded && typeof supa !== 'undefined' && targetUser) {
+      if (didDeductCredit && !tugas.refunded && targetUser) {
         tugas.refunded = true;
         tugas.did_deduct = false;
-        var { error: rpcErr } = await supa.rpc('refund_kredit_member', { target_user_id: String(targetUser) });
-        if (rpcErr) {
-          var { data: cRow } = await supa.from('user_credits').select('credits_balance').eq('user_id', String(targetUser)).maybeSingle();
-          if (cRow) {
-            await supa.from('user_credits').update({ credits_balance: (Number(cRow.credits_balance) || 0) + 1 }).eq('user_id', String(targetUser));
-          }
-        }
-        if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
+        await eksekusiRefundKreditPasti(targetUser, tugas.user_email);
         tampilkanNotif('Batas waktu 1 jam habis. 1 kredit dikembalikan otomatis.', 'info');
       }
 
@@ -279,6 +295,7 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
         if (match) vidUrl = match[0];
       }
 
+      // RENDER BERHASIL
       if (vidUrl && typeof vidUrl === 'string') {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
@@ -297,6 +314,7 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
+      // CEK STATUS ERROR RESMI DARI PUSAT (ATAU USER CANCEL DI RUNNINGHUB)
       try {
         var jsonObj2 = JSON.parse(textRaw);
         var topCode = Number(jsonObj2.code || 0);
@@ -328,19 +346,13 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
           tugas.selesai = true;
           tugas.progress = 100;
 
+          // REFUND LANGSUNG KE TABEL SECARA MANDIRI
           var targetUserErr = userId || tugas.user_id;
-          if (didDeductCredit && !tugas.refunded && typeof supa !== 'undefined' && targetUserErr) {
+          if (didDeductCredit && !tugas.refunded && targetUserErr) {
             tugas.refunded = true;
             tugas.did_deduct = false;
-            var { error: rpcErr2 } = await supa.rpc('refund_kredit_member', { target_user_id: String(targetUserErr) });
-            if (rpcErr2) {
-              var { data: cRow2 } = await supa.from('user_credits').select('credits_balance').eq('user_id', String(targetUserErr)).maybeSingle();
-              if (cRow2) {
-                await supa.from('user_credits').update({ credits_balance: (Number(cRow2.credits_balance) || 0) + 1 }).eq('user_id', String(targetUserErr));
-              }
-            }
-            if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
-            tampilkanNotif('Gagal memproses video dari server. 1 kredit dikembalikan otomatis.', 'error');
+            await eksekusiRefundKreditPasti(targetUserErr, tugas.user_email);
+            tampilkanNotif('Gagal memproses video. 1 kredit dikembalikan otomatis.', 'error');
           } else {
             tampilkanNotif('Gagal memproses video di server. Silakan coba lagi.', 'error');
           }
@@ -423,9 +435,7 @@ function updateStatistikDashboard() {
   }
 }
 
-// =========================================================================
-// EKSEKUSI UTAMA (PENGECEKAN KREDIT FLEKSIBEL KEDUA ID)
-// =========================================================================
+// EKSEKUSI UTAMA (POTONG & REFUND DIJAMIN KEDAP CELAH)
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
   
@@ -469,7 +479,7 @@ async function mulaiProsesGenerate() {
   var didDeductCredit = false;
   var idTempatKredit = null;
 
-  // JALUR 1: RUNNINGHUB PRO (MEMBER PRO DIKUNCI MINIMAL 478 KOIN)
+  // JALUR 1: RUNNINGHUB PRO
   if (engineProvider === 'runninghub') {
     var isVipActive = false;
     if (typeof supa !== 'undefined') {
@@ -511,7 +521,7 @@ async function mulaiProsesGenerate() {
     poolIdDipakai = null;
 
   } else {
-    // JALUR 2: KIIXMOTION CONTROL (PENGECEKAN KREDIT PERSIS SEPERTI STUDIO.HTML)
+    // JALUR 2: KIIXMOTION CONTROL
     if (typeof supa !== 'undefined') {
       try {
         var queryOr = [];
@@ -542,11 +552,9 @@ async function mulaiProsesGenerate() {
 
         idTempatKredit = userCredit.user_id;
 
-        var { data: potongRes, error: errPotong } = await supa.rpc('potong_kredit_member', { target_user_id: String(idTempatKredit) });
-        if (errPotong || !potongRes || potongRes.success !== true) {
-          var saldoBaru = Number(userCredit.credits_balance) - 1;
-          await supa.from('user_credits').update({ credits_balance: saldoBaru }).eq('user_id', idTempatKredit);
-        }
+        // Potong kredit langsung ke tabel
+        var saldoBaru = Number(userCredit.credits_balance) - 1;
+        await supa.from('user_credits').update({ credits_balance: saldoBaru }).eq('user_id', idTempatKredit);
 
         didDeductCredit = true;
         if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(realEmail);
@@ -556,11 +564,12 @@ async function mulaiProsesGenerate() {
       }
     }
 
+    // Ambil kunci pertama di database kolam yang idle & koin >= 200
     var akunPool = await ambilKunciKolamTersedia();
     if (!akunPool) {
-      if (didDeductCredit && typeof supa !== 'undefined' && idTempatKredit) {
-        await supa.rpc('refund_kredit_member', { target_user_id: String(idTempatKredit) });
-        if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(realEmail);
+      // JIKA SERVER PENUH: LANGSUNG REFUND KE TABEL DETIK ITU JUGA
+      if (didDeductCredit && idTempatKredit) {
+        await eksekusiRefundKreditPasti(idTempatKredit, realEmail);
       }
       if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
       return tampilkanNotif('Semua server KiixMotion sedang sibuk. 1 kredit dikembalikan otomatis.', 'error');
@@ -634,9 +643,8 @@ async function mulaiProsesGenerate() {
         await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
       }
       var targetRefund = idTempatKredit || realUserId || authId;
-      if (didDeductCredit && typeof supa !== 'undefined' && targetRefund) {
-        await supa.rpc('refund_kredit_member', { target_user_id: String(targetRefund) });
-        if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(realEmail);
+      if (didDeductCredit && targetRefund) {
+        await eksekusiRefundKreditPasti(targetRefund, realEmail);
         tampilkanNotif('Antrean/koin server sedang tidak tersedia. 1 kredit dikembalikan otomatis.', 'error');
       } else {
         tampilkanNotif(e.message || 'Gagal memproses render ke server.', 'error');

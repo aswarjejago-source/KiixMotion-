@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 2: UI CONTROLLER (LENGKAP DENGAN TOMBOL NUKLIR)
+// PILAR 2: UI CONTROLLER
 // File: js/ui-controller.js
 // ==========================================
 

@@ -1,6 +1,6 @@
 // ========================================================
-// ENDPOINT WEBHOOK IPAYMU (PASTI MASUK TANPA SYARAT DATABASE)
-// File: api/notify.js
+// ENDPOINT WEBHOOK IPAYMU (OTOMATIS PENUH SAAT RESEND / CHECKOUT)
+// File: api/webhook.js
 // ========================================================
 
 export default async function handler(req, res) {
@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   }
 
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fybyupwcburndxulqqnn.supabase.co';
-  const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
   try {
     const payload = req.body || {};
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     }
     buyerEmail = (buyerEmail || '').toLowerCase().trim();
 
-    console.log('Webhook iPaymu Masuk:', { status, trxId, amount, buyerEmail });
+    console.log('Memproses Webhook Otomatis:', { status, trxId, amount, buyerEmail });
 
     const isSuccess = (status === 'berhasil' || status === '1' || status === 1 || status === 'paid');
     if (isSuccess && buyerEmail) {
@@ -37,84 +37,77 @@ export default async function handler(req, res) {
 
       const now = new Date();
 
-      // 1. Ambil data user dari tabel public.users
-      const userCheckRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=ilike.${encodeURIComponent(buyerEmail)}&select=*`, { headers });
-      const existingUsers = await userCheckRes.json();
-      let targetUser = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null;
+      // 1. Ambil atau daftarkan ID user di tabel public.users
+      const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=ilike.${encodeURIComponent(buyerEmail)}&select=id`, { headers });
+      const userJson = await userRes.json();
+      let targetUserId = (userJson && userJson.length > 0) ? userJson[0].id : null;
 
-      if (!targetUser) {
-        const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+      if (!targetUserId) {
+        const createRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ email: buyerEmail, is_vip: false })
         });
-        const insertData = await insertRes.json();
-        targetUser = insertData && insertData.length > 0 ? insertData[0] : null;
+        const createJson = await createRes.json();
+        if (createJson && createJson.length > 0) targetUserId = createJson[0].id;
       }
 
-      const finalUserId = targetUser ? targetUser.id : null;
-      if (!finalUserId) {
-        return res.status(200).json({ success: false, message: 'User ID tidak ditemukan' });
+      if (!targetUserId) {
+        return res.status(500).json({ success: false, message: 'Gagal menemukan atau membuat user di database' });
       }
 
-      // 2. Deteksi nominal paket
+      // 2. Baca nominal paket
       const isPaket4   = (amount >= 2000 && amount < 4500);   // Rp 2.800 -> 4 Kredit
       const isPaket10  = (amount >= 4500 && amount <= 8000);  // Rp 5.800 -> 10 Kredit
       const isPaket20  = (amount > 8000 && amount <= 18000);  // Rp 10.800 -> 20 Kredit
       const isPaketVIP = (amount > 18000);                    // Rp 35.850 -> VIP Pro
 
-      // 3. Eksekusi penambahan kredit (Logika PATCH / POST Murni)
+      // 3. Tulis kredit langsung ke user_credits
       if (isPaket4 || isPaket10 || isPaket20) {
-        const jumlahKreditTambah = isPaket4 ? 4 : (isPaket10 ? 10 : 20);
-        const exp24Jam = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        const kreditTambah = isPaket4 ? 4 : (isPaket10 ? 10 : 20);
+        const exp24Jam = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-        // Cek data kredit saat ini
-        const credCheck = await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${encodeURIComponent(finalUserId)}&select=*`, { headers });
-        const credRows = await credCheck.json();
+        // Periksa apakah baris user sudah ada
+        const credRes = await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${targetUserId}&select=*`, { headers });
+        const credRows = await credRes.json();
 
+        let dbRes;
         if (Array.isArray(credRows) && credRows.length > 0) {
-          // JIKA SUDAH ADA: LAKUKAN PATCH (UPDATE)
-          let currentExp = new Date(credRows[0].expires_at || 0);
-          let newExp = currentExp > now ? new Date(currentExp.getTime() + 24 * 60 * 60 * 1000).toISOString() : exp24Jam;
-          let newBalance = (credRows[0].credits_balance || 0) + jumlahKreditTambah;
-
-          await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${encodeURIComponent(finalUserId)}`, {
+          const saldoLama = Number(credRows[0].credits_balance) || 0;
+          dbRes = await fetch(`${SUPABASE_URL}/rest/v1/user_credits?user_id=eq.${targetUserId}`, {
             method: 'PATCH',
             headers,
             body: JSON.stringify({
-              credits_balance: newBalance,
-              expires_at: newExp,
-              updated_at: now.toISOString()
+              credits_balance: saldoLama + kreditTambah,
+              expires_at: exp24Jam
             })
           });
-          console.log(`Berhasil PATCH ${jumlahKreditTambah} kredit ke user_id: ${finalUserId}`);
         } else {
-          // JIKA BELUM ADA: LAKUKAN POST (INSERT BARU)
-          await fetch(`${SUPABASE_URL}/rest/v1/user_credits`, {
+          dbRes = await fetch(`${SUPABASE_URL}/rest/v1/user_credits`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
-              user_id: String(finalUserId),
-              credits_balance: jumlahKreditTambah,
-              expires_at: exp24Jam,
-              updated_at: now.toISOString()
+              user_id: targetUserId,
+              credits_balance: kreditTambah,
+              expires_at: exp24Jam
             })
           });
-          console.log(`Berhasil POST baris baru ${jumlahKreditTambah} kredit ke user_id: ${finalUserId}`);
+        }
+
+        const dbResText = await dbRes.text();
+        if (!dbRes.ok) {
+          console.error('Database menolak penulisan kredit:', dbResText);
+          return res.status(500).json({ success: false, db_error: dbResText });
         }
       }
 
-      // 4. Eksekusi VIP Pro
-      if (isPaketVIP && targetUser) {
-        const currentExp = targetUser.vip_expires_at && new Date(targetUser.vip_expires_at) > now
-          ? new Date(targetUser.vip_expires_at)
-          : now;
-        const newExp = new Date(currentExp.getTime() + 25 * 24 * 60 * 60 * 1000);
-
-        await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${targetUser.id}`, {
+      // 4. Update VIP jika paket VIP
+      if (isPaketVIP) {
+        const expVIP = new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString();
+        await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${targetUserId}`, {
           method: 'PATCH',
           headers,
-          body: JSON.stringify({ is_vip: true, vip_expires_at: newExp.toISOString() })
+          body: JSON.stringify({ is_vip: true, vip_expires_at: expVIP })
         });
       }
 
@@ -123,19 +116,21 @@ export default async function handler(req, res) {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          user_id: String(finalUserId),
+          user_id: String(targetUserId),
           trx_id: String(trxId || Date.now()),
           amount: amount,
           status: 'BERHASIL'
         })
       });
 
-      return res.status(200).json({ success: true, message: 'Kredit berhasil masuk otomatis' });
+      return res.status(200).json({ 
+        success: true, 
+        message: `Kredit otomatis masuk ke user_id: ${targetUserId}` 
+      });
     }
 
     return res.status(200).json({ success: true, message: 'Status belum berhasil' });
   } catch (err) {
-    console.error('Webhook error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }

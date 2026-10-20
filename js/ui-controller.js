@@ -147,7 +147,6 @@ window.gantiLayarNav = function(layar) {
         }
     });
     
-    // Trigger pembaruan data otomatis per tab
     if (layar === 'dashboard') {
         if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
         renderVideoAsliKeGrid();
@@ -200,7 +199,6 @@ window.setProviderUtama = function(prov) {
     
     var providers = ['kiix', 'runninghub'];
     
-    // Matikan efek aktif di semua tombol engine
     providers.forEach(function(p) {
         let card = document.getElementById('c-prov-' + p);
         let badge = document.getElementById('b-prov-' + p);
@@ -214,7 +212,6 @@ window.setProviderUtama = function(prov) {
         }
     });
     
-    // Nyalakan efek aktif di engine yang dipilih
     let activeCard = document.getElementById('c-prov-' + prov);
     let activeBadge = document.getElementById('b-prov-' + prov);
     
@@ -226,7 +223,6 @@ window.setProviderUtama = function(prov) {
         activeBadge.style.display = 'inline-block';
     }
 
-    // Perbarui Teks Rincian di "2. Akun & Estimasi"
     let title = document.getElementById('t-engine-title');
     let cost = document.getElementById('t-engine-total');
     let boxAkun = document.getElementById('box-wrap-dropdown-akun');
@@ -234,12 +230,12 @@ window.setProviderUtama = function(prov) {
     if (prov === 'kiix') {
         if (title) title.innerText = 'WAN MOTION CONTROL 1080HD';
         if (cost) cost.innerText = '1 Kredit';
-        if (boxAkun) boxAkun.style.display = 'none'; // Sembunyikan dropdown API lokal
+        if (boxAkun) boxAkun.style.display = 'none'; 
     } else if (prov === 'runninghub') {
         if (title) title.innerText = 'RUNNINGHUB PRO (WAN)';
         if (cost) cost.innerText = '≈ 478 coin';
-        if (boxAkun) boxAkun.style.display = 'block'; // Munculkan dropdown API lokal
-        updateBadgeKoinGenerate(); // Otomatis perbarui koin 0 jadi nilai asli
+        if (boxAkun) boxAkun.style.display = 'block'; 
+        updateBadgeKoinGenerate(); 
     }
 };
 
@@ -252,12 +248,10 @@ window.updateBadgeKoinGenerate = function() {
     var val = drop.value;
     var dbAkun = window.dbAkun || JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
     
-    // Cari akun yang diplih di dropdown
     var selected = dbAkun.find(function(a) { 
         return String(a.id) === String(val); 
     });
     
-    // Jika tidak ada yang dipilih tapi ada akun, ambil yang pertama
     if (!selected && dbAkun.length > 0) { 
         selected = dbAkun[0]; 
     }
@@ -265,14 +259,12 @@ window.updateBadgeKoinGenerate = function() {
     if (selected) {
         badge.innerText = selected.saldo + " coin";
         
-        // Ganti warna badge sesuai sisa koin
         if (selected.saldo >= 478) {
             badge.className = "text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
         } else {
             badge.className = "text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg";
         }
     } else {
-        // Balik ke default jika bener-bener kosong
         badge.innerText = "0 coin";
         badge.className = "text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg";
     }
@@ -290,7 +282,6 @@ window.renderVideoAsliKeGrid = function() {
     
     var riwayatLokal = [];
     
-    // Deteksi cerdas: Ambil dari global (database.js) atau dari localStorage langsung
     try {
         if (typeof window.riwayatGenerateList !== 'undefined' && window.riwayatGenerateList.length > 0) {
             riwayatLokal = window.riwayatGenerateList;
@@ -308,11 +299,9 @@ window.renderVideoAsliKeGrid = function() {
     var dataTerbaru = [];
 
     if (riwayatLokal.length > 0) {
-        // Tampilkan dari yang paling baru di-generate (urutan terbalik)
         dataTerbaru = [...riwayatLokal].reverse();
         if (txtCounter) txtCounter.innerText = riwayatLokal.length + ' tugas';
     } else {
-        // Tampilan Kosong jika belum ada render sama sekali
         var htmlKosong = `
         <div class="p-6 border border-kmBorder border-dashed rounded-3xl bg-white/50 text-center text-sm font-medium text-slate-400 flex flex-col items-center justify-center gap-2 col-span-full py-12">
             <span class="text-2xl">🎬</span>
@@ -325,7 +314,6 @@ window.renderVideoAsliKeGrid = function() {
         return;
     }
 
-    // Fungsi pembuat 1 kartu History
     function bikinKartuHTML(video) {
         var linkVideo = video.url || video.video_url || video.hasil_url || video.videoUrl || '';
         var namaEngine = video.engine || video.provider || video.model || 'Wan Motion Control';
@@ -391,7 +379,6 @@ window.renderVideoAsliKeGrid = function() {
         </div>`;
     }
 
-    // Tempelkan hasil HTML ke wadah History
     if (wadahHistory) {
         var htmlHistory = '';
         dataTerbaru.forEach(function(v) { 
@@ -400,7 +387,6 @@ window.renderVideoAsliKeGrid = function() {
         wadahHistory.innerHTML = htmlHistory;
     }
 
-    // Tempelkan maksimal 3 hasil HTML ke Dashboard
     if (wadahDashboard) {
         var htmlDashboard = '';
         dataTerbaru.slice(0, 3).forEach(function(v) { 
@@ -412,7 +398,6 @@ window.renderVideoAsliKeGrid = function() {
 
 window.hapusTugasBerdasarkanId = function(id) {
     mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
-        // Prioritas hapus dari memori global database.js jika tersedia
         if (typeof window.riwayatGenerateList !== 'undefined' && window.riwayatGenerateList.length > 0) {
             var findIdx = window.riwayatGenerateList.findIndex(function(t) { 
                 return String(t.id) === String(id); 
@@ -429,7 +414,6 @@ window.hapusTugasBerdasarkanId = function(id) {
                 }
             }
         } else {
-            // Fallback: hapus langsung dari localStorage
             var rwLokal = JSON.parse(localStorage.getItem('kiix_riwayat_gen_v1') || '[]');
             rwLokal = rwLokal.filter(function(t) {
                 return String(t.id) !== String(id);
@@ -545,7 +529,6 @@ window.simpanAkunBaruDariModal = async function() {
 
     var dbAkun = JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
     
-    // Cegah input double key
     var exists = dbAkun.find(function(a) { return a.key === newKey; });
     if(exists) {
         return tampilkanNotif('API Key sudah pernah ditambahkan!', 'error');
@@ -1183,7 +1166,6 @@ window.bersihkanChecker = function() {
 document.addEventListener("DOMContentLoaded", function() {
     cekAksesAdminPool();
     
-    // Tunda navigasi dashboard beberapa milidetik agar aset selesai dimuat
     setTimeout(function() {
         gantiLayarNav('dashboard');
     }, 300);

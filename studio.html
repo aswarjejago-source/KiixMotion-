@@ -12,7 +12,7 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- FIX IKON DADU: Hapus atribut defer agar ikon langsung ke-render -->
+  <!-- Ikon Phosphor (Tanpa defer agar ikon langsung ter-render) -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   
   <script>
@@ -52,15 +52,6 @@
   </style>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-  
-  <!-- SCRIPT SUPABASE -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-      var supabaseUrl = window.supabaseUrl || 'https://fybyupwcburndxulqqnn.supabase.co';
-      var supabaseAnonKey = window.supabaseAnonKey || 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
-      window.supa = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-  </script>
-
   <script src="js/database.js" defer></script>
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
@@ -68,7 +59,6 @@
 </head>
 <body class="selection:bg-kmViolet selection:text-white pb-14 md:pb-0 md:flex md:h-screen md:overflow-hidden bg-kmBg">
   
-  <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col items-end pointer-events-none"></div>
 
   <!-- MODAL CEKLIS SUKSES RENDER -->
@@ -87,16 +77,11 @@
     </div>
   </div>
 
-  <!-- SIDEBAR NAVIGATION -->
+  <!-- SIDEBAR -->
   <header id="main-header-nav" class="bg-white/90 backdrop-blur-md md:bg-white border-b md:border-b-0 md:border-r border-kmBorder px-4 sm:px-6 md:px-5 py-3.5 md:py-6 flex md:flex-col flex-wrap items-center md:items-start justify-between md:justify-start sticky top-0 z-40 gap-3 md:gap-6 md:w-[260px] shrink-0 h-auto md:h-screen transition-all shadow-[2px_0_15px_rgba(0,0,0,0.02)] overflow-y-auto hide-scrollbar">
     <div class="flex items-center gap-3 w-full">
       <div onclick="gantiLayarNav('dashboard')" class="relative w-10 h-10 flex items-center justify-center shrink-0 cursor-pointer">
-        <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 44" fill="none">
-          <rect width="44" height="44" rx="14" fill="#F3EEFF"/>
-          <path d="M14 10L22 22L14 34V10Z" fill="#7C3AED"/>
-          <path d="M22 22L30 10H22V22Z" fill="#A78BFA"/>
-          <path d="M22 22L30 34H22V22Z" fill="#6D28D9"/>
-        </svg>
+        <svg class="w-10 h-10 drop-shadow-sm" viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="14" fill="#F3EEFF"/><path d="M14 10L22 22L14 34V10Z" fill="#7C3AED"/><path d="M22 22L30 10H22V22Z" fill="#A78BFA"/><path d="M22 22L30 34H22V22Z" fill="#6D28D9"/></svg>
       </div>
       <div>
         <div class="flex items-center gap-2">
@@ -107,9 +92,7 @@
       </div>
     </div>
     
-    <div class="w-full mt-1 hidden md:block">
-      <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 pl-2">Meja Kerja</p>
-    </div>
+    <div class="w-full mt-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 pl-2">Meja Kerja</p></div>
 
     <nav class="flex md:flex-col items-center md:items-stretch gap-1 bg-slate-50 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-kmBorder md:border-none w-full overflow-x-auto hide-scrollbar">
       <button id="nav-btn-dashboard" onclick="gantiLayarNav('dashboard')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED] cursor-pointer whitespace-nowrap">
@@ -123,18 +106,14 @@
       <button id="nav-btn-history" onclick="gantiLayarNav('history')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-clock-counter-clockwise text-lg"></i> History
       </button>
-
       <button id="nav-btn-workflow-ugc" onclick="gantiLayarNav('workflow-ugc')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-sparkle text-lg text-kmViolet"></i> Workflow UGC <span class="text-[9px] bg-violet-100 text-kmViolet px-1.5 py-0.2 rounded-md font-bold">PRO</span>
       </button>
-
       <button id="nav-btn-galeri" onclick="gantiLayarNav('galeri')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-images text-lg"></i> Galeri <span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-md font-bold">Maks 50</span>
       </button>
       
-      <div class="w-full mt-3 mb-1 hidden md:block">
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Kelola akun</p>
-      </div>
+      <div class="w-full mt-3 mb-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">Kelola akun</p></div>
 
       <button id="nav-btn-kelola-akun" onclick="gantiLayarNav('kelola-akun')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-key text-lg"></i> Add Apikey
@@ -150,7 +129,7 @@
         <i class="ph ph-crown text-lg text-kmViolet"></i> Langganan VIP
       </button>
 
-      <!-- TOMBOL ADMIN (MASTER POOL API) -->
+      <!-- TOMBOL ADMIN -->
       <button id="nav-btn-admin-pool" onclick="gantiLayarNav('admin-pool')" style="display: none;" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500/10 text-amber-600 border border-amber-300 hover:bg-amber-500 hover:text-white cursor-pointer whitespace-nowrap transition mt-2">
         <i class="ph-fill ph-shield-check text-lg"></i> Master Pool API
       </button>
@@ -163,27 +142,21 @@
     <!-- TOP BAR PROFIL -->
     <div class="absolute top-4 right-4 sm:top-6 sm:right-8 flex items-center gap-3 z-50">
         <button onclick="alert('Fitur Dark Mode coming soon!')" class="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-kmBorder hover:bg-slate-50 shadow-sm transition cursor-pointer text-slate-500 hover:text-slate-800">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-            </svg>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
         </button>
         
         <div class="relative group">
-            <button class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-200 border border-kmBorder font-bold text-slate-700 text-sm shadow-sm hover:ring-2 hover:ring-kmViolet transition cursor-pointer">
-              <span id="profil-inisial">U</span>
-            </button>
+            <button class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-200 border border-kmBorder font-bold text-slate-700 text-sm shadow-sm hover:ring-2 hover:ring-kmViolet transition cursor-pointer"><span id="profil-inisial">U</span></button>
             <div class="absolute right-0 mt-2 w-56 bg-white border border-kmBorder rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 py-2 origin-top-right">
                 <div class="px-4 py-2 border-b border-kmBorder mb-1">
                     <p class="text-xs font-bold text-slate-800 truncate" id="profil-email-drop">Memuat...</p>
                     <p id="label-member-status" class="text-[10px] text-kmViolet font-bold mt-0.5">Member Aktif</p>
                     <p id="label-vip-expires" class="text-[9px] text-slate-400 font-medium mt-1 hidden"></p>
                 </div>
-                <a href="#" onclick="gantiLayarNav('beli-kredit')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚡ Beli Kredit (24 Jam)</a>
-                <a href="#" onclick="gantiLayarNav('langganan')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro VIP</a>
-                <a href="#" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙ Add Apikey</a>
-                <div class="border-t border-kmBorder mt-1 pt-1">
-                  <a href="#" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a>
-                </div>
+                <a href="javascript:void(0)" onclick="gantiLayarNav('beli-kredit')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚡ Beli Kredit (24 Jam)</a>
+                <a href="javascript:void(0)" onclick="gantiLayarNav('langganan')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">👑 Langganan Pro VIP</a>
+                <a href="javascript:void(0)" onclick="gantiLayarNav('kelola-akun')" class="block px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-violet-50 hover:text-kmViolet transition">⚙ Add Apikey</a>
+                <div class="border-t border-kmBorder mt-1 pt-1"><a href="javascript:void(0)" onclick="prosesLogout()" class="block px-4 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition">🚪 Keluar</a></div>
             </div>
         </div>
     </div>
@@ -196,41 +169,13 @@
       </div>
 
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer">
-              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition">
-                  <span class="text-emerald-600 text-lg">🎥</span>
-              </div>
-              <div>
-                  <h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4>
-                  <p class="text-[10px] text-slate-400">Buat video AI</p>
-              </div>
-          </button>
-          
-          <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer">
-              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition">
-                  <span class="text-amber-500 text-lg">🖼</span>
-              </div>
-              <div>
-                  <h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4>
-                  <p class="text-[10px] text-slate-400">Simpan media</p>
-              </div>
-          </button>
-          
-          <button onclick="gantiLayarNav('beli-kredit')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer">
-              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition">
-                  <span class="text-amber-600 text-lg">⚡</span>
-              </div>
-              <div>
-                  <h4 class="text-xs sm:text-sm font-bold text-slate-800">Beli Kredit</h4>
-                  <p class="text-[10px] text-slate-400">Render 24 jam</p>
-              </div>
-          </button>
+          <button onclick="gantiLayarNav('generate')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-emerald-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-emerald-600 text-lg">🎥</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Generate</h4><p class="text-[10px] text-slate-400">Buat video AI</p></div></button>
+          <button onclick="gantiLayarNav('galeri')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-500 text-lg">🖼</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Galeri</h4><p class="text-[10px] text-slate-400">Simpan media</p></div></button>
+          <button onclick="gantiLayarNav('beli-kredit')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-amber-400 hover:shadow-md transition text-left group cursor-pointer"><div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition"><span class="text-amber-600 text-lg">⚡</span></div><div><h4 class="text-xs sm:text-sm font-bold text-slate-800">Beli Kredit</h4><p class="text-[10px] text-slate-400">Render 24 jam</p></div></button>
           
           <button onclick="gantiLayarNav('langganan')" class="flex items-center gap-3 p-3 sm:p-4 bg-white border border-kmBorder rounded-2xl hover:border-kmViolet hover:shadow-md transition text-left group cursor-pointer relative overflow-hidden">
               <div class="absolute -right-4 -top-4 w-12 h-12 bg-violet-100 rounded-full blur-xl"></div>
-              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10">
-                  <span class="text-kmViolet text-lg">👑</span>
-              </div>
+              <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-50 flex items-center justify-center shrink-0 group-hover:scale-110 transition relative z-10"><span class="text-kmViolet text-lg">👑</span></div>
               <div class="relative z-10">
                   <h4 class="text-xs sm:text-sm font-bold text-slate-800">Upgrade ke Pro</h4>
                   <p class="text-[10px] text-slate-400">Pakai akun sendiri</p>
@@ -255,18 +200,7 @@
       </div>
 
       <div class="bg-gradient-to-r from-sky-50/90 via-white to-blue-50/70 border border-sky-200/80 p-4 sm:p-5 rounded-3xl modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-        <div class="flex items-center gap-3.5">
-            <div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30">
-                <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg>
-            </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h4 class="text-sm font-bold text-slate-900">Join Komunitas Kreator</h4>
-                    <span class="text-[10px] bg-[#229ED9]/10 text-[#229ED9] px-2 py-0.5 rounded-full font-bold">TELEGRAM RESMI</span>
-                </div>
-                <p class="text-xs text-slate-500 mt-0.5">Sharing trik affiliate dan info event.</p>
-            </div>
-        </div>
+        <div class="flex items-center gap-3.5"><div class="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-md shadow-[#229ED9]/30"><svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg></div><div><div class="flex items-center gap-2"><h4 class="text-sm font-bold text-slate-900">Join Komunitas Kreator</h4><span class="text-[10px] bg-[#229ED9]/10 text-[#229ED9] px-2 py-0.5 rounded-full font-bold">TELEGRAM RESMI</span></div><p class="text-xs text-slate-500 mt-0.5">Sharing trik affiliate dan info event.</p></div></div>
         <button onclick="bukaGrupTelegram()" class="px-5 py-2.5 bg-[#229ED9] hover:bg-[#1e8cc0] text-white text-xs sm:text-sm font-bold rounded-xl transition shadow-sm">Gabung Komunitas</button>
       </div>
 
@@ -362,7 +296,7 @@
                 <label class="text-xs font-bold uppercase tracking-wide text-slate-400">Pilih Akun Pemotong Saldo</label>
                 <span id="badge-total-saldo-gen" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">0 coin</span>
               </div>
-              <select id="sel-dropdown-akun" onchange="updateBadgeKoinGenerate()" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
+              <select id="sel-dropdown-akun" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-sm sm:text-base text-kmTextPrimary font-medium focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer">
                 <option value="">Memuat akun...</option>
               </select>
             </div>
@@ -389,13 +323,8 @@
     <!-- 3. HISTORY VIEW -->
     <div id="layar-history" class="layar-konten space-y-6" style="display: none;">
       <div class="flex items-center justify-between bg-white p-6 rounded-3xl border border-kmBorder modern-shadow">
-        <div>
-          <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Riwayat Generate Video</h2>
-          <p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Daftar render motion control yang pernah kamu buat.</p>
-        </div>
-        <div class="flex items-center gap-3">
-          <span id="txt-counter-history" class="text-xs sm:text-sm font-bold text-kmViolet bg-violet-50 px-3.5 py-1.5 rounded-xl border border-violet-100 tabular-nums">0 tugas</span>
-        </div>
+        <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Riwayat Generate Video</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-1">Daftar render motion control yang pernah kamu buat.</p></div>
+        <div class="flex items-center gap-3"><span id="txt-counter-history" class="text-xs sm:text-sm font-bold text-kmViolet bg-violet-50 px-3.5 py-1.5 rounded-xl border border-violet-100 tabular-nums">0 tugas</span></div>
       </div>
       <div id="wadah-list-history" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </div>
@@ -408,18 +337,10 @@
     <!-- 4. GALERI VIEW -->
     <div id="layar-galeri" class="layar-konten space-y-6" style="display: none;">
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Foto & video referensi</h2>
-          <p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Simpan foto & video untuk referensi. (Format max 20MB)</p>
-        </div>
+        <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Foto & video referensi</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Simpan foto & video untuk referensi. (Format max 20MB)</p></div>
         <div class="flex items-center gap-4 bg-slate-50 border border-kmBorder px-4 py-2.5 rounded-2xl">
-          <div class="text-right">
-            <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Terpakai</p>
-            <p id="txt-info-kuota-galeri" class="text-xs font-bold text-slate-800">0 foto · 0 video</p>
-          </div>
-          <div class="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-kmViolet font-bold text-xs">
-            <span id="txt-persen-kuota">0%</span>
-          </div>
+          <div class="text-right"><p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Terpakai</p><p id="txt-info-kuota-galeri" class="text-xs font-bold text-slate-800">0 foto · 0 video</p></div>
+          <div class="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-kmViolet font-bold text-xs"><span id="txt-persen-kuota">0%</span></div>
         </div>
       </div>
       <div class="bg-white border border-kmBorder rounded-3xl p-8 text-center modern-shadow space-y-4">
@@ -436,42 +357,25 @@
     <!-- 5. ADD APIKEY VIEW -->
     <div id="layar-kelola-akun" class="layar-konten space-y-6" style="display: none;">
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-5">
-        
-        <!-- FIX TOMBOL SYNC: Tombol Sync Saldo ada disini -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2>
-            <p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub kamu.</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <button onclick="refreshSemuaAkunLokal()" class="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-sm">
-                <i class="ph ph-arrows-clockwise text-base"></i> Sync Saldo
-            </button>
-            <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-violet-50 hover:bg-violet-100 text-kmViolet border border-violet-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-sm">
-                <i class="ph ph-key text-base"></i> + Add Apikey
-            </button>
+          <div><h2 class="text-lg sm:text-xl font-bold text-kmTextPrimary">Akun Terhubung (LIVE API)</h2><p class="text-xs sm:text-sm text-kmTextSecondary mt-0.5">Kelola API key RunningHub kamu.</p></div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btn-sync-semua-akun" onclick="sinkronSemuaAkunUser()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-sm"><i class="ph-bold ph-arrows-clockwise text-base"></i> Sync Saldo</button>
+            <button onclick="bukaModalFormKey()" class="px-5 py-2.5 bg-violet-50 hover:bg-violet-100 text-kmViolet border border-violet-200 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-sm"><i class="ph ph-key text-base"></i> + Add Apikey</button>
           </div>
         </div>
-
+        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-kmBorder">
+          <button class="px-4 py-2 rounded-xl bg-violet-50 border border-violet-200 text-kmViolet text-xs font-bold flex items-center gap-2"><span class="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">R</span> Akun RunningHub</button>
+        </div>
       </div>
-
+      
       <div class="bg-white border border-kmBorder rounded-2xl overflow-hidden modern-shadow">
         <button onclick="togglePanduanKey()" class="w-full px-5 py-4 flex items-center justify-between text-left bg-slate-50/70 hover:bg-slate-100/80 transition cursor-pointer">
-          <div class="flex items-center gap-2.5">
-            <span class="text-base">📖</span>
-            <span class="text-xs sm:text-sm font-bold text-slate-800">Cara Ambil API Key RunningHub</span>
-          </div>
-          <i id="icon-panah-panduan" class="ph ph-caret-down text-slate-500 text-base transition-transform duration-200"></i>
+          <div class="flex items-center gap-2.5"><span class="text-base">📖</span><span class="text-xs sm:text-sm font-bold text-slate-800">Cara Ambil API Key RunningHub</span></div><i id="icon-panah-panduan" class="ph ph-caret-down text-slate-500 text-base transition-transform duration-200"></i>
         </button>
         <div id="konten-panduan-key" style="display: none;" class="p-5 border-t border-kmBorder text-xs sm:text-sm text-slate-600 space-y-2 bg-white leading-relaxed">
-          <div class="flex items-start gap-2">
-            <span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">1</span>
-            <p>Login ke situs RunningHub, lalu buka halaman <span class="font-bold text-slate-800">APIKey</span> dan salin key-nya.</p>
-          </div>
-          <div class="flex items-start gap-2">
-            <span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">2</span>
-            <p>Klik tombol <span class="font-bold text-slate-800">+ Add Apikey</span> di atas, lalu *paste* token API Anda.</p>
-          </div>
+          <div class="flex items-start gap-2"><span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">1</span><p>Login ke situs RunningHub, lalu buka halaman <span class="font-bold text-slate-800">APIKey</span> dan salin key-nya.</p></div>
+          <div class="flex items-start gap-2"><span class="bg-violet-100 text-kmViolet font-bold px-2 py-0.5 rounded text-[10px]">2</span><p>Klik tombol <span class="font-bold text-slate-800">+ Add Apikey</span> di atas, lalu *paste* token API Anda.</p></div>
         </div>
       </div>
       
@@ -480,7 +384,7 @@
       </div>
     </div>
 
-    <!-- 6A. BELI KREDIT -->
+    <!-- 6A. LAYAR TERPISAH: BELI KREDIT -->
     <div id="layar-beli-kredit" class="layar-konten space-y-6" style="display: none;">
         <div>
             <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Beli Kredit Render</h1>
@@ -524,6 +428,7 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                
                 <button type="button" onclick="pilihPaketKredit('2k')" id="btn-kredit-2k" class="p-4 rounded-2xl border border-slate-200 hover:border-violet-300 text-left transition cursor-pointer relative group">
                     <div class="flex items-center justify-between mb-1.5">
                       <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">4 Kredit</span>
@@ -568,6 +473,7 @@
                       <strong>20 Kredit (20 Video)</strong> · 24 Jam
                     </div>
                 </button>
+
             </div>
 
             <div class="space-y-2 pt-1">
@@ -604,7 +510,7 @@
         </div>
     </div>
 
-    <!-- 6B. LANGGANAN VIP PRO -->
+    <!-- 6B. LAYAR TERPISAH: LANGGANAN VIP PRO -->
     <div id="layar-langganan" class="layar-konten space-y-6" style="display: none;">
         <div>
             <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Langganan Pro VIP</h1>
@@ -630,7 +536,7 @@
                 Paket <strong>Pro VIP (Rp 35.000)</strong> ini <strong>BUKAN paket terima beres!</strong> Anda <strong>WAJIB</strong> memiliki dan menghubungkan API Key RunningHub milik sendiri di menu <span class="font-bold underline cursor-pointer" onclick="gantiLayarNav('kelola-akun')">Add Apikey</span> (koin dipotong dari akun RunningHub Anda sendiri, minimal 478 koin per render).
             </p>
             <p class="text-xs text-rose-800 leading-relaxed pt-1">
-                👉 <em>Jika Anda tidak memiliki API Key RunningHub dan ingin terima beres tanpa ribet, silakan beli kuota di menu <a href="#" onclick="gantiLayarNav('beli-kredit')" class="font-bold underline text-kmViolet">Beli Kredit</a>.</em>
+                👉 <em>Jika Anda tidak memiliki API Key RunningHub dan ingin terima beres tanpa ribet, silakan beli kuota di menu <a href="javascript:void(0)" onclick="gantiLayarNav('beli-kredit')" class="font-bold underline text-kmViolet">Beli Kredit</a>.</em>
             </p>
         </div>
 
@@ -730,6 +636,7 @@
         </div>
       </div>
 
+      <!-- FITUR BARU: API KEY CHECKER (LOKAL) -->
       <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-6 rounded-3xl modern-shadow space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -765,6 +672,7 @@ rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy" class="w-full bg-white border border-blue-20
         </div>
 
         <div id="wadah-hasil-checker" class="space-y-2 mt-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            <!-- Hasil checker masuk ke sini -->
         </div>
       </div>
 
@@ -825,18 +733,12 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
   <!-- POP-UP MODAL ADD APIKEY -->
   <div id="modal-popup-key" style="display: none;" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white border border-kmBorder max-w-lg w-full p-6 sm:p-8 rounded-3xl space-y-5 shadow-2xl">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-bold text-kmTextPrimary">Tambah API Key RunningHub</h3>
-        <button onclick="tutupModalFormKey()" class="text-slate-400 hover:text-slate-700 font-bold text-xl cursor-pointer p-1">✕</button>
-      </div>
+      <div class="flex items-center justify-between"><h3 class="text-lg font-bold text-kmTextPrimary">Tambah API Key RunningHub</h3><button onclick="tutupModalFormKey()" class="text-slate-400 hover:text-slate-700 font-bold text-xl cursor-pointer p-1">✕</button></div>
       <p class="text-xs text-slate-500">Tempel API key dari halaman <span class="text-kmViolet font-bold">API Key RunningHub</span>.</p>
-      <div class="space-y-3 pt-1">
-        <label class="text-[11px] font-bold uppercase text-slate-400 block">API KEY</label>
-        <input id="in-modal-key" type="password" placeholder="Paste RunningHub API key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-xs sm:text-sm text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" />
-      </div>
+      <div class="space-y-3 pt-1"><label class="text-[11px] font-bold uppercase text-slate-400 block">API KEY</label><input id="in-modal-key" type="password" placeholder="Paste RunningHub API key di sini..." class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3.5 text-xs sm:text-sm text-kmTextPrimary font-mono focus:outline-none focus:border-kmViolet focus:bg-white" /></div>
       <div class="flex gap-3 pt-3">
         <button onclick="tutupModalFormKey()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold rounded-2xl hover:bg-slate-200 transition">Batal</button>
-        <button id="btn-simpan-key" onclick="if(typeof simpanAkunBaruDariModal === 'function') simpanAkunBaruDariModal();" class="flex-1 py-3.5 bg-[#7C3AED]/80 hover:bg-[#7C3AED] text-white text-xs sm:text-sm font-bold rounded-2xl transition cursor-pointer">Tambah</button>
+        <button id="btn-simpan-key" onclick="simpanAkunBaruDariModal()" class="flex-1 py-3.5 bg-[#7C3AED]/80 hover:bg-[#7C3AED] text-white text-xs sm:text-sm font-bold rounded-2xl transition cursor-pointer">Tambah</button>
       </div>
     </div>
   </div>
@@ -853,10 +755,17 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
     </div>
   </div>
 
+  <!-- SCRIPT SUPABASE & ENGINE REFERRAL TERPADU -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+      var supabaseUrl = window.supabaseUrl || 'https://fybyupwcburndxulqqnn.supabase.co';
+      var supabaseAnonKey = window.supabaseAnonKey || 'sb_publishable_6_w1SB8hk8tSzVtoIg4R3w_ZqXtoz2o';
+      var supa = window.supa || window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+      window.supa = supa;
+
       var sedangUpdateMemberUI = false;
+
       async function ambilDataLoginAsli() {
-          if (!window.supa) return;
           try {
               const { data: { session } } = await supa.auth.getSession();
               if (session && session.user) {
@@ -896,7 +805,9 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                           if (!userRow.referred_by && pendingRef) updateData.referred_by = pendingRef;
                           await supa.from('users').update(updateData).eq('id', userRow.id);
                       } else {
-                          await supa.from('users').insert({ email: emailUser, referral_code: kodeReferral, referred_by: pendingRef, is_vip: false });
+                          await supa.from('users').insert({
+                              email: emailUser, referral_code: kodeReferral, referred_by: pendingRef, is_vip: false
+                          });
                       }
                   } else if (userRow && !userRow.referral_code) {
                       await supa.from('users').update({ referral_code: kodeReferral }).eq('id', userRow.id);
@@ -915,64 +826,178 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
       }
 
       async function updateStatusMemberUI(emailUser, cachedSession) {
-          if (!window.supa || sedangUpdateMemberUI) return;
+          if (sedangUpdateMemberUI) return;
           sedangUpdateMemberUI = true;
 
           try {
               let session = cachedSession;
-              if (!session) { const sessionRes = await supa.auth.getSession(); session = sessionRes?.data?.session; }
+              if (!session) {
+                  const sessionRes = await supa.auth.getSession();
+                  session = sessionRes?.data?.session;
+              }
 
               let targetEmail = emailUser || session?.user?.email;
               if (!targetEmail) return;
               targetEmail = targetEmail.toLowerCase().trim();
+
               const authId = session?.user?.id;
 
-              const { data: userRows, error } = await supa.from('users').select('id, is_vip, vip_expires_at').ilike('email', targetEmail).limit(1);
-              const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
+              const { data: userRows, error } = await supa
+                  .from('users')
+                  .select('id, is_vip, vip_expires_at')
+                  .ilike('email', targetEmail)
+                  .limit(1);
 
+              const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
               const badgeEl = document.getElementById('label-member-status');
               const expEl = document.getElementById('label-vip-expires');
               const planNamaVIP = document.getElementById('label-plan-nama');
               const planDescVIP = document.getElementById('label-plan-desc');
               const badgeVIP = document.getElementById('label-status-vip-badge');
+              const boxKreditAngka = document.getElementById('label-box-kredit-angka');
+              const boxKreditInfo = document.getElementById('label-box-kredit-info');
 
               var isVipActive = false;
+              
               if (!error && userRow && userRow.is_vip === true) {
                   let formattedDate = "";
                   if (userRow.vip_expires_at) {
                       const expDate = new Date(userRow.vip_expires_at);
-                      if (expDate.getTime() > new Date().getTime()) { isVipActive = true; formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }); }
-                  } else { isVipActive = true; }
+                      if (expDate.getTime() > new Date().getTime()) {
+                          isVipActive = true;
+                          formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                      }
+                  } else {
+                      isVipActive = true;
+                  }
 
                   if (isVipActive) {
-                      if (badgeEl) { badgeEl.innerText = "⭐ Member Pro"; badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block"; }
-                      if (expEl && formattedDate) { expEl.innerText = "Aktif s.d. " + formattedDate; expEl.classList.remove('hidden'); }
+                      if (badgeEl) {
+                        badgeEl.innerText = "⭐ Member Pro";
+                        badgeEl.className = "text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full inline-block";
+                      }
+                      if (expEl && formattedDate) { 
+                        expEl.innerText = "Aktif s.d. " + formattedDate; 
+                        expEl.classList.remove('hidden'); 
+                      }
                       if (planNamaVIP) planNamaVIP.innerText = "Pro VIP (Aktif)";
                       if (planDescVIP) planDescVIP.innerText = "Masa aktif s.d. " + formattedDate + " · Akses akun RunningHub sendiri";
-                      if (badgeVIP) { badgeVIP.innerText = "Aktif"; badgeVIP.className = "px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full"; }
+                      if (badgeVIP) {
+                        badgeVIP.innerText = "Aktif";
+                        badgeVIP.className = "px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full";
+                      }
                   }
               }
 
               if (!isVipActive) {
                   if (planNamaVIP) planNamaVIP.innerText = "Free";
                   if (planDescVIP) planDescVIP.innerText = "Belum berlangganan VIP (Pakai kuota server di Beli Kredit)";
-                  if (badgeVIP) { badgeVIP.innerText = "Non-Aktif"; badgeVIP.className = "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full"; }
-                  if (badgeEl) { badgeEl.innerText = "Member Aktif"; badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block"; if (expEl) expEl.classList.add('hidden'); }
+                  if (badgeVIP) {
+                    badgeVIP.innerText = "Non-Aktif";
+                    badgeVIP.className = "px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full";
+                  }
               }
-          } catch (err) { console.error("Gagal membaca status member:", err); } finally { sedangUpdateMemberUI = false; }
+
+              let queryOr = [];
+              if (userRow && userRow.id) queryOr.push(`user_id.eq.${userRow.id}`);
+              if (authId && (!userRow || authId !== userRow.id)) queryOr.push(`user_id.eq.${authId}`);
+
+              if (queryOr.length > 0) {
+                const { data: userCredit } = await supa
+                    .from('user_credits')
+                    .select('credits_balance, expires_at')
+                    .or(queryOr.join(','))
+                    .order('credits_balance', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (userCredit && userCredit.credits_balance > 0) {
+                  const expDate = new Date(userCredit.expires_at);
+                  const expTime = expDate.getTime();
+                  
+                  if (expTime > new Date().getTime()) {
+                    const diffMs = expTime - new Date().getTime();
+                    const jamSisa = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
+                    
+                    const tglFormat = expDate.toLocaleDateString('id-ID', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    
+                    const jamFormat = expDate.toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }).replace('.', ':');
+
+                    const teksExpiredLengkap = `${tglFormat} pukul ${jamFormat} WIB`;
+
+                    if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
+                    if (boxKreditInfo) boxKreditInfo.innerText = `Berlaku untuk ${userCredit.credits_balance} video · Hangus: ${teksExpiredLengkap} (${jamSisa} jam lagi)`;
+                    
+                    if (!isVipActive && badgeEl) {
+                      badgeEl.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
+                      badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
+                      if (expEl) {
+                        expEl.innerText = "Hangus: " + teksExpiredLengkap;
+                        expEl.classList.remove('hidden');
+                      }
+                    }
+                    return;
+                  }
+                }
+              }
+
+              if (boxKreditAngka) boxKreditAngka.innerText = "0";
+              if (boxKreditInfo) boxKreditInfo.innerText = "Belum ada paket kredit aktif. Beli paket di bawah untuk render.";
+
+              if (!isVipActive && badgeEl) {
+                  badgeEl.innerText = "Member Aktif";
+                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
+                  if (expEl) expEl.classList.add('hidden');
+              }
+          } catch (err) {
+              console.error("Gagal membaca status member:", err);
+          } finally {
+              sedangUpdateMemberUI = false;
+          }
       }
 
       function salinLinkReferral() {
           if (!window.kodeReferralAktifUser) { alert('Kode referral sedang dimuat, coba sesaat lagi ya!'); return; }
           let domainWeb = window.location.origin;
           let linkLengkap = domainWeb + '/register.html?ref=' + window.kodeReferralAktifUser;
-          if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(linkLengkap).then(function() { alert('Link referral berhasil disalin:\n' + linkLengkap); }).catch(function() { prompt('Salin teks ini:', linkLengkap); });
-          } else { prompt('Salin teks ini:', linkLengkap); }
+
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(linkLengkap).then(function() {
+                  if (typeof tampilkanNotif === 'function') { tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses'); } else { alert('Link referral berhasil disalin:\n' + linkLengkap); }
+              }).catch(function() { fallbackSalinTeks(linkLengkap); });
+          } else { fallbackSalinTeks(linkLengkap); }
       }
 
-      async function prosesLogout() { if(window.supa) { await supa.auth.signOut(); } window.location.href = 'register.html'; }
+      function fallbackSalinTeks(text) {
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-9999px";
+          textArea.style.top = "0";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+              document.execCommand('copy');
+              if (typeof tampilkanNotif === 'function') { tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses'); } else { alert('Link referral berhasil disalin:\n' + text); }
+          } catch (err) { prompt('Salin link referral Anda di bawah ini:', text); }
+          document.body.removeChild(textArea);
+      }
 
-      document.addEventListener("DOMContentLoaded", function() { setTimeout(ambilDataLoginAsli, 500); });
+      async function prosesLogout() { 
+          await supa.auth.signOut(); 
+          window.location.href = 'register.html'; 
+      }
+
+      ambilDataLoginAsli();
   </script>
 </body>
 </html>

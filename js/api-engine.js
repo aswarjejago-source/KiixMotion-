@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC (REVISI FINAL)
+// PILAR 3: API ENGINE & RENDER LOGIC (REVISI FINAL LENGKAP)
 // File: js/api-engine.js
 // ==========================================
 
@@ -129,6 +129,7 @@ async function ambilKunciKolamTersedia(kecualiIds) {
   return null;
 }
 
+// UNGGAH BAHAN DENGAN DETEKSI ERROR LENGKAP
 async function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
   var file = input.files[0];
@@ -149,7 +150,7 @@ async function unggahBahanLangsung(input, tipe) {
 
   if (!keyUpload) {
     input.value = "";
-    return tampilkanNotif('Antrean server upload sedang padat, coba beberapa saat lagi.', 'error');
+    return tampilkanNotif('Antrean server upload lagi padat, coba bentar lagi ya.', 'error');
   }
 
   if (txtEl) txtEl.innerText = file.name;
@@ -198,18 +199,19 @@ async function unggahBahanLangsung(input, tipe) {
       }
     } catch (err) {
       if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-      tampilkanNotif('Gagal mengunggah: ' + (err.message || 'Respons server tidak valid'), 'error');
+      tampilkanNotif('Gagal mengunggah: ' + (err.message || 'Respon server nggak valid'), 'error');
     }
   };
 
   xhr.onerror = function() {
     if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Jaringan</span>';
-    tampilkanNotif('Koneksi internet terputus saat mengunggah file', 'error');
+    tampilkanNotif('Koneksi internet terputus pas mengunggah file', 'error');
   };
 
   xhr.send(formData);
 }
 
+// PEMANTAU TASK DENGAN AUTO-REFUND & RESET STATUS KOLAM TERPISAH
 function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
@@ -227,7 +229,7 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
 
     var waktuBerjalan = Date.now() - tugas.startedAt;
     
-    // TIMEOUT 1 JAM WAKTU NYATA
+    // TIMEOUT 1 JAM
     if (waktuBerjalan >= 3600000) {
       clearInterval(cekInterval);
       tugas.status = "❌ Gagal (Batas Waktu Proses 1 Jam Habis)"; 
@@ -235,16 +237,27 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
       tugas.progress = 100;
 
       var targetUser = userId || tugas.user_id;
+
+      // Refund mandiri
       if (didDeductCredit && !tugas.refunded && typeof supa !== 'undefined' && targetUser) {
-        tugas.refunded = true;
-        tugas.did_deduct = false;
-        await supa.rpc('refund_kredit_member', { target_user_id: String(targetUser) });
-        if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
-        tampilkanNotif('Batas waktu 1 jam habis. 1 kredit dikembalikan otomatis.', 'info');
+        try {
+          tugas.refunded = true;
+          tugas.did_deduct = false;
+          await supa.rpc('refund_kredit_member', { target_user_id: String(targetUser) });
+          if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
+          tampilkanNotif('Batas waktu 1 jam habis. 1 kredit dikembalikan otomatis.', 'info');
+        } catch (eRefund) {
+          console.error("Gagal refund timeout:", eRefund);
+          tugas.refunded = false;
+        }
       }
 
+      // Status kolam PASTI kembali ke idle
       if (poolId && typeof supa !== 'undefined') {
-        await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
+        try {
+          await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
+          if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
+        } catch (ePool) {}
       }
 
       if (typeof simpanStorage === 'function') simpanStorage();
@@ -281,6 +294,7 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
         if (match) vidUrl = match[0];
       }
 
+      // KONDISI SUKSES
       if (vidUrl && typeof vidUrl === 'string') {
         clearInterval(cekInterval);
         tugas.status = "Selesai"; 
@@ -289,7 +303,10 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
         tugas.videoUrl = vidUrl.replace(/\\/g, '');
         
         if (poolId && typeof supa !== 'undefined') {
-          await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
+          try {
+            await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
+            if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
+          } catch (e) {}
         }
 
         if (typeof simpanStorage === 'function') simpanStorage();
@@ -299,6 +316,7 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
+      // KONDISI GAGAL / ERROR
       try {
         var jsonObj2 = JSON.parse(textRaw);
         var topCode = Number(jsonObj2.code || 0);
@@ -331,18 +349,31 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
           tugas.progress = 100;
 
           var targetUserErr = userId || tugas.user_id;
+
+          // 1. Refund kredit dalam blok try-catch aman
           if (didDeductCredit && !tugas.refunded && typeof supa !== 'undefined' && targetUserErr) {
-            tugas.refunded = true;
-            tugas.did_deduct = false;
-            await supa.rpc('refund_kredit_member', { target_user_id: String(targetUserErr) });
-            if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
-            tampilkanNotif('Gagal memproses video dari server. 1 kredit dikembalikan otomatis.', 'error');
+            try {
+              tugas.refunded = true;
+              tugas.did_deduct = false;
+              await supa.rpc('refund_kredit_member', { target_user_id: String(targetUserErr) });
+              if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
+              tampilkanNotif('Render gagal di server. 1 kredit dikembalikan otomatis.', 'info');
+            } catch (errRefund) {
+              console.error('Gagal refund kredit:', errRefund);
+              tugas.refunded = false;
+            }
           } else {
             tampilkanNotif('Gagal memproses video di server. Silakan coba lagi.', 'error');
           }
 
+          // 2. Reset status kolam SELALU jalan tanpa terhalang error refund
           if (poolId && typeof supa !== 'undefined') {
-            await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
+            try {
+              await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
+              if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
+            } catch (errPool) {
+              console.error('Gagal update status pool ke idle:', errPool);
+            }
           }
 
           if (typeof simpanStorage === 'function') simpanStorage();
@@ -526,14 +557,14 @@ async function mulaiProsesGenerate() {
         }
 
         if (!userCredit || userCredit.credits_balance <= 0) {
-          tampilkanNotif('Sisa kredit Anda sudah habis. Silakan beli paket di Beli Kredit.', 'error');
+          tampilkanNotif('Sisa kredit kamu sudah habis. Silakan beli paket di Beli Kredit.', 'error');
           if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
           if (typeof gantiLayarNav === 'function') gantiLayarNav('beli-kredit');
           return;
         }
 
         if (new Date(userCredit.expires_at).getTime() <= Date.now()) {
-          tampilkanNotif('Paket kredit Anda sudah kedaluwarsa (lewat 24 jam). Silakan beli kuota baru.', 'error');
+          tampilkanNotif('Paket kredit kamu sudah kedaluwarsa (lewat 24 jam). Silakan beli kuota baru.', 'error');
           if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
           if (typeof gantiLayarNav === 'function') gantiLayarNav('beli-kredit');
           return;
@@ -560,11 +591,13 @@ async function mulaiProsesGenerate() {
     var akunPool = await ambilKunciKolamTersedia();
     if (!akunPool) {
       if (didDeductCredit && typeof supa !== 'undefined') {
-        await supa.rpc('refund_kredit_member', { target_user_id: idKredit });
-        if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(realEmail);
+        try {
+          await supa.rpc('refund_kredit_member', { target_user_id: idKredit });
+          if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(realEmail);
+        } catch (e) {}
       }
       if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      return tampilkanNotif('Semua server KiixMotion sedang sibuk. 1 kredit dikembalikan otomatis.', 'error');
+      return tampilkanNotif('Semua server KiixMotion lagi sibuk. 1 kredit dikembalikan otomatis.', 'error');
     }
 
     apiKeyDipakai = akunPool.api_key;
@@ -608,7 +641,7 @@ async function mulaiProsesGenerate() {
       );
 
       if (isKoinKurang && poolIdDipakai) {
-        console.warn(`Kunci #${poolIdDipakai} koinnya kurang saat render. Kembalikan ke 'idle' & switch cari kunci cadangan...`);
+        console.warn(`Kunci #${poolIdDipakai} koinnya kurang saat render. Switch cari kunci cadangan...`);
         await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
 
         var akunCadangan = await ambilKunciKolamTersedia(poolTercoba);
@@ -619,7 +652,7 @@ async function mulaiProsesGenerate() {
           await supa.from('runninghub_pool').update({ status: 'busy', last_used_at: new Date() }).eq('id', poolIdDipakai);
           continue; 
         } else {
-          throw new Error("Semua kunci cadangan server sedang tidak mencukupi koin.");
+          throw new Error("Semua kunci cadangan server lagi tidak mencukupi koin.");
         }
       }
 
@@ -627,17 +660,21 @@ async function mulaiProsesGenerate() {
         taskIdAsli = data.data?.taskId || data.taskId; 
         suksesKirim = true;
       } else { 
-        throw new Error(data ? (data.msg || "Server sedang padat") : "Respon server kosong");
+        throw new Error(data ? (data.msg || "Server lagi padat") : "Respon server kosong");
       }
 
     } catch (e) {
       if (poolIdDipakai && typeof supa !== 'undefined') {
-        await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
+        try {
+          await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
+        } catch (ePool) {}
       }
       if (didDeductCredit && typeof supa !== 'undefined') {
-        await supa.rpc('refund_kredit_member', { target_user_id: idKredit });
-        if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(realEmail);
-        tampilkanNotif('Antrean/koin server sedang tidak tersedia. 1 kredit dikembalikan otomatis.', 'error');
+        try {
+          await supa.rpc('refund_kredit_member', { target_user_id: idKredit });
+          if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(realEmail);
+          tampilkanNotif('Antrean/koin server lagi tidak tersedia. 1 kredit dikembalikan otomatis.', 'error');
+        } catch (eRef) {}
       } else {
         tampilkanNotif(e.message || 'Gagal memproses render ke server.', 'error');
       }
@@ -860,6 +897,19 @@ async function simpanAkunBaruDariModal() {
   renderListAkunDiKelola(); 
   setProviderUtama(engineProvider);
 }
+
+// RESTORE POLLING PAS TAB DIAKTIFKAN LAGI (ANTI-FREEZE BROWSER HP)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    if (typeof riwayatGenerateList !== 'undefined' && riwayatGenerateList.length > 0) {
+      riwayatGenerateList.forEach(function(tugas) {
+        if (!tugas.selesai && tugas.id && tugas.key) {
+          pantauTaskRunningHub(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
+        }
+      });
+    }
+  }
+});
 
 window.onload = function() {
   if (typeof muatStorage === 'function') muatStorage();

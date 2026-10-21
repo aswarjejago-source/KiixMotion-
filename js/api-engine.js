@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: API ENGINE & RENDER LOGIC
+// PILAR 3: API ENGINE & RENDER LOGIC (REVISI FINAL)
 // File: js/api-engine.js
 // ==========================================
 
@@ -104,7 +104,7 @@ function setProviderUtama(p) {
   }
 }
 
-// AMBIL KUNCI DARI KOLAM ADMIN (PATOKAN MURNI: MINIMAL 200 KOIN)
+// AMBIL KUNCI DARI KOLAM ADMIN (MINIMAL 200 KOIN)
 async function ambilKunciKolamTersedia(kecualiIds) {
   if (typeof supa === 'undefined') return null;
   try {
@@ -112,7 +112,7 @@ async function ambilKunciKolamTersedia(kecualiIds) {
       .from('runninghub_pool')
       .select('*')
       .eq('status', 'idle')
-      .gte('koin', 200) // PATOKAN MUTLAK 200 KOIN
+      .gte('koin', 200)
       .order('koin', { ascending: false });
     
     if (Array.isArray(kecualiIds) && kecualiIds.length > 0) {
@@ -175,26 +175,38 @@ async function unggahBahanLangsung(input, tipe) {
     try {
       var json = JSON.parse(xhr.responseText);
       var serverFile = null;
-      if (json) {
+
+      if (json && (json.code === 0 || json.code === 200 || json.status === 'success' || json.data)) {
         if (typeof json.data === 'string') serverFile = json.data;
-        else if (json.data && typeof json.data === 'object') serverFile = json.data.fileName || json.data.fileUrl || json.data.url || json.data.path;
-        else if (typeof json === 'string') serverFile = json;
+        else if (json.data && typeof json.data === 'object') {
+          serverFile = json.data.fileName || json.data.fileUrl || json.data.url || json.data.path;
+        } else if (typeof json === 'string') {
+          serverFile = json;
+        }
       }
+
       if (serverFile && typeof serverFile === 'string') {
-        if (tipe === 'foto') urlBahanFoto = serverFile; else urlBahanVideo = serverFile;
+        if (tipe === 'foto') urlBahanFoto = serverFile; 
+        else urlBahanVideo = serverFile;
+        
         var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
         if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
         tampilkanNotif('File berhasil diunggah ke studio!', 'sukses');
-      } else throw new Error("Gagal mengurai file");
+      } else {
+        var errorMsg = json?.msg || json?.message || "Server upload menolak file.";
+        throw new Error(errorMsg);
+      }
     } catch (err) {
       if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-      tampilkanNotif('Gagal mengunggah media: Format tidak didukung', 'error');
+      tampilkanNotif('Gagal mengunggah: ' + (err.message || 'Respons server tidak valid'), 'error');
     }
   };
+
   xhr.onerror = function() {
     if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Jaringan</span>';
-    tampilkanNotif('Koneksi internet bermasalah pas unggah file', 'error');
+    tampilkanNotif('Koneksi internet terputus saat mengunggah file', 'error');
   };
+
   xhr.send(formData);
 }
 
@@ -351,7 +363,7 @@ function pantauTaskRunningHub(tugas, apiKey, poolId, userId, didDeductCredit) {
   }, 10000); 
 }
 
-// REFRESH SALDO KOIN OTOMATIS (PATOKAN 200 KOIN)
+// REFRESH SALDO KOIN OTOMATIS
 async function refreshSaldoAkunOtomatis(apiKey, poolId) {
   if (!apiKey) return;
   try {
@@ -368,7 +380,6 @@ async function refreshSaldoAkunOtomatis(apiKey, poolId) {
       if (k !== undefined && k !== null) {
         var koinNum = Number(k);
         if (poolId && typeof supa !== 'undefined') {
-          // PATOKAN 200: HANYA dicap habis jika di bawah 200 koin!
           var statusBaru = koinNum < 200 ? 'habis' : 'idle';
           await supa.from('runninghub_pool').update({ koin: koinNum, status: statusBaru }).eq('id', poolId);
           if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
@@ -413,7 +424,7 @@ async function mulaiProsesGenerate() {
   
   var realEmail = null;
   var realUserId = null;
-  var realAuthId = null; // [PERBAIKAN] ID login (auth) untuk cadangan cari kredit
+  var realAuthId = null;
 
   if (typeof supa !== 'undefined') {
     if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA STATUS AKSES..."; }
@@ -423,7 +434,7 @@ async function mulaiProsesGenerate() {
       if (sessionUser && sessionUser.email) {
         realEmail = sessionUser.email.toLowerCase().trim();
       }
-      if (sessionUser && sessionUser.id) realAuthId = sessionUser.id; // [PERBAIKAN]
+      if (sessionUser && sessionUser.id) realAuthId = sessionUser.id;
       
       if (realEmail) {
         var { data: dbUser } = await supa
@@ -450,11 +461,9 @@ async function mulaiProsesGenerate() {
   var apiKeyDipakai = null;
   var poolIdDipakai = null;
   var didDeductCredit = false;
-  var idKredit = String(realUserId); // [PERBAIKAN] ID pemilik kredit (dipakai untuk potong & refund)
+  var idKredit = String(realUserId);
 
-  // =====================================================================
-  // JALUR 1: RUNNINGHUB PRO (MEMBER PRO DIKUNCI MINIMAL 478 KOIN PRIBADI)
-  // =====================================================================
+  // JALUR 1: RUNNINGHUB PRO
   if (engineProvider === 'runninghub') {
     var isVipActive = false;
     if (typeof supa !== 'undefined') {
@@ -484,7 +493,6 @@ async function mulaiProsesGenerate() {
     var idx = sel ? sel.value : "";
     var akunPribadi = (idx === "random" || idx === "") ? akunRunningHub[0] : akunRunningHub[parseInt(idx, 10)];
 
-    // PENCEGATAN KHUSUS MEMBER PRO (WAJIB MINIMAL 478 KOIN)
     if (realEmail !== 'anggraingki@gmail.com') {
       var koinAkunPribadi = Number(akunPribadi.koin) || 0;
       if (koinAkunPribadi < 478) {
@@ -497,12 +505,9 @@ async function mulaiProsesGenerate() {
     poolIdDipakai = null;
 
   } else {
-    // =====================================================================
-    // JALUR 2: KIIXMOTION CONTROL (PENGGUNA KREDIT BEBAS DARI BATASAN 478 KOIN)
-    // =====================================================================
+    // JALUR 2: KIIXMOTION CONTROL (PENGGUNA KREDIT)
     if (typeof supa !== 'undefined') {
       try {
-        // [PERBAIKAN] Cari kredit pakai 2 ID sekaligus (users.id dan auth id)
         var idCari = [String(realUserId)];
         if (realAuthId && String(realAuthId) !== String(realUserId)) idCari.push(String(realAuthId));
 
@@ -514,7 +519,6 @@ async function mulaiProsesGenerate() {
           .limit(1)
           .maybeSingle();
 
-        // [PERBAIKAN] Tampilkan error asli kalau ada
         if (errCredit) {
           tampilkanNotif('Gagal baca kredit: ' + errCredit.message, 'error');
           if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
@@ -535,7 +539,6 @@ async function mulaiProsesGenerate() {
           return;
         }
 
-        // [PERBAIKAN] Pakai ID yang kreditnya benar-benar ketemu
         idKredit = String(userCredit.user_id);
 
         var { data: potongRes, error: errPotong } = await supa.rpc('potong_kredit_member', { target_user_id: idKredit });
@@ -554,7 +557,6 @@ async function mulaiProsesGenerate() {
       }
     }
 
-    // Ambil kunci pertama di database kolam yang idle & koin >= 200
     var akunPool = await ambilKunciKolamTersedia();
     if (!akunPool) {
       if (didDeductCredit && typeof supa !== 'undefined') {
@@ -585,10 +587,6 @@ async function mulaiProsesGenerate() {
   var poolTercoba = poolIdDipakai ? [poolIdDipakai] : [];
   var suksesKirim = false;
 
-  // =====================================================================
-  // AUTO-POLLING / AUTO-ROTASI KUNCI JIKA KOIN KURANG
-  // (KUNCI YANG KURANG TIDAK BOLEH DIUBAH MENJADI 'HABIS' DI DATABASE!)
-  // =====================================================================
   while (!suksesKirim) {
     try {
       var res = await fetch('https://www.runninghub.ai/task/openapi/create', {
@@ -609,10 +607,8 @@ async function mulaiProsesGenerate() {
         )
       );
 
-      // JIKA KOIN KURANG: STATUS DI DATABASE TETAP 'IDLE', CUKUP ROTASI NYARI KUNCI LAIN!
       if (isKoinKurang && poolIdDipakai) {
         console.warn(`Kunci #${poolIdDipakai} koinnya kurang saat render. Kembalikan ke 'idle' & switch cari kunci cadangan...`);
-        // TETAPKAN STATUS 'IDLE' DI DATABASE KARENA KOIN MASIH >= 200
         await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolIdDipakai);
 
         var akunCadangan = await ambilKunciKolamTersedia(poolTercoba);
@@ -654,7 +650,7 @@ async function mulaiProsesGenerate() {
     id: taskIdAsli || ("KM-" + Date.now().toString().slice(-6)),
     key: apiKeyDipakai, 
     pool_id: poolIdDipakai,
-    user_id: didDeductCredit ? idKredit : realUserId, // [PERBAIKAN] supaya refund otomatis pakai ID yang benar
+    user_id: didDeductCredit ? idKredit : realUserId,
     user_email: realEmail,
     did_deduct: didDeductCredit,
     refunded: false,

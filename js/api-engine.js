@@ -107,7 +107,7 @@ function setProviderUtama(mode) {
   }
 }
 
-// UNGGAH LANGSUNG KE SUPABASE STORAGE (BEBAS LIMIT VERCEL & ZERO LEAK)
+// UNGGAH VIA CLOUDFLARE WORKER (BEBAS LIMIT & ZERO LEAK API KEY)
 async function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
   var file = input.files[0];
@@ -115,39 +115,41 @@ async function unggahBahanLangsung(input, tipe) {
   var stEl = document.getElementById(tipe === 'foto' ? 'st-file-foto' : 'st-file-video');
 
   if (txtEl) txtEl.innerText = file.name;
-  if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah...</span>';
+  if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah ke Server...</span>';
 
   try {
-    if (typeof supa === 'undefined') {
-      throw new Error("Koneksi Supabase belum siap.");
+    var formData = new FormData();
+    formData.append('file', file);
+
+    var res = await fetch('https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!res.ok) {
+      var errText = await res.text();
+      throw new Error('Gagal unggah: ' + errText);
     }
 
-    // Nama file acak dan unik
-    var ext = file.name.split('.').pop() || (tipe === 'foto' ? 'jpg' : 'mp4');
-    var cleanExt = ext.replace(/[^a-zA-Z0-9]/g, '');
-    var fileName = tipe + '_' + Date.now() + '_' + Math.random().toString(36).substring(7) + '.' + cleanExt;
-    var filePath = tipe + '/' + fileName;
+    var resJson = await res.json();
+    
+    var fileUrl = null;
+    if (resJson && resJson.data) {
+      if (typeof resJson.data === 'string') {
+        fileUrl = resJson.data;
+      } else if (typeof resJson.data === 'object') {
+        fileUrl = resJson.data.fileUrl || resJson.data.url || resJson.data.path;
+      }
+    }
 
-    // Upload langsung ke bucket bahan-render milik Supabase
-    var { data: uploadData, error: uploadErr } = await supa.storage
-      .from('bahan-render')
-      .upload(filePath, file, { cacheControl: '3600', upsert: true });
-
-    if (uploadErr) throw uploadErr;
-
-    // Ambil URL publik file untuk diproses server
-    var { data: urlData } = supa.storage
-      .from('bahan-render')
-      .getPublicUrl(filePath);
-
-    if (!urlData || !urlData.publicUrl) {
-      throw new Error("Gagal mengambil link file dari storage.");
+    if (!fileUrl) {
+      throw new Error(resJson.msg || "Link file tidak ditemukan dari server.");
     }
 
     if (tipe === 'foto') {
-      urlBahanFoto = urlData.publicUrl;
+      urlBahanFoto = fileUrl;
     } else {
-      urlBahanVideo = urlData.publicUrl;
+      urlBahanVideo = fileUrl;
     }
 
     var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
@@ -156,7 +158,7 @@ async function unggahBahanLangsung(input, tipe) {
 
   } catch (err) {
     if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-    tampilkanNotif('Gagal mengunggah: ' + (err.message || 'Periksa koneksi Supabase'), 'error');
+    tampilkanNotif('Gagal mengunggah: ' + (err.message || 'Periksa koneksi server'), 'error');
   }
 }
 

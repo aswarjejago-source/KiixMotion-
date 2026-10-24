@@ -1,3 +1,6 @@
+// File: api/outputs.js
+// Backend Proxy Vercel - Cek Status & Link Video (Aman Tanpa Bocor API Key)
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,15 +15,35 @@ export default async function handler(req, res) {
     return res.status(405).json({ code: 405, msg: 'Metode harus POST!' });
   }
 
-  const taskId = req.body.taskId;
-  const apiKey = req.headers['authorization']?.replace('Bearer ', '') || req.body.apiKey;
+  const { taskId, poolId } = req.body;
+  let apiKey = req.headers['authorization']?.replace('Bearer ', '') || req.body.apiKey;
+
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  // Jika frontend tidak mengirim apiKey (karena pakai pool kredit), ambil dari Supabase di backend
+  if (!apiKey && poolId && SUPABASE_URL && SUPABASE_SERVICE_ROLE) {
+    try {
+      const poolRes = await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolId}&select=api_key`, {
+        headers: {
+          'apikey': SUPABASE_SERVICE_ROLE,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
+        }
+      });
+      const poolData = await poolRes.json();
+      if (poolData && poolData.length > 0 && poolData[0].api_key) {
+        apiKey = poolData[0].api_key;
+      }
+    } catch (e) {
+      console.error("Gagal mengambil api_key pool:", e);
+    }
+  }
 
   if (!taskId || !apiKey) {
-    return res.status(400).json({ code: 400, msg: "TaskId atau ApiKey kurang!" });
+    return res.status(400).json({ code: 400, msg: "TaskId atau Kunci Server tidak ditemukan!" });
   }
 
   try {
-    // UBAH KE ENDPOINT OUTPUTS UNTUK MENARIK LINK VIDEO (.MP4)
     const urlRunningHub = `https://www.runninghub.ai/task/openapi/outputs`;
 
     const response = await fetch(urlRunningHub, {

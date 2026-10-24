@@ -116,7 +116,7 @@ export default async function handler(req, res) {
       if (!isMemberPro) {
         return res.status(403).json({
           success: false,
-          message: 'Akses Ditolak! Fitur RunningHub Pro (Custom Key) khusus member yang berlangganan VIP.'
+          message: 'Kamu belum punya akses Pro!'
         });
       }
 

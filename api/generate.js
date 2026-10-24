@@ -1,5 +1,5 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Secure Engine (Anti Fetch Failed & Smart Bypass)
+// Backend Proxy Vercel - KiixMotion Secure Engine (Auto-Detect Env Vercel)
 
 export const maxDuration = 60;
 
@@ -43,11 +43,9 @@ async function uploadKeEngineServer(fileUrl, fileType, apiKey) {
   return serverFile;
 }
 
-// BYPASS CERDAS: Jika bahan sudah diunggah Worker / sudah ada di RunningHub, jangan unduh ulang!
 async function siapkanBahan(bahan, fileType, apiKey) {
   if (!bahan || typeof bahan !== 'string') return bahan;
 
-  // Langsung loloskan jika sudah berbentuk path RunningHub atau link file RunningHub
   if (
     bahan.startsWith('api/') ||
     bahan.startsWith('openapi/') ||
@@ -78,16 +76,17 @@ export default async function handler(req, res) {
   }
 
   const RUNNINGHUB_WORKFLOW_ID = "2099509417535340546";
-  const SUPABASE_URL = process.env.SUPABASE_URL || "https://fytvyupwcburmdsulosm.supabase.co";
+  
+  // Otomatis baca NEXT_PUBLIC_SUPABASE_URL bawaan Vercel kamu
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || 
                                 process.env.SUPABASE_SERVICE_ROLE || 
-                                process.env.SUPABASE_SERVICE_KEY || 
                                 process.env.SUPABASE_KEY;
 
-  if (!SUPABASE_SERVICE_ROLE) {
+  if (!SUPABASE_URL) {
     return res.status(500).json({
       success: false,
-      message: 'Konfigurasi server belum lengkap: SUPABASE_SERVICE_ROLE_KEY belum diisi di Vercel.'
+      message: 'SUPABASE_URL tidak terbaca di environment Vercel.'
     });
   }
 
@@ -102,7 +101,7 @@ export default async function handler(req, res) {
   let didDeductCredit = false;
 
   try {
-    // A. JALUR PRO / KUNCI PRIBADI (CEK STATUS VIP)
+    // A. JALUR PRO / KUNCI PRIBADI
     if (provider === 'runninghub' || provider === 'pro' || provider === 'custom') {
       if (!apiKeyPribadi) {
         return res.status(400).json({ success: false, message: 'Kunci API pribadi belum dipilih atau kosong.' });
@@ -137,7 +136,7 @@ export default async function handler(req, res) {
 
       apiKeyDipakai = apiKeyPribadi;
     } 
-    // B. JALUR KIIX KREDIT (PAKAI 1 KREDIT & POOL ADMIN)
+    // B. JALUR KIIX KREDIT
     else {
       if (!userId) {
         return res.status(401).json({ success: false, message: 'Sesi login tidak valid.' });
@@ -189,13 +188,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // C. BYPASS PENYIAPAN BAHAN (Tidak ada lagi re-upload 34 MB di Vercel)
+    // C. BYPASS PENYIAPAN BAHAN
     const [rhFoto, rhVideo] = await Promise.all([
       siapkanBahan(urlBahanFoto, 'image', apiKeyDipakai),
       siapkanBahan(urlBahanVideo, 'video', apiKeyDipakai)
     ]);
 
-    // D. PEMBERSIHAN STORAGE SUPABASE (Jika ada sisa file lama)
+    // D. PEMBERSIHAN STORAGE SUPABASE
     const pathFoto = ambilPathDariUrl(urlBahanFoto);
     const pathVideo = ambilPathDariUrl(urlBahanVideo);
     const fileHapus = [pathFoto, pathVideo].filter(Boolean);

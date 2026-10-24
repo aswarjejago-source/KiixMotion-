@@ -107,69 +107,57 @@ function setProviderUtama(mode) {
   }
 }
 
-// UNGGAH BAHAN FOTO / VIDEO (100% PROXY INTERNAL /api/upload)
+// UNGGAH LANGSUNG KE SUPABASE STORAGE (BEBAS LIMIT VERCEL & ZERO LEAK)
 async function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
   var file = input.files[0];
   var txtEl = document.getElementById(tipe === 'foto' ? 'txt-file-foto' : 'txt-file-video');
   var stEl = document.getElementById(tipe === 'foto' ? 'st-file-foto' : 'st-file-video');
 
-  var keyUpload = (engineMode === 'pro' && listKunciPro.length > 0) ? listKunciPro[0].key : null;
-
   if (txtEl) txtEl.innerText = file.name;
-  if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah: 0%</span>';
+  if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah...</span>';
 
-  var formData = new FormData();
-  formData.append("file", file);
-  formData.append("fileType", tipe === 'foto' ? 'image' : 'video');
-  if (keyUpload) formData.append("apiKey", keyUpload);
-
-  var xhr = new XMLHttpRequest();
-  xhr.open("POST", "/api/upload"); // Tembak domain sendiri, network tab bersih
-  
-  xhr.upload.onprogress = function(e) {
-    if (e.lengthComputable && stEl) {
-      var pct = Math.round((e.loaded / e.total) * 100);
-      stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah: ' + pct + '%</span>';
+  try {
+    if (typeof supa === 'undefined') {
+      throw new Error("Koneksi Supabase belum siap.");
     }
-  };
-  
-  xhr.onload = function() {
-    try {
-      var json = JSON.parse(xhr.responseText);
-      var serverFile = null;
 
-      if (json && (json.code === 0 || json.code === 200 || json.status === 'success' || json.data)) {
-        if (typeof json.data === 'string') serverFile = json.data;
-        else if (json.data && typeof json.data === 'object') {
-          serverFile = json.data.fileName || json.data.fileUrl || json.data.url || json.data.path;
-        } else if (typeof json === 'string') {
-          serverFile = json;
-        }
-      }
+    // Nama file acak dan unik
+    var ext = file.name.split('.').pop() || (tipe === 'foto' ? 'jpg' : 'mp4');
+    var cleanExt = ext.replace(/[^a-zA-Z0-9]/g, '');
+    var fileName = tipe + '_' + Date.now() + '_' + Math.random().toString(36).substring(7) + '.' + cleanExt;
+    var filePath = tipe + '/' + fileName;
 
-      if (serverFile && typeof serverFile === 'string') {
-        if (tipe === 'foto') urlBahanFoto = serverFile; 
-        else urlBahanVideo = serverFile;
-        
-        var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
-        if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-        tampilkanNotif('File berhasil diunggah ke studio!', 'sukses');
-      } else {
-        throw new Error(json?.msg || json?.message || "Server upload menolak file.");
-      }
-    } catch (err) {
-      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-      tampilkanNotif('Gagal mengunggah: ' + (err.message || 'Respon server tidak valid'), 'error');
+    // Upload langsung ke bucket bahan-render milik Supabase
+    var { data: uploadData, error: uploadErr } = await supa.storage
+      .from('bahan-render')
+      .upload(filePath, file, { cacheControl: '3600', upsert: true });
+
+    if (uploadErr) throw uploadErr;
+
+    // Ambil URL publik file untuk diproses server
+    var { data: urlData } = supa.storage
+      .from('bahan-render')
+      .getPublicUrl(filePath);
+
+    if (!urlData || !urlData.publicUrl) {
+      throw new Error("Gagal mengambil link file dari storage.");
     }
-  };
 
-  xhr.onerror = function() {
-    if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Jaringan</span>';
-    tampilkanNotif('Koneksi internet terputus pas mengunggah file', 'error');
-  };
+    if (tipe === 'foto') {
+      urlBahanFoto = urlData.publicUrl;
+    } else {
+      urlBahanVideo = urlData.publicUrl;
+    }
 
-  xhr.send(formData);
+    var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
+    if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
+    tampilkanNotif('File berhasil diunggah!', 'sukses');
+
+  } catch (err) {
+    if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
+    tampilkanNotif('Gagal mengunggah: ' + (err.message || 'Periksa koneksi Supabase'), 'error');
+  }
 }
 
 // PEMANTAU PROSES VIDEO (Hanya cek ke /api/outputs)

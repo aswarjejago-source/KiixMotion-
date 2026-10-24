@@ -68,7 +68,27 @@ function alihkanKeMenuLangganan() {
   }
 }
 
-// SISTEM PENYIMPANAN AMAN KE SEMUA KUNCI
+// SISTEM BLACKLIST ID (TUGAS YANG SUDAH DIHAPUS TIDAK AKAN PERNAH BANGKIT LAGI)
+function getBlacklistTugas() {
+  try {
+    return JSON.parse(localStorage.getItem('km_task_terhapus') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function tambahKeBlacklist(taskId) {
+  if (!taskId) return;
+  try {
+    var list = getBlacklistTugas();
+    if (list.indexOf(String(taskId)) === -1) {
+      list.push(String(taskId));
+      localStorage.setItem('km_task_terhapus', JSON.stringify(list));
+    }
+  } catch (e) {}
+}
+
+// SISTEM PENYIMPANAN AMAN KE SEMUA KUNCI MEMORI
 function simpanStorage() {
   try {
     localStorage.setItem('km_list_kunci_pro', JSON.stringify(listKunciPro));
@@ -82,7 +102,7 @@ function simpanStorage() {
   } catch (e) {}
 }
 
-// PEMINDAI MEMORI LOKAL
+// PEMINDAI MEMORI LOKAL DENGAN PENAPIS BLACKLIST
 function muatStorage() {
   try {
     var rawKeys = localStorage.getItem('km_list_kunci_pro');
@@ -92,6 +112,7 @@ function muatStorage() {
 
     var kumpulanTugas = [];
     var mapId = {};
+    var blacklisted = getBlacklistTugas();
 
     var daftarKeyCek = [
       'km_riwayat_generate',
@@ -104,7 +125,7 @@ function muatStorage() {
 
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
-      if (k && daftarKeyCek.indexOf(k) === -1) {
+      if (k && k !== 'km_task_terhapus' && daftarKeyCek.indexOf(k) === -1) {
         daftarKeyCek.push(k);
       }
     }
@@ -128,6 +149,9 @@ function muatStorage() {
           if (!item || typeof item !== 'object') return;
           var taskId = item.id || item.taskId;
           if (!taskId) return;
+
+          // Abaikan jika tugas sudah ada dalam senarai hitam (pernah dipadam)
+          if (blacklisted.indexOf(String(taskId)) !== -1) return;
 
           var isValidTask = item.model || item.provider || item.engine || item.videoUrl || item.status || item.biaya || (typeof taskId === 'string' && taskId.length >= 10);
 
@@ -180,14 +204,14 @@ async function selaraskanRiwayatDenganAkun() {
 async function lepaskanKunciPoolOtomatis(poolId) {
   if (!poolId) return;
 
-  // 1. Update langsung ke tabel Supabase runninghub_pool
+  // 1. Kemas kini terus ke jadual Supabase runninghub_pool
   if (typeof supa !== 'undefined') {
     try {
       await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
     } catch (e) {}
   }
 
-  // 2. Refresh UI Monitor Kolam jika fungsi terkait tersedia
+  // 2. Kemas kini paparan monitor kolam jika fungsi tersedia
   try {
     if (typeof muatUlangDaftarPool === 'function') muatUlangDaftarPool();
     if (typeof renderTabelPool === 'function') renderTabelPool();
@@ -377,7 +401,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
 
     var waktuBerjalan = Date.now() - tugas.startedAt;
     
-    // 1. TIMEOUT 1 JAM: Hentikan dan lepas kunci
+    // 1. TIMEOUT 1 JAM: Hentikan dan lepaskan kunci
     if (waktuBerjalan >= 3600000) {
       clearInterval(cekInterval);
       lepaskanKunciPoolOtomatis(currentPoolId);
@@ -429,7 +453,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         if (match) vidUrl = match[0];
       }
 
-      // KONDISI BERHASIL: Lepas kunci pool menjadi idle
+      // KONDISI BERHASIL: Lepaskan kunci kolam menjadi idle
       if (vidUrl && typeof vidUrl === 'string') {
         clearInterval(cekInterval);
         lepaskanKunciPoolOtomatis(currentPoolId);
@@ -458,7 +482,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
       }
 
-      // STATUS MASIH BERJALAN / ANTRE
+      // STATUS MASIH BERJALAN / DALAM ANTREAN
       var isSedangJalan = (
         topCode === 804 || 
         topCode === 805 ||
@@ -482,7 +506,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // STATUS BATAL / GAGAL: Lepas kunci pool menjadi idle
+      // STATUS BATAL / GAGAL: Lepaskan kunci kolam menjadi idle
       var isBatalAtauGagal = (
         topCode === 807 || 
         (topCode !== 0 && topCode !== 200 && topCode !== 804 && topCode !== 805 && !isNaN(topCode)) ||
@@ -550,16 +574,28 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   }, 6000); 
 }
 
-// HAPUS SATU KARTU
+// HAPUS TOTAL KARTU DARI SEMUA MEMORI BROWSER & CATAT KE BLACKLIST
 function hapusRiwayatSatu(idx) {
   if (!window.riwayatGenerateList) return;
-  if (window.riwayatGenerateList[idx] && window.riwayatGenerateList[idx].intervalObj) {
-    clearInterval(window.riwayatGenerateList[idx].intervalObj);
+  var target = window.riwayatGenerateList[idx];
+  
+  if (target) {
+    var taskId = target.id || target.taskId;
+    tambahKeBlacklist(taskId); // Masukkan ke blacklist agar tidak bangkit lagi
+
+    if (target.intervalObj) clearInterval(target.intervalObj);
   }
+
   window.riwayatGenerateList.splice(idx, 1);
   riwayatGenerateList = window.riwayatGenerateList;
   simpanStorage();
+
+  try {
+    localStorage.removeItem('km_riwayat_backup');
+  } catch (e) {}
+
   if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
+  if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
 }
 
 // REFRESH SALDO KOIN KUNCI PRO
@@ -630,6 +666,7 @@ async function mulaiProsesGenerate() {
       }
 
       if (sessionUser && sessionUser.email) realEmail = sessionUser.email.toLowerCase().trim();
+      // Kunci paten ke ID Auth Supabase yang memegang kredit
       if (sessionUser && sessionUser.id) realUserId = sessionUser.id;
       
       if (realEmail) {

@@ -1,11 +1,12 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Secure Engine + Auto-Purge Storage
+// Backend Proxy Vercel - KiixMotion Secure Engine (Cloudflare Worker Ready)
 
 export const maxDuration = 60; // Beri waktu backend memproses file besar
 
-// 1. Ekstrak nama/path file dari link Supabase
+// 1. Ekstrak nama/path file dari link Supabase (cadangan jika masih ada link lama)
 function ambilPathDariUrl(publicUrl) {
   try {
+    if (!publicUrl || typeof publicUrl !== 'string') return null;
     const parts = publicUrl.split('/bahan-render/');
     return parts[1] ? decodeURIComponent(parts[1]) : null;
   } catch (e) {
@@ -13,7 +14,7 @@ function ambilPathDariUrl(publicUrl) {
   }
 }
 
-// 2. Oper file dari Supabase Storage ke Engine secara rahasia di server
+// 2. Oper file dari URL luar ke RunningHub (hanya jalan jika bahan berupa link http/https)
 async function uploadKeEngineServer(fileUrl, fileType, apiKey) {
   const fileRes = await fetch(fileUrl);
   if (!fileRes.ok) throw new Error("Gagal mengambil bahan dari storage Supabase.");
@@ -42,6 +43,14 @@ async function uploadKeEngineServer(fileUrl, fileType, apiKey) {
   }
   if (!serverFile) throw new Error(rhJson?.msg || "Engine menolak file bahan.");
   return serverFile;
+}
+
+// 3. Filter cerdas: jika sudah diunggah oleh Cloudflare Worker, pakai langsung ID-nya
+async function siapkanBahan(bahan, fileType, apiKey) {
+  if (typeof bahan === 'string' && (bahan.startsWith('api/') || !bahan.startsWith('http'))) {
+    return bahan; // Sudah berbentuk ID RunningHub, langsung lolos tanpa fetch ulang
+  }
+  return await uploadKeEngineServer(bahan, fileType, apiKey);
 }
 
 export default async function handler(req, res) {
@@ -146,13 +155,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // C. OPER BAHAN DARI SUPABASE KE ENGINE SERVER
+    // C. GUNAKAN BAHAN SECARA LANGSUNG (BYPASS UPLOAD JIKA SUDAH ADA ID DARI CLOUDFLARE)
     const [rhFoto, rhVideo] = await Promise.all([
-      uploadKeEngineServer(urlBahanFoto, 'image', apiKeyDipakai),
-      uploadKeEngineServer(urlBahanVideo, 'video', apiKeyDipakai)
+      siapkanBahan(urlBahanFoto, 'image', apiKeyDipakai),
+      siapkanBahan(urlBahanVideo, 'video', apiKeyDipakai)
     ]);
 
-    // D. AUTO-DELETE: HAPUS FILE DARI SUPABASE STORAGE SEKETIKA AGAR 0 MB
+    // D. PEMBERSIHAN STORAGE SUPABASE (Jika masih ada sisa file lama)
     const pathFoto = ambilPathDariUrl(urlBahanFoto);
     const pathVideo = ambilPathDariUrl(urlBahanVideo);
     const fileHapus = [pathFoto, pathVideo].filter(Boolean);
@@ -169,7 +178,7 @@ export default async function handler(req, res) {
       }).catch((e) => console.error("Gagal auto-delete Supabase:", e));
     }
 
-    // E. EKSEKUSI TASK RENDER KE ENGINE
+    // E. EKSEKUSI TASK RENDER KE ENGINE RUNNINGHUB
     const enginePayload = {
       workflowId: RUNNINGHUB_WORKFLOW_ID,
       apiKey: apiKeyDipakai,

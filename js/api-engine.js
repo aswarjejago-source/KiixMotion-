@@ -11,6 +11,33 @@ var urlBahanFoto = null;
 var urlBahanVideo = null;
 var listKunciPro = [];
 
+// SENARAI HITAM KEKAL: Tugas yang dipadam tidak akan dibenarkan muncul lagi
+var ID_HAPUS_PERMANEN = ["2113884739211014561"];
+
+function getBlacklistTugas() {
+  try {
+    var list = JSON.parse(localStorage.getItem('km_task_terhapus') || '[]');
+    ID_HAPUS_PERMANEN.forEach(function(id) {
+      if (list.indexOf(id) === -1) list.push(id);
+    });
+    return list;
+  } catch (e) {
+    return ID_HAPUS_PERMANEN;
+  }
+}
+
+function tambahKeBlacklist(taskId) {
+  if (!taskId) return;
+  try {
+    var list = getBlacklistTugas();
+    var sId = String(taskId).trim();
+    if (list.indexOf(sId) === -1) {
+      list.push(sId);
+      localStorage.setItem('km_task_terhapus', JSON.stringify(list));
+    }
+  } catch (e) {}
+}
+
 // NOTIFIKASI PUSAT MELAYANG
 function tampilkanNotifPusat(pesan) {
   var notifLama = document.getElementById('km-notif-pusat');
@@ -68,41 +95,21 @@ function alihkanKeMenuLangganan() {
   }
 }
 
-// SISTEM BLACKLIST ID (TUGAS YANG SUDAH DIHAPUS TIDAK AKAN PERNAH BANGKIT LAGI)
-function getBlacklistTugas() {
-  try {
-    return JSON.parse(localStorage.getItem('km_task_terhapus') || '[]');
-  } catch (e) {
-    return [];
-  }
-}
-
-function tambahKeBlacklist(taskId) {
-  if (!taskId) return;
-  try {
-    var list = getBlacklistTugas();
-    if (list.indexOf(String(taskId)) === -1) {
-      list.push(String(taskId));
-      localStorage.setItem('km_task_terhapus', JSON.stringify(list));
-    }
-  } catch (e) {}
-}
-
-// SISTEM PENYIMPANAN AMAN KE SEMUA KUNCI MEMORI
+// SISTEM PENYIMPANAN STERIL (SATU KUNCI RASMI - HAPUS KUNCI ZOMBIE)
 function simpanStorage() {
   try {
     localStorage.setItem('km_list_kunci_pro', JSON.stringify(listKunciPro));
     if (window.riwayatGenerateList && Array.isArray(window.riwayatGenerateList)) {
       var dataStr = JSON.stringify(window.riwayatGenerateList);
       localStorage.setItem('km_riwayat_generate', dataStr);
-      localStorage.setItem('riwayat_generate', dataStr);
-      localStorage.setItem('km_riwayat', dataStr);
-      localStorage.setItem('km_history', dataStr);
     }
+    // Padam semua kunci sandaran lama agar tidak membangkitkan data yang telah dibuang
+    var kunciZombie = ['riwayat_generate', 'km_riwayat', 'km_history', 'riwayat_video', 'km_riwayat_backup', 'riwayatGenerateList'];
+    kunciZombie.forEach(function(k) { localStorage.removeItem(k); });
   } catch (e) {}
 }
 
-// PEMINDAI MEMORI LOKAL DENGAN PENAPIS BLACKLIST
+// PEMINDAI MEMORI AMAN (DILENGKAPI TAPISAN SENARAI HITAM)
 function muatStorage() {
   try {
     var rawKeys = localStorage.getItem('km_list_kunci_pro');
@@ -110,70 +117,50 @@ function muatStorage() {
       listKunciPro = JSON.parse(rawKeys) || [];
     }
 
-    var kumpulanTugas = [];
-    var mapId = {};
     var blacklisted = getBlacklistTugas();
+    var listUtama = [];
 
-    var daftarKeyCek = [
-      'km_riwayat_generate',
-      'riwayat_generate',
-      'km_riwayat',
-      'km_history',
-      'riwayat_video',
-      'riwayatGenerateList'
-    ];
+    var rawRiwayat = localStorage.getItem('km_riwayat_generate');
+    if (rawRiwayat) {
+      try { listUtama = JSON.parse(rawRiwayat) || []; } catch (e) {}
+    }
 
-    for (var i = 0; i < localStorage.length; i++) {
-      var k = localStorage.key(i);
-      if (k && k !== 'km_task_terhapus' && daftarKeyCek.indexOf(k) === -1) {
-        daftarKeyCek.push(k);
+    // Jika kosong, semak satu kunci sandaran sekali sahaja lalu bersihkan
+    if (!listUtama || listUtama.length === 0) {
+      var rawOld = localStorage.getItem('riwayat_generate') || localStorage.getItem('km_riwayat');
+      if (rawOld) {
+        try { listUtama = JSON.parse(rawOld) || []; } catch (e) {}
       }
     }
 
-    daftarKeyCek.forEach(function(keyName) {
-      try {
-        var str = localStorage.getItem(keyName);
-        if (!str || typeof str !== 'string' || str.indexOf('{') === -1) return;
+    var hasilBersih = [];
+    var mapId = {};
 
-        var parsed = JSON.parse(str);
-        var targetArr = [];
+    if (Array.isArray(listUtama)) {
+      listUtama.forEach(function(item) {
+        if (!item || typeof item !== 'object') return;
+        var taskId = String(item.id || item.taskId || "").trim();
+        if (!taskId) return;
 
-        if (Array.isArray(parsed)) targetArr = parsed;
-        else if (parsed && typeof parsed === 'object') {
-          if (Array.isArray(parsed.data)) targetArr = parsed.data;
-          else if (Array.isArray(parsed.list)) targetArr = parsed.list;
-          else if (parsed.id || parsed.taskId) targetArr = [parsed];
+        // Sekat tugas jika berada dalam senarai hitam
+        if (blacklisted.indexOf(taskId) !== -1) return;
+
+        if (!mapId[taskId]) {
+          mapId[taskId] = true;
+          if (!item.id && item.taskId) item.id = item.taskId;
+          if (!item.startedAt) item.startedAt = item.timestamp || Date.now();
+          hasilBersih.push(item);
         }
+      });
+    }
 
-        targetArr.forEach(function(item) {
-          if (!item || typeof item !== 'object') return;
-          var taskId = item.id || item.taskId;
-          if (!taskId) return;
-
-          // Abaikan jika tugas sudah ada dalam senarai hitam (pernah dipadam)
-          if (blacklisted.indexOf(String(taskId)) !== -1) return;
-
-          var isValidTask = item.model || item.provider || item.engine || item.videoUrl || item.status || item.biaya || (typeof taskId === 'string' && taskId.length >= 10);
-
-          if (isValidTask && !mapId[String(taskId)]) {
-            mapId[String(taskId)] = true;
-            if (!item.id && item.taskId) item.id = item.taskId;
-            if (!item.startedAt) item.startedAt = item.timestamp || Date.now();
-            kumpulanTugas.push(item);
-          }
-        });
-      } catch (eParse) {}
+    hasilBersih.sort(function(a, b) {
+      return (Number(b.startedAt) || 0) - (Number(a.startedAt) || 0);
     });
 
-    if (kumpulanTugas.length > 0) {
-      kumpulanTugas.sort(function(a, b) {
-        return (Number(b.startedAt) || 0) - (Number(a.startedAt) || 0);
-      });
-
-      window.riwayatGenerateList = kumpulanTugas;
-      riwayatGenerateList = kumpulanTugas;
-      simpanStorage();
-    }
+    window.riwayatGenerateList = hasilBersih;
+    riwayatGenerateList = hasilBersih;
+    simpanStorage();
   } catch (e) {}
 }
 
@@ -200,18 +187,16 @@ async function selaraskanRiwayatDenganAkun() {
   } catch (err) {}
 }
 
-// FUNGSI AUTO-RELEASE POOL: Mengembalikan status kunci ke 'idle' secara otomatis
+// FUNGSI AUTO-RELEASE POOL: Mengembalikan status kunci ke 'idle' secara automatik
 async function lepaskanKunciPoolOtomatis(poolId) {
   if (!poolId) return;
 
-  // 1. Kemas kini terus ke jadual Supabase runninghub_pool
   if (typeof supa !== 'undefined') {
     try {
       await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
     } catch (e) {}
   }
 
-  // 2. Kemas kini paparan monitor kolam jika fungsi tersedia
   try {
     if (typeof muatUlangDaftarPool === 'function') muatUlangDaftarPool();
     if (typeof renderTabelPool === 'function') renderTabelPool();
@@ -453,7 +438,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         if (match) vidUrl = match[0];
       }
 
-      // KONDISI BERHASIL: Lepaskan kunci kolam menjadi idle
+      // KONDISI BERHASIL
       if (vidUrl && typeof vidUrl === 'string') {
         clearInterval(cekInterval);
         lepaskanKunciPoolOtomatis(currentPoolId);
@@ -469,7 +454,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // B. CEK STATUS EKSEKUSI DI RUNNINGHUB
+      // B. CEK STATUS EKSEKUSI DI RUNNINGHUB SECARA PRESISI
       var topCode = jsonObj ? Number(jsonObj.code) : NaN;
       var topMsg = (jsonObj && jsonObj.msg) ? String(jsonObj.msg).toUpperCase() : "";
       var statusTeks = "";
@@ -506,7 +491,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // STATUS BATAL / GAGAL: Lepaskan kunci kolam menjadi idle
+      // STATUS BATAL / GAGAL
       var isBatalAtauGagal = (
         topCode === 807 || 
         (topCode !== 0 && topCode !== 200 && topCode !== 804 && topCode !== 805 && !isNaN(topCode)) ||
@@ -575,24 +560,42 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
 }
 
 // HAPUS TOTAL KARTU DARI SEMUA MEMORI BROWSER & CATAT KE BLACKLIST
-function hapusRiwayatSatu(idx) {
-  if (!window.riwayatGenerateList) return;
-  var target = window.riwayatGenerateList[idx];
-  
-  if (target) {
-    var taskId = target.id || target.taskId;
-    tambahKeBlacklist(taskId); // Masukkan ke blacklist agar tidak bangkit lagi
+function hapusRiwayatSatu(target) {
+  if (!window.riwayatGenerateList || window.riwayatGenerateList.length === 0) return;
 
-    if (target.intervalObj) clearInterval(target.intervalObj);
+  var targetId = null;
+
+  if (typeof target === 'number') {
+    var item = window.riwayatGenerateList[target];
+    if (item) targetId = String(item.id || item.taskId || "").trim();
+  } else if (typeof target === 'string') {
+    targetId = target.trim();
+  } else if (target && (target.nodeType || target.closest)) {
+    var el = target.closest ? target.closest('[data-id], div') : null;
+    if (el) {
+      var raw = el.getAttribute('data-id') || el.innerText || '';
+      var match = raw.match(/\b\d{15,22}\b/);
+      if (match) targetId = match[0];
+    }
   }
 
-  window.riwayatGenerateList.splice(idx, 1);
+  if (targetId) {
+    tambahKeBlacklist(targetId);
+    window.riwayatGenerateList = window.riwayatGenerateList.filter(function(t) {
+      var idTugas = String(t.id || t.taskId || "").trim();
+      if (idTugas === targetId) {
+        if (t.intervalObj) clearInterval(t.intervalObj);
+        return false;
+      }
+      return true;
+    });
+  } else if (typeof target === 'number') {
+    var del = window.riwayatGenerateList.splice(target, 1);
+    if (del[0] && del[0].id) tambahKeBlacklist(del[0].id);
+  }
+
   riwayatGenerateList = window.riwayatGenerateList;
   simpanStorage();
-
-  try {
-    localStorage.removeItem('km_riwayat_backup');
-  } catch (e) {}
 
   if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
   if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();

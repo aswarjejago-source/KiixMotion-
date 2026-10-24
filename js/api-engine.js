@@ -521,20 +521,40 @@ async function mulaiProsesGenerate() {
     pantauStatusVideo(tugasBaru, apiKeyPribadi, poolIdDipakai, tugasBaru.user_id, didDeductCredit);
 
   } catch (err) {
-    tampilkanNotif(err.message || 'Terjadi gangguan koneksi ke server render.', 'error');
+    var pesan = err.message || 'Terjadi gangguan koneksi ke server render.';
+    var pesanLower = pesan.toLowerCase();
 
-    // Pengalihan otomatis ke halaman Langganan VIP jika akses ditolak
-    var pesan = (err.message || "").toLowerCase();
-    if (pesan.includes("akses ditolak") || pesan.includes("vip") || pesan.includes("berlangganan")) {
+    // Deteksi jika user bukan Pro/VIP
+    var isBukanPro = pesanLower.includes("akses pro") || 
+                    pesanLower.includes("akses ditolak") || 
+                    pesanLower.includes("vip") || 
+                    pesanLower.includes("berlangganan") ||
+                    pesanLower.includes("pro");
+
+    if (isBukanPro) {
+      tampilkanNotif('Kamu belum punya akses Pro!', 'error');
+
       setTimeout(function() {
         if (typeof gantiLayarNav === 'function') {
-          gantiLayarNav('vip');
-        } else {
-          var menuVip = document.querySelector('[onclick*="vip"], [data-nav="vip"]');
-          if (menuVip) menuVip.click();
+          try { gantiLayarNav('vip'); } catch (e) {}
+          try { gantiLayarNav('langganan'); } catch (e) {}
+          try { gantiLayarNav('kredit'); } catch (e) {}
         }
-      }, 1400);
+
+        // Pemicu otomatis klik menu sidebar Langganan VIP atau Beli Kredit
+        var menuElements = document.querySelectorAll('button, a, div, span, li');
+        for (var i = 0; i < menuElements.length; i++) {
+          var label = (menuElements[i].innerText || "").trim().toLowerCase();
+          if (label === 'langganan vip' || label === 'beli kredit') {
+            menuElements[i].click();
+            break;
+          }
+        }
+      }, 750);
+      return;
     }
+
+    tampilkanNotif(pesan, 'error');
   } finally {
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
   }

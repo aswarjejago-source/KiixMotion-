@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: ENGINE LOGIC (FULL SECURE & BULLETPROOF EXTRACTOR)
+// PILAR 3: ENGINE LOGIC (STRICT STATUS WORKFLOW)
 // File: js/api-engine.js
 // ==========================================
 
@@ -59,7 +59,7 @@ function tampilkanNotifPusat(pesan) {
   }, 2800);
 }
 
-// PENGALIHAN MENU LANGGANAN
+// PENGALIHAN LANGGANAN
 function alihkanKeMenuLangganan() {
   if (typeof gantiLayarNav === 'function') {
     try { gantiLayarNav('vip'); } catch (e) {}
@@ -200,55 +200,50 @@ async function lepaskanKunciPoolOtomatis(poolId) {
   } catch (e) {}
 }
 
-// PELACAK URL VIDEO OTOMATIS (MENGAMBIL MP4 DARI STRUKTUR APA PUN)
-function temukanUrlVideoDariRespons(jsonObj, textRaw) {
-  if (!textRaw && !jsonObj) return null;
-
+// EKSTRAKSI LINK HASIL (DENGAN FILTER ANTI-BAHAN INPUT)
+function temukanUrlVideoHasil(jsonObj, textRaw, urlBahanDilarang) {
   var teksBersih = (textRaw || "").replace(/\\/g, '');
+  var linkKetemu = null;
 
-  // 1. Ekstraksi mendalam pada objek JSON
+  function periksaDanSet(url) {
+    if (!url || typeof url !== 'string' || linkKetemu) return;
+    var u = url.trim().replace(/\\/g, '');
+    // Abaikan jika ternyata link ini adalah video bahan input gerakan
+    if (urlBahanDilarang && u === urlBahanDilarang.replace(/\\/g, '')) return;
+
+    if (u.startsWith('http') && (u.toLowerCase().includes('.mp4') || u.toLowerCase().includes('.mov') || u.toLowerCase().includes('.webm') || u.includes('aliyuncs') || u.includes('runninghub'))) {
+      linkKetemu = u;
+    }
+  }
+
   if (jsonObj) {
-    var hasilUrl = null;
-    function bongkarObjek(obj) {
-      if (!obj || hasilUrl) return;
-      if (typeof obj === 'string') {
-        var s = obj.trim().replace(/\\/g, '');
-        if (s.startsWith('http') && (s.toLowerCase().includes('.mp4') || s.toLowerCase().includes('.mov') || s.toLowerCase().includes('.webm') || s.includes('aliyuncs') || s.includes('runninghub'))) {
-          hasilUrl = s;
+    var data = jsonObj.data || jsonObj;
+    if (Array.isArray(data)) {
+      data.forEach(function(item) {
+        if (item && typeof item === 'object') {
+          periksaDanSet(item.fileUrl || item.file_url || item.url || item.path);
+        } else if (typeof item === 'string') {
+          periksaDanSet(item);
         }
-      } else if (Array.isArray(obj)) {
-        for (var i = 0; i < obj.length; i++) {
-          bongkarObjek(obj[i]);
-          if (hasilUrl) break;
-        }
-      } else if (typeof obj === 'object') {
-        var prioritas = obj.fileUrl || obj.file_url || obj.videoUrl || obj.video_url || obj.url || obj.outputValue || obj.path || obj.downloadUrl;
-        if (prioritas) bongkarObjek(prioritas);
-        if (!hasilUrl) {
-          for (var k in obj) {
-            if (obj.hasOwnProperty(k)) {
-              bongkarObjek(obj[k]);
-              if (hasilUrl) break;
-            }
-          }
+      });
+    } else if (typeof data === 'object') {
+      periksaDanSet(data.fileUrl || data.file_url || data.videoUrl || data.url || data.path || data.outputValue);
+    }
+  }
+
+  if (!linkKetemu && teksBersih) {
+    var matches = teksBersih.match(/https?:\/\/[^\s"'<>\\]+?\.(?:mp4|mov|webm)(?:\?[^\s"'<>\\]*)?/gi);
+    if (matches && matches.length > 0) {
+      for (var i = 0; i < matches.length; i++) {
+        if (!urlBahanDilarang || matches[i] !== urlBahanDilarang.replace(/\\/g, '')) {
+          linkKetemu = matches[i];
+          break;
         }
       }
     }
-
-    bongkarObjek(jsonObj.data || jsonObj);
-    if (hasilUrl) return hasilUrl;
   }
 
-  // 2. Pencocokan regex pada teks yang sudah dibersihkan dari escape backslash
-  if (teksBersih) {
-    var matchMp4 = teksBersih.match(/https?:\/\/[^\s"'<>\\]+?\.(?:mp4|mov|webm)(?:\?[^\s"'<>\\]*)?/i);
-    if (matchMp4 && matchMp4[0]) return matchMp4[0];
-
-    var matchOss = teksBersih.match(/https?:\/\/[^\s"'<>\\]+?(?:runninghub|aliyuncs|oss)[^\s"'<>\\]+/i);
-    if (matchOss && matchOss[0]) return matchOss[0];
-  }
-
-  return null;
+  return linkKetemu;
 }
 
 function resetFormBahanInput() {
@@ -418,7 +413,7 @@ function unggahBahanLangsung(input, tipe) {
   xhr.send(formData);
 }
 
-// CCTV PRESISI: MENDETEKSI SELESAI DENGAN TEPAT
+// CCTV DENGAN URUTAN LOGIKA PRESISI (ANTI SALAH VONIS)
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
@@ -449,7 +444,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       return;
     }
 
-    // Auto-resolve kunci kolam dari Supabase jika API Key masih kosong
     if (!currentApiKey && currentPoolId && typeof supa !== 'undefined') {
       try {
         var { data: poolRec } = await supa.from('runninghub_pool').select('api_key').eq('id', currentPoolId).maybeSingle();
@@ -471,31 +465,12 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         })
       });
 
+      if (!res.ok) return;
+
       var textRaw = await res.text();
       var jsonObj = null;
       try { jsonObj = JSON.parse(textRaw); } catch(e) {}
 
-      // 1. DETEKSI HASIL VIDEO SELESAI
-      var vidUrl = temukanUrlVideoDariRespons(jsonObj, textRaw);
-
-      if (vidUrl) {
-        if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-        lepaskanKunciPoolOtomatis(currentPoolId);
-
-        tugas.status = "Selesai"; 
-        tugas.selesai = true;
-        tugas.progress = 100; 
-        tugas.videoUrl = vidUrl.replace(/\\/g, '');
-
-        simpanStorage();
-        if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-        if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-        if (currentApiKey) refreshSaldoKunciOtomatis(currentApiKey);
-        if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video berhasil selesai!', 'sukses');
-        return;
-      }
-
-      // 2. DETEKSI STATUS GAGAL RESMI DARI RUNNINGHUB
       var topCode = jsonObj ? Number(jsonObj.code) : NaN;
       var statusTeks = "";
       var taskStatusDalam = "";
@@ -513,6 +488,47 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
       }
 
+      // 1. CEK APAKAH SERVER MASIH MENJALANKAN TUGAS (PRIORITAS UTAMA)
+      var isMasihJalan = (
+        topCode === 804 ||
+        topCode === 805 ||
+        topCode === 806 ||
+        statusTeks === "RUNNING" ||
+        statusTeks === "QUEUED" ||
+        statusTeks === "PROCESSING" ||
+        statusTeks === "PENDING" ||
+        statusTeks === "WAITING" ||
+        taskStatusDalam === "RUNNING" ||
+        taskStatusDalam === "QUEUED"
+      );
+
+      if (isMasihJalan) {
+        // Jangan pernah ubah status jadi Selesai atau Gagal jika server masih proses
+        if (tugas.progress < 95) {
+          tugas.progress += Math.floor(Math.random() * 3) + 2; 
+        }
+        tugas.status = "Sedang Memproses Video...";
+        simpanStorage();
+
+        // Update teks persentase langsung tanpa kedip layar
+        var taskIdStr = String(tugas.id || tugas.taskId || "");
+        var semuaKad = document.querySelectorAll('.grid > div, [class*="card"], [class*="shadow"]');
+        for (var k = 0; k < semuaKad.length; k++) {
+          if (semuaKad[k].innerText && semuaKad[k].innerText.includes(taskIdStr)) {
+            var elemenTeks = semuaKad[k].querySelectorAll('div, p, span');
+            for (var tIdx = 0; tIdx < elemenTeks.length; tIdx++) {
+              var txt = (elemenTeks[tIdx].innerText || "").trim();
+              if (txt.endsWith('%') && txt.length <= 5) {
+                elemenTeks[tIdx].innerText = tugas.progress + "%";
+              }
+            }
+            break;
+          }
+        }
+        return;
+      }
+
+      // 2. CEK RESMI BATAL / GAGAL
       var isResmiBatal = (
         statusTeks === "CANCELED" || 
         statusTeks === "CANCELLED" || 
@@ -556,25 +572,34 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // 3. JIKA MASIH BERJALAN: Simpan progres & update teks persentase
-      if (tugas.progress < 95) {
-        tugas.progress += Math.floor(Math.random() * 3) + 2; 
-      }
-      tugas.status = "Sedang Memproses Video...";
-      simpanStorage();
+      // 3. CEK SELESAI HANYA JIKA STATUS SUDAH RESMI SELESAI
+      var isResmiSelesai = (
+        statusTeks === "SUCCESS" ||
+        statusTeks === "FINISH" ||
+        statusTeks === "FINISHED" ||
+        statusTeks === "COMPLETED" ||
+        taskStatusDalam === "SUCCESS" ||
+        taskStatusDalam === "FINISH" ||
+        (topCode === 0 && Boolean(jsonObj.data))
+      );
 
-      var taskIdStr = String(tugas.id || tugas.taskId || "");
-      var semuaKad = document.querySelectorAll('.grid > div, [class*="card"], [class*="shadow"]');
-      for (var k = 0; k < semuaKad.length; k++) {
-        if (semuaKad[k].innerText && semuaKad[k].innerText.includes(taskIdStr)) {
-          var elemenTeks = semuaKad[k].querySelectorAll('div, p, span');
-          for (var tIdx = 0; tIdx < elemenTeks.length; tIdx++) {
-            var txt = (elemenTeks[tIdx].innerText || "").trim();
-            if (txt.endsWith('%') && txt.length <= 5) {
-              elemenTeks[tIdx].innerText = tugas.progress + "%";
-            }
-          }
-          break;
+      if (isResmiSelesai) {
+        var vidUrl = temukanUrlVideoHasil(jsonObj, textRaw, tugas.inputVideo);
+        if (vidUrl) {
+          if (tugas.intervalObj) clearInterval(tugas.intervalObj);
+          lepaskanKunciPoolOtomatis(currentPoolId);
+
+          tugas.status = "Selesai"; 
+          tugas.selesai = true;
+          tugas.progress = 100; 
+          tugas.videoUrl = vidUrl.replace(/\\/g, '');
+
+          simpanStorage();
+          if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
+          if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
+          if (currentApiKey) refreshSaldoKunciOtomatis(currentApiKey);
+          if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video berhasil selesai!', 'sukses');
+          return;
         }
       }
 
@@ -789,6 +814,7 @@ async function mulaiProsesGenerate() {
       did_deduct: didDeductCredit,
       refunded: false,
       startedAt: Date.now(),
+      inputVideo: urlBahanVideo, // Catat URL bahan input gerakan agar tidak disangka hasil
       model: "Wan Motion Control",
       provider: (engineMode === 'pro') ? "KiixMotion Pro Engine" : "KiixMotion Control",
       engine: "Wan Motion Control 1080HD",

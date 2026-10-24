@@ -8,6 +8,29 @@ var urlBahanFoto = null;
 var urlBahanVideo = null;
 var listKunciPro = [];
 
+// PENYIMPANAN PERMANEN (LOCALSTORAGE)
+function simpanStorage() {
+  try {
+    localStorage.setItem('km_list_kunci_pro', JSON.stringify(listKunciPro));
+    if (typeof riwayatGenerateList !== 'undefined') {
+      localStorage.setItem('km_riwayat_generate', JSON.stringify(riwayatGenerateList));
+    }
+  } catch (e) {}
+}
+
+function muatStorage() {
+  try {
+    var rawKeys = localStorage.getItem('km_list_kunci_pro');
+    if (rawKeys) {
+      listKunciPro = JSON.parse(rawKeys) || [];
+    }
+    var rawRiwayat = localStorage.getItem('km_riwayat_generate');
+    if (rawRiwayat && typeof riwayatGenerateList !== 'undefined') {
+      riwayatGenerateList = JSON.parse(rawRiwayat) || [];
+    }
+  } catch (e) {}
+}
+
 function resetFormBahanInput() {
   urlBahanFoto = null;
   urlBahanVideo = null;
@@ -222,7 +245,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
       }
 
-      if (typeof simpanStorage === 'function') simpanStorage();
+      simpanStorage();
       if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
       return;
     }
@@ -268,7 +291,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         tugas.progress = 100; 
         tugas.videoUrl = vidUrl.replace(/\\/g, '');
 
-        if (typeof simpanStorage === 'function') simpanStorage();
+        simpanStorage();
         if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
         if (apiKey) refreshSaldoKunciOtomatis(apiKey);
         tampilkanNotif('✓ Video berhasil selesai diproses!', 'sukses');
@@ -323,7 +346,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
             tampilkanNotif('Gagal memproses video di server. Silakan coba lagi.', 'error');
           }
 
-          if (typeof simpanStorage === 'function') simpanStorage();
+          simpanStorage();
           if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
           if (apiKey) refreshSaldoKunciOtomatis(apiKey);
           return;
@@ -334,7 +357,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
       tugas.status = "Sedang Memproses Video...";
-      if (typeof simpanStorage === 'function') simpanStorage();
+      simpanStorage();
       if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
 
     } catch (err) {}
@@ -359,9 +382,9 @@ async function refreshSaldoKunciOtomatis(apiKey) {
         var idxKetemu = listKunciPro.findIndex(function(a) { return a.key === apiKey; });
         if (idxKetemu !== -1) {
           listKunciPro[idxKetemu].koin = koinNum;
-          if (typeof simpanStorage === 'function') simpanStorage();
+          simpanStorage();
           updateStatistikDashboard();
-          if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
+          renderListAkunDiKelola();
         }
       }
     }
@@ -488,7 +511,7 @@ async function mulaiProsesGenerate() {
 
     if (typeof riwayatGenerateList !== 'undefined') {
       riwayatGenerateList.unshift(tugasBaru);
-      if (typeof simpanStorage === 'function') simpanStorage();
+      simpanStorage();
     }
 
     resetFormBahanInput();
@@ -573,8 +596,8 @@ async function manualRefreshAkunSatu(idx) {
       var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.credit ?? rawData.balance ?? rawData.remainCoins;
       if (k !== undefined && k !== null) {
         akun.koin = Number(k);
-        if (typeof simpanStorage === 'function') simpanStorage();
-        if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
+        simpanStorage();
+        renderListAkunDiKelola();
         updateStatistikDashboard();
         tampilkanNotif('✓ Status akun berhasil diperbarui', 'sukses');
       }
@@ -613,9 +636,9 @@ async function refreshSemuaKunciPro() {
 
   await Promise.allSettled(antreanSync);
 
-  if (typeof simpanStorage === 'function') simpanStorage();
-  if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
-  if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
+  simpanStorage();
+  renderListAkunDiKelola();
+  updateStatistikDashboard();
 
   tampilkanNotif('✓ ' + suksesHitung + ' akun berhasil disinkronkan!', 'sukses');
 }
@@ -623,7 +646,7 @@ async function refreshSemuaKunciPro() {
 function hapusAkunSatu(idx) {
   mintaKonfirmasi("Yakin ingin menghapus akun ini?", function() {
     listKunciPro.splice(idx, 1); 
-    if (typeof simpanStorage === 'function') simpanStorage(); 
+    simpanStorage(); 
     renderListAkunDiKelola(); 
     setProviderUtama(engineMode);
     tampilkanNotif('Akun berhasil dihapus', 'sukses');
@@ -637,7 +660,7 @@ function eksekusiHapusAkun() {
     var toDel = [];
     checkedBoxes.forEach(function(c) { toDel.push(parseInt(c.getAttribute('data-idx'), 10)); });
     toDel.sort(function(a, b) { return b - a; }).forEach(function(idx) { listKunciPro.splice(idx, 1); });
-    if (typeof simpanStorage === 'function') simpanStorage(); 
+    simpanStorage(); 
     if (typeof toggleModePilihHapus === 'function') toggleModePilihHapus(); 
     renderListAkunDiKelola(); 
     setProviderUtama(engineMode);
@@ -674,11 +697,13 @@ async function simpanAkunBaruDariModal() {
   
   var indexKetemu = listKunciPro.findIndex(function(a) { return a.key === valKey; });
   if (indexKetemu !== -1) {
-    listKunciPro[indexKetemu].koin = Number(saldoDidapat); tampilkanNotif('✓ Jalur akun berhasil disinkronkan!', 'sukses');
+    listKunciPro[indexKetemu].koin = Number(saldoDidapat); 
+    tampilkanNotif('✓ Jalur akun berhasil disinkronkan!', 'sukses');
   } else {
-    listKunciPro.push({ nama: valKey, key: valKey, koin: Number(saldoDidapat) }); tampilkanNotif('✓ Jalur akun baru berhasil ditambahkan!', 'sukses');
+    listKunciPro.push({ nama: valKey, key: valKey, koin: Number(saldoDidapat) }); 
+    tampilkanNotif('✓ Jalur akun baru berhasil ditambahkan!', 'sukses');
   }
-  if (typeof simpanStorage === 'function') simpanStorage(); 
+  simpanStorage(); 
   if (typeof tutupModalFormKey === 'function') tutupModalFormKey(); 
   renderListAkunDiKelola(); 
   setProviderUtama(engineMode);
@@ -697,8 +722,11 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
+// INISIALISASI SAAT HALAMAN DI-REFRESH
 window.onload = function() {
-  if (typeof muatStorage === 'function') muatStorage();
+  muatStorage();
+  renderListAkunDiKelola();
+  updateStatistikDashboard();
   setProviderUtama('kiix'); 
   if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
 

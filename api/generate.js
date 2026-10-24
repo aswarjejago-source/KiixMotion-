@@ -1,8 +1,7 @@
 // File: api/generate.js
-// Backend Proxy Vercel - Menjalankan render tanpa membocorkan API Key
+// Backend Proxy Vercel - KiixMotion Secure Engine
 
 export default async function handler(req, res) {
-  // Hanya terima metode POST
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
@@ -20,29 +19,30 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, message: 'Bahan foto dan video wajib diisi.' });
   }
 
+  // Rahasia dapur terkunci rapat di sisi server Vercel
   const RUNNINGHUB_WORKFLOW_ID = "2099509417535340546";
   const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY; // Gunakan service role agar bypass RLS aman di server
+  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   let apiKeyDipakai = null;
   let poolIdDipakai = null;
   let didDeductCredit = false;
 
   try {
-    // 1. JALUR RUNNINGHUB PRO (MEMBER PAKAI KUNCI SENDIRI)
-    if (provider === 'runninghub') {
+    // 1. JALUR PRO / KUNCI PRIBADI (User pakai token sendiri)
+    if (provider === 'runninghub' || provider === 'custom') {
       if (!apiKeyPribadi) {
-        return res.status(400).json({ success: false, message: 'API Key RunningHub pribadi belum dipilih.' });
+        return res.status(400).json({ success: false, message: 'Kunci API pribadi belum dipilih atau kosong.' });
       }
       apiKeyDipakai = apiKeyPribadi;
     } 
-    // 2. JALUR KIIX CONTROLLER (MEMAKAI KOLAM ADMIN & KREDIT MEMBER)
+    // 2. JALUR KIIX KREDIT (Potong kredit member & pakai kolam akun admin)
     else {
       if (!userId) {
-        return res.status(401).json({ success: false, message: 'Sesi user tidak valid.' });
+        return res.status(401).json({ success: false, message: 'Sesi login tidak valid.' });
       }
 
-      // Potong kredit user langsung dari server
+      // Potong kredit di database Supabase via server
       const potongRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/potong_kredit_member`, {
         method: 'POST',
         headers: {
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       }
       didDeductCredit = true;
 
-      // Ambil 1 kunci dari kolam admin yang idle dan koin >= 200
+      // Ambil 1 kunci yang idle dari kolam admin (koin >= 200)
       const poolRes = await fetch(
         `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.200&order=koin.desc&limit=1`,
         {
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       const poolData = await poolRes.json();
 
       if (!poolData || poolData.length === 0) {
-        // Refund kredit jika server kolam habis
+        // Refund otomatis jika semua server kolam lagi kosong/penuh
         await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
           method: 'POST',
           headers: {
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
       apiKeyDipakai = poolData[0].api_key;
       poolIdDipakai = poolData[0].id;
 
-      // Kunci status akun pool menjadi busy
+      // Kunci akun pool ke status 'busy'
       await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
         method: 'PATCH',
         headers: {
@@ -107,8 +107,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. TEMBAK RUNNINGHUB DARI SERVER VERCEL
-    const rhPayload = {
+    // 3. EKSEKUSI RENDER DARI SERVER VERCEL KE ENGINE
+    const enginePayload = {
       workflowId: RUNNINGHUB_WORKFLOW_ID,
       apiKey: apiKeyDipakai,
       nodeInfoList: [
@@ -118,34 +118,33 @@ export default async function handler(req, res) {
       ]
     };
 
-    const rhRes = await fetch('https://www.runninghub.ai/task/openapi/create', {
+    const engineRes = await fetch('https://www.runninghub.ai/task/openapi/create', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKeyDipakai}`
       },
-      body: JSON.stringify(rhPayload)
+      body: JSON.stringify(enginePayload)
     });
 
-    const rhData = await rhRes.json();
+    const engineData = await engineRes.json();
 
-    // Jika RunningHub mengembalikan taskId sukses
-    if (rhData && (rhData.code === 0 || rhData.data) && (rhData.data?.taskId || rhData.taskId)) {
-      const taskId = rhData.data?.taskId || rhData.taskId;
+    if (engineData && (engineData.code === 0 || engineData.data) && (engineData.data?.taskId || engineData.taskId)) {
+      const taskId = engineData.data?.taskId || engineData.taskId;
 
+      // HANYA kirim data publik ke browser. JANGAN KIRIM API KEY!
       return res.status(200).json({
         success: true,
         taskId: taskId,
         poolId: poolIdDipakai,
-        apiKeyDipakai: apiKeyDipakai, // Dikirim balik terenkripsi/ke memori lokal pemantau
         didDeductCredit: didDeductCredit
       });
     } else {
-      throw new Error(rhData?.msg || 'Server AI menolak antrean video.');
+      throw new Error(engineData?.msg || 'Server AI menolak antrean video.');
     }
 
   } catch (error) {
-    // Kembalikan kredit dan reset pool jika render gagal
+    // Refund kredit jika render gagal di tengah jalan
     if (didDeductCredit && userId) {
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
         method: 'POST',
@@ -158,6 +157,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // Kembalikan status pool jadi idle
     if (poolIdDipakai) {
       await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
         method: 'PATCH',

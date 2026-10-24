@@ -11,7 +11,7 @@ var urlBahanFoto = null;
 var urlBahanVideo = null;
 var listKunciPro = [];
 
-// SENARAI HITAM KEKAL: Tugas yang pernah dihapus tidak akan bangkit lagi
+// SENARAI HITAM KEKAL: Tugas yang pernah dipadam tidak akan bangkit semula
 var ID_HAPUS_PERMANEN = ["2113884739211014561"];
 
 function getBlacklistTugas() {
@@ -160,26 +160,27 @@ function muatStorage() {
 }
 
 async function selaraskanRiwayatDenganAkun() {
-  if (typeof supa === 'undefined') return;
-  try {
-    var sessionRes = await supa.auth.getSession();
-    var sUser = sessionRes?.data?.session?.user;
-    if (!sUser && typeof supa.auth.getUser === 'function') {
-      var uRes = await supa.auth.getUser();
-      sUser = uRes?.data?.user;
-    }
+  if (typeof supa !== 'undefined') {
+    try {
+      var sessionRes = await supa.auth.getSession();
+      var sUser = sessionRes?.data?.session?.user;
+      if (!sUser && typeof supa.auth.getUser === 'function') {
+        var uRes = await supa.auth.getUser();
+        sUser = uRes?.data?.user;
+      }
 
-    if (sUser && window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
-      window.riwayatGenerateList.forEach(function(t) {
-        t.user_id = sUser.id;
-        if (sUser.email) t.user_email = sUser.email.toLowerCase().trim();
-      });
+      if (sUser && window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
+        window.riwayatGenerateList.forEach(function(t) {
+          t.user_id = sUser.id;
+          if (sUser.email) t.user_email = sUser.email.toLowerCase().trim();
+        });
 
-      simpanStorage();
-      if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-      if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
-    }
-  } catch (err) {}
+        simpanStorage();
+        if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
+        if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
+      }
+    } catch (err) {}
+  }
 }
 
 // FUNGSI AUTO-RELEASE POOL: Mengembalikan status kunci ke 'idle' secara otomatis
@@ -366,7 +367,7 @@ function unggahBahanLangsung(input, tipe) {
   xhr.send(formData);
 }
 
-// CCTV AKURAT: STERIL TANPA ALARM PALSU 5 DETIK
+// CCTV AKURAT: STERIL TANPA ALARM PALSU 5 DETIK & TANPA KEDIP SKRIN
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
@@ -381,7 +382,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
 
     var waktuBerjalan = Date.now() - tugas.startedAt;
     
-    // 1. TIMEOUT 1 JAM: Batas maksimal render
+    // 1. TIMEOUT 1 JAM: Batas render tamat
     if (waktuBerjalan >= 3600000) {
       clearInterval(cekInterval);
       lepaskanKunciPoolOtomatis(currentPoolId);
@@ -433,7 +434,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         if (match) vidUrl = match[0];
       }
 
-      // KONDISI BERHASIL: MP4 ditemukan
+      // KONDISI BERHASIL: MP4 selesai dijana
       if (vidUrl && typeof vidUrl === 'string') {
         clearInterval(cekInterval);
         lepaskanKunciPoolOtomatis(currentPoolId);
@@ -449,7 +450,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // B. CEK STATUS GAGAL HANYA JIKA ADA SINYAL EKSPLISIT DARI SERVER
+      // B. CEK STATUS GAGAL HANYA JIKA ADA ISYARAT JELAS DARI PELAYAN
       var topCode = jsonObj ? Number(jsonObj.code) : NaN;
       var topMsg = (jsonObj && jsonObj.msg) ? String(jsonObj.msg).toUpperCase() : "";
       var statusTeks = "";
@@ -468,7 +469,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
       }
 
-      // HANYA anggap gagal jika kode 807, atau kata FAILED/CANCEL eksplisit tertulis
       var isPastiBatalAtauGagal = (
         topCode === 807 ||
         topMsg.includes("TASK_NOT_FOUND") ||
@@ -514,17 +514,29 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // C. JIKA MASIH BERJALAN: Kode 804/805/806/0 atau data kosong = TETAP PROSES
+      // C. JIKA MASIH BERJALAN: Kemas kini peratusan kad secara terus tanpa muat semula grid video
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
       tugas.status = "Sedang Memproses Video...";
       simpanStorage();
-      if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
 
-    } catch (err) {
-      // Gangguan koneksi sementara tidak mematikan antrean
-    }
+      var taskIdStr = String(tugas.id || tugas.taskId || "");
+      var semuaKad = document.querySelectorAll('.grid > div, [class*="card"], [class*="shadow"]');
+      for (var k = 0; k < semuaKad.length; k++) {
+        if (semuaKad[k].innerText && semuaKad[k].innerText.includes(taskIdStr)) {
+          var elemenTeks = semuaKad[k].querySelectorAll('div, p, span');
+          for (var tIdx = 0; tIdx < elemenTeks.length; tIdx++) {
+            var txt = (elemenTeks[tIdx].innerText || "").trim();
+            if (txt.endsWith('%') && txt.length <= 5) {
+              elemenTeks[tIdx].innerText = tugas.progress + "%";
+            }
+          }
+          break;
+        }
+      }
+
+    } catch (err) {}
   }, 6000); 
 }
 

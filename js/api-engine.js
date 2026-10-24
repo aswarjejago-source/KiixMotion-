@@ -1,9 +1,8 @@
 // ==========================================
-// PILAR 3: ENGINE LOGIC (FULL SECURE & STERIL)
+// PILAR 3: ENGINE LOGIC (FULL SECURE & AUTO RECOVERY)
 // File: js/api-engine.js
 // ==========================================
 
-// KUNCI GLOBAL VARIABEL BIAR TIDAK PERNAH HILANG DARI WINDOW
 window.riwayatGenerateList = window.riwayatGenerateList || [];
 var riwayatGenerateList = window.riwayatGenerateList;
 
@@ -69,31 +68,121 @@ function alihkanKeMenuLangganan() {
   }
 }
 
-// SISTEM PENYIMPANAN AMAN ANTI-OVERWRITE
+// SISTEM PENYIMPANAN AMAN KE SEMUA VARIASI KUNCI
 function simpanStorage() {
   try {
     localStorage.setItem('km_list_kunci_pro', JSON.stringify(listKunciPro));
     if (window.riwayatGenerateList && Array.isArray(window.riwayatGenerateList)) {
-      localStorage.setItem('km_riwayat_generate', JSON.stringify(window.riwayatGenerateList));
+      var dataStr = JSON.stringify(window.riwayatGenerateList);
+      localStorage.setItem('km_riwayat_generate', dataStr);
+      localStorage.setItem('riwayat_generate', dataStr);
+      localStorage.setItem('km_riwayat', dataStr);
+      localStorage.setItem('km_history', dataStr);
+      localStorage.setItem('km_riwayat_backup', dataStr);
     }
   } catch (e) {}
 }
 
+// PEMINDAI TOTAL MEMORI BROWSER (PULIHKAN DATA LAMA SECARA OTOMATIS)
 function muatStorage() {
   try {
     var rawKeys = localStorage.getItem('km_list_kunci_pro');
     if (rawKeys) {
       listKunciPro = JSON.parse(rawKeys) || [];
     }
-    var rawRiwayat = localStorage.getItem('km_riwayat_generate');
-    if (rawRiwayat) {
-      var hasilParse = JSON.parse(rawRiwayat);
-      if (Array.isArray(hasilParse)) {
-        window.riwayatGenerateList = hasilParse;
-        riwayatGenerateList = hasilParse;
+
+    var kumpulanTugas = [];
+    var mapId = {};
+
+    // 1. Kumpulkan semua kemungkinan key yang pernah dipakai
+    var daftarKeyCek = [
+      'km_riwayat_generate',
+      'riwayat_generate',
+      'km_riwayat',
+      'km_history',
+      'riwayat_video',
+      'km_riwayat_backup',
+      'riwayatGenerateList',
+      'kiix_riwayat'
+    ];
+
+    // Scan seluruh key yang tersimpan di browser
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && daftarKeyCek.indexOf(k) === -1) {
+        daftarKeyCek.push(k);
       }
     }
+
+    daftarKeyCek.forEach(function(keyName) {
+      try {
+        var str = localStorage.getItem(keyName);
+        if (!str || typeof str !== 'string' || str.indexOf('{') === -1) return;
+
+        var parsed = JSON.parse(str);
+        var targetArr = [];
+
+        if (Array.isArray(parsed)) targetArr = parsed;
+        else if (parsed && typeof parsed === 'object') {
+          if (Array.isArray(parsed.data)) targetArr = parsed.data;
+          else if (Array.isArray(parsed.list)) targetArr = parsed.list;
+          else if (parsed.id || parsed.taskId) targetArr = [parsed];
+        }
+
+        targetArr.forEach(function(item) {
+          if (!item || typeof item !== 'object') return;
+          var taskId = item.id || item.taskId;
+          if (!taskId) return;
+
+          // Cek apakah item merupakan format render KiixMotion
+          var isValidTask = item.model || item.provider || item.engine || item.videoUrl || item.status || item.biaya || (typeof taskId === 'string' && taskId.length >= 10);
+
+          if (isValidTask && !mapId[String(taskId)]) {
+            mapId[String(taskId)] = true;
+            if (!item.id && item.taskId) item.id = item.taskId;
+            if (!item.startedAt) item.startedAt = item.timestamp || Date.now();
+            kumpulanTugas.push(item);
+          }
+        });
+      } catch (eParse) {}
+    });
+
+    if (kumpulanTugas.length > 0) {
+      // Urutkan dari yang terbaru
+      kumpulanTugas.sort(function(a, b) {
+        return (Number(b.startedAt) || 0) - (Number(a.startedAt) || 0);
+      });
+
+      window.riwayatGenerateList = kumpulanTugas;
+      riwayatGenerateList = kumpulanTugas;
+      simpanStorage();
+    }
   } catch (e) {}
+}
+
+// PENYELARAS USER ID (AGAR GRID UI TIDAK MENYARING VIDEO KEMARIN)
+async function selaraskanRiwayatDenganAkun() {
+  if (typeof supa === 'undefined') return;
+  try {
+    var sessionRes = await supa.auth.getSession();
+    var sUser = sessionRes?.data?.session?.user;
+    if (!sUser && typeof supa.auth.getUser === 'function') {
+      var uRes = await supa.auth.getUser();
+      sUser = uRes?.data?.user;
+    }
+
+    if (sUser && window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
+      window.riwayatGenerateList.forEach(function(t) {
+        // Samakan User ID & Email agar filter grid membaca semua video milik akun aktif
+        t.user_id = sUser.id;
+        if (sUser.email) t.user_email = sUser.email.toLowerCase().trim();
+      });
+
+      simpanStorage();
+      if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
+      if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
+    }
+  } catch (err) {}
 }
 
 function resetFormBahanInput() {
@@ -263,7 +352,7 @@ function unggahBahanLangsung(input, tipe) {
   xhr.send(formData);
 }
 
-// DETEKSI STATUS REALTIME: TANGKAP TUNTAS JIKA TASK DIBATALKAN DI RUNNINGHUB
+// PANTAU STATUS REALTIME
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
@@ -334,7 +423,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // 2. CEK BATAL / GAGAL (TIDAK BOLEH RETURN DIAM JIKA res.ok FALSE)
+      // 2. CEK BATAL / GAGAL
       var statusGagalTerdeteksi = (
         !res.ok ||
         cleanString.includes("CANCEL") ||
@@ -358,7 +447,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         tugas.selesai = true;
         tugas.progress = 100;
 
-        // Auto refund jika memotong kredit sistem
         var targetUserErr = userId || tugas.user_id;
         if (didDeductCredit && !tugas.refunded && typeof supa !== 'undefined' && targetUserErr) {
           try {
@@ -377,7 +465,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // 3. PROGRES JIKA MASIH BERJALAN
+      // 3. PROGRES JALAN
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -386,7 +474,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
 
     } catch (err) {
-      // Jika koneksi putus berkali-kali ke server output, jangan biarkan kartu diam membeku
       tugas.errorCount = (tugas.errorCount || 0) + 1;
       if (tugas.errorCount >= 4) {
         clearInterval(cekInterval);
@@ -400,7 +487,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   }, 5000); 
 }
 
-// HAPUS SATU KARTU DI RIWAYAT
+// HAPUS SATU KARTU
 function hapusRiwayatSatu(idx) {
   if (!window.riwayatGenerateList) return;
   if (window.riwayatGenerateList[idx] && window.riwayatGenerateList[idx].intervalObj) {
@@ -586,7 +673,6 @@ async function mulaiProsesGenerate() {
       progress: 0
     };
 
-    // SIMPAN KE RIWAYAT SECARA AMAN
     window.riwayatGenerateList.unshift(tugasBaru);
     riwayatGenerateList = window.riwayatGenerateList;
     simpanStorage();
@@ -795,7 +881,7 @@ async function simpanAkunBaruDariModal() {
   setProviderUtama(engineMode);
 }
 
-// RESTORE POLLING PAS TAB DIAKTIFKAN LAGI
+// RESTORE POLLING PAS TAB AKTIF
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') {
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
@@ -808,16 +894,21 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
-// INISIALISASI SAAT HALAMAN DIBUKA / DI-REFRESH
+// INISIALISASI HALAMAN
+window.addEventListener('DOMContentLoaded', function() {
+  muatStorage();
+  selaraskanRiwayatDenganAkun();
+});
+
 window.onload = function() {
   muatStorage();
+  selaraskanRiwayatDenganAkun();
   renderListAkunDiKelola();
   updateStatistikDashboard();
   setProviderUtama('kiix'); 
   if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
   if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
 
-  // Otomatis cek status tugas yang masih menggantung
   if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
     window.riwayatGenerateList.forEach(function(tugas) {
       if (!tugas.selesai && tugas.id) {

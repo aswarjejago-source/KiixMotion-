@@ -29,7 +29,7 @@ function tampilkanNotifPusat(pesan) {
   }, 2800);
 }
 
-// PENGALIHAN OTOMATIS KE MENU LANGGANAN VIP
+// PENGALIHAN OTOMATIS KE MENU LANGGANAN VIP / BELI KREDIT
 function alihkanKeMenuLangganan() {
   if (typeof gantiLayarNav === 'function') {
     try { gantiLayarNav('vip'); } catch (e) {}
@@ -42,7 +42,7 @@ function alihkanKeMenuLangganan() {
 
   for (var i = 0; i < semuaEl.length; i++) {
     var txt = (semuaEl[i].textContent || semuaEl[i].innerText || "").trim().toLowerCase();
-    if (txt.includes('langganan vip') || (txt.includes('langganan') && txt.includes('vip'))) {
+    if (txt === 'langganan vip' || txt.includes('langganan vip')) {
       target = semuaEl[i];
       break;
     }
@@ -50,8 +50,8 @@ function alihkanKeMenuLangganan() {
 
   if (!target) {
     for (var j = 0; j < semuaEl.length; j++) {
-      var t = (semuaEl[j].textContent || semuaEl[j].innerText || "").trim().toLowerCase();
-      if (t.includes('beli kredit') || t.includes('langganan')) {
+      var t = (semuall[j].textContent || semuaEl[j].innerText || "").trim().toLowerCase();
+      if (t === 'beli kredit' || t.includes('beli kredit')) {
         target = semuaEl[j];
         break;
       }
@@ -478,7 +478,14 @@ async function mulaiProsesGenerate() {
     try {
       var sessionRes = await supa.auth.getSession();
       var sessionUser = sessionRes?.data?.session?.user;
+
+      if (!sessionUser && typeof supa.auth.getUser === 'function') {
+        var userRes = await supa.auth.getUser();
+        sessionUser = userRes?.data?.user;
+      }
+
       if (sessionUser && sessionUser.email) realEmail = sessionUser.email.toLowerCase().trim();
+      // KUNCI PERMANEN: Pakai sessionUser.id (Auth UUID) agar cocok dengan user_credits.user_id
       if (sessionUser && sessionUser.id) realUserId = sessionUser.id;
       
       if (realEmail) {
@@ -489,7 +496,8 @@ async function mulaiProsesGenerate() {
           .maybeSingle();
         if (dbUser) {
           profilUser = dbUser;
-          realUserId = dbUser.id;
+          // Hanya gunakan dbUser.id jika session auth kosong
+          if (!realUserId && dbUser.id) realUserId = dbUser.id;
         }
       }
     } catch (err) {}
@@ -501,7 +509,7 @@ async function mulaiProsesGenerate() {
     return tampilkanNotifPusat('Sesi login berakhir, silakan login ulang!');
   }
 
-  // PENCEGATAN LANGSUNG FRONTEND: User non-VIP dilarang pakai Jalur Pro
+  // PENCEGATAN JALUR PRO: User non-VIP dilarang pakai Jalur Pro
   if (engineMode === 'pro') {
     var isMemberVip = profilUser && (
       profilUser.is_vip === true ||
@@ -602,17 +610,28 @@ async function mulaiProsesGenerate() {
     var pesan = err.message || 'Terjadi gangguan koneksi ke server render.';
     var pesanLower = pesan.toLowerCase();
 
+    // Deteksi ketat akses Pro (menggunakan boundary agar kata 'memproses' tidak keliru terbaca 'pro')
     var isBukanPro = pesanLower.includes("akses pro") || 
                     pesanLower.includes("akses ditolak") || 
                     pesanLower.includes("vip") || 
                     pesanLower.includes("berlangganan") ||
-                    pesanLower.includes("pro");
+                    /\bpro\b/.test(pesanLower);
 
     if (isBukanPro) {
       tampilkanNotifPusat('Kamu belum punya akses Pro!');
       setTimeout(function() {
         alihkanKeMenuLangganan();
       }, 500);
+      return;
+    }
+
+    // Deteksi kredit habis / kedaluwarsa
+    var isMasalahKredit = pesanLower.includes("kredit") || pesanLower.includes("saldo");
+    if (isMasalahKredit) {
+      tampilkanNotifPusat(pesan);
+      setTimeout(function() {
+        alihkanKeMenuLangganan();
+      }, 900);
       return;
     }
 

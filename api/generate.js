@@ -1,5 +1,5 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Secure Engine (Cloudflare Worker Ready)
+// Backend Proxy Vercel - KiixMotion Secure Engine (Gatekeeper VIP & Worker Ready)
 
 export const maxDuration = 60; // Beri waktu backend memproses file besar
 
@@ -79,11 +79,47 @@ export default async function handler(req, res) {
   let didDeductCredit = false;
 
   try {
-    // A. JALUR PRO / KUNCI PRIBADI
+    // A. JALUR PRO / KUNCI PRIBADI (DIGEMBOK: WAJIB MEMBER VIP/PRO AKTIF)
     if (provider === 'runninghub' || provider === 'pro' || provider === 'custom') {
       if (!apiKeyPribadi) {
         return res.status(400).json({ success: false, message: 'Kunci API pribadi belum dipilih atau kosong.' });
       }
+
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Sesi login tidak valid. Silakan login ulang.' });
+      }
+
+      // Validasi status VIP langsung ke tabel users Supabase via Service Role
+      const userRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=*`,
+        {
+          headers: {
+            'apikey': SUPABASE_SERVICE_ROLE,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
+          }
+        }
+      );
+
+      const userData = await userRes.json();
+      const user = userData?.[0];
+
+      // Periksa apakah user punya status Pro / VIP aktif
+      const isMemberPro = user && (
+        user.is_vip === true ||
+        user.is_pro === true ||
+        user.role === 'pro' ||
+        user.role === 'vip' ||
+        user.status === 'pro' ||
+        user.status === 'vip'
+      );
+
+      if (!isMemberPro) {
+        return res.status(403).json({
+          success: false,
+          message: 'Akses Ditolak! Fitur RunningHub Pro (Custom Key) khusus member yang berlangganan VIP.'
+        });
+      }
+
       apiKeyDipakai = apiKeyPribadi;
     } 
     // B. JALUR KIIX KREDIT

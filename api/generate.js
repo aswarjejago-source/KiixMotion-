@@ -71,8 +71,8 @@ export default async function handler(req, res) {
   }
 
   const RUNNINGHUB_WORKFLOW_ID = "2099509417535340546";
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const SUPABASE_URL = process.env.SUPABASE_URL || "https://fytvyupwcburmdsulosm.supabase.co";
+  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE;
 
   let apiKeyDipakai = null;
   let poolIdDipakai = null;

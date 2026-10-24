@@ -8,6 +8,67 @@ var urlBahanFoto = null;
 var urlBahanVideo = null;
 var listKunciPro = [];
 
+// NOTIFIKASI PUSAT (ANTI-KETUTUPAN HEADER / IKON PROFIL)
+function tampilkanNotifPusat(pesan) {
+  var notifLama = document.getElementById('km-notif-pusat');
+  if (notifLama) notifLama.remove();
+
+  var notifEl = document.createElement('div');
+  notifEl.id = 'km-notif-pusat';
+  notifEl.style.cssText = 'position:fixed; top:24px; left:50%; transform:translateX(-50%); z-index:9999999; background:#ef4444; color:#ffffff; padding:12px 24px; border-radius:16px; font-weight:800; font-size:14px; box-shadow:0 10px 30px rgba(239,68,68,0.45); display:flex; align-items:center; gap:10px; border:2px solid #ffffff; transition:all 0.3s ease; text-align:center; max-width:90vw; pointer-events:none;';
+  notifEl.innerHTML = '<span style="font-size:18px;">⚠️</span> <span>' + pesan + '</span>';
+  
+  document.body.appendChild(notifEl);
+
+  setTimeout(function() {
+    if (notifEl) {
+      notifEl.style.opacity = '0';
+      notifEl.style.transform = 'translateX(-50%) translateY(-10px)';
+      setTimeout(function() { notifEl.remove(); }, 350);
+    }
+  }, 2800);
+}
+
+// PENGALIHAN OTOMATIS KE MENU LANGGANAN VIP
+function alihkanKeMenuLangganan() {
+  if (typeof gantiLayarNav === 'function') {
+    try { gantiLayarNav('vip'); } catch (e) {}
+    try { gantiLayarNav('langganan'); } catch (e) {}
+    try { gantiLayarNav('kredit'); } catch (e) {}
+  }
+
+  var semuaEl = document.querySelectorAll('button, a, div, span, li');
+  var target = null;
+
+  for (var i = 0; i < semuaEl.length; i++) {
+    var txt = (semuaEl[i].textContent || semuaEl[i].innerText || "").trim().toLowerCase();
+    if (txt.includes('langganan vip') || (txt.includes('langganan') && txt.includes('vip'))) {
+      target = semuaEl[i];
+      break;
+    }
+  }
+
+  if (!target) {
+    for (var j = 0; j < semuaEl.length; j++) {
+      var t = (semuaEl[j].textContent || semuaEl[j].innerText || "").trim().toLowerCase();
+      if (t.includes('beli kredit') || t.includes('langganan')) {
+        target = semuaEl[j];
+        break;
+      }
+    }
+  }
+
+  if (target) {
+    var evt = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+    target.dispatchEvent(evt);
+    try { target.click(); } catch (e) {}
+    if (target.parentElement) {
+      target.parentElement.dispatchEvent(evt);
+      try { target.parentElement.click(); } catch (e) {}
+    }
+  }
+}
+
 // PENYIMPANAN PERMANEN (LOCALSTORAGE)
 function simpanStorage() {
   try {
@@ -130,7 +191,7 @@ function setProviderUtama(mode) {
   }
 }
 
-// UNGGAH VIA CLOUDFLARE WORKER DENGAN INDIKATOR PROGRES 0-100% (ANTI-CRASH & ZERO LEAK)
+// UNGGAH VIA CLOUDFLARE WORKER DENGAN INDIKATOR PROGRES 0-100%
 function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
   var file = input.files[0];
@@ -146,7 +207,6 @@ function unggahBahanLangsung(input, tipe) {
   var xhr = new XMLHttpRequest();
   xhr.open('POST', 'https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev', true);
 
-  // Pelacak progres unggahan real-time 0% - 100%
   xhr.upload.onprogress = function(e) {
     if (e.lengthComputable) {
       var persen = Math.round((e.loaded / e.total) * 100);
@@ -184,28 +244,21 @@ function unggahBahanLangsung(input, tipe) {
 
         var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
         if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-        tampilkanNotif('File berhasil diunggah!', 'sukses');
+        if (typeof tampilkanNotif === 'function') tampilkanNotif('File berhasil diunggah!', 'sukses');
 
       } catch (err) {
         if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-        tampilkanNotif('Gagal mengurai respons: ' + (err.message || 'Format tidak valid'), 'error');
+        tampilkanNotifPusat('Gagal mengurai respons file: ' + (err.message || 'Format tidak valid'));
       }
     } else {
       if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-      var pesanEror = 'Server sibuk atau koneksi terputus (' + xhr.status + ')';
-      try {
-        var errObj = JSON.parse(rawText);
-        if (errObj && (errObj.msg || errObj.error)) {
-          pesanEror = errObj.msg || errObj.error;
-        }
-      } catch (e) {}
-      tampilkanNotif('Gagal mengunggah: ' + pesanEror, 'error');
+      tampilkanNotifPusat('Gagal mengunggah file ke server storage.');
     }
   };
 
   xhr.onerror = function() {
     if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-    tampilkanNotif('Koneksi terputus ke server pengunggah.', 'error');
+    tampilkanNotifPusat('Koneksi terputus ke server pengunggah.');
   };
 
   xhr.send(formData);
@@ -239,7 +292,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
           tugas.did_deduct = false;
           await supa.rpc('refund_kredit_member', { target_user_id: String(targetUser) });
           if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
-          tampilkanNotif('Waktu proses habis. 1 kredit dikembalikan otomatis.', 'info');
+          tampilkanNotifPusat('Waktu proses habis. 1 kredit dikembalikan otomatis.');
         } catch (eRefund) {
           tugas.refunded = false;
         }
@@ -294,7 +347,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         simpanStorage();
         if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
         if (apiKey) refreshSaldoKunciOtomatis(apiKey);
-        tampilkanNotif('✓ Video berhasil selesai diproses!', 'sukses');
+        if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video berhasil selesai diproses!', 'sukses');
         return;
       }
 
@@ -338,12 +391,12 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
               tugas.did_deduct = false;
               await supa.rpc('refund_kredit_member', { target_user_id: String(targetUserErr) });
               if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
-              tampilkanNotif('Render gagal di server. 1 kredit dikembalikan otomatis.', 'info');
+              tampilkanNotifPusat('Render gagal di server. 1 kredit dikembalikan otomatis.');
             } catch (errRefund) {
               tugas.refunded = false;
             }
           } else {
-            tampilkanNotif('Gagal memproses video di server. Silakan coba lagi.', 'error');
+            tampilkanNotifPusat('Gagal memproses video di server. Silakan coba lagi.');
           }
 
           simpanStorage();
@@ -418,9 +471,10 @@ async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
   var realEmail = null;
   var realUserId = null;
+  var profilUser = null;
 
   if (typeof supa !== 'undefined') {
-    if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA STATUS AKSES..."; }
+    if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA STATUS..."; }
     try {
       var sessionRes = await supa.auth.getSession();
       var sessionUser = sessionRes?.data?.session?.user;
@@ -430,10 +484,13 @@ async function mulaiProsesGenerate() {
       if (realEmail) {
         var { data: dbUser } = await supa
           .from('users')
-          .select('id')
+          .select('*')
           .ilike('email', realEmail)
           .maybeSingle();
-        if (dbUser) realUserId = dbUser.id;
+        if (dbUser) {
+          profilUser = dbUser;
+          realUserId = dbUser.id;
+        }
       }
     } catch (err) {}
   }
@@ -441,22 +498,43 @@ async function mulaiProsesGenerate() {
   if (!realEmail && typeof currentUserEmail !== 'undefined' && currentUserEmail) realEmail = currentUserEmail;
   if (!realEmail || !realUserId) {
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-    return tampilkanNotif('Sesi login berakhir, silakan login ulang!', 'error');
+    return tampilkanNotifPusat('Sesi login berakhir, silakan login ulang!');
+  }
+
+  // PENCEGATAN LANGSUNG FRONTEND: User non-VIP dilarang pakai Jalur Pro
+  if (engineMode === 'pro') {
+    var isMemberVip = profilUser && (
+      profilUser.is_vip === true ||
+      profilUser.is_pro === true ||
+      profilUser.role === 'pro' ||
+      profilUser.role === 'vip' ||
+      profilUser.status === 'pro' ||
+      profilUser.status === 'vip'
+    );
+
+    if (!isMemberVip) {
+      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+      tampilkanNotifPusat('Kamu belum punya akses Pro!');
+      setTimeout(function() {
+        alihkanKeMenuLangganan();
+      }, 500);
+      return;
+    }
+
+    if (!listKunciPro || listKunciPro.length === 0) {
+      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+      return tampilkanNotifPusat('Hubungkan API Key kamu di menu Add Key!');
+    }
   }
 
   if (!urlBahanFoto || !urlBahanVideo) {
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-    return tampilkanNotif('Foto karakter dan Video gerakan wajib selesai diunggah!', 'error');
+    return tampilkanNotifPusat('Foto karakter dan Video gerakan wajib selesai diunggah!');
   }
 
   var apiKeyPribadi = null;
 
   if (engineMode === 'pro') {
-    if (!listKunciPro || listKunciPro.length === 0) {
-      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      return tampilkanNotif('Hubungkan API Key kamu di menu Add Key!', 'error');
-    }
-
     var sel = document.getElementById('sel-dropdown-akun');
     var idx = sel ? sel.value : "";
     var akunPribadi = (idx === "random" || idx === "") ? listKunciPro[0] : listKunciPro[parseInt(idx, 10)];
@@ -524,7 +602,6 @@ async function mulaiProsesGenerate() {
     var pesan = err.message || 'Terjadi gangguan koneksi ke server render.';
     var pesanLower = pesan.toLowerCase();
 
-    // Deteksi jika user bukan Pro/VIP
     var isBukanPro = pesanLower.includes("akses pro") || 
                     pesanLower.includes("akses ditolak") || 
                     pesanLower.includes("vip") || 
@@ -532,29 +609,14 @@ async function mulaiProsesGenerate() {
                     pesanLower.includes("pro");
 
     if (isBukanPro) {
-      tampilkanNotif('Kamu belum punya akses Pro!', 'error');
-
+      tampilkanNotifPusat('Kamu belum punya akses Pro!');
       setTimeout(function() {
-        if (typeof gantiLayarNav === 'function') {
-          try { gantiLayarNav('vip'); } catch (e) {}
-          try { gantiLayarNav('langganan'); } catch (e) {}
-          try { gantiLayarNav('kredit'); } catch (e) {}
-        }
-
-        // Pemicu otomatis klik menu sidebar Langganan VIP atau Beli Kredit
-        var menuElements = document.querySelectorAll('button, a, div, span, li');
-        for (var i = 0; i < menuElements.length; i++) {
-          var label = (menuElements[i].innerText || "").trim().toLowerCase();
-          if (label === 'langganan vip' || label === 'beli kredit') {
-            menuElements[i].click();
-            break;
-          }
-        }
-      }, 750);
+        alihkanKeMenuLangganan();
+      }, 500);
       return;
     }
 
-    tampilkanNotif(pesan, 'error');
+    tampilkanNotifPusat(pesan);
   } finally {
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
   }
@@ -603,7 +665,7 @@ async function manualRefreshAkunSatu(idx) {
   var akun = listKunciPro[idx];
   if (!akun) return;
 
-  tampilkanNotif('Menyegarkan status koneksi...', 'info');
+  tampilkanNotifPusat('Menyegarkan status koneksi...');
   try {
     var res = await fetch('/api/saldo', {
       method: 'POST', 
@@ -619,20 +681,20 @@ async function manualRefreshAkunSatu(idx) {
         simpanStorage();
         renderListAkunDiKelola();
         updateStatistikDashboard();
-        tampilkanNotif('✓ Status akun berhasil diperbarui', 'sukses');
+        if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Status akun berhasil diperbarui', 'sukses');
       }
     }
   } catch (err) {
-    tampilkanNotif('Koneksi terputus: ' + err.message, 'error');
+    tampilkanNotifPusat('Koneksi terputus: ' + err.message);
   }
 }
 
 async function refreshSemuaKunciPro() {
   if (!listKunciPro || listKunciPro.length === 0) {
-    return tampilkanNotif('Belum ada akun yang terhubung di Kelola Akun', 'error');
+    return tampilkanNotifPusat('Belum ada akun yang terhubung di Kelola Akun');
   }
 
-  tampilkanNotif('Menyinkronkan semua akun...', 'info');
+  tampilkanNotifPusat('Menyinkronkan semua akun...');
   var suksesHitung = 0;
 
   var antreanSync = listKunciPro.map(async function(akun) {
@@ -660,7 +722,7 @@ async function refreshSemuaKunciPro() {
   renderListAkunDiKelola();
   updateStatistikDashboard();
 
-  tampilkanNotif('✓ ' + suksesHitung + ' akun berhasil disinkronkan!', 'sukses');
+  if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ ' + suksesHitung + ' akun berhasil disinkronkan!', 'sukses');
 }
 
 function hapusAkunSatu(idx) {
@@ -669,13 +731,13 @@ function hapusAkunSatu(idx) {
     simpanStorage(); 
     renderListAkunDiKelola(); 
     setProviderUtama(engineMode);
-    tampilkanNotif('Akun berhasil dihapus', 'sukses');
+    if (typeof tampilkanNotif === 'function') tampilkanNotif('Akun berhasil dihapus', 'sukses');
   });
 }
 
 function eksekusiHapusAkun() {
   var checkedBoxes = document.querySelectorAll('.chk-seleksi-akun:checked');
-  if (checkedBoxes.length === 0) return tampilkanNotif('Pilih minimal satu akun!', 'error');
+  if (checkedBoxes.length === 0) return tampilkanNotifPusat('Pilih minimal satu akun!');
   mintaKonfirmasi('Hapus ' + checkedBoxes.length + ' akun terpilih?', function() {
     var toDel = [];
     checkedBoxes.forEach(function(c) { toDel.push(parseInt(c.getAttribute('data-idx'), 10)); });
@@ -684,13 +746,13 @@ function eksekusiHapusAkun() {
     if (typeof toggleModePilihHapus === 'function') toggleModePilihHapus(); 
     renderListAkunDiKelola(); 
     setProviderUtama(engineMode);
-    tampilkanNotif('Akun terpilih berhasil dihapus', 'sukses');
+    if (typeof tampilkanNotif === 'function') tampilkanNotif('Akun terpilih berhasil dihapus', 'sukses');
   });
 }
 
 async function simpanAkunBaruDariModal() {
   var inKey = document.getElementById('in-modal-key'), valKey = inKey ? inKey.value.trim() : "";
-  if (!valKey) return tampilkanNotif('Masukkan API Key terlebih dahulu!', 'error');
+  if (!valKey) return tampilkanNotifPusat('Masukkan API Key terlebih dahulu!');
   var btnSimpan = document.getElementById('btn-simpan-key');
   if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan...'; btnSimpan.disabled = true; }
   var saldoDidapat = 0;
@@ -706,11 +768,11 @@ async function simpanAkunBaruDariModal() {
       saldoDidapat = (k !== undefined && k !== null) ? Number(k) : 0;
     } else {
       if (btnSimpan) { btnSimpan.innerText = 'Tambah'; btnSimpan.disabled = false; }
-      return tampilkanNotif('API Key tidak valid atau ditolak sistem', 'error');
+      return tampilkanNotifPusat('API Key tidak valid atau ditolak sistem');
     }
   } catch (err) {
     if (btnSimpan) { btnSimpan.innerText = 'Tambah'; btnSimpan.disabled = false; }
-    return tampilkanNotif('Gagal terhubung ke verifikasi server', 'error');
+    return tampilkanNotifPusat('Gagal terhubung ke verifikasi server');
   }
 
   if (btnSimpan) { btnSimpan.innerText = 'Tambah'; btnSimpan.disabled = false; }
@@ -718,10 +780,10 @@ async function simpanAkunBaruDariModal() {
   var indexKetemu = listKunciPro.findIndex(function(a) { return a.key === valKey; });
   if (indexKetemu !== -1) {
     listKunciPro[indexKetemu].koin = Number(saldoDidapat); 
-    tampilkanNotif('✓ Jalur akun berhasil disinkronkan!', 'sukses');
+    if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Jalur akun berhasil disinkronkan!', 'sukses');
   } else {
     listKunciPro.push({ nama: valKey, key: valKey, koin: Number(saldoDidapat) }); 
-    tampilkanNotif('✓ Jalur akun baru berhasil ditambahkan!', 'sukses');
+    if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Jalur akun baru berhasil ditambahkan!', 'sukses');
   }
   simpanStorage(); 
   if (typeof tutupModalFormKey === 'function') tutupModalFormKey(); 

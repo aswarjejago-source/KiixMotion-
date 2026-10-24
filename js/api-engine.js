@@ -499,6 +499,19 @@ async function mulaiProsesGenerate() {
 
   } catch (err) {
     tampilkanNotif(err.message || 'Terjadi gangguan koneksi ke server render.', 'error');
+
+    // Pengalihan otomatis ke halaman Langganan VIP jika akses ditolak
+    var pesan = (err.message || "").toLowerCase();
+    if (pesan.includes("akses ditolak") || pesan.includes("vip") || pesan.includes("berlangganan")) {
+      setTimeout(function() {
+        if (typeof gantiLayarNav === 'function') {
+          gantiLayarNav('vip');
+        } else {
+          var menuVip = document.querySelector('[onclick*="vip"], [data-nav="vip"]');
+          if (menuVip) menuVip.click();
+        }
+      }, 1400);
+    }
   } finally {
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
   }

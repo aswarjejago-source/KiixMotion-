@@ -107,59 +107,85 @@ function setProviderUtama(mode) {
   }
 }
 
-// UNGGAH VIA CLOUDFLARE WORKER (BEBAS LIMIT & ZERO LEAK API KEY)
-async function unggahBahanLangsung(input, tipe) {
+// UNGGAH VIA CLOUDFLARE WORKER DENGAN INDIKATOR PROGRES 0-100% (ANTI-CRASH & ZERO LEAK)
+function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
   var file = input.files[0];
   var txtEl = document.getElementById(tipe === 'foto' ? 'txt-file-foto' : 'txt-file-video');
   var stEl = document.getElementById(tipe === 'foto' ? 'st-file-foto' : 'st-file-video');
 
   if (txtEl) txtEl.innerText = file.name;
-  if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah ke Server...</span>';
+  if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah (0%)...</span>';
 
-  try {
-    var formData = new FormData();
-    formData.append('file', file);
+  var formData = new FormData();
+  formData.append('file', file);
 
-    var res = await fetch('https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev', {
-      method: 'POST',
-      body: formData
-    });
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev', true);
 
-    if (!res.ok) {
-      var errText = await res.text();
-      throw new Error('Gagal unggah: ' + errText);
-    }
-
-    var resJson = await res.json();
-    
-    var fileUrl = null;
-    if (resJson && resJson.data) {
-      if (typeof resJson.data === 'string') {
-        fileUrl = resJson.data;
-      } else if (typeof resJson.data === 'object') {
-        fileUrl = resJson.data.fileUrl || resJson.data.url || resJson.data.path;
+  // Pelacak progres unggahan real-time 0% - 100%
+  xhr.upload.onprogress = function(e) {
+    if (e.lengthComputable) {
+      var persen = Math.round((e.loaded / e.total) * 100);
+      if (stEl) {
+        stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah (' + persen + '%)...</span>';
       }
     }
+  };
 
-    if (!fileUrl) {
-      throw new Error(resJson.msg || "Link file tidak ditemukan dari server.");
-    }
+  xhr.onload = function() {
+    var rawText = xhr.responseText || "";
 
-    if (tipe === 'foto') {
-      urlBahanFoto = fileUrl;
+    if (xhr.status >= 200 && xhr.status < 300) {
+      try {
+        var resJson = JSON.parse(rawText);
+        var fileUrl = null;
+
+        if (resJson && resJson.data) {
+          if (typeof resJson.data === 'string') {
+            fileUrl = resJson.data;
+          } else if (typeof resJson.data === 'object') {
+            fileUrl = resJson.data.fileUrl || resJson.data.fileName || resJson.data.url || resJson.data.path;
+          }
+        }
+
+        if (!fileUrl) {
+          throw new Error(resJson?.msg || "Link file tidak ditemukan dari server.");
+        }
+
+        if (tipe === 'foto') {
+          urlBahanFoto = fileUrl;
+        } else {
+          urlBahanVideo = fileUrl;
+        }
+
+        var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
+        if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
+        tampilkanNotif('File berhasil diunggah!', 'sukses');
+
+      } catch (err) {
+        if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
+        tampilkanNotif('Gagal mengurai respons: ' + (err.message || 'Format tidak valid'), 'error');
+      }
     } else {
-      urlBahanVideo = fileUrl;
+      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
+      var pesanEror = 'Server sibuk atau koneksi terputus (' + xhr.status + ')';
+      try {
+        var errObj = JSON.parse(rawText);
+        if (errObj && (errObj.msg || errObj.error)) {
+          pesanEror = errObj.msg || errObj.error;
+        }
+      } catch (e) {}
+      tampilkanNotif('Gagal mengunggah: ' + pesanEror, 'error');
     }
+  };
 
-    var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
-    if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-    tampilkanNotif('File berhasil diunggah!', 'sukses');
-
-  } catch (err) {
+  xhr.onerror = function() {
     if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-    tampilkanNotif('Gagal mengunggah: ' + (err.message || 'Periksa koneksi server'), 'error');
-  }
+    tampilkanNotif('Koneksi terputus ke server pengunggah.', 'error');
+  };
+
+  xhr.send(formData);
 }
 
 // PEMANTAU PROSES VIDEO (Hanya cek ke /api/outputs)

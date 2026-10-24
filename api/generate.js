@@ -1,9 +1,8 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Secure Engine (Gatekeeper VIP & Worker Ready)
+// Backend Proxy Vercel - KiixMotion Secure Engine (Anti Fetch Failed & Smart Bypass)
 
-export const maxDuration = 60; // Beri waktu backend memproses file besar
+export const maxDuration = 60;
 
-// 1. Ekstrak nama/path file dari link Supabase (cadangan jika masih ada link lama)
 function ambilPathDariUrl(publicUrl) {
   try {
     if (!publicUrl || typeof publicUrl !== 'string') return null;
@@ -14,10 +13,9 @@ function ambilPathDariUrl(publicUrl) {
   }
 }
 
-// 2. Oper file dari URL luar ke RunningHub (hanya jalan jika bahan berupa link http/https)
 async function uploadKeEngineServer(fileUrl, fileType, apiKey) {
   const fileRes = await fetch(fileUrl);
-  if (!fileRes.ok) throw new Error("Gagal mengambil bahan dari storage Supabase.");
+  if (!fileRes.ok) throw new Error("Gagal mengambil file bahan dari storage.");
   const arrayBuffer = await fileRes.arrayBuffer();
   const blob = new Blob([arrayBuffer]);
 
@@ -41,15 +39,24 @@ async function uploadKeEngineServer(fileUrl, fileType, apiKey) {
       serverFile = rhJson.data.fileName || rhJson.data.fileUrl || rhJson.data.url || rhJson.data.path;
     }
   }
-  if (!serverFile) throw new Error(rhJson?.msg || "Engine menolak file bahan.");
+  if (!serverFile) throw new Error(rhJson?.msg || "Engine AI menolak bahan video/foto.");
   return serverFile;
 }
 
-// 3. Filter cerdas: jika sudah diunggah oleh Cloudflare Worker, pakai langsung ID-nya
+// BYPASS CERDAS: Jika bahan sudah diunggah Worker / sudah ada di RunningHub, jangan unduh ulang!
 async function siapkanBahan(bahan, fileType, apiKey) {
-  if (typeof bahan === 'string' && (bahan.startsWith('api/') || !bahan.startsWith('http'))) {
-    return bahan; // Sudah berbentuk ID RunningHub, langsung lolos tanpa fetch ulang
+  if (!bahan || typeof bahan !== 'string') return bahan;
+
+  // Langsung loloskan jika sudah berbentuk path RunningHub atau link file RunningHub
+  if (
+    bahan.startsWith('api/') ||
+    bahan.startsWith('openapi/') ||
+    bahan.includes('runninghub') ||
+    !bahan.startsWith('http')
+  ) {
+    return bahan;
   }
+
   return await uploadKeEngineServer(bahan, fileType, apiKey);
 }
 
@@ -72,14 +79,30 @@ export default async function handler(req, res) {
 
   const RUNNINGHUB_WORKFLOW_ID = "2099509417535340546";
   const SUPABASE_URL = process.env.SUPABASE_URL || "https://fytvyupwcburmdsulosm.supabase.co";
-  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE;
+  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || 
+                                process.env.SUPABASE_SERVICE_ROLE || 
+                                process.env.SUPABASE_SERVICE_KEY || 
+                                process.env.SUPABASE_KEY;
+
+  if (!SUPABASE_SERVICE_ROLE) {
+    return res.status(500).json({
+      success: false,
+      message: 'Konfigurasi server belum lengkap: SUPABASE_SERVICE_ROLE_KEY belum diisi di Vercel.'
+    });
+  }
+
+  const supaHeaders = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_SERVICE_ROLE,
+    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
+  };
 
   let apiKeyDipakai = null;
   let poolIdDipakai = null;
   let didDeductCredit = false;
 
   try {
-    // A. JALUR PRO / KUNCI PRIBADI (DIGEMBOK: WAJIB MEMBER VIP/PRO AKTIF)
+    // A. JALUR PRO / KUNCI PRIBADI (CEK STATUS VIP)
     if (provider === 'runninghub' || provider === 'pro' || provider === 'custom') {
       if (!apiKeyPribadi) {
         return res.status(400).json({ success: false, message: 'Kunci API pribadi belum dipilih atau kosong.' });
@@ -89,21 +112,13 @@ export default async function handler(req, res) {
         return res.status(401).json({ success: false, message: 'Sesi login tidak valid. Silakan login ulang.' });
       }
 
-      // Validasi status VIP langsung ke tabel users Supabase via Service Role
-      const userRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=*`,
-        {
-          headers: {
-            'apikey': SUPABASE_SERVICE_ROLE,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
-          }
-        }
-      );
+      const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=*`, {
+        headers: supaHeaders
+      });
 
       const userData = await userRes.json();
       const user = userData?.[0];
 
-      // Periksa apakah user punya status Pro / VIP aktif
       const isMemberPro = user && (
         user.is_vip === true ||
         user.is_pro === true ||
@@ -122,7 +137,7 @@ export default async function handler(req, res) {
 
       apiKeyDipakai = apiKeyPribadi;
     } 
-    // B. JALUR KIIX KREDIT
+    // B. JALUR KIIX KREDIT (PAKAI 1 KREDIT & POOL ADMIN)
     else {
       if (!userId) {
         return res.status(401).json({ success: false, message: 'Sesi login tidak valid.' });
@@ -131,11 +146,7 @@ export default async function handler(req, res) {
       // Potong kredit member
       const potongRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/potong_kredit_member`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_SERVICE_ROLE,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
-        },
+        headers: supaHeaders,
         body: JSON.stringify({ target_user_id: String(userId) })
       });
 
@@ -151,23 +162,14 @@ export default async function handler(req, res) {
       // Ambil kunci idle dari pool admin
       const poolRes = await fetch(
         `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.200&order=koin.desc&limit=1`,
-        {
-          headers: {
-            'apikey': SUPABASE_SERVICE_ROLE,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
-          }
-        }
+        { headers: supaHeaders }
       );
       const poolData = await poolRes.json();
 
       if (!poolData || poolData.length === 0) {
         await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': SUPABASE_SERVICE_ROLE,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
-          },
+          headers: supaHeaders,
           body: JSON.stringify({ target_user_id: String(userId) })
         });
 
@@ -182,22 +184,18 @@ export default async function handler(req, res) {
 
       await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_SERVICE_ROLE,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
-        },
+        headers: supaHeaders,
         body: JSON.stringify({ status: 'busy', last_used_at: new Date().toISOString() })
       });
     }
 
-    // C. GUNAKAN BAHAN SECARA LANGSUNG (BYPASS UPLOAD JIKA SUDAH ADA ID DARI CLOUDFLARE)
+    // C. BYPASS PENYIAPAN BAHAN (Tidak ada lagi re-upload 34 MB di Vercel)
     const [rhFoto, rhVideo] = await Promise.all([
       siapkanBahan(urlBahanFoto, 'image', apiKeyDipakai),
       siapkanBahan(urlBahanVideo, 'video', apiKeyDipakai)
     ]);
 
-    // D. PEMBERSIHAN STORAGE SUPABASE (Jika masih ada sisa file lama)
+    // D. PEMBERSIHAN STORAGE SUPABASE (Jika ada sisa file lama)
     const pathFoto = ambilPathDariUrl(urlBahanFoto);
     const pathVideo = ambilPathDariUrl(urlBahanVideo);
     const fileHapus = [pathFoto, pathVideo].filter(Boolean);
@@ -205,16 +203,12 @@ export default async function handler(req, res) {
     if (fileHapus.length > 0) {
       fetch(`${SUPABASE_URL}/storage/v1/object/bahan-render`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_SERVICE_ROLE,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
-        },
+        headers: supaHeaders,
         body: JSON.stringify({ prefixes: fileHapus })
-      }).catch((e) => console.error("Gagal auto-delete Supabase:", e));
+      }).catch(function(e) { console.error("Gagal auto-delete Supabase:", e); });
     }
 
-    // E. EKSEKUSI TASK RENDER KE ENGINE RUNNINGHUB
+    // E. BUAT ANTREAN TASK KE ENGINE RUNNINGHUB
     const enginePayload = {
       workflowId: RUNNINGHUB_WORKFLOW_ID,
       apiKey: apiKeyDipakai,
@@ -250,34 +244,26 @@ export default async function handler(req, res) {
     }
 
   } catch (error) {
-    // Refund jika gagal di tengah jalan
     if (didDeductCredit && userId) {
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_SERVICE_ROLE,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
-        },
+        headers: supaHeaders,
         body: JSON.stringify({ target_user_id: String(userId) })
-      });
+      }).catch(function() {});
     }
 
     if (poolIdDipakai) {
       await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_SERVICE_ROLE,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
-        },
+        headers: supaHeaders,
         body: JSON.stringify({ status: 'idle' })
-      });
+      }).catch(function() {});
     }
 
+    const detailEror = error.cause?.message || error.message || 'Gagal memproses render ke server.';
     return res.status(500).json({
       success: false,
-      message: error.message || 'Gagal memproses render ke server.'
+      message: detailEror
     });
   }
 }

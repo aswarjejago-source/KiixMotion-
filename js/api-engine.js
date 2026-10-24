@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: ENGINE LOGIC (FULL SECURE & STERIL POLLING)
+// PILAR 3: ENGINE LOGIC (FULL SECURE & AUTO STATUS SYNC)
 // File: js/api-engine.js
 // ==========================================
 
@@ -11,7 +11,7 @@ var urlBahanFoto = null;
 var urlBahanVideo = null;
 var listKunciPro = [];
 
-// SENARAI HITAM KEKAL: Tugas yang pernah dipadam tidak akan bangkit semula
+// SENARAI HITAM KEKAL: Tugas yang pernah dihapus tidak akan bangkit lagi
 var ID_HAPUS_PERMANEN = ["2113884739211014561"];
 
 function getBlacklistTugas() {
@@ -367,7 +367,7 @@ function unggahBahanLangsung(input, tipe) {
   xhr.send(formData);
 }
 
-// CCTV AKURAT: STERIL TANPA ALARM PALSU 5 DETIK & TANPA KEDIP SKRIN
+// CCTV AKURAT: DETEKSI CEPAT KEGAGALAN SERVER TANPA KEDIP SKRIN
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
@@ -376,15 +376,17 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   var currentPoolId = poolId || tugas.pool_id;
   if (tugas.intervalObj) clearInterval(tugas.intervalObj);
 
-  var cekInterval = setInterval(async function() {
-    tugas.intervalObj = cekInterval;
-    if (tugas.selesai) { clearInterval(cekInterval); return; }
+  async function jalankanCek() {
+    if (tugas.selesai) {
+      if (tugas.intervalObj) clearInterval(tugas.intervalObj);
+      return;
+    }
 
     var waktuBerjalan = Date.now() - tugas.startedAt;
     
     // 1. TIMEOUT 1 JAM: Batas render tamat
     if (waktuBerjalan >= 3600000) {
-      clearInterval(cekInterval);
+      if (tugas.intervalObj) clearInterval(tugas.intervalObj);
       lepaskanKunciPoolOtomatis(currentPoolId);
       tugas.status = "❌ Gagal (Waktu Habis)"; 
       tugas.selesai = true;
@@ -436,7 +438,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
 
       // KONDISI BERHASIL: MP4 selesai dijana
       if (vidUrl && typeof vidUrl === 'string') {
-        clearInterval(cekInterval);
+        if (tugas.intervalObj) clearInterval(tugas.intervalObj);
         lepaskanKunciPoolOtomatis(currentPoolId);
         tugas.status = "Selesai"; 
         tugas.selesai = true;
@@ -450,17 +452,28 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // B. CEK STATUS GAGAL HANYA JIKA ADA ISYARAT JELAS DARI PELAYAN
+      // B. CEK STATUS GAGAL / BATAL DI RUNNINGHUB SECARA LENGKAP
       var topCode = jsonObj ? Number(jsonObj.code) : NaN;
-      var topMsg = (jsonObj && jsonObj.msg) ? String(jsonObj.msg).toUpperCase() : "";
+      var topMsg = (jsonObj && (jsonObj.msg || jsonObj.message)) ? String(jsonObj.msg || jsonObj.message).toUpperCase() : "";
       var statusTeks = "";
       var taskStatusDalam = "";
+      var errorCodeVal = "";
+      var errorMsgVal = "";
 
       if (jsonObj && jsonObj.data && typeof jsonObj.data === 'object') {
         if (!Array.isArray(jsonObj.data)) {
           statusTeks = (jsonObj.data.status || "").toString().toUpperCase();
+          if (jsonObj.data.errorCode !== undefined && jsonObj.data.errorCode !== null) {
+            errorCodeVal = String(jsonObj.data.errorCode).trim();
+          }
+          if (jsonObj.data.errorMsg || jsonObj.data.errorMessage || jsonObj.data.error) {
+            errorMsgVal = String(jsonObj.data.errorMsg || jsonObj.data.errorMessage || jsonObj.data.error).trim().toUpperCase();
+          }
         } else if (jsonObj.data.length > 0 && typeof jsonObj.data[0] === 'object') {
           statusTeks = (jsonObj.data[0].status || "").toString().toUpperCase();
+          if (jsonObj.data[0].errorCode !== undefined && jsonObj.data[0].errorCode !== null) {
+            errorCodeVal = String(jsonObj.data[0].errorCode).trim();
+          }
         }
 
         var usageArr = jsonObj.data.taskUsageList || jsonObj.taskUsageList;
@@ -469,26 +482,43 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
       }
 
+      // Tangkap semua variasi kode error RunningHub & status kegagalan
       var isPastiBatalAtauGagal = (
-        topCode === 807 ||
-        topMsg.includes("TASK_NOT_FOUND") ||
-        topMsg.includes("FAILED") ||
-        statusTeks === "FAILED" ||
-        statusTeks === "ERROR" ||
+        (!isNaN(topCode) && ![0, 200, 804, 805, 806].includes(topCode)) ||
+        topMsg.includes("FAIL") ||
+        topMsg.includes("ERR") ||
+        topMsg.includes("CANCEL") ||
+        topMsg.includes("ABORT") ||
+        topMsg.includes("NOT_FOUND") ||
+        topMsg.includes("NOT FOUND") ||
+        topMsg.includes("TIMEOUT") ||
+        statusTeks.includes("FAIL") ||
+        statusTeks.includes("ERR") ||
         statusTeks.includes("CANCEL") ||
-        statusTeks === "ABORTED" ||
-        statusTeks === "TERMINATED" ||
-        taskStatusDalam === "FAILED" ||
-        taskStatusDalam === "ERROR" ||
-        taskStatusDalam.includes("CANCEL")
+        statusTeks.includes("ABORT") ||
+        statusTeks.includes("TERMINAT") ||
+        statusTeks.includes("STOP") ||
+        taskStatusDalam.includes("FAIL") ||
+        taskStatusDalam.includes("ERR") ||
+        taskStatusDalam.includes("CANCEL") ||
+        (errorCodeVal !== "" && errorCodeVal !== "0" && errorCodeVal !== "NULL" && errorCodeVal !== "UNDEFINED") ||
+        (errorMsgVal !== "" && errorMsgVal !== "NULL" && errorMsgVal !== "UNDEFINED")
       );
 
       if (isPastiBatalAtauGagal) {
-        clearInterval(cekInterval);
+        if (tugas.intervalObj) clearInterval(tugas.intervalObj);
         lepaskanKunciPoolOtomatis(currentPoolId);
 
         var labelStatus = "❌ Gagal Diproses Studio";
-        if (statusTeks.includes("CANCEL") || taskStatusDalam.includes("CANCEL") || topMsg.includes("TASK_NOT_FOUND")) {
+        if (
+          statusTeks.includes("CANCEL") || 
+          taskStatusDalam.includes("CANCEL") || 
+          topMsg.includes("CANCEL") || 
+          topMsg.includes("NOT_FOUND") || 
+          topMsg.includes("NOT FOUND") || 
+          topCode === 807 || 
+          topCode === 802
+        ) {
           labelStatus = "❌ Dibatalkan di RunningHub";
         }
         
@@ -503,7 +533,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
             tugas.did_deduct = false;
             await supa.rpc('refund_kredit_member', { target_user_id: String(targetUserErr) });
             if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
-            tampilkanNotifPusat('Render dibatalkan. 1 kredit dikembalikan otomatis.');
+            tampilkanNotifPusat(labelStatus.includes("Dibatalkan") ? 'Render dibatalkan. 1 kredit dikembalikan otomatis.' : 'Render gagal di server. 1 kredit dikembalikan otomatis.');
           } catch (errRefund) {
             tugas.refunded = false;
           }
@@ -514,7 +544,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // C. JIKA MASIH BERJALAN: Kemas kini peratusan kad secara terus tanpa muat semula grid video
+      // C. JIKA MASIH BERJALAN: Update hanya angka persentase kartu ini langsung
       if (tugas.progress < 95) {
         tugas.progress += Math.floor(Math.random() * 3) + 2; 
       }
@@ -537,7 +567,11 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       }
 
     } catch (err) {}
-  }, 6000); 
+  }
+
+  // Jalankan pengecekan pertama secara instan, lalu ulang tiap 6 detik
+  jalankanCek();
+  tugas.intervalObj = setInterval(jalankanCek, 6000);
 }
 
 // HAPUS TOTAL KARTU DARI SEMUA MEMORI BROWSER & CATAT KE BLACKLIST

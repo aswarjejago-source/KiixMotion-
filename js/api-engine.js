@@ -165,7 +165,6 @@ async function selaraskanRiwayatDenganAkun() {
       if (sUser) {
         var emailTarget = sUser.email ? sUser.email.toLowerCase().trim() : '';
         
-        // Cek status VIP langsung ke tabel database Supabase
         var { data: dbUser } = await supa
           .from('users')
           .select('*')
@@ -182,7 +181,6 @@ async function selaraskanRiwayatDenganAkun() {
             dbUser.status === 'vip'
           );
 
-          // Otomatis arahkan ke Mode Pro jika member adalah VIP
           if (isVIP) {
             setProviderUtama('pro');
           } else {
@@ -263,8 +261,6 @@ function ambilLinkOutputResmi(jsonObj) {
 function resetFormBahanInput() {
   urlBahanFoto = null;
   urlBahanVideo = null;
-  window.urlBahanFoto = null;
-  window.urlBahanVideo = null;
 
   var inFoto = document.getElementById('input-file-foto');
   var inVideo = document.getElementById('input-file-video');
@@ -303,33 +299,20 @@ function tampilkanModalCeklisSukses(taskId) {
 }
 
 function setProviderUtama(mode) {
-  if (mode === 'kling') {
-    engineMode = 'kling';
-  } else if (mode === 'runninghub' || mode === 'pro') {
-    engineMode = 'pro';
-  } else {
-    engineMode = 'kiix';
-  }
-  
-  window.engineMode = engineMode;
-  window.engineProvider = (engineMode === 'pro') ? 'runninghub' : engineMode;
+  engineMode = (mode === 'kiix') ? 'kiix' : 'pro';
   
   var cards = document.querySelectorAll('[id^="c-prov-"]');
   var badges = document.querySelectorAll('[id^="b-prov-"]');
   
   cards.forEach(function(card, idx) {
-    var isPilihan = (engineMode === 'kiix' && (card.id === 'c-prov-kiix' || idx === 0)) || 
-                    (engineMode === 'pro' && (card.id === 'c-prov-runninghub' || idx === 1)) ||
-                    (engineMode === 'kling' && (card.id === 'c-prov-kling' || idx === 2));
+    var isPilihan = (engineMode === 'kiix' && idx === 0) || (engineMode === 'pro' && idx === 1);
     card.className = isPilihan ?
       "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition" :
       "bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
   });
 
   badges.forEach(function(badge, idx) {
-    var isPilihan = (engineMode === 'kiix' && (badge.id === 'b-prov-kiix' || idx === 0)) || 
-                    (engineMode === 'pro' && (badge.id === 'b-prov-runninghub' || idx === 1)) ||
-                    (engineMode === 'kling' && (badge.id === 'b-prov-kling' || idx === 2));
+    var isPilihan = (engineMode === 'kiix' && idx === 0) || (engineMode === 'pro' && idx === 1);
     badge.style.display = isPilihan ? 'inline-block' : 'none';
   });
 
@@ -342,11 +325,6 @@ function setProviderUtama(mode) {
   if (engineMode === 'kiix') {
     if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
     if (tTotal) tTotal.innerText = "1 Kredit";
-    if (dropWrap) dropWrap.style.display = 'none';
-
-  } else if (engineMode === 'kling') {
-    if (tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL";
-    if (tTotal) tTotal.innerText = "1 Coin VIP";
     if (dropWrap) dropWrap.style.display = 'none';
 
   } else {
@@ -378,7 +356,6 @@ function setProviderUtama(mode) {
     }
   }
 }
-window.setProviderUtama = setProviderUtama;
 
 function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
@@ -422,13 +399,8 @@ function unggahBahanLangsung(input, tipe) {
 
         if (!fileUrl) throw new Error("Link file tidak ditemukan dari server.");
 
-        if (tipe === 'foto') {
-          urlBahanFoto = fileUrl;
-          window.urlBahanFoto = fileUrl;
-        } else {
-          urlBahanVideo = fileUrl;
-          window.urlBahanVideo = fileUrl;
-        }
+        if (tipe === 'foto') urlBahanFoto = fileUrl;
+        else urlBahanVideo = fileUrl;
 
         var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
         if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
@@ -706,11 +678,6 @@ function updateStatistikDashboard() {
 }
 
 async function mulaiProsesGenerate() {
-  // DELEGASI KHUSUS JIKA MODE KLING AKTIF
-  if (engineMode === 'kling' && typeof window.mulaiGenerateKling === 'function') {
-    return window.mulaiGenerateKling();
-  }
-
   var btn = document.getElementById('btn-submit-generate');
   var realEmail = null;
   var realUserId = null;
@@ -750,7 +717,6 @@ async function mulaiProsesGenerate() {
     return tampilkanNotifPusat('Sesi login berakhir, silakan login ulang!');
   }
 
-  // Pengecekan VIP User
   var isMemberVip = profilUser && (
     profilUser.is_vip === true ||
     profilUser.is_pro === true ||
@@ -760,7 +726,6 @@ async function mulaiProsesGenerate() {
     profilUser.status === 'vip'
   );
 
-  // Jika terdeteksi VIP tetapi mode masih kiix, otomatis pindahkan ke mode pro
   if (isMemberVip && engineMode === 'kiix') {
     setProviderUtama('pro');
   }
@@ -860,7 +825,7 @@ async function mulaiProsesGenerate() {
                     /\bpro\b/.test(pesanLower);
 
     if (isBukanPro) {
-      tampilkanNotifPusat(pesan);
+      tampilkanNotifPusat('Kamu belum punya akses Pro!');
       setTimeout(function() { alihkanKeMenuLangganan(); }, 500);
       return;
     }

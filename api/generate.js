@@ -101,7 +101,80 @@ export default async function handler(req, res) {
   let didDeductCredit = false;
 
   try {
-    // A. JALUR PRO / KUNCI PRIBADI
+    // =========================================================
+    // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI ENGINE)
+    // =========================================================
+    if (provider === 'kling') {
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'Sesi login tidak valid. Silakan login ulang.' });
+      }
+
+      // Verifikasi akses VIP member
+      const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=*`, {
+        headers: supaHeaders
+      });
+      const userData = await userRes.json();
+      const user = userData?.[0];
+
+      const isMemberVip = user && (
+        user.is_vip === true ||
+        user.is_pro === true ||
+        user.role === 'pro' ||
+        user.role === 'vip' ||
+        user.status === 'pro' ||
+        user.status === 'vip'
+      );
+
+      if (!isMemberVip) {
+        return res.status(403).json({
+          success: false,
+          message: 'Akses Kling 2.6 khusus member VIP!'
+        });
+      }
+
+      // API Key PiAPI uji coba langsung terpasang
+      const PIAPI_KEY = "c888d3ae20f708738c2271103e93c6a22dc769a54cc83495ea9acbdc0798f05d";
+
+      // Tembak antrean task ke PiAPI Kling
+      const piapiRes = await fetch('https://api.piapi.ai/api/v1/task', {
+        method: 'POST',
+        headers: {
+          'x-api-key': PIAPI_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'kling',
+          task_type: 'motion_control',
+          input: {
+            image_url: urlBahanFoto,
+            video_url: urlBahanVideo,
+            mode: 'std',
+            version: '2.6'
+          }
+        })
+      });
+
+      const piapiJson = await piapiRes.json();
+
+      if (piapiRes.ok && (piapiJson.code === 200 || piapiJson.code === 0) && piapiJson.data?.task_id) {
+        return res.status(200).json({
+          success: true,
+          taskId: piapiJson.data.task_id,
+          poolId: null,
+          didDeductCredit: false
+        });
+      } else {
+        const pesanErorPiapi = piapiJson?.message || piapiJson?.msg || piapiJson?.error?.message || 'Server PiAPI menolak antrean video.';
+        return res.status(400).json({
+          success: false,
+          message: pesanErorPiapi
+        });
+      }
+    }
+
+    // =========================================================
+    // JALUR 2: RUNNINGHUB PRO / KUNCI PRIBADI
+    // =========================================================
     if (provider === 'runninghub' || provider === 'pro' || provider === 'custom') {
       if (!apiKeyPribadi) {
         return res.status(400).json({ success: false, message: 'Kunci API pribadi belum dipilih atau kosong.' });
@@ -136,7 +209,9 @@ export default async function handler(req, res) {
 
       apiKeyDipakai = apiKeyPribadi;
     } 
-    // B. JALUR KIIX KREDIT
+    // =========================================================
+    // JALUR 3: KIIX KREDIT
+    // =========================================================
     else {
       if (!userId) {
         return res.status(401).json({ success: false, message: 'Sesi login tidak valid.' });
@@ -188,7 +263,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // C. BYPASS PENYIAPAN BAHAN
+    // C. BYPASS PENYIAPAN BAHAN (KHUSUS RUNNINGHUB)
     const [rhFoto, rhVideo] = await Promise.all([
       siapkanBahan(urlBahanFoto, 'image', apiKeyDipakai),
       siapkanBahan(urlBahanVideo, 'video', apiKeyDipakai)

@@ -162,15 +162,44 @@ async function selaraskanRiwayatDenganAkun() {
         sUser = uRes?.data?.user;
       }
 
-      if (sUser && window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
-        window.riwayatGenerateList.forEach(function(t) {
-          t.user_id = sUser.id;
-          if (sUser.email) t.user_email = sUser.email.toLowerCase().trim();
-        });
+      if (sUser) {
+        var emailTarget = sUser.email ? sUser.email.toLowerCase().trim() : '';
+        
+        // Cek status VIP langsung ke tabel database Supabase
+        var { data: dbUser } = await supa
+          .from('users')
+          .select('*')
+          .ilike('email', emailTarget)
+          .maybeSingle();
 
-        simpanStorage();
-        if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-        if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
+        if (dbUser) {
+          var isVIP = (
+            dbUser.is_vip === true ||
+            dbUser.is_pro === true ||
+            dbUser.role === 'pro' ||
+            dbUser.role === 'vip' ||
+            dbUser.status === 'pro' ||
+            dbUser.status === 'vip'
+          );
+
+          // Otomatis arahkan ke Mode Pro jika member adalah VIP
+          if (isVIP) {
+            setProviderUtama('pro');
+          } else {
+            setProviderUtama('kiix');
+          }
+        }
+
+        if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
+          window.riwayatGenerateList.forEach(function(t) {
+            t.user_id = sUser.id;
+            if (sUser.email) t.user_email = sUser.email.toLowerCase().trim();
+          });
+
+          simpanStorage();
+          if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
+          if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
+        }
       }
     } catch (err) {}
   }
@@ -192,7 +221,6 @@ async function lepaskanKunciPoolOtomatis(poolId) {
   } catch (e) {}
 }
 
-// EKSTRAKSI KHUSUS URL OUTPUT DARI RUNNINGHUB (BLOKIR SEMUA LINK BAHAN UPLOAD WORKER)
 function ambilLinkOutputResmi(jsonObj) {
   if (!jsonObj) return null;
   var data = jsonObj.data;
@@ -204,7 +232,6 @@ function ambilLinkOutputResmi(jsonObj) {
     if (!url || typeof url !== 'string' || hasilLink) return;
     var cleanUrl = url.trim().replace(/\\/g, '');
     
-    // Jangan pernah ambil video bahan yang diunggah ke Cloudflare worker
     if (cleanUrl.includes('workers.dev') || cleanUrl.includes('kiix-uploader')) return;
 
     if (cleanUrl.startsWith('http') && (
@@ -399,7 +426,6 @@ function unggahBahanLangsung(input, tipe) {
   xhr.send(formData);
 }
 
-// CCTV DENGAN PROTOKOL RESMI RUNNINGHUB (TIDAK BOLEH SELESAI JIKA STATUS BELUM BENAR-BENAR BERES)
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai) return; 
   if (!tugas.progress) tugas.progress = 0; 
@@ -418,7 +444,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
 
     var waktuBerjalan = Date.now() - tugas.startedAt;
     
-    // Batas timeout 1 jam
     if (waktuBerjalan >= 3600000) {
       if (tugas.intervalObj) clearInterval(tugas.intervalObj);
       lepaskanKunciPoolOtomatis(currentPoolId);
@@ -461,8 +486,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         statusTeks = (jsonObj.data.status || "").toString().toUpperCase().trim();
       }
 
-      // 1. JIKA RUNNINGHUB MENGIRIM KODE STATUS MASIH JALAN / ANTRE
-      // 804 = Antrean, 805 = Sedang Jalan, 806 = Proses Generate Output
       var isSedangJalan = (
         code === 804 ||
         code === 805 ||
@@ -484,7 +507,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
         simpanStorage();
 
-        // Update teks persentase secara lokal tanpa me-refresh kartu
         var taskIdStr = String(tugas.id || tugas.taskId || "");
         var semuaKad = document.querySelectorAll('.grid > div, [class*="card"], [class*="shadow"]');
         for (var k = 0; k < semuaKad.length; k++) {
@@ -502,7 +524,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // 2. JIKA RESMI GAGAL / DIBATALKAN DI RUNNINGHUB
       var isGagalAtauBatal = (
         code === 801 || 
         code === 802 || 
@@ -541,11 +562,9 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // 3. JIKA RESMI SELESAI (KODE WAJIB 0 DAN MEMBAWA LINK OUTPUT RESMI)
       if (code === 0 && jsonObj.data) {
         var linkOutputAsli = ambilLinkOutputResmi(jsonObj);
         
-        // HANYA boleh ubah status ke Selesai jika file output resmi RunningHub benar-benar ada
         if (linkOutputAsli) {
           if (tugas.intervalObj) clearInterval(tugas.intervalObj);
           lepaskanKunciPoolOtomatis(currentPoolId);
@@ -700,16 +719,22 @@ async function mulaiProsesGenerate() {
     return tampilkanNotifPusat('Sesi login berakhir, silakan login ulang!');
   }
 
-  if (engineMode === 'pro') {
-    var isMemberVip = profilUser && (
-      profilUser.is_vip === true ||
-      profilUser.is_pro === true ||
-      profilUser.role === 'pro' ||
-      profilUser.role === 'vip' ||
-      profilUser.status === 'pro' ||
-      profilUser.status === 'vip'
-    );
+  // Pengecekan VIP User
+  var isMemberVip = profilUser && (
+    profilUser.is_vip === true ||
+    profilUser.is_pro === true ||
+    profilUser.role === 'pro' ||
+    profilUser.role === 'vip' ||
+    profilUser.status === 'pro' ||
+    profilUser.status === 'vip'
+  );
 
+  // Jika terdeteksi VIP tetapi mode masih kiix, otomatis pindahkan ke mode pro
+  if (isMemberVip && engineMode === 'kiix') {
+    setProviderUtama('pro');
+  }
+
+  if (engineMode === 'pro') {
     if (!isMemberVip) {
       if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
       tampilkanNotifPusat('Kamu belum punya akses Pro!');
@@ -1028,7 +1053,7 @@ window.onload = function() {
   selaraskanRiwayatDenganAkun();
   renderListAkunDiKelola();
   updateStatistikDashboard();
-  setProviderUtama('kiix'); 
+
   if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
   if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
 

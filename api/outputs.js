@@ -1,5 +1,5 @@
 // File: api/outputs.js
-// Backend Proxy Status & Auto Reset Pool
+// Backend Proxy Status & Auto Reset Pool (RunningHub + PiAPI Kling)
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -10,7 +10,70 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ code: 405, msg: 'Metode harus POST!' });
 
-  const { taskId, poolId } = req.body;
+  const { taskId, poolId, provider } = req.body;
+
+  // =========================================================
+  // JALUR 1: CEK STATUS KLING 2.6 (PiAPI)
+  // =========================================================
+  if (provider === 'kling') {
+    if (!taskId) {
+      return res.status(400).json({ code: 400, msg: "Data taskId Kling kurang!" });
+    }
+
+    const PIAPI_KEY = process.env.PIAPI_KEY || "c888d3ae20f708738c2271103e93c6a22dc769a54cc83495ea9acbdc0798f05d";
+
+    try {
+      const piapiRes = await fetch(`https://api.piapi.ai/api/v1/task/${taskId}`, {
+        method: 'GET',
+        headers: {
+          'x-api-key': PIAPI_KEY
+        },
+        cache: 'no-store'
+      });
+
+      const piapiJson = await piapiRes.json();
+      const taskData = piapiJson.data || {};
+      const statusTeks = (taskData.status || piapiJson.status || "").toString().toUpperCase().trim();
+
+      // Cari URL video dari output PiAPI
+      let videoUrl = null;
+      const out = taskData.output;
+      if (out) {
+        if (typeof out === 'string' && out.startsWith('http')) {
+          videoUrl = out;
+        } else if (out.video_url) {
+          videoUrl = out.video_url;
+        } else if (out.url) {
+          videoUrl = out.url;
+        } else if (out.works && Array.isArray(out.works) && out.works[0]?.video?.resource) {
+          videoUrl = out.works[0].video.resource;
+        } else if (out.videos && Array.isArray(out.videos) && out.videos[0]?.url) {
+          videoUrl = out.videos[0].url;
+        } else {
+          // Pencarian otomatis regex link mp4
+          const match = JSON.stringify(out).match(/https?:\/\/[^"'\s]+\.mp4[^"'\s]*/i);
+          if (match) videoUrl = match[0].replace(/\\/g, '');
+        }
+      }
+
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      return res.status(200).json({
+        code: 200,
+        status: statusTeks,
+        data: {
+          status: statusTeks,
+          video_url: videoUrl,
+          url: videoUrl
+        }
+      });
+    } catch (err) {
+      return res.status(500).json({ code: 500, status: "FAILED", msg: err.message });
+    }
+  }
+
+  // =========================================================
+  // JALUR 2: CEK STATUS RUNNINGHUB PRO / KIIX POOL
+  // =========================================================
   let apiKey = req.headers['authorization']?.replace('Bearer ', '') || req.body.apiKey;
 
   const SUPABASE_URL = process.env.SUPABASE_URL;

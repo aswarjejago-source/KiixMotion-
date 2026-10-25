@@ -77,7 +77,7 @@ export default async function handler(req, res) {
   }
 
   // =========================================================
-  // JALUR 1: KLING 2.6 MOTION CONTROL (SESUAI SKEMA RESMI PIAPI)
+  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - DEBUG PENUH)
   // =========================================================
   if (provider === 'kling') {
     try {
@@ -107,6 +107,8 @@ export default async function handler(req, res) {
       });
 
       const piapiJson = await piapiRes.json();
+      console.log("[PiAPI RESPONSE]:", JSON.stringify(piapiJson));
+
       const idTugas = piapiJson.task_id || piapiJson.data?.task_id;
 
       if ((piapiRes.ok || piapiJson.code === 200 || piapiJson.code === 0) && idTugas) {
@@ -117,10 +119,17 @@ export default async function handler(req, res) {
           didDeductCredit: false
         });
       } else {
-        const pesanErorPiapi = piapiJson?.message || piapiJson?.msg || piapiJson?.error?.message || 'Server PiAPI menolak payload input.';
+        const detailError = piapiJson?.detail || 
+                            piapiJson?.error?.message || 
+                            piapiJson?.data?.message || 
+                            (typeof piapiJson?.data === 'string' ? piapiJson.data : null) || 
+                            piapiJson?.message || 
+                            piapiJson?.msg || 
+                            JSON.stringify(piapiJson);
+
         return res.status(400).json({
           success: false,
-          message: pesanErorPiapi
+          message: `PiAPI: ${detailError}`
         });
       }
     } catch (errKling) {

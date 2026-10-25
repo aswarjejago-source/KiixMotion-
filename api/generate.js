@@ -1,5 +1,5 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Secure Engine (Auto-Detect Env Vercel)
+// Backend Proxy Vercel - KiixMotion Secure Engine
 
 export const maxDuration = 60;
 
@@ -75,67 +75,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, message: 'Bahan foto dan video wajib diisi.' });
   }
 
-  const RUNNINGHUB_WORKFLOW_ID = "2099509417535340546";
-  
-  // Otomatis baca NEXT_PUBLIC_SUPABASE_URL bawaan Vercel kamu
-  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || 
-                                process.env.SUPABASE_SERVICE_ROLE || 
-                                process.env.SUPABASE_KEY;
-
-  if (!SUPABASE_URL) {
-    return res.status(500).json({
-      success: false,
-      message: 'SUPABASE_URL tidak terbaca di environment Vercel.'
-    });
-  }
-
-  const supaHeaders = {
-    'Content-Type': 'application/json',
-    'apikey': SUPABASE_SERVICE_ROLE,
-    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
-  };
-
-  let apiKeyDipakai = null;
-  let poolIdDipakai = null;
-  let didDeductCredit = false;
-
-  try {
-    // =========================================================
-    // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI ENGINE)
-    // =========================================================
-    if (provider === 'kling') {
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'Sesi login tidak valid. Silakan login ulang.' });
-      }
-
-      // Verifikasi akses VIP member
-      const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=*`, {
-        headers: supaHeaders
-      });
-      const userData = await userRes.json();
-      const user = userData?.[0];
-
-      const isMemberVip = user && (
-        user.is_vip === true ||
-        user.is_pro === true ||
-        user.role === 'pro' ||
-        user.role === 'vip' ||
-        user.status === 'pro' ||
-        user.status === 'vip'
-      );
-
-      if (!isMemberVip) {
-        return res.status(403).json({
-          success: false,
-          message: 'Akses Kling 2.6 khusus member VIP!'
-        });
-      }
-
-      // API Key PiAPI uji coba langsung terpasang
+  // =========================================================
+  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - BEBAS AKSES 100%)
+  // =========================================================
+  if (provider === 'kling') {
+    try {
       const PIAPI_KEY = "c888d3ae20f708738c2271103e93c6a22dc769a54cc83495ea9acbdc0798f05d";
 
-      // Tembak antrean task ke PiAPI Kling
       const piapiRes = await fetch('https://api.piapi.ai/api/v1/task', {
         method: 'POST',
         headers: {
@@ -170,11 +116,42 @@ export default async function handler(req, res) {
           message: pesanErorPiapi
         });
       }
+    } catch (errKling) {
+      return res.status(500).json({
+        success: false,
+        message: 'Gagal terhubung ke PiAPI Kling: ' + errKling.message
+      });
     }
+  }
 
-    // =========================================================
-    // JALUR 2: RUNNINGHUB PRO / KUNCI PRIBADI
-    // =========================================================
+  // =========================================================
+  // JALUR 2 & 3: RUNNINGHUB & KIIX KREDIT
+  // =========================================================
+  const RUNNINGHUB_WORKFLOW_ID = "2099509417535340546";
+  
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || 
+                                process.env.SUPABASE_SERVICE_ROLE || 
+                                process.env.SUPABASE_KEY;
+
+  if (!SUPABASE_URL) {
+    return res.status(500).json({
+      success: false,
+      message: 'SUPABASE_URL tidak terbaca di environment Vercel.'
+    });
+  }
+
+  const supaHeaders = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_SERVICE_ROLE,
+    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
+  };
+
+  let apiKeyDipakai = null;
+  let poolIdDipakai = null;
+  let didDeductCredit = false;
+
+  try {
     if (provider === 'runninghub' || provider === 'pro' || provider === 'custom') {
       if (!apiKeyPribadi) {
         return res.status(400).json({ success: false, message: 'Kunci API pribadi belum dipilih atau kosong.' });
@@ -208,16 +185,11 @@ export default async function handler(req, res) {
       }
 
       apiKeyDipakai = apiKeyPribadi;
-    } 
-    // =========================================================
-    // JALUR 3: KIIX KREDIT
-    // =========================================================
-    else {
+    } else {
       if (!userId) {
         return res.status(401).json({ success: false, message: 'Sesi login tidak valid.' });
       }
 
-      // Potong kredit member
       const potongRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/potong_kredit_member`, {
         method: 'POST',
         headers: supaHeaders,
@@ -233,7 +205,6 @@ export default async function handler(req, res) {
       }
       didDeductCredit = true;
 
-      // Ambil kunci idle dari pool admin
       const poolRes = await fetch(
         `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.200&order=koin.desc&limit=1`,
         { headers: supaHeaders }
@@ -263,13 +234,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // C. BYPASS PENYIAPAN BAHAN (KHUSUS RUNNINGHUB)
     const [rhFoto, rhVideo] = await Promise.all([
       siapkanBahan(urlBahanFoto, 'image', apiKeyDipakai),
       siapkanBahan(urlBahanVideo, 'video', apiKeyDipakai)
     ]);
 
-    // D. PEMBERSIHAN STORAGE SUPABASE
     const pathFoto = ambilPathDariUrl(urlBahanFoto);
     const pathVideo = ambilPathDariUrl(urlBahanVideo);
     const fileHapus = [pathFoto, pathVideo].filter(Boolean);
@@ -282,7 +251,6 @@ export default async function handler(req, res) {
       }).catch(function(e) { console.error("Gagal auto-delete Supabase:", e); });
     }
 
-    // E. BUAT ANTREAN TASK KE ENGINE RUNNINGHUB
     const enginePayload = {
       workflowId: RUNNINGHUB_WORKFLOW_ID,
       apiKey: apiKeyDipakai,

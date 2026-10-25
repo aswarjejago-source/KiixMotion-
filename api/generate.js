@@ -68,7 +68,8 @@ export default async function handler(req, res) {
     urlBahanVideo,
     provider,
     apiKeyPribadi,
-    userId
+    userId,
+    prompt
   } = req.body;
 
   if (!urlBahanFoto || !urlBahanVideo) {
@@ -76,41 +77,47 @@ export default async function handler(req, res) {
   }
 
   // =========================================================
-  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - BEBAS AKSES 100%)
+  // JALUR 1: KLING 2.6 MOTION CONTROL (SESUAI SKEMA RESMI PIAPI)
   // =========================================================
   if (provider === 'kling') {
     try {
       const PIAPI_KEY = "c888d3ae20f708738c2271103e93c6a22dc769a54cc83495ea9acbdc0798f05d";
 
+      const piapiPayload = {
+        model: "kling",
+        task_type: "motion_control",
+        input: {
+          image_url: urlBahanFoto,
+          version: "2.6",
+          mode: "std",
+          motion_direction: "video",
+          keep_original_sound: false,
+          video_url: urlBahanVideo,
+          prompt: prompt || "High quality cinematic motion capture, smooth movement, realistic studio lighting"
+        }
+      };
+
       const piapiRes = await fetch('https://api.piapi.ai/api/v1/task', {
         method: 'POST',
         headers: {
-          'x-api-key': PIAPI_KEY,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-API-KEY': PIAPI_KEY
         },
-        body: JSON.stringify({
-          model: 'kling',
-          task_type: 'motion_control',
-          input: {
-            image_url: urlBahanFoto,
-            video_url: urlBahanVideo,
-            mode: 'std',
-            version: '2.6'
-          }
-        })
+        body: JSON.stringify(piapiPayload)
       });
 
       const piapiJson = await piapiRes.json();
+      const idTugas = piapiJson.task_id || piapiJson.data?.task_id;
 
-      if (piapiRes.ok && (piapiJson.code === 200 || piapiJson.code === 0) && piapiJson.data?.task_id) {
+      if ((piapiRes.ok || piapiJson.code === 200 || piapiJson.code === 0) && idTugas) {
         return res.status(200).json({
           success: true,
-          taskId: piapiJson.data.task_id,
+          taskId: idTugas,
           poolId: null,
           didDeductCredit: false
         });
       } else {
-        const pesanErorPiapi = piapiJson?.message || piapiJson?.msg || piapiJson?.error?.message || 'Server PiAPI menolak antrean video.';
+        const pesanErorPiapi = piapiJson?.message || piapiJson?.msg || piapiJson?.error?.message || 'Server PiAPI menolak payload input.';
         return res.status(400).json({
           success: false,
           message: pesanErorPiapi
@@ -119,7 +126,7 @@ export default async function handler(req, res) {
     } catch (errKling) {
       return res.status(500).json({
         success: false,
-        message: 'Gagal terhubung ke PiAPI Kling: ' + errKling.message
+        message: 'Koneksi ke PiAPI gagal: ' + errKling.message
       });
     }
   }

@@ -77,7 +77,7 @@ export default async function handler(req, res) {
   }
 
   // =========================================================
-  // JALUR 1: KLING 2.6 MOTION CONTROL (RAW DUMP PIAPI RESPONSE)
+  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - FULL DEBUG PAYLOAD)
   // =========================================================
   if (provider === 'kling') {
     try {
@@ -106,7 +106,6 @@ export default async function handler(req, res) {
         body: JSON.stringify(piapiPayload)
       });
 
-      // Tangkap teks asli mentah tanpa filter JSON apa pun
       const rawText = await piapiRes.text();
       let piapiJson = null;
       try {
@@ -123,10 +122,9 @@ export default async function handler(req, res) {
           didDeductCredit: false
         });
       } else {
-        // Kirim status kode HTTP dan string mentah apa adanya langsung ke layar HP
         return res.status(400).json({
           success: false,
-          message: `[HTTP ${piapiRes.status}] ${rawText}`
+          message: `[HTTP ${piapiRes.status}] ${rawText} | FOTO: ${urlBahanFoto} | VIDEO: ${urlBahanVideo}`
         });
       }
     } catch (errKling) {

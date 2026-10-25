@@ -40,11 +40,13 @@
       return;
     }
 
-    if (cardKling = document.getElementById('c-prov-kling')) {
-      cardKling.className = "bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow";
+    var elCardKling = document.getElementById('c-prov-kling');
+    var elBadgeKling = document.getElementById('b-prov-kling');
+    if (elCardKling) {
+      elCardKling.className = "bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow";
     }
-    if (badgeKling = document.getElementById('b-prov-kling')) {
-      badgeKling.style.display = 'none';
+    if (elBadgeKling) {
+      elBadgeKling.style.display = 'none';
     }
 
     if (typeof setProviderAsli === 'function') {
@@ -70,10 +72,15 @@
     var realEmail = "tester@kiixmotion.com";
     var realUserId = "tester-kling";
 
+    // Ambil identitas sesi bila login aktif
     if (typeof supa !== 'undefined') {
       try {
         var sessionRes = await supa.auth.getSession();
         var sUser = sessionRes?.data?.session?.user;
+        if (!sUser && typeof supa.auth.getUser === 'function') {
+          var uRes = await supa.auth.getUser();
+          sUser = uRes?.data?.user;
+        }
         if (sUser && sUser.email) realEmail = sUser.email.toLowerCase().trim();
         if (sUser && sUser.id) realUserId = sUser.id;
       } catch (e) {}
@@ -89,6 +96,10 @@
         : alert('Foto karakter dan Video gerakan wajib selesai diunggah!');
     }
 
+    // Ambil prompt dari form input bila pengguna mengetik deskripsi
+    var inPrompt = document.getElementById('in-prompt-gerak') || document.querySelector('textarea[name="prompt"], input[name="prompt"]');
+    var teksPrompt = (inPrompt && inPrompt.value.trim()) ? inPrompt.value.trim() : "High quality cinematic motion capture, smooth movement, realistic studio lighting";
+
     if (btn) { btn.disabled = true; btn.innerText = "⚡ MEMPROSES KLING 2.6..."; }
 
     try {
@@ -100,7 +111,8 @@
           urlBahanVideo: videoUrl,
           provider: 'kling',
           userId: realUserId,
-          userEmail: realEmail
+          userEmail: realEmail,
+          prompt: teksPrompt
         })
       });
 
@@ -137,6 +149,7 @@
 
       if (typeof resetFormBahanInput === 'function') resetFormBahanInput();
       if (typeof tampilkanModalCeklisSukses === 'function') tampilkanModalCeklisSukses(tugasKling.id);
+      if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
 
       pantauStatusKling(tugasKling);
 
@@ -163,6 +176,17 @@
         return;
       }
 
+      var durasi = Date.now() - tugas.startedAt;
+      if (durasi >= 1800000) {
+        if (tugas.intervalObj) clearInterval(tugas.intervalObj);
+        tugas.status = "❌ Gagal (Waktu Habis)";
+        tugas.selesai = true;
+        tugas.progress = 100;
+        if (typeof simpanStorage === 'function') simpanStorage();
+        if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
+        return;
+      }
+
       try {
         var res = await fetch('/api/outputs', {
           method: 'POST',
@@ -176,15 +200,16 @@
         if (!res.ok) return;
 
         var jsonObj = await res.json();
-        var dataObj = jsonObj.data || {};
+        var dataObj = jsonObj.data || jsonObj;
         var statusTeks = (dataObj.status || jsonObj.status || "").toString().toUpperCase().trim();
 
-        if (statusTeks === "PROCESSING" || statusTeks === "PENDING" || statusTeks === "QUEUED") {
+        // 1. Sedang Mengantre / Diproses
+        if (statusTeks === "PROCESSING" || statusTeks === "PENDING" || statusTeks === "QUEUED" || statusTeks === "RUNNING") {
           tugas.status = (statusTeks === "QUEUED" || statusTeks === "PENDING")
             ? "⏳ Mengantre di Server Kling..."
             : "⚡ Sedang Memproses Kling 2.6...";
 
-          if (tugas.progress < 90) tugas.progress += 3;
+          if (tugas.progress < 90) tugas.progress += 2;
           if (typeof simpanStorage === 'function') simpanStorage();
 
           var taskIdStr = String(tugas.id);
@@ -202,7 +227,8 @@
           return;
         }
 
-        if (statusTeks === "FAILED" || statusTeks === "ERROR" || statusTeks === "CANCELED") {
+        // 2. Gagal Diproses
+        if (statusTeks === "FAILED" || statusTeks === "ERROR" || statusTeks === "CANCELED" || statusTeks === "CANCELLED") {
           if (tugas.intervalObj) clearInterval(tugas.intervalObj);
           tugas.status = "❌ Gagal Diproses Mesin Kling";
           tugas.selesai = true;
@@ -212,7 +238,15 @@
           return;
         }
 
-        var linkVideo = dataObj.video_url || dataObj.url || dataObj.fileUrl || (Array.isArray(dataObj.videos) && dataObj.videos[0]?.url) || null;
+        // 3. Selesai (Ekstraksi output.video_url sesuai format resmi PiAPI)
+        var linkVideo = dataObj.output?.video_url || 
+                        jsonObj.output?.video_url || 
+                        dataObj.video_url || 
+                        jsonObj.video_url || 
+                        dataObj.fileUrl || 
+                        (Array.isArray(dataObj.videos) && dataObj.videos[0]?.url) || 
+                        null;
+
         if (statusTeks === "COMPLETED" || statusTeks === "SUCCESS" || linkVideo) {
           if (tugas.intervalObj) clearInterval(tugas.intervalObj);
           tugas.status = "Selesai";

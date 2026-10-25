@@ -187,7 +187,6 @@ window.gantiLayarNav = function(layar) {
     }
 };
 
-
 // -------------------------------------------------------------
 // FITUR GENERATE (PILIH ENGINE & BADGE KOIN)
 // -------------------------------------------------------------
@@ -196,16 +195,20 @@ window.engineProvider = 'kiix';
 
 window.setProviderUtama = function(prov) {
     window.engineProvider = prov;
+    window.engineMode = prov;
+    if (typeof engineMode !== 'undefined') {
+        engineMode = (prov === 'runninghub') ? 'pro' : prov;
+    }
     
-    var providers = ['kiix', 'runninghub'];
+    var providers = ['kiix', 'runninghub', 'kling'];
     
     providers.forEach(function(p) {
         let card = document.getElementById('c-prov-' + p);
         let badge = document.getElementById('b-prov-' + p);
         
         if (card) {
-            card.classList.remove('border-2', 'border-kmViolet', 'ring-4', 'ring-violet-50');
-            card.classList.add('border', 'border-kmBorder');
+            card.classList.remove('border-2', 'border-kmViolet', 'ring-4', 'ring-violet-50', 'bg-white');
+            card.classList.add('border', 'border-kmBorder', 'bg-kmCard');
         }
         if (badge) {
             badge.style.display = 'none';
@@ -216,8 +219,8 @@ window.setProviderUtama = function(prov) {
     let activeBadge = document.getElementById('b-prov-' + prov);
     
     if (activeCard) {
-        activeCard.classList.remove('border', 'border-kmBorder');
-        activeCard.classList.add('border-2', 'border-kmViolet', 'ring-4', 'ring-violet-50');
+        activeCard.classList.remove('border', 'border-kmBorder', 'bg-kmCard');
+        activeCard.classList.add('border-2', 'border-kmViolet', 'ring-4', 'ring-violet-50', 'bg-white');
     }
     if (activeBadge) {
         activeBadge.style.display = 'inline-block';
@@ -231,11 +234,15 @@ window.setProviderUtama = function(prov) {
         if (title) title.innerText = 'WAN MOTION CONTROL 1080HD';
         if (cost) cost.innerText = '1 Kredit';
         if (boxAkun) boxAkun.style.display = 'none'; 
-    } else if (prov === 'runninghub') {
+    } else if (prov === 'runninghub' || prov === 'pro') {
         if (title) title.innerText = 'RUNNINGHUB PRO (WAN)';
         if (cost) cost.innerText = '≈ 478 coin';
         if (boxAkun) boxAkun.style.display = 'block'; 
         updateBadgeKoinGenerate(); 
+    } else if (prov === 'kling') {
+        if (title) title.innerText = 'KLING 2.6 MOTION CONTROL';
+        if (cost) cost.innerText = '1 Coin VIP';
+        if (boxAkun) boxAkun.style.display = 'none';
     }
 };
 
@@ -269,7 +276,6 @@ window.updateBadgeKoinGenerate = function() {
         badge.className = "text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg";
     }
 };
-
 
 // -------------------------------------------------------------
 // HISTORY RENDER (DENGAN FALLBACK GANDA)
@@ -429,7 +435,6 @@ window.hapusTugasBerdasarkanId = function(id) {
 window.renderLayarHistory = function() { 
     renderVideoAsliKeGrid(); 
 };
-
 
 // -------------------------------------------------------------
 // KELOLA AKUN API KEY (LOKAL) & SINKRONISASI
@@ -624,7 +629,6 @@ window.refreshSemuaAkunLokal = async function() {
     }
 };
 
-
 // -------------------------------------------------------------
 // FITUR GALERI MEDIA
 // -------------------------------------------------------------
@@ -710,7 +714,6 @@ window.renderGaleri = function() {
     
     wadah.innerHTML = html;
 };
-
 
 // -------------------------------------------------------------
 // BELI KREDIT & LANGGANAN VIP PRO
@@ -842,7 +845,6 @@ window.prosesBeliKredit = function(nom, krd) {
     
     jalankanBayarKredit();
 };
-
 
 // -------------------------------------------------------------
 // FITUR MASTER POOL API ADMIN (KOLAM CLOUD)

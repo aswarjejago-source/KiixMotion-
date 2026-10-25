@@ -77,7 +77,7 @@ export default async function handler(req, res) {
   }
 
   // =========================================================
-  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - DEBUG PENUH)
+  // JALUR 1: KLING 2.6 MOTION CONTROL (RAW DUMP PIAPI RESPONSE)
   // =========================================================
   if (provider === 'kling') {
     try {
@@ -106,12 +106,16 @@ export default async function handler(req, res) {
         body: JSON.stringify(piapiPayload)
       });
 
-      const piapiJson = await piapiRes.json();
-      console.log("[PiAPI RESPONSE]:", JSON.stringify(piapiJson));
+      // Tangkap teks asli mentah tanpa filter JSON apa pun
+      const rawText = await piapiRes.text();
+      let piapiJson = null;
+      try {
+        piapiJson = JSON.parse(rawText);
+      } catch (e) {}
 
-      const idTugas = piapiJson.task_id || piapiJson.data?.task_id;
+      const idTugas = piapiJson?.task_id || piapiJson?.data?.task_id;
 
-      if ((piapiRes.ok || piapiJson.code === 200 || piapiJson.code === 0) && idTugas) {
+      if ((piapiRes.ok || piapiJson?.code === 200 || piapiJson?.code === 0) && idTugas) {
         return res.status(200).json({
           success: true,
           taskId: idTugas,
@@ -119,17 +123,10 @@ export default async function handler(req, res) {
           didDeductCredit: false
         });
       } else {
-        const detailError = piapiJson?.detail || 
-                            piapiJson?.error?.message || 
-                            piapiJson?.data?.message || 
-                            (typeof piapiJson?.data === 'string' ? piapiJson.data : null) || 
-                            piapiJson?.message || 
-                            piapiJson?.msg || 
-                            JSON.stringify(piapiJson);
-
+        // Kirim status kode HTTP dan string mentah apa adanya langsung ke layar HP
         return res.status(400).json({
           success: false,
-          message: `PiAPI: ${detailError}`
+          message: `[HTTP ${piapiRes.status}] ${rawText}`
         });
       }
     } catch (errKling) {

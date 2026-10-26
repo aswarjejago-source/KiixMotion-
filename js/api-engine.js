@@ -1,6 +1,7 @@
 // ==========================================
 // PILAR 3: ENGINE LOGIC (CORE MOTION ENGINE)
 // File: js/api-engine.js
+// Fokus: RunningHub & Kiix Motion Control Murni
 // ==========================================
 
 window.riwayatGenerateList = window.riwayatGenerateList || [];
@@ -172,7 +173,7 @@ async function selaraskanRiwayatDenganAkun() {
           .ilike('email', emailTarget)
           .maybeSingle();
 
-        if (dbUser && window.engineMode !== 'kling') {
+        if (dbUser) {
           var isVIP = (
             dbUser.is_vip === true ||
             dbUser.is_pro === true ||
@@ -302,12 +303,6 @@ function tampilkanModalCeklisSukses(taskId) {
 }
 
 function setProviderUtama(mode) {
-  if (mode === 'kling') {
-    engineMode = 'kling';
-    window.engineMode = 'kling';
-    return;
-  }
-
   engineMode = (mode === 'kiix') ? 'kiix' : 'pro';
   window.engineMode = engineMode;
   
@@ -693,14 +688,6 @@ function updateStatistikDashboard() {
 }
 
 async function mulaiProsesGenerate() {
-  // PENGALIHAN KHUSUS KLING AGAR TIDAK TERTAHAN VALIDASI RUNNINGHUB
-  if (window.engineMode === 'kling') {
-    if (typeof window.eksekusiGenerateKling === 'function') {
-      window.eksekusiGenerateKling();
-    }
-    return;
-  }
-
   var btn = document.getElementById('btn-submit-generate');
   var realEmail = null;
   var realUserId = null;
@@ -1102,7 +1089,9 @@ window.addEventListener('DOMContentLoaded', function() {
   var btnSubmit = document.getElementById('btn-submit-generate');
   if (btnSubmit) {
     btnSubmit.addEventListener('click', function(e) {
-      mulaiProsesGenerate();
+      if (window.engineMode !== 'kling') {
+        mulaiProsesGenerate();
+      }
     });
   }
 });

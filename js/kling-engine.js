@@ -1,6 +1,7 @@
 // ==========================================================================
 // KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE (ISOLATED ENGINE)
 // File: js/kling-engine.js
+// Fitur: Auto-Compressor (<45MB) + MP4 Duration Spoofer + Direct Supabase
 // ==========================================================================
 
 (function () {
@@ -8,7 +9,120 @@
   window.urlBahanVideoKling = null;
 
   // ========================================================================
-  // 1. MP4 HEADER SPOOFER (Perbaikan Offset Standar MP4 30s -> 9.5s)
+  // 1. AUTO-COMPRESSOR DI BROWSER (Mengecilkan Video Member > 45MB)
+  // ========================================================================
+  function kompresVideoDiBrowser(fileAsli, stEl) {
+    return new Promise(function (resolve) {
+      var video = document.createElement("video");
+      video.src = URL.createObjectURL(fileAsli);
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+
+      video.onloadedmetadata = function () {
+        // Skala resolusi maksimal 720p (menjaga rasio asli)
+        var maxDim = 720;
+        var w = video.videoWidth || 720;
+        var h = video.videoHeight || 1280;
+        var scale = Math.min(1, maxDim / Math.max(w, h));
+        var targetW = Math.round((w * scale) / 2) * 2;
+        var targetH = Math.round((h * scale) / 2) * 2;
+
+        var canvas = document.createElement("canvas");
+        canvas.width = targetW;
+        canvas.height = targetH;
+        var ctx = canvas.getContext("2d");
+
+        // Seleksi codec MP4 yang didukung browser
+        var mimePilihan = "";
+        var daftarMime = [
+          "video/mp4;codecs=avc1.42E01E",
+          "video/mp4;codecs=avc1",
+          "video/mp4",
+          "video/webm;codecs=h264"
+        ];
+        for (var i = 0; i < daftarMime.length; i++) {
+          if (MediaRecorder.isTypeSupported(daftarMime[i])) {
+            mimePilihan = daftarMime[i];
+            break;
+          }
+        }
+
+        var stream = canvas.captureStream(30);
+        var mediaRecorder;
+        try {
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType: mimePilihan || undefined,
+            videoBitsPerSecond: 2500000 // 2.5 Mbps (~8-15 MB per 30 detik)
+          });
+        } catch (eRec) {
+          try {
+            mediaRecorder = new MediaRecorder(stream);
+          } catch (eRec2) {
+            URL.revokeObjectURL(video.src);
+            return resolve(fileAsli); // Fallback jika browser lawas
+          }
+        }
+
+        var chunks = [];
+        mediaRecorder.ondataavailable = function (e) {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = function () {
+          URL.revokeObjectURL(video.src);
+          var blob = new Blob(chunks, { type: "video/mp4" });
+          var compressedFile = new File(
+            [blob],
+            fileAsli.name.replace(/\.[^/.]+$/, "") + "_opt.mp4",
+            { type: "video/mp4" }
+          );
+          resolve(compressedFile);
+        };
+
+        // Putar cepat 3x lipat agar kompresi selesai dalam hitungan detik
+        video.playbackRate = 3.0;
+        mediaRecorder.start(100);
+
+        function renderLoop() {
+          if (video.paused || video.ended) return;
+          ctx.drawImage(video, 0, 0, targetW, targetH);
+
+          if (stEl && video.duration > 0) {
+            var persen = Math.min(99, Math.round((video.currentTime / video.duration) * 100));
+            stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚡ Mengoptimalkan (' + persen + '%)...</span>';
+          }
+          requestAnimationFrame(renderLoop);
+        }
+
+        video.onplay = function () {
+          renderLoop();
+        };
+
+        video.onended = function () {
+          if (mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+          }
+        };
+
+        video.onerror = function () {
+          URL.revokeObjectURL(video.src);
+          resolve(fileAsli);
+        };
+
+        video.play().catch(function () {
+          resolve(fileAsli);
+        });
+      };
+
+      video.onerror = function () {
+        resolve(fileAsli);
+      };
+    });
+  }
+
+  // ========================================================================
+  // 2. MP4 HEADER SPOOFER (Manipulasi Atom MVHD Durasi -> 9.5s)
   // ========================================================================
   async function palsukanDurasiMp4(fileAsli) {
     try {
@@ -55,7 +169,7 @@
   }
 
   // ========================================================================
-  // 2. SISTEM UPLOAD OTOMATIS (SUPABASE < 45MB | WORKER CLOUDFLARE > 45MB)
+  // 3. SISTEM UPLOAD KE SUPABASE STORAGE
   // ========================================================================
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
@@ -63,102 +177,64 @@
     if (txtEl) txtEl.innerText = file.name;
 
     var fileFinal = file;
+
     if (tipe === "video") {
+      // Tahap A: Kompresi jika video member > 45MB
+      if (fileFinal.size >= 45 * 1024 * 1024) {
+        if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚡ Mengoptimalkan (0%)...</span>';
+        fileFinal = await kompresVideoDiBrowser(fileFinal, stEl);
+      }
+
+      // Tahap B: Spoofing durasi atom MVHD ke 9.5 detik
       if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyesuaikan format video...</span>';
-      fileFinal = await palsukanDurasiMp4(file);
+      fileFinal = await palsukanDurasiMp4(fileFinal);
     }
 
     var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
     var namaFile = "kling_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7) + "." + ext;
 
-    // Jalur A: File ringan (< 45MB) diunggah ke Supabase Storage
-    if (fileFinal.size < 45 * 1024 * 1024 && window.supa && window.supa.storage) {
-      try {
-        if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + (fileFinal.size / (1024 * 1024)).toFixed(1) + ' MB)...</span>';
-        var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, fileFinal, {
-          cacheControl: "3600",
-          upsert: true,
-        });
-
-        if (!resUp.error) {
-          var resPub = window.supa.storage.from("bahan-render").getPublicUrl(namaFile);
-          var linkPublik = resPub?.data?.publicUrl;
-          if (linkPublik) {
-            simpanBahanKling(linkPublik, fileFinal, tipe, stEl);
-            return;
-          }
-        }
-      } catch (errSupa) {}
-    }
-
-    // Jalur B: File besar (> 45MB) dialihkan ke Worker Cloudflare
+    // Tahap C: Upload langsung ke Supabase Storage (Jalur Resmi & Bot-Friendly)
     try {
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah High-Res (' + (fileFinal.size / (1024 * 1024)).toFixed(1) + ' MB)...</span>';
-      
-      var fd = new FormData();
-      fd.append("file", fileFinal);
+      var ukuranMb = (fileFinal.size / (1024 * 1024)).toFixed(1);
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + ukuranMb + ' MB)...</span>';
 
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", "https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev", true);
+      if (!window.supa || !window.supa.storage) {
+        throw new Error("Koneksi Supabase belum siap.");
+      }
 
-      xhr.upload.onprogress = function (e) {
-        if (e.lengthComputable && stEl) {
-          var p = Math.round((e.loaded / e.total) * 100);
-          stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + p + "%)...</span>";
-        }
-      };
+      var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, fileFinal, {
+        cacheControl: "3600",
+        upsert: true,
+      });
 
-      xhr.onload = function () {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            var resJson = JSON.parse(xhr.responseText);
-            var fileUrl = null;
+      if (resUp.error) throw resUp.error;
 
-            if (resJson && resJson.data) {
-              if (typeof resJson.data === "string") {
-                fileUrl = resJson.data;
-              } else if (typeof resJson.data === "object") {
-                fileUrl = resJson.data.fileUrl || resJson.data.fileName || resJson.data.url;
-              }
-            }
+      var resPub = window.supa.storage.from("bahan-render").getPublicUrl(namaFile);
+      var linkPublik = resPub?.data?.publicUrl;
 
-            if (!fileUrl) throw new Error("Link gagal didapatkan.");
-            simpanBahanKling(fileUrl, fileFinal, tipe, stEl);
+      if (!linkPublik) throw new Error("Gagal mengambil URL publik Supabase.");
 
-          } catch (eParse) {
-            if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal URL</span>';
-            if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Respon server tidak valid.");
-          }
-        } else {
-          if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Server</span>';
-        }
-      };
+      if (tipe === "foto") {
+        window.urlBahanFotoKling = linkPublik;
+        window.urlBahanFoto = linkPublik;
+      } else {
+        window.urlBahanVideoKling = linkPublik;
+        window.urlBahanVideo = linkPublik;
+      }
 
-      xhr.onerror = function () {
-        if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Koneksi Putus</span>';
-      };
+      if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
+      if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan Kling siap (Supabase HTTPS)!", "sukses");
 
-      xhr.send(fd);
     } catch (errUpload) {
-      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal</span>';
+      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
+      if (typeof tampilkanNotifPusat === "function") {
+        tampilkanNotifPusat("Gagal unggah bahan: " + (errUpload.message || "Batas storage terlampaui"));
+      }
     }
-  }
-
-  function simpanBahanKling(url, file, tipe, stEl) {
-    if (tipe === "foto") {
-      window.urlBahanFotoKling = url;
-      window.urlBahanFoto = url;
-    } else {
-      window.urlBahanVideoKling = url;
-      window.urlBahanVideo = url;
-    }
-    var mb = (file.size / (1024 * 1024)).toFixed(1);
-    if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + mb + " MB)</span>";
-    if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan Kling siap!", "sukses");
   }
 
   // ========================================================================
-  // 3. GENERATE KLING (PIAPI GATEWAY)
+  // 4. GENERATE KLING (PIAPI GATEWAY)
   // ========================================================================
   async function eksekusiGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
@@ -254,7 +330,7 @@
   }
 
   // ========================================================================
-  // 4. PEMANTAU TUGAS KLING
+  // 5. PEMANTAU TUGAS KLING
   // ========================================================================
   function pantauStatusKling(tugas) {
     if (tugas.selesai) return;
@@ -346,7 +422,7 @@
   }
 
   // ========================================================================
-  // 5. EVENT LISTENER & HOOKS
+  // 6. EVENT LISTENER & HOOKS
   // ========================================================================
   function inisialisasiKlingEngine() {
     var provKlingEl = document.getElementById("c-prov-kling");

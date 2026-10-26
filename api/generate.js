@@ -92,6 +92,7 @@ export default async function handler(req, res) {
 
   // =========================================================
   // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - EXCLUSIVE OWNER)
+  // Fitur: Explicit Duration Parameter Override (Target 5s Billing)
   // =========================================================
   if (provider === 'kling') {
     let emailTerverifikasi = (userEmail || "").trim().toLowerCase();
@@ -120,6 +121,7 @@ export default async function handler(req, res) {
       const piapiPayload = {
         model: "kling",
         task_type: "motion_control",
+        duration: 5,
         input: {
           image_url: urlBahanFoto,
           version: "2.6",
@@ -127,6 +129,8 @@ export default async function handler(req, res) {
           motion_direction: "video",
           keep_original_sound: false,
           video_url: urlBahanVideo,
+          duration: 5,
+          duration_seconds: 5,
           prompt: prompt || "High quality cinematic motion capture, smooth movement, realistic studio lighting"
         }
       };

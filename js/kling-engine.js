@@ -1,136 +1,37 @@
 // ==========================================================================
-// KIIX MOTION — KLING 2.6 STANDALONE ENGINE MODULE
-// File: js/kling-engine.js
-// 100% Mandiri: Berdiri sendiri, tanpa ubah api-engine.js, murni ke Supabase
+// KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE
+// File: js/kling-engine.js (Revisi Stabil Tanpa Canvas Hang)
 // ==========================================================================
 
 (function () {
   window.urlBahanFotoKling = null;
   window.urlBahanVideoKling = null;
 
-  function setStatusTombol(aktif, teks) {
-    var btn = document.getElementById("btn-submit-generate");
-    if (btn) {
-      btn.disabled = !aktif;
-      if (teks) btn.innerText = teks;
-    }
-  }
-
-  // ========================================================================
-  // 1. KOMPRESOR MANDIRI BROWSER (<50MB SUPABASE LIMIT)
-  // ========================================================================
-  async function kompresVideoKling(file, onProgress) {
-    return new Promise(function (resolve) {
-      var video = document.createElement("video");
-      video.src = URL.createObjectURL(file);
-      video.muted = true;
-      video.playsInline = true;
-
-      video.onloadedmetadata = function () {
-        var durasi = video.duration || 10;
-        var targetLebar = Math.min(720, video.videoWidth || 720);
-        var targetTinggi = Math.round((video.videoHeight * targetLebar) / video.videoWidth);
-        targetTinggi = targetTinggi - (targetTinggi % 2);
-
-        var canvas = document.createElement("canvas");
-        canvas.width = targetLebar;
-        canvas.height = targetTinggi;
-        var ctx = canvas.getContext("2d");
-
-        var stream = canvas.captureStream(30);
-        var mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
-        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/mp4";
-        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
-
-        var recorder;
-        try {
-          recorder = new MediaRecorder(stream, {
-            mimeType: mimeType,
-            videoBitsPerSecond: 2500000
-          });
-        } catch (e) {
-          URL.revokeObjectURL(video.src);
-          return resolve(file);
-        }
-
-        var chunks = [];
-        recorder.ondataavailable = function (e) {
-          if (e.data && e.data.size > 0) chunks.push(e.data);
-        };
-
-        recorder.onstop = function () {
-          URL.revokeObjectURL(video.src);
-          var formatMime = mimeType.includes("mp4") ? "video/mp4" : "video/webm";
-          var blobHasil = new Blob(chunks, { type: formatMime });
-          var fileHasil = new File([blobHasil], file.name.replace(/\.[^/.]+$/, "") + "_720p.mp4", {
-            type: "video/mp4"
-          });
-          resolve(fileHasil);
-        };
-
-        recorder.start(100);
-
-        function renderFrame() {
-          if (video.paused || video.ended) return;
-          ctx.drawImage(video, 0, 0, targetLebar, targetTinggi);
-          if (typeof onProgress === "function" && durasi > 0) {
-            var persen = Math.min(99, Math.floor((video.currentTime / durasi) * 100));
-            onProgress(persen);
-          }
-          requestAnimationFrame(renderFrame);
-        }
-
-        video.onplay = renderFrame;
-        video.onended = function () {
-          setTimeout(function () {
-            if (recorder.state === "recording") recorder.stop();
-          }, 200);
-        };
-
-        video.play().catch(function () {
-          URL.revokeObjectURL(video.src);
-          resolve(file);
-        });
-      };
-
-      video.onerror = function () {
-        URL.revokeObjectURL(video.src);
-        resolve(file);
-      };
-    });
-  }
-
-  // ========================================================================
-  // 2. UPLOAD MANDIRI KE SUPABASE
-  // ========================================================================
-  async function prosesUnggahKeSupabase(file, tipe) {
+  async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
     var txtEl = document.getElementById(tipe === "foto" ? "txt-file-foto" : "txt-file-video");
     if (txtEl) txtEl.innerText = file.name;
 
-    var fileFinal = file;
+    var sizeMb = file.size / (1024 * 1024);
 
-    if (tipe === "video") {
-      var sizeMbAwal = file.size / (1024 * 1024);
-      if (sizeMbAwal > 45) {
-        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Menyesuaikan resolusi (<50MB)... 0%</span>';
-
-        fileFinal = await kompresVideoKling(file, function (persen) {
-          if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Menyesuaikan resolusi... ' + persen + '%</span>';
-        });
+    if (tipe === "video" && sizeMb > 50) {
+      if (typeof tampilkanNotifPusat === "function") {
+        tampilkanNotifPusat("Ukuran file > 50MB! Gunakan video di bawah 50MB.");
       }
+      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ File > 50MB</span>';
+      return;
     }
 
-    var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
+    var ext = file.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
     var namaFile = "kling_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7) + "." + ext;
 
     try {
-      var ukuranMb = (fileFinal.size / (1024 * 1024)).toFixed(1);
+      var ukuranMb = sizeMb.toFixed(1);
       if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + ukuranMb + ' MB)...</span>';
 
       if (!window.supa || !window.supa.storage) throw new Error("Koneksi Supabase belum siap.");
 
-      var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, fileFinal, {
+      var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, file, {
         cacheControl: "3600",
         upsert: true,
       });
@@ -152,20 +53,19 @@
       if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
       if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan siap diproses!", "sukses");
 
-      setStatusTombol(true, "GENERATE VIDEO");
+      var btn = document.getElementById("btn-submit-generate");
+      if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
+
     } catch (errUpload) {
       if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
       if (typeof tampilkanNotifPusat === "function") {
         tampilkanNotifPusat("Gagal: " + (errUpload.message || "Gagal upload"));
       }
-      setStatusTombol(true, "GENERATE VIDEO");
     }
   }
 
-  // ========================================================================
-  // 3. GENERATE KLING MANDIRI KE /api/generate
-  // ========================================================================
-  async function jalankanGenerateKling() {
+  async function eksekusiGenerateKling() {
+    var btn = document.getElementById("btn-submit-generate");
     var bahanFoto = window.urlBahanFotoKling || window.urlBahanFoto;
     var bahanVideo = window.urlBahanVideoKling || window.urlBahanVideo;
 
@@ -173,7 +73,6 @@
       if (typeof tampilkanNotifPusat === "function") {
         tampilkanNotifPusat("Foto karakter dan Video gerakan wajib selesai diunggah!");
       }
-      setStatusTombol(true, "GENERATE VIDEO");
       return;
     }
 
@@ -182,22 +81,20 @@
 
     if (window.supa) {
       try {
-        var sess = await window.supa.auth.getSession();
-        var user = sess?.data?.session?.user;
-        if (!user && typeof window.supa.auth.getUser === "function") {
-          var uRes = await window.supa.auth.getUser();
-          user = uRes?.data?.user;
-        }
-        if (user) {
-          realUserId = user.id;
-          realEmail = user.email;
+        var { data: sessData } = await window.supa.auth.getSession();
+        if (sessData?.session?.user) {
+          realUserId = sessData.session.user.id;
+          realEmail = sessData.session.user.email;
         }
       } catch (e) {}
     }
 
     if (!realEmail && typeof currentUserEmail !== "undefined") realEmail = currentUserEmail;
 
-    setStatusTombol(false, "⚡ MEMPROSES KLING...");
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = "⚡ MEMPROSES KLING...";
+    }
 
     try {
       var inPrompt = document.getElementById("in-prompt-gerak");
@@ -258,13 +155,13 @@
         tampilkanNotifPusat("Kling Error: " + (err.message || "Koneksi terputus"));
       }
     } finally {
-      setStatusTombol(true, "GENERATE VIDEO");
+      if (btn) {
+        btn.disabled = false;
+        btn.innerText = "GENERATE VIDEO";
+      }
     }
   }
 
-  // ========================================================================
-  // 4. PEMANTAU STATUS KLING
-  // ========================================================================
   function pantauStatusKling(tugas) {
     if (tugas.selesai) return;
     if (tugas.intervalObj) clearInterval(tugas.intervalObj);
@@ -342,13 +239,11 @@
     tugas.intervalObj = setInterval(cekStatus, 6000);
   }
 
-  // ========================================================================
-  // 5. EVENT CAPTURING (MENCEGAT EVENT SEBELUM NYAMPE KE api-engine.js)
-  // ========================================================================
-  function inisialisasiKlingMandiri() {
+  function inisialisasiKlingEngine() {
     var provKlingEl = document.getElementById("c-prov-kling");
     if (provKlingEl) {
       provKlingEl.addEventListener("click", function (e) {
+        e.stopPropagation();
         window.engineMode = "kling";
 
         var cards = [
@@ -382,7 +277,8 @@
         if (tTotal) tTotal.innerText = "Testing Trial";
         if (dropWrap) dropWrap.style.display = "none";
 
-        setStatusTombol(true, "GENERATE VIDEO");
+        var btn = document.getElementById("btn-submit-generate");
+        if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
       }, true);
     }
 
@@ -392,44 +288,35 @@
     if (inFoto) {
       inFoto.addEventListener("change", function (e) {
         if (window.engineMode === "kling") {
-          e.stopImmediatePropagation(); // MATIKAN EVENT AGAR api-engine.js GAK BISA BACA
-          if (this.files && this.files[0]) prosesUnggahKeSupabase(this.files[0], "foto");
+          e.stopImmediatePropagation();
+          if (this.files && this.files[0]) unggahBahanKling(this.files[0], "foto");
         }
-      }, true); // 'true' = tangkap di fase capture pertama kali
+      }, true);
     }
 
     if (inVideo) {
       inVideo.addEventListener("change", function (e) {
         if (window.engineMode === "kling") {
-          e.stopImmediatePropagation(); // MATIKAN EVENT AGAR api-engine.js GAK BISA BACA
-          if (this.files && this.files[0]) prosesUnggahKeSupabase(this.files[0], "video");
+          e.stopImmediatePropagation();
+          if (this.files && this.files[0]) unggahBahanKling(this.files[0], "video");
         }
-      }, true); // 'true' = tangkap di fase capture pertama kali
+      }, true);
     }
 
-    var btn = document.getElementById("btn-submit-generate");
-    if (btn) {
-      btn.addEventListener("click", function (e) {
+    var btnSubmit = document.getElementById("btn-submit-generate");
+    if (btnSubmit) {
+      btnSubmit.addEventListener("click", function (e) {
         if (window.engineMode === "kling") {
-          e.preventDefault();
-          e.stopImmediatePropagation(); // MATIKAN EVENT AGAR api-engine.js GAK BISA BACA
-          jalankanGenerateKling();
+          e.stopImmediatePropagation();
+          eksekusiGenerateKling();
         }
-      }, true); // 'true' = tangkap di fase capture pertama kali
-    }
-
-    if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
-      window.riwayatGenerateList.forEach(function (t) {
-        if ((t.prov === "kling" || String(t.id).includes("-")) && !t.selesai) {
-          pantauStatusKling(t);
-        }
-      });
+      }, true);
     }
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", inisialisasiKlingMandiri);
+    document.addEventListener("DOMContentLoaded", inisialisasiKlingEngine);
   } else {
-    inisialisasiKlingMandiri();
+    inisialisasiKlingEngine();
   }
 })();

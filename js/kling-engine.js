@@ -1,7 +1,7 @@
 // ==========================================================================
 // KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE
 // File: js/kling-engine.js
-// Fitur: Pure ISO-BMFF Binary Frame Capper (Max 150 Frames / 5.0s Anti-Crash)
+// Fitur: Clean MP4 Streamer + Auto 720p Compressor (<50MB) + API Payload Sync
 // ==========================================================================
 
 (function () {
@@ -9,144 +9,93 @@
   window.urlBahanVideoKling = null;
 
   // ========================================================================
-  // 1. PURE BINARY SAMPLE & TIMELINE CAPPER (TARGET 5.0s / MAX 150 FRAMES)
-  // Memodifikasi atom mvhd, tkhd, mdhd, elst, stts, dan stsz langsung pada biner
-  // tanpa menggunakan MediaRecorder agar struktur container MP4 tidak rusak.
+  // 1. KOMPRESOR RESOLUSI BROWSER (MENGECILKAN UKURAN KE < 50MB)
+  // Durasi tetap utuh, resolusi disesuaikan ke 720p agar lolos limit Supabase
+  // tanpa merusak integritas atom MP4.
   // ========================================================================
-  async function palsukanDurasiMp4(fileAsli, targetDetik) {
-    if (!targetDetik) targetDetik = 5.0;
+  async function kompresUkuranDiBrowser(file, onProgress) {
+    return new Promise(function (resolve) {
+      var video = document.createElement("video");
+      video.src = URL.createObjectURL(file);
+      video.muted = true;
+      video.playsInline = true;
 
-    try {
-      var buffer = await fileAsli.arrayBuffer();
-      var view = new DataView(buffer);
-      var totalBytes = buffer.byteLength;
-      var movieTimescale = 1000;
-      var TARGET_MAX_FRAMES = 150; // Kunci batas aman VRAM inferensi Kling
+      video.onloadedmetadata = function () {
+        var durasi = video.duration || 10;
+        var targetLebar = Math.min(720, video.videoWidth || 720);
+        var targetTinggi = Math.round((video.videoHeight * targetLebar) / video.videoWidth);
+        targetTinggi = targetTinggi - (targetTinggi % 2);
 
-      function getBoxType(offset) {
-        var str = "";
-        for (var i = 0; i < 4; i++) {
-          str += String.fromCharCode(view.getUint8(offset + i));
+        var canvas = document.createElement("canvas");
+        canvas.width = targetLebar;
+        canvas.height = targetTinggi;
+        var ctx = canvas.getContext("2d");
+
+        var stream = canvas.captureStream(30);
+        var mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/mp4";
+        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
+
+        var recorder;
+        try {
+          recorder = new MediaRecorder(stream, {
+            mimeType: mimeType,
+            videoBitsPerSecond: 2500000 // 2.5 Mbps (~10MB per 30 detik)
+          });
+        } catch (e) {
+          URL.revokeObjectURL(video.src);
+          return resolve(file);
         }
-        return str;
-      }
 
-      function prosesBox(offset, maxOffset) {
-        var pos = offset;
+        var chunks = [];
+        recorder.ondataavailable = function (e) {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
 
-        while (pos + 8 <= maxOffset) {
-          var boxSize = view.getUint32(pos);
-          var boxType = getBoxType(pos + 4);
-          var headerSize = 8;
+        recorder.onstop = function () {
+          URL.revokeObjectURL(video.src);
+          var formatMime = mimeType.includes("mp4") ? "video/mp4" : "video/webm";
+          var blobHasil = new Blob(chunks, { type: formatMime });
+          var fileHasil = new File([blobHasil], file.name.replace(/\.[^/.]+$/, "") + "_720p.mp4", {
+            type: "video/mp4"
+          });
+          resolve(fileHasil);
+        };
 
-          if (boxSize === 1) {
-            boxSize = Number(view.getBigUint64(pos + 8));
-            headerSize = 16;
-          } else if (boxSize === 0) {
-            boxSize = maxOffset - pos;
+        recorder.start(100);
+
+        function renderFrame() {
+          if (video.paused || video.ended) return;
+          ctx.drawImage(video, 0, 0, targetLebar, targetTinggi);
+          if (typeof onProgress === "function" && durasi > 0) {
+            var persen = Math.min(99, Math.floor((video.currentTime / durasi) * 100));
+            onProgress(persen);
           }
-
-          if (boxSize < headerSize || pos + boxSize > maxOffset) break;
-
-          var payloadPos = pos + headerSize;
-
-          if (["moov", "trak", "mdia", "minf", "stbl", "edts"].includes(boxType)) {
-            prosesBox(payloadPos, pos + boxSize);
-          } else if (boxType === "mvhd") {
-            var verMv = view.getUint8(payloadPos);
-            var tsOff = (verMv === 1) ? (payloadPos + 20) : (payloadPos + 12);
-            var durOff = (verMv === 1) ? (payloadPos + 28) : (payloadPos + 16);
-
-            movieTimescale = view.getUint32(tsOff) || 1000;
-            var targetDurMv = Math.floor(movieTimescale * targetDetik);
-
-            if (verMv === 1) {
-              view.setBigUint64(durOff, BigInt(targetDurMv));
-            } else {
-              view.setUint32(durOff, targetDurMv);
-            }
-          } else if (boxType === "tkhd") {
-            var verTk = view.getUint8(payloadPos);
-            var durOffTk = (verTk === 1) ? (payloadPos + 28) : (payloadPos + 20);
-            var targetDurTk = Math.floor(movieTimescale * targetDetik);
-
-            if (verTk === 1) {
-              view.setBigUint64(durOffTk, BigInt(targetDurTk));
-            } else {
-              view.setUint32(durOffTk, targetDurTk);
-            }
-          } else if (boxType === "mdhd") {
-            var verMd = view.getUint8(payloadPos);
-            var tsOffMd = (verMd === 1) ? (payloadPos + 20) : (payloadPos + 12);
-            var durOffMd = (verMd === 1) ? (payloadPos + 28) : (payloadPos + 16);
-
-            var trackTimescale = view.getUint32(tsOffMd) || movieTimescale;
-            var targetDurMd = Math.floor(trackTimescale * targetDetik);
-
-            if (verMd === 1) {
-              view.setBigUint64(durOffMd, BigInt(targetDurMd));
-            } else {
-              view.setUint32(durOffMd, targetDurMd);
-            }
-          } else if (boxType === "stts") {
-            // Distribusikan total frame ke durasi 5 detik dengan batas aman 150 frame
-            var entryCount = view.getUint32(payloadPos + 4);
-            var tablePos = payloadPos + 8;
-
-            if (entryCount > 0 && entryCount < 20000 && tablePos + (entryCount * 8) <= pos + boxSize) {
-              var totalFrames = 0;
-              for (var e = 0; e < entryCount; e++) {
-                totalFrames += view.getUint32(tablePos + (e * 8));
-              }
-
-              var finalFrames = Math.min(totalFrames, TARGET_MAX_FRAMES);
-              var deltaBaru = Math.floor((movieTimescale * targetDetik) / Math.max(1, finalFrames));
-
-              view.setUint32(payloadPos + 4, 1);
-              view.setUint32(tablePos, finalFrames);
-              view.setUint32(tablePos + 4, deltaBaru);
-            }
-          } else if (boxType === "stsz") {
-            // Batasi sample count di tabel stsz agar decoder berhenti di 150 frame
-            var sampleSize = view.getUint32(payloadPos + 4);
-            var sampleCount = view.getUint32(payloadPos + 8);
-
-            if (sampleSize === 0 && sampleCount > TARGET_MAX_FRAMES) {
-              view.setUint32(payloadPos + 8, TARGET_MAX_FRAMES);
-            }
-          } else if (boxType === "elst") {
-            // Edit list boundary lock
-            var verEl = view.getUint8(payloadPos);
-            var elCount = view.getUint32(payloadPos + 4);
-            var entryElPos = payloadPos + 8;
-            var targetDurEl = Math.floor(movieTimescale * targetDetik);
-
-            for (var e3 = 0; e3 < elCount; e3++) {
-              if (verEl === 1) {
-                view.setBigUint64(entryElPos + (e3 * 20), BigInt(targetDurEl));
-              } else {
-                view.setUint32(entryElPos + (e3 * 12), targetDurEl);
-              }
-            }
-          }
-
-          pos += boxSize;
+          requestAnimationFrame(renderFrame);
         }
-      }
 
-      prosesBox(0, totalBytes);
+        video.onplay = renderFrame;
+        video.onended = function () {
+          setTimeout(function () {
+            if (recorder.state === "recording") recorder.stop();
+          }, 200);
+        };
 
-      return new File([buffer], fileAsli.name.replace(/\.[^/.]+$/, "") + "_kling5s.mp4", {
-        type: "video/mp4",
-      });
-    } catch (errSpoof) {
-      console.warn("Pemeriksaan biner gagal, fallback ke file asli:", errSpoof);
-      return fileAsli;
-    }
+        video.play().catch(function () {
+          URL.revokeObjectURL(video.src);
+          resolve(file);
+        });
+      };
+
+      video.onerror = function () {
+        URL.revokeObjectURL(video.src);
+        resolve(file);
+      };
+    });
   }
 
   // ========================================================================
-  // 2. SISTEM UPLOAD BAHAN
+  // 2. SISTEM UPLOAD BAHAN KLING (BERSIH DARI HACK BINER)
   // ========================================================================
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
@@ -156,19 +105,16 @@
     var fileFinal = file;
 
     if (tipe === "video") {
-      var sizeMb = file.size / (1024 * 1024);
+      var sizeMbAwal = file.size / (1024 * 1024);
 
-      if (sizeMb > 50) {
-        if (typeof tampilkanNotifPusat === "function") {
-          tampilkanNotifPusat("Ukuran video melebihi 50MB. Pilih video dengan ukuran lebih kecil.");
-        }
-        if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ File > 50MB</span>';
-        return;
+      // Jika file mentah > 45MB, otomatis kompres ke 720p di browser
+      if (sizeMbAwal > 45) {
+        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Menyesuaikan resolusi (<50MB)... 0%</span>';
+
+        fileFinal = await kompresUkuranDiBrowser(file, function (persen) {
+          if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Menyesuaikan resolusi... ' + persen + '%</span>';
+        });
       }
-
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Mengunci biner ke 5.0s (Anti-Crash)...</span>';
-      // Langsung proses biner murni tanpa lewat MediaRecorder
-      fileFinal = await palsukanDurasiMp4(file, 5.0);
     }
 
     var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
@@ -211,7 +157,7 @@
   }
 
   // ========================================================================
-  // 3. GENERATE KLING (INTEGRASI OWNER EMAIL KE BACKEND)
+  // 3. GENERATE KLING (KIRIM EMAIL OWNER & SYNC PARAMETER API)
   // ========================================================================
   async function eksekusiGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
@@ -244,6 +190,9 @@
     }
 
     try {
+      var inPrompt = document.getElementById("in-prompt-gerak");
+      var promptTeks = inPrompt ? inPrompt.value.trim() : "";
+
       var res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -253,7 +202,7 @@
           provider: "kling",
           userId: realUserId,
           userEmail: realEmail,
-          prompt: "High quality cinematic motion capture, smooth movement, realistic studio lighting",
+          prompt: promptTeks || "High quality cinematic motion capture, smooth movement, realistic studio lighting",
         }),
       });
 
@@ -307,7 +256,7 @@
   }
 
   // ========================================================================
-  // 4. PEMANTAU STATUS
+  // 4. PEMANTAU STATUS KLING
   // ========================================================================
   function pantauStatusKling(tugas) {
     if (tugas.selesai) return;

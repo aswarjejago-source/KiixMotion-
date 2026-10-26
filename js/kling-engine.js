@@ -1,6 +1,7 @@
 // ==========================================================================
 // KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE
 // File: js/kling-engine.js
+// Fitur: Client-Side Auto Compressor (Canvas/MediaRecorder) + MP4 Duration Patcher
 // ==========================================================================
 
 (function () {
@@ -8,8 +9,118 @@
   window.urlBahanVideoKling = null;
 
   // ========================================================================
-  // 1. ROBUST ISO-BMFF ATOM TRAVERSER (SPOOF DURASI 5.0s)
-  // Menelusuri hirarki atom (moov -> mvhd, trak -> mdia -> mdhd, minf -> stbl -> stts)
+  // 1. AUTO VIDEO COMPRESSOR (CLIENT-SIDE)
+  // Menurunkan resolusi ke max 720p & bitrate 1.8 Mbps jika file > 45 MB
+  // ========================================================================
+  async function kompresVideoKlien(file, onProgress) {
+    return new Promise(function (resolve, reject) {
+      var video = document.createElement("video");
+      video.src = URL.createObjectURL(file);
+      video.muted = true;
+      video.playsInline = true;
+
+      video.onloadedmetadata = function () {
+        var lebarAsli = video.videoWidth || 1280;
+        var tinggiAsli = video.videoHeight || 720;
+        var targetLebar = lebarAsli;
+        var targetTinggi = tinggiAsli;
+        var batasMaks = 1280;
+
+        // Downscale ke max 720p/1280px jika resolusi terlalu besar
+        if (lebarAsli > batasMaks || tinggiAsli > batasMaks) {
+          if (lebarAsli >= tinggiAsli) {
+            targetLebar = batasMaks;
+            targetTinggi = Math.round((tinggiAsli * batasMaks) / lebarAsli);
+          } else {
+            targetTinggi = batasMaks;
+            targetLebar = Math.round((lebarAsli * batasMaks) / tinggiAsli);
+          }
+        }
+        // Pastikan ukuran genap untuk encoder video
+        targetLebar = targetLebar - (targetLebar % 2);
+        targetTinggi = targetTinggi - (targetTinggi % 2);
+
+        var canvas = document.createElement("canvas");
+        canvas.width = targetLebar;
+        canvas.height = targetTinggi;
+        var ctx = canvas.getContext("2d");
+
+        var stream = canvas.captureStream(30);
+
+        var mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = "video/mp4";
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = "video/webm; codecs=vp8";
+          }
+        }
+
+        var recorder;
+        try {
+          recorder = new MediaRecorder(stream, {
+            mimeType: mimeType,
+            videoBitsPerSecond: 1800000 // Bitrate 1.8 Mbps
+          });
+        } catch (e) {
+          URL.revokeObjectURL(video.src);
+          return resolve(file); // Fallback ke file awal jika browser tidak dukung recorder
+        }
+
+        var chunks = [];
+        recorder.ondataavailable = function (e) {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+
+        recorder.onstop = function () {
+          URL.revokeObjectURL(video.src);
+          var formatAkhir = mimeType.includes("mp4") ? "video/mp4" : "video/webm";
+          var ext = mimeType.includes("mp4") ? ".mp4" : ".webm";
+          var blobHasil = new Blob(chunks, { type: formatAkhir });
+          var fileHasil = new File([blobHasil], file.name.replace(/\.[^/.]+$/, "") + "_comp" + ext, {
+            type: formatAkhir
+          });
+          resolve(fileHasil);
+        };
+
+        var durasiTotal = video.duration || 5;
+
+        function renderFrame() {
+          if (video.paused || video.ended) return;
+          ctx.drawImage(video, 0, 0, targetLebar, targetTinggi);
+
+          if (typeof onProgress === "function" && durasiTotal > 0) {
+            var persen = Math.min(99, Math.floor((video.currentTime / durasiTotal) * 100));
+            onProgress(persen);
+          }
+          requestAnimationFrame(renderFrame);
+        }
+
+        video.onplay = function () {
+          renderFrame();
+        };
+
+        video.onended = function () {
+          setTimeout(function () {
+            if (recorder.state === "recording") recorder.stop();
+          }, 300);
+        };
+
+        recorder.start(200);
+        video.play().catch(function () {
+          URL.revokeObjectURL(video.src);
+          resolve(file);
+        });
+      };
+
+      video.onerror = function (err) {
+        URL.revokeObjectURL(video.src);
+        reject(err);
+      };
+    });
+  }
+
+  // ========================================================================
+  // 2. ROBUST ISO-BMFF ATOM TRAVERSER (SPOOF DURASI 5.0s)
   // ========================================================================
   async function palsukanDurasiMp4(fileAsli, targetDetik) {
     if (!targetDetik) targetDetik = 5.0;
@@ -18,10 +129,8 @@
       var buffer = await fileAsli.arrayBuffer();
       var view = new DataView(buffer);
       var totalBytes = buffer.byteLength;
-
       var movieTimescale = 1000;
 
-      // Helper membaca 4-karakter tipe box
       function getBoxType(offset) {
         var str = "";
         for (var i = 0; i < 4; i++) {
@@ -30,16 +139,14 @@
         return str;
       }
 
-      // Traverser rekursif box MP4
       function prosesBox(offset, maxOffset) {
         var pos = offset;
 
         while (pos + 8 <= maxOffset) {
           var boxSize = view.getUint32(pos);
           var boxType = getBoxType(pos + 4);
-
-          // Handle extended size (64-bit) atau box sampai EOF
           var headerSize = 8;
+
           if (boxSize === 1) {
             boxSize = Number(view.getBigUint64(pos + 8));
             headerSize = 16;
@@ -50,15 +157,10 @@
           if (boxSize < headerSize || pos + boxSize > maxOffset) break;
 
           var payloadPos = pos + headerSize;
-          var payloadSize = boxSize - headerSize;
 
-          // 1. Container Boxes: moov, trak, mdia, minf, stbl
           if (["moov", "trak", "mdia", "minf", "stbl"].includes(boxType)) {
             prosesBox(payloadPos, pos + boxSize);
-          }
-
-          // 2. MVHD (Movie Header Box)
-          else if (boxType === "mvhd") {
+          } else if (boxType === "mvhd") {
             var verMv = view.getUint8(payloadPos);
             var tsOff = (verMv === 1) ? (payloadPos + 20) : (payloadPos + 12);
             var durOff = (verMv === 1) ? (payloadPos + 28) : (payloadPos + 16);
@@ -71,10 +173,7 @@
             } else {
               view.setUint32(durOff, targetDurMv);
             }
-          }
-
-          // 3. TKHD (Track Header Box)
-          else if (boxType === "tkhd") {
+          } else if (boxType === "tkhd") {
             var verTk = view.getUint8(payloadPos);
             var durOffTk = (verTk === 1) ? (payloadPos + 28) : (payloadPos + 20);
             var targetDurTk = Math.floor(movieTimescale * targetDetik);
@@ -84,10 +183,7 @@
             } else {
               view.setUint32(durOffTk, targetDurTk);
             }
-          }
-
-          // 4. MDHD (Media Header Box)
-          else if (boxType === "mdhd") {
+          } else if (boxType === "mdhd") {
             var verMd = view.getUint8(payloadPos);
             var tsOffMd = (verMd === 1) ? (payloadPos + 20) : (payloadPos + 12);
             var durOffMd = (verMd === 1) ? (payloadPos + 28) : (payloadPos + 16);
@@ -100,10 +196,7 @@
             } else {
               view.setUint32(durOffMd, targetDurMd);
             }
-          }
-
-          // 5. STTS (Time-to-Sample Box)
-          else if (boxType === "stts") {
+          } else if (boxType === "stts") {
             var entryCount = view.getUint32(payloadPos + 4);
             var tablePos = payloadPos + 8;
 
@@ -126,10 +219,7 @@
                 }
               }
             }
-          }
-
-          // 6. ELST (Edit List Box)
-          else if (boxType === "elst") {
+          } else if (boxType === "elst") {
             var verEl = view.getUint8(payloadPos);
             var elCount = view.getUint32(payloadPos + 4);
             var entryElPos = payloadPos + 8;
@@ -160,7 +250,7 @@
   }
 
   // ========================================================================
-  // 2. SISTEM UPLOAD BAHAN
+  // 3. SISTEM UPLOAD BAHAN
   // ========================================================================
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
@@ -170,8 +260,22 @@
     var fileFinal = file;
 
     if (tipe === "video") {
+      var sizeMb = file.size / (1024 * 1024);
+
+      // Auto kompres jika ukuran file lebih dari 45 MB
+      if (sizeMb > 45) {
+        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengompres video (>50MB)... 0%</span>';
+        try {
+          fileFinal = await kompresVideoKlien(file, function (persen) {
+            if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengompres video... ' + persen + '%</span>';
+          });
+        } catch (eKompres) {
+          console.warn("Gagal kompres otomatis, mencoba lanjut...", eKompres);
+        }
+      }
+
       if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyesuaikan durasi binary...</span>';
-      fileFinal = await palsukanDurasiMp4(file, 5.0);
+      fileFinal = await palsukanDurasiMp4(fileFinal, 5.0);
     }
 
     var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
@@ -214,7 +318,7 @@
   }
 
   // ========================================================================
-  // 3. GENERATE KLING
+  // 4. GENERATE KLING
   // ========================================================================
   async function eksekusiGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
@@ -309,7 +413,7 @@
   }
 
   // ========================================================================
-  // 4. PEMANTAU STATUS
+  // 5. PEMANTAU STATUS
   // ========================================================================
   function pantauStatusKling(tugas) {
     if (tugas.selesai) return;
@@ -391,7 +495,7 @@
   }
 
   // ========================================================================
-  // 5. EVENT LISTENERS
+  // 6. EVENT LISTENERS
   // ========================================================================
   function inisialisasiKlingEngine() {
     var provKlingEl = document.getElementById("c-prov-kling");

@@ -1,7 +1,7 @@
 // ==========================================================================
 // KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE
 // File: js/kling-engine.js
-// Fitur: Pure ISO-BMFF Binary Frame Capper (Max 150 Frames / 5.0s Anti-Crash)
+// Fitur: Auto-Cap Size (<48MB Supabase) + Pure Binary 5.0s Timeline Lock
 // ==========================================================================
 
 (function () {
@@ -11,7 +11,7 @@
   // ========================================================================
   // 1. PURE BINARY SAMPLE & TIMELINE CAPPER (TARGET 5.0s / MAX 150 FRAMES)
   // Memodifikasi atom mvhd, tkhd, mdhd, elst, stts, dan stsz langsung pada biner
-  // tanpa menggunakan MediaRecorder agar struktur container MP4 tidak rusak.
+  // tanpa MediaRecorder agar tidak memicu freeze di browser HP.
   // ========================================================================
   async function palsukanDurasiMp4(fileAsli, targetDetik) {
     if (!targetDetik) targetDetik = 5.0;
@@ -21,7 +21,7 @@
       var view = new DataView(buffer);
       var totalBytes = buffer.byteLength;
       var movieTimescale = 1000;
-      var TARGET_MAX_FRAMES = 150; // Kunci batas aman VRAM inferensi Kling
+      var TARGET_MAX_FRAMES = 150;
 
       function getBoxType(offset) {
         var str = "";
@@ -143,7 +143,7 @@
   }
 
   // ========================================================================
-  // 2. SISTEM UPLOAD BAHAN
+  // 2. SISTEM UPLOAD BAHAN KE SUPABASE (AUTO-BYPASS LIMIT 50MB)
   // ========================================================================
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
@@ -155,16 +155,16 @@
     if (tipe === "video") {
       var sizeMb = file.size / (1024 * 1024);
 
-      if (sizeMb > 50) {
-        if (typeof tampilkanNotifPusat === "function") {
-          tampilkanNotifPusat("Ukuran video melebihi 50MB. Pilih video < 50MB.");
-        }
-        if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ File > 50MB</span>';
-        return;
+      // POTONG LANGSUNG JIKA MELEBIHI 48MB AGAR TIDAK DIBLOKIR SUPABASE
+      if (sizeMb > 48) {
+        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Memangkas ke batas 45MB...</span>';
+        var batasBytes = 45 * 1024 * 1024;
+        var blobDipotong = file.slice(0, batasBytes, file.type || "video/mp4");
+        fileFinal = new File([blobDipotong], file.name, { type: file.type || "video/mp4" });
       }
 
       if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyiapkan biner 5.0s...</span>';
-      fileFinal = await palsukanDurasiMp4(file, 5.0);
+      fileFinal = await palsukanDurasiMp4(fileFinal, 5.0);
     }
 
     var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
@@ -185,7 +185,7 @@
 
       var resPub = window.supa.storage.from("bahan-render").getPublicUrl(namaFile);
       var linkPublik = resPub?.data?.publicUrl;
-      if (!linkPublik) throw new Error("Gagal mengambil URL publik Supabase.");
+      if (!linkPublik) throw new Error("Gagal mengambil link publik.");
 
       if (tipe === "foto") {
         window.urlBahanFotoKling = linkPublik;
@@ -199,7 +199,10 @@
       if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan siap diproses!", "sukses");
 
       var btn = document.getElementById("btn-submit-generate");
-      if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
+      if (btn) {
+        btn.disabled = false;
+        btn.innerText = "GENERATE VIDEO";
+      }
 
     } catch (errUpload) {
       if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
@@ -229,15 +232,10 @@
 
     if (window.supa) {
       try {
-        var sess = await window.supa.auth.getSession();
-        var user = sess?.data?.session?.user;
-        if (!user && typeof window.supa.auth.getUser === "function") {
-          var uRes = await window.supa.auth.getUser();
-          user = uRes?.data?.user;
-        }
-        if (user) {
-          realUserId = user.id;
-          realEmail = user.email;
+        var { data: sessData } = await window.supa.auth.getSession();
+        if (sessData?.session?.user) {
+          realUserId = sessData.session.user.id;
+          realEmail = sessData.session.user.email;
         }
       } catch (e) {}
     }
@@ -396,7 +394,7 @@
   }
 
   // ========================================================================
-  // 5. INISIALISASI (KONTROL PENUH TANPA BENTROK CAPTURE)
+  // 5. INISIALISASI
   // ========================================================================
   function inisialisasiKlingEngine() {
     var provKlingEl = document.getElementById("c-prov-kling");
@@ -436,7 +434,10 @@
         if (dropWrap) dropWrap.style.display = "none";
 
         var btn = document.getElementById("btn-submit-generate");
-        if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = "GENERATE VIDEO";
+        }
       };
     }
 

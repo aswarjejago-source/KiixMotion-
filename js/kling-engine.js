@@ -1,993 +1,216 @@
-// ==========================================
-// PILAR 3: ENGINE LOGIC (RUNNINGHUB & KLING INTEGRATED)
-// File: js/api-engine.js
-// ==========================================
+// ==========================================================================
+// KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE (ISOLATED ENGINE)
+// File: js/kling-engine.js
+// ==========================================================================
 
-window.riwayatGenerateList = window.riwayatGenerateList || [];
-var riwayatGenerateList = window.riwayatGenerateList;
+(function () {
+  // Simpan referensi bahan khusus engine Kling
+  window.urlBahanFotoKling = null;
+  window.urlBahanVideoKling = null;
 
-var engineMode = 'kiix'; 
-var urlBahanFoto = null;
-var urlBahanVideo = null;
-var listKunciPro = [];
-
-var ID_HAPUS_PERMANEN = ["2113884739211014561"];
-
-function getBlacklistTugas() {
-  try {
-    var list = JSON.parse(localStorage.getItem('km_task_terhapus') || '[]');
-    ID_HAPUS_PERMANEN.forEach(function(id) {
-      if (list.indexOf(id) === -1) list.push(id);
-    });
-    return list;
-  } catch (e) {
-    return ID_HAPUS_PERMANEN;
-  }
-}
-
-function tambahKeBlacklist(taskId) {
-  if (!taskId) return;
-  try {
-    var list = getBlacklistTugas();
-    var sId = String(taskId).trim();
-    if (list.indexOf(sId) === -1) {
-      list.push(sId);
-      localStorage.setItem('km_task_terhapus', JSON.stringify(list));
-    }
-  } catch (e) {}
-}
-
-function tampilkanNotifPusat(pesan) {
-  var notifLama = document.getElementById('km-notif-pusat');
-  if (notifLama) notifLama.remove();
-
-  var notifEl = document.createElement('div');
-  notifEl.id = 'km-notif-pusat';
-  notifEl.style.cssText = 'position:fixed; top:24px; left:50%; transform:translateX(-50%); z-index:9999999; background:#ef4444; color:#ffffff; padding:12px 24px; border-radius:16px; font-weight:800; font-size:14px; box-shadow:0 10px 30px rgba(239,68,68,0.45); display:flex; align-items:center; gap:10px; border:2px solid #ffffff; transition:all 0.3s ease; text-align:center; max-width:90vw; pointer-events:none;';
-  notifEl.innerHTML = '<span style="font-size:18px;">⚠️</span> <span>' + pesan + '</span>';
-  
-  document.body.appendChild(notifEl);
-
-  setTimeout(function() {
-    if (notifEl) {
-      notifEl.style.opacity = '0';
-      notifEl.style.transform = 'translateX(-50%) translateY(-10px)';
-      setTimeout(function() { notifEl.remove(); }, 350);
-    }
-  }, 2800);
-}
-
-function alihkanKeMenuLangganan() {
-  if (typeof gantiLayarNav === 'function') {
-    try { gantiLayarNav('vip'); } catch (e) {}
-    try { gantiLayarNav('langganan'); } catch (e) {}
-    try { gantiLayarNav('kredit'); } catch (e) {}
-  }
-
-  var semuaEl = document.querySelectorAll('button, a, div, span, li');
-  var target = null;
-
-  for (var i = 0; i < semuaEl.length; i++) {
-    var txt = (semuaEl[i].textContent || semuaEl[i].innerText || "").trim().toLowerCase();
-    if (txt === 'langganan vip' || txt.includes('langganan vip')) {
-      target = semuaEl[i];
-      break;
-    }
-  }
-
-  if (!target) {
-    for (var j = 0; j < semuaEl.length; j++) {
-      var t = (semuaEl[j].textContent || semuaEl[j].innerText || "").trim().toLowerCase();
-      if (t === 'beli kredit' || t.includes('beli kredit')) {
-        target = semuaEl[j];
-        break;
-      }
-    }
-  }
-
-  if (target) {
-    var evt = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-    target.dispatchEvent(evt);
-    try { target.click(); } catch (e) {}
-  }
-}
-
-function simpanStorage() {
-  try {
-    localStorage.setItem('km_list_kunci_pro', JSON.stringify(listKunciPro));
-    if (window.riwayatGenerateList && Array.isArray(window.riwayatGenerateList)) {
-      var dataStr = JSON.stringify(window.riwayatGenerateList);
-      localStorage.setItem('km_riwayat_generate', dataStr);
-    }
-    var kunciZombie = ['riwayat_generate', 'km_riwayat', 'km_history', 'riwayat_video', 'km_riwayat_backup', 'riwayatGenerateList'];
-    kunciZombie.forEach(function(k) { localStorage.removeItem(k); });
-  } catch (e) {}
-}
-
-function muatStorage() {
-  try {
-    var rawKeys = localStorage.getItem('km_list_kunci_pro');
-    if (rawKeys) listKunciPro = JSON.parse(rawKeys) || [];
-
-    var blacklisted = getBlacklistTugas();
-    var listUtama = [];
-
-    var rawRiwayat = localStorage.getItem('km_riwayat_generate');
-    if (rawRiwayat) {
-      try { listUtama = JSON.parse(rawRiwayat) || []; } catch (e) {}
-    }
-
-    if (!listUtama || listUtama.length === 0) {
-      var rawOld = localStorage.getItem('riwayat_generate') || localStorage.getItem('km_riwayat');
-      if (rawOld) {
-        try { listUtama = JSON.parse(rawOld) || []; } catch (e) {}
-      }
-    }
-
-    var hasilBersih = [];
-    var mapId = {};
-
-    if (Array.isArray(listUtama)) {
-      listUtama.forEach(function(item) {
-        if (!item || typeof item !== 'object') return;
-        var taskId = String(item.id || item.taskId || "").trim();
-        if (!taskId || blacklisted.indexOf(taskId) !== -1) return;
-
-        if (!mapId[taskId]) {
-          mapId[taskId] = true;
-          if (!item.id && item.taskId) item.id = item.taskId;
-          if (!item.startedAt) item.startedAt = item.timestamp || Date.now();
-          hasilBersih.push(item);
-        }
-      });
-    }
-
-    hasilBersih.sort(function(a, b) {
-      return (Number(b.startedAt) || 0) - (Number(a.startedAt) || 0);
-    });
-
-    window.riwayatGenerateList = hasilBersih;
-    riwayatGenerateList = hasilBersih;
-    simpanStorage();
-  } catch (e) {}
-}
-
-async function selaraskanRiwayatDenganAkun() {
-  if (typeof supa !== 'undefined') {
+  // ========================================================================
+  // 1. MP4 HEADER SPOOFER (Memanipulasi Atom MVHD Durasi 30s -> 9.5s)
+  // ========================================================================
+  async function palsukanDurasiMp4(fileAsli) {
     try {
-      var sessionRes = await supa.auth.getSession();
-      var sUser = sessionRes?.data?.session?.user;
-      if (!sUser && typeof supa.auth.getUser === 'function') {
-        var uRes = await supa.auth.getUser();
-        sUser = uRes?.data?.user;
-      }
+      var buffer = await fileAsli.arrayBuffer();
+      var bytes = new Uint8Array(buffer);
+      var view = new DataView(buffer);
 
-      if (sUser) {
-        var emailTarget = sUser.email ? sUser.email.toLowerCase().trim() : '';
-        
-        var { data: dbUser } = await supa
-          .from('users')
-          .select('*')
-          .ilike('email', emailTarget)
-          .maybeSingle();
-
-        if (dbUser && window.engineMode !== 'kling') {
-          var isVIP = (
-            dbUser.is_vip === true ||
-            dbUser.is_pro === true ||
-            dbUser.role === 'pro' ||
-            dbUser.role === 'vip' ||
-            dbUser.status === 'pro' ||
-            dbUser.status === 'vip'
-          );
-
-          if (isVIP) {
-            setProviderUtama('pro');
-          } else {
-            setProviderUtama('kiix');
-          }
-        }
-
-        if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
-          window.riwayatGenerateList.forEach(function(t) {
-            t.user_id = sUser.id;
-            if (sUser.email) t.user_email = sUser.email.toLowerCase().trim();
-          });
-
-          simpanStorage();
-          if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-          if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
+      var posMvhd = -1;
+      for (var i = 0; i < bytes.length - 8; i++) {
+        if (
+          bytes[i] === 0x6d &&     // 'm'
+          bytes[i + 1] === 0x76 && // 'v'
+          bytes[i + 2] === 0x68 && // 'h'
+          bytes[i + 3] === 0x64    // 'd'
+        ) {
+          posMvhd = i - 4;
+          break;
         }
       }
-    } catch (err) {}
-  }
-}
 
-async function lepaskanKunciPoolOtomatis(poolId) {
-  if (!poolId) return;
+      if (posMvhd !== -1) {
+        var versi = view.getUint8(posMvhd + 8);
+        var offsetTimescale = posMvhd + 12;
+        var offsetDuration = posMvhd + 16;
 
-  if (typeof supa !== 'undefined') {
-    try {
-      await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
-    } catch (e) {}
-  }
-
-  try {
-    if (typeof muatUlangDaftarPool === 'function') muatUlangDaftarPool();
-    if (typeof renderTabelPool === 'function') renderTabelPool();
-    if (typeof hitungStatistikPool === 'function') hitungStatistikPool();
-  } catch (e) {}
-}
-
-function ambilLinkOutputResmi(jsonObj) {
-  if (!jsonObj) return null;
-  var data = jsonObj.data;
-  if (!data) return null;
-
-  var hasilLink = null;
-
-  function validasiLinkOutput(url) {
-    if (!url || typeof url !== 'string' || hasilLink) return;
-    var cleanUrl = url.trim().replace(/\\/g, '');
-    
-    if (cleanUrl.includes('workers.dev') || cleanUrl.includes('kiix-uploader')) return;
-
-    if (cleanUrl.startsWith('http') && (
-      cleanUrl.toLowerCase().includes('.mp4') || 
-      cleanUrl.toLowerCase().includes('.mov') || 
-      cleanUrl.toLowerCase().includes('.webm') ||
-      cleanUrl.includes('rh-images') ||
-      cleanUrl.includes('xiaoyaoyou')
-    )) {
-      hasilLink = cleanUrl;
-    }
-  }
-
-  if (Array.isArray(data)) {
-    data.forEach(function(item) {
-      if (item && typeof item === 'object') {
-        validasiLinkOutput(item.fileUrl || item.file_url || item.url || item.path);
-      } else if (typeof item === 'string') {
-        validasiLinkOutput(item);
-      }
-    });
-  } else if (typeof data === 'object') {
-    validasiLinkOutput(data.fileUrl || data.file_url || data.videoUrl || data.url || data.path);
-  }
-
-  return hasilLink;
-}
-
-function resetFormBahanInput() {
-  urlBahanFoto = null;
-  urlBahanVideo = null;
-  window.urlBahanFoto = null;
-  window.urlBahanVideo = null;
-
-  var inFoto = document.getElementById('input-file-foto');
-  var inVideo = document.getElementById('input-file-video');
-  var txtFoto = document.getElementById('txt-file-foto');
-  var txtVideo = document.getElementById('txt-file-video');
-  var stFoto = document.getElementById('st-file-foto');
-  var stVideo = document.getElementById('st-file-video');
-  var inPrompt = document.getElementById('in-prompt-gerak');
-
-  if (inFoto) inFoto.value = '';
-  if (inVideo) inVideo.value = '';
-  if (txtFoto) txtFoto.innerText = 'Foto Karakter';
-  if (txtVideo) txtVideo.innerText = 'Video Gerakan';
-  if (stFoto) stFoto.innerHTML = 'JPG / PNG';
-  if (stVideo) stVideo.innerHTML = 'MP4 (Maks 10s)';
-  if (inPrompt) inPrompt.value = '';
-}
-
-function tampilkanModalCeklisSukses(taskId) {
-  var modal = document.getElementById('modal-ceklis-sukses');
-  var lblId = document.getElementById('label-ceklis-taskid');
-  if (lblId) lblId.innerText = 'ID: ' + taskId;
-  
-  if (modal) {
-    modal.style.display = 'flex';
-    setTimeout(function() {
-      modal.style.opacity = '0';
-      modal.style.transition = 'opacity 0.35s ease';
-      setTimeout(function() {
-        modal.style.display = 'none';
-        modal.style.opacity = '1';
-        if (typeof gantiLayarNav === 'function') gantiLayarNav('history');
-      }, 350);
-    }, 1800);
-  }
-}
-
-function setProviderUtama(mode) {
-  engineMode = mode;
-  window.engineMode = mode;
-
-  var cardKiix = document.getElementById('c-prov-kiix');
-  var cardRH = document.getElementById('c-prov-runninghub');
-  var cardKling = document.getElementById('c-prov-kling');
-
-  var badgeKiix = document.getElementById('b-prov-kiix');
-  var badgeRH = document.getElementById('b-prov-runninghub');
-  var badgeKling = document.getElementById('b-prov-kling');
-
-  var activeClass = "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition";
-  var inactiveClass = "bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
-
-  if (cardKiix) cardKiix.className = (mode === 'kiix') ? activeClass : inactiveClass;
-  if (cardRH) cardRH.className = (mode === 'runninghub' || mode === 'pro') ? activeClass : inactiveClass;
-  if (cardKling) cardKling.className = (mode === 'kling') ? activeClass : inactiveClass;
-
-  if (badgeKiix) badgeKiix.style.display = (mode === 'kiix') ? 'inline-block' : 'none';
-  if (badgeRH) badgeRH.style.display = (mode === 'runninghub' || mode === 'pro') ? 'inline-block' : 'none';
-  if (badgeKling) badgeKling.style.display = (mode === 'kling') ? 'inline-block' : 'none';
-
-  var tTitle = document.getElementById('t-engine-title');
-  var tTotal = document.getElementById('t-engine-total');
-  var dropWrap = document.getElementById('box-wrap-dropdown-akun');
-  var sel = document.getElementById('sel-dropdown-akun');
-  var badgeSaldo = document.getElementById('badge-total-saldo-gen');
-
-  if (mode === 'kling') {
-    if (tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL";
-    if (tTotal) tTotal.innerText = "Testing Trial";
-    if (dropWrap) dropWrap.style.display = 'none';
-    return;
-  }
-
-  if (mode === 'kiix') {
-    if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
-    if (tTotal) tTotal.innerText = "1 Kredit";
-    if (dropWrap) dropWrap.style.display = 'none';
-  } else {
-    if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
-    if (tTotal) tTotal.innerText = "≈ 478 coin";
-    if (dropWrap) dropWrap.style.display = 'block';
-
-    if (sel) {
-      sel.innerHTML = '';
-      if (listKunciPro.length === 0) {
-        sel.innerHTML = '<option value="">Belum ada akun (Wajib Add Key)</option>';
-        if (badgeSaldo) {
-          badgeSaldo.innerText = "0 coin";
-          badgeSaldo.className = "text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg";
-        }
-      } else {
-        var total = 0;
-        sel.innerHTML = '<option value="random">🎲 Otomatis (Pilih Acak Kunci)</option>';
-        listKunciPro.forEach(function(a, idx) {
-          var k = Number(a.koin) || 0;
-          total += k;
-          sel.innerHTML += '<option value="' + idx + '">Kunci #' + (idx + 1) + ': ' + a.key.substring(0, 8) + '... (' + k + ' coin)</option>';
-        });
-        if (badgeSaldo) {
-          badgeSaldo.innerText = total + " coin";
-          badgeSaldo.className = "text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
-        }
-      }
-    }
-  }
-}
-
-// =========================================================
-// SISTEM UPLOAD DUAL JALUR (RUNNINGHUB & DIRECT HTTPS KLING)
-// =========================================================
-function unggahBahanLangsung(input, tipe) {
-  if (!input.files || !input.files[0]) return;
-  var file = input.files[0];
-  var txtEl = document.getElementById(tipe === 'foto' ? 'txt-file-foto' : 'txt-file-video');
-  var stEl = document.getElementById(tipe === 'foto' ? 'st-file-foto' : 'st-file-video');
-
-  if (txtEl) txtEl.innerText = file.name;
-  if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah (0%)...</span>';
-
-  // 1. JALUR KLING 2.6: Hasilkan URL HTTPS Publik Murni (Direct Cloud + Spoofer)
-  if (window.engineMode === 'kling') {
-    unggahKhususKling(file, tipe, stEl);
-    return;
-  }
-
-  // 2. JALUR RUNNINGHUB / KIIX: Tetap via Worker RunningHub
-  var formData = new FormData();
-  formData.append('file', file);
-
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev', true);
-
-  xhr.upload.onprogress = function(e) {
-    if (e.lengthComputable) {
-      var persen = Math.round((e.loaded / e.total) * 100);
-      if (stEl) {
-        stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah (' + persen + '%)...</span>';
-      }
-    }
-  };
-
-  xhr.onload = function() {
-    var rawText = xhr.responseText || "";
-
-    if (xhr.status >= 200 && xhr.status < 300) {
-      try {
-        var resJson = JSON.parse(rawText);
-        var fileUrl = null;
-
-        if (resJson && resJson.data) {
-          if (typeof resJson.data === 'string') {
-            fileUrl = resJson.data;
-          } else if (typeof resJson.data === 'object') {
-            fileUrl = resJson.data.fileUrl || resJson.data.fileName || resJson.data.url || resJson.data.path;
-          }
-        }
-
-        if (!fileUrl) throw new Error("Link file tidak ditemukan dari server.");
-
-        if (tipe === 'foto') {
-          urlBahanFoto = fileUrl;
-          window.urlBahanFoto = fileUrl;
-        } else {
-          urlBahanVideo = fileUrl;
-          window.urlBahanVideo = fileUrl;
-        }
-
-        var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
-        if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-        if (typeof tampilkanNotif === 'function') tampilkanNotif('File berhasil diunggah!', 'sukses');
-
-      } catch (err) {
-        if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-        tampilkanNotifPusat('Gagal respons: ' + (err.message || 'Format tidak valid'));
-      }
-    } else {
-      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-      tampilkanNotifPusat('Gagal mengunggah ke storage.');
-    }
-  };
-
-  xhr.onerror = function() {
-    if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-    tampilkanNotifPusat('Koneksi upload terputus.');
-  };
-
-  xhr.send(formData);
-}
-
-// FUNGSI NIPU HEADER MP4 (MODIFIKASI ATOM MVHD DURASI 30s -> 9.5s)
-async function palsukanDurasiMp4(fileAsli) {
-  try {
-    var buffer = await fileAsli.arrayBuffer();
-    var bytes = new Uint8Array(buffer);
-    var view = new DataView(buffer);
-
-    var posMvhd = -1;
-    for (var i = 0; i < bytes.length - 8; i++) {
-      if (
-        bytes[i] === 0x6D &&     // 'm'
-        bytes[i + 1] === 0x76 && // 'v'
-        bytes[i + 2] === 0x68 && // 'h'
-        bytes[i + 3] === 0x64    // 'd'
-      ) {
-        posMvhd = i - 4;
-        break;
-      }
-    }
-
-    if (posMvhd !== -1) {
-      var versi = view.getUint8(posMvhd + 8);
-      var offsetTimescale = posMvhd + 12;
-      var offsetDuration = posMvhd + 16;
-
-      if (versi === 1) {
-        offsetTimescale = posMvhd + 20;
-        offsetDuration = posMvhd + 28;
-      }
-
-      var timescale = view.getUint32(offsetTimescale);
-      if (timescale > 0) {
-        var targetDurasiPalsu = Math.floor(timescale * 9.5);
         if (versi === 1) {
-          view.setBigUint64(offsetDuration, BigInt(targetDurasiPalsu));
-        } else {
-          view.setUint32(offsetDuration, targetDurasiPalsu);
+          offsetTimescale = posMvhd + 20;
+          offsetDuration = posMvhd + 28;
         }
-      }
-    }
 
-    return new File([bytes], fileAsli.name.replace(/\.[^/.]+$/, "") + "_spoofed.mp4", { type: 'video/mp4' });
-  } catch (errSpoof) {
-    console.warn("Gagal spoofing metadata MP4:", errSpoof);
-    return fileAsli;
-  }
-}
-
-// UPLOADER KHUSUS KLING (SUPABASE & CLOUD DIRECT TANPA BLOKIR)
-async function unggahKhususKling(file, tipe, stEl) {
-  var fileFinal = file;
-  
-  if (tipe === 'video') {
-    if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyesuaikan Metadata Video...</span>';
-    fileFinal = await palsukanDurasiMp4(file);
-  }
-
-  var ext = fileFinal.name.split('.').pop() || (tipe === 'foto' ? 'jpg' : 'mp4');
-  var namaFile = 'kling_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '.' + ext;
-
-  // 1. Prioritas Supabase Storage (Terbukti 100% diterima PiAPI)
-  if (fileFinal.size < 48 * 1024 * 1024 && typeof supa !== 'undefined' && supa.storage) {
-    try {
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Upload ke Cloud Kling...</span>';
-      var resUp = await supa.storage.from('bahan-render').upload(namaFile, fileFinal, {
-        cacheControl: '3600',
-        upsert: true
-      });
-
-      if (!resUp.error) {
-        var resPub = supa.storage.from('bahan-render').getPublicUrl(namaFile);
-        var linkPublik = resPub?.data?.publicUrl;
-        if (linkPublik) {
-          setBahanKlingSukses(linkPublik, fileFinal, tipe, stEl);
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn("Supabase gagal, beralih ke cloud direct...", e);
-    }
-  }
-
-  // 2. Fallback Storage Publik Kebal Blokir Bot
-  try {
-    if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Upload Direct Cloud (0%)...</span>';
-    var fd = new FormData();
-    fd.append('reqtype', 'fileupload');
-    fd.append('fileToUpload', fileFinal);
-
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', 'https://catbox.moe/user/api.php', true);
-
-    xhr.upload.onprogress = function(e) {
-      if (e.lengthComputable && stEl) {
-        var p = Math.round((e.loaded / e.total) * 100);
-        stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Upload Direct Cloud (' + p + '%)...</span>';
-      }
-    };
-
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        var rawUrl = (xhr.responseText || "").trim();
-        if (rawUrl.startsWith('http')) {
-          setBahanKlingSukses(rawUrl, fileFinal, tipe, stEl);
-        } else {
-          tampilkanNotifPusat('Format respon direct cloud salah: ' + rawUrl);
-        }
-      } else {
-        if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Upload</span>';
-        tampilkanNotifPusat('Cloud menolak file (Status: ' + xhr.status + ')');
-      }
-    };
-
-    xhr.onerror = function() {
-      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Koneksi Putus</span>';
-      tampilkanNotifPusat('Koneksi upload direct cloud terputus.');
-    };
-
-    xhr.send(fd);
-  } catch (errDirect) {
-    if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal</span>';
-    tampilkanNotifPusat('Gagal upload bahan Kling: ' + errDirect.message);
-  }
-}
-
-function setBahanKlingSukses(urlHttps, file, tipe, stEl) {
-  if (tipe === 'foto') {
-    urlBahanFoto = urlHttps;
-    window.urlBahanFoto = urlHttps;
-  } else {
-    urlBahanVideo = urlHttps;
-    window.urlBahanVideo = urlHttps;
-  }
-  var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
-  if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-  if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Bahan Kling siap (HTTPS Aktif)!', 'sukses');
-}
-
-function updateProgressVisualKartu(taskId, persentase) {
-  var taskIdStr = String(taskId || "");
-  var semuaKad = document.querySelectorAll('.grid > div, [class*="card"], [class*="shadow"]');
-  for (var k = 0; k < semuaKad.length; k++) {
-    if (semuaKad[k].innerText && semuaKad[k].innerText.includes(taskIdStr)) {
-      var elemenTeks = semuaKad[k].querySelectorAll('div, p, span');
-      for (var tIdx = 0; tIdx < elemenTeks.length; tIdx++) {
-        var txt = (elemenTeks[tIdx].innerText || "").trim();
-        if (txt.endsWith('%') && txt.length <= 5) {
-          elemenTeks[tIdx].innerText = persentase + "%";
-        }
-      }
-      break;
-    }
-  }
-}
-
-function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
-  if (tugas.selesai) return; 
-  if (!tugas.progress) tugas.progress = 0; 
-  if (!tugas.startedAt) tugas.startedAt = Date.now();
-
-  var currentPoolId = poolId || tugas.pool_id;
-  var currentApiKey = apiKey || tugas.key;
-
-  if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-
-  async function jalankanCek() {
-    if (tugas.selesai) {
-      if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-      return;
-    }
-
-    var waktuBerjalan = Date.now() - tugas.startedAt;
-    
-    if (waktuBerjalan >= 3600000) {
-      if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-      lepaskanKunciPoolOtomatis(currentPoolId);
-      tugas.status = "❌ Gagal (Waktu Habis)"; 
-      tugas.selesai = true;
-      tugas.progress = 100;
-      simpanStorage();
-      if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-      return;
-    }
-
-    // =========================================================
-    // JALUR 1: CEK TUGAS KLING (PIAPI CLOUD)
-    // =========================================================
-    var isKling = (tugas.prov === 'kling' || String(tugas.id).includes('-'));
-
-    if (isKling) {
-      var kData = null;
-      try {
-        var resK = await fetch('/api/outputs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ taskId: tugas.id, provider: 'kling' })
-        });
-        if (resK.ok) {
-          var jK = await resK.json();
-          kData = jK.data || jK;
-        }
-      } catch (e) {}
-
-      // Fallback cek langsung ke gateway PiAPI jika endpoint /api/outputs belum diupdate
-      if (!kData || !kData.status) {
-        try {
-          var resDirect = await fetch('https://api.piapi.ai/api/v1/task/' + tugas.id, {
-            headers: { 'x-api-key': 'c888d3ae20f708738c2271103e93c6a22dc769a54cc83495ea9acbdc0798f05d' }
-          });
-          if (resDirect.ok) {
-            var jDirect = await resDirect.json();
-            kData = jDirect.data || jDirect;
+        var timescale = view.getUint32(offsetTimescale);
+        if (timescale > 0) {
+          var targetDurasiPalsu = Math.floor(timescale * 9.5);
+          if (versi === 1) {
+            view.setBigUint64(offsetDuration, BigInt(targetDurasiPalsu));
+          } else {
+            view.setUint32(offsetDuration, targetDurasiPalsu);
           }
-        } catch (eDirect) {}
+        }
       }
 
-      if (kData) {
-        var kStatus = (kData.status || "").toLowerCase();
-        
-        if (kStatus === 'completed' || kStatus === 'success') {
-          var vidUrl = kData.output?.video_url || kData.output?.video || kData.works?.[0]?.video_url;
-          if (vidUrl) {
-            if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-            tugas.status = "Selesai";
-            tugas.selesai = true;
-            tugas.progress = 100;
-            tugas.videoUrl = vidUrl;
-            simpanStorage();
-            if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-            if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-            if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video Kling berhasil selesai!', 'sukses');
+      return new File([bytes], fileAsli.name.replace(/\.[^/.]+$/, "") + "_spoofed.mp4", {
+        type: "video/mp4",
+      });
+    } catch (errSpoof) {
+      console.warn("Gagal modifikasi metadata MP4:", errSpoof);
+      return fileAsli;
+    }
+  }
+
+  // ========================================================================
+  // 2. SISTEM UPLOAD BAHAN KLING (Supabase & Direct Cloud)
+  // ========================================================================
+  async function unggahBahanKling(file, tipe) {
+    var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
+    var txtEl = document.getElementById(tipe === "foto" ? "txt-file-foto" : "txt-file-video");
+    if (txtEl) txtEl.innerText = file.name;
+
+    var fileFinal = file;
+    if (tipe === "video") {
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyesuaikan Metadata Video...</span>';
+      fileFinal = await palsukanDurasiMp4(file);
+    }
+
+    var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
+    var namaFile = "kling_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7) + "." + ext;
+
+    // A. Prioritas Supabase Storage (Foto & Bahan di bawah 48 MB)
+    if (fileFinal.size < 48 * 1024 * 1024 && window.supa && window.supa.storage) {
+      try {
+        if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Upload ke Cloud Kling...</span>';
+        var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, fileFinal, {
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+        if (!resUp.error) {
+          var resPub = window.supa.storage.from("bahan-render").getPublicUrl(namaFile);
+          var linkPublik = resPub?.data?.publicUrl;
+          if (linkPublik) {
+            simpanBahanKling(linkPublik, fileFinal, tipe, stEl);
             return;
           }
-        } else if (kStatus === 'failed' || kStatus === 'error') {
-          if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-          var pesanGagal = kData.error?.message || "Gagal diproses mesin Kling";
-          tugas.status = "❌ " + pesanGagal;
-          tugas.selesai = true;
-          tugas.progress = 100;
-          simpanStorage();
-          if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-          if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-          tampilkanNotifPusat("Kling Gagal: " + pesanGagal);
-          return;
-        } else {
-          tugas.status = "⚡ Sedang Memproses Video...";
-          if (tugas.progress < 92) tugas.progress += 4;
-          simpanStorage();
-          updateProgressVisualKartu(tugas.id, tugas.progress);
-          return;
         }
+      } catch (errSupa) {
+        console.warn("Upload Supabase gagal, beralih ke direct cloud...", errSupa);
       }
     }
 
-    // =========================================================
-    // JALUR 2: CEK TUGAS RUNNINGHUB
-    // =========================================================
-    if (!currentApiKey && currentPoolId && typeof supa !== 'undefined') {
+    // B. Direct Cloud (tmpfiles.org dengan Direct Link)
+    try {
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Upload Cloud (0%)...</span>';
+      var fd = new FormData();
+      fd.append("file", fileFinal);
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "https://tmpfiles.org/api/v1/upload", true);
+
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable && stEl) {
+          var p = Math.round((e.loaded / e.total) * 100);
+          stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Upload Cloud (' + p + "%)...</span>";
+        }
+      };
+
+      xhr.onload = function () {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            var j = JSON.parse(xhr.responseText);
+            var rawUrl = j.data?.url;
+            if (!rawUrl) throw new Error("Gagal generate link publik.");
+            var directHttps = rawUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
+            simpanBahanKling(directHttps, fileFinal, tipe, stEl);
+          } catch (eParse) {
+            if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Link</span>';
+            if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Respon direct cloud gagal.");
+          }
+        } else {
+          if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Upload</span>';
+          if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Direct cloud menolak file.");
+        }
+      };
+
+      xhr.onerror = function () {
+        if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Koneksi Putus</span>';
+        if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Koneksi upload direct cloud terputus.");
+      };
+
+      xhr.send(fd);
+    } catch (errXhr) {
+      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Error</span>';
+    }
+  }
+
+  function simpanBahanKling(url, file, tipe, stEl) {
+    if (tipe === "foto") {
+      window.urlBahanFotoKling = url;
+      window.urlBahanFoto = url;
+    } else {
+      window.urlBahanVideoKling = url;
+      window.urlBahanVideo = url;
+    }
+    var mb = (file.size / (1024 * 1024)).toFixed(1);
+    if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + mb + " MB)</span>";
+    if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan Kling siap (HTTPS Aktif)!", "sukses");
+  }
+
+  // ========================================================================
+  // 3. EKSEKUTOR GENERATE KLING (PIAPI GATEWAY)
+  // ========================================================================
+  async function eksekusiGenerateKling() {
+    var btn = document.getElementById("btn-submit-generate");
+
+    var bahanFoto = window.urlBahanFotoKling || window.urlBahanFoto;
+    var bahanVideo = window.urlBahanVideoKling || window.urlBahanVideo;
+
+    if (!bahanFoto || !bahanVideo) {
+      if (typeof tampilkanNotifPusat === "function") {
+        tampilkanNotifPusat("Foto karakter dan Video gerakan wajib selesai diunggah!");
+      }
+      return;
+    }
+
+    var realUserId = null;
+    var realEmail = null;
+
+    if (window.supa) {
       try {
-        var { data: poolRec } = await supa.from('runninghub_pool').select('api_key').eq('id', currentPoolId).maybeSingle();
-        if (poolRec && poolRec.api_key) {
-          currentApiKey = poolRec.api_key;
-          tugas.key = currentApiKey;
+        var { data: sessData } = await window.supa.auth.getSession();
+        if (sessData?.session?.user) {
+          realUserId = sessData.session.user.id;
+          realEmail = sessData.session.user.email;
         }
       } catch (e) {}
     }
 
-    try {
-      var res = await fetch('/api/outputs', { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          taskId: tugas.id, 
-          poolId: currentPoolId, 
-          apiKey: currentApiKey 
-        })
-      });
-
-      if (!res.ok) return;
-
-      var jsonObj = await res.json();
-      var code = Number(jsonObj.code);
-      var statusTeks = "";
-
-      if (jsonObj.data && typeof jsonObj.data === 'object' && !Array.isArray(jsonObj.data)) {
-        statusTeks = (jsonObj.data.status || "").toString().toUpperCase().trim();
-      }
-
-      var isSedangJalan = (
-        code === 804 ||
-        code === 805 ||
-        code === 806 ||
-        statusTeks === "RUNNING" ||
-        statusTeks === "QUEUED" ||
-        statusTeks === "PROCESSING"
-      );
-
-      if (isSedangJalan) {
-        if (code === 804 || statusTeks === "QUEUED") {
-          tugas.status = "⏳ Mengantre di Server...";
-        } else {
-          tugas.status = "⚡ Sedang Memproses Video...";
-        }
-
-        if (tugas.progress < 92) {
-          tugas.progress += 2;
-        }
-        simpanStorage();
-        updateProgressVisualKartu(tugas.id, tugas.progress);
-        return;
-      }
-
-      var isGagalAtauBatal = (
-        code === 801 || 
-        code === 802 || 
-        code === 807 ||
-        statusTeks === "FAILED" ||
-        statusTeks === "ERROR" ||
-        statusTeks === "CANCELED" ||
-        statusTeks === "CANCELLED"
-      );
-
-      if (isGagalAtauBatal) {
-        if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-        lepaskanKunciPoolOtomatis(currentPoolId);
-
-        var labelStatus = (code === 807 || statusTeks.includes("CANCEL")) ? "❌ Dibatalkan di RunningHub" : "❌ Gagal Diproses Studio";
-        tugas.status = labelStatus;
-        tugas.selesai = true;
-        tugas.progress = 100;
-
-        var targetUserErr = userId || tugas.user_id;
-        if (didDeductCredit && !tugas.refunded && typeof supa !== 'undefined' && targetUserErr) {
-          try {
-            tugas.refunded = true;
-            tugas.did_deduct = false;
-            await supa.rpc('refund_kredit_member', { target_user_id: String(targetUserErr) });
-            if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
-            tampilkanNotifPusat('Render dibatalkan/gagal. 1 kredit dikembalikan.');
-          } catch (errRefund) {
-            tugas.refunded = false;
-          }
-        }
-
-        simpanStorage();
-        if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-        if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-        return;
-      }
-
-      if (code === 0 && jsonObj.data) {
-        var linkOutputAsli = ambilLinkOutputResmi(jsonObj);
-        
-        if (linkOutputAsli) {
-          if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-          lepaskanKunciPoolOtomatis(currentPoolId);
-
-          tugas.status = "Selesai"; 
-          tugas.selesai = true;
-          tugas.progress = 100; 
-          tugas.videoUrl = linkOutputAsli;
-
-          simpanStorage();
-          if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-          if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-          if (currentApiKey) refreshSaldoKunciOtomatis(currentApiKey);
-          if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video berhasil selesai!', 'sukses');
-          return;
-        }
-      }
-
-    } catch (err) {}
-  }
-
-  jalankanCek();
-  tugas.intervalObj = setInterval(jalankanCek, 6000);
-}
-
-function hapusRiwayatSatu(target) {
-  if (!window.riwayatGenerateList || window.riwayatGenerateList.length === 0) return;
-
-  var targetId = null;
-
-  if (typeof target === 'number') {
-    var item = window.riwayatGenerateList[target];
-    if (item) targetId = String(item.id || item.taskId || "").trim();
-  } else if (typeof target === 'string') {
-    targetId = target.trim();
-  } else if (target && (target.nodeType || target.closest)) {
-    var el = target.closest ? target.closest('[data-id], div') : null;
-    if (el) {
-      var raw = el.getAttribute('data-id') || el.innerText || '';
-      var match = raw.match(/\b\d{15,22}\b/);
-      if (match) targetId = match[0];
-    }
-  }
-
-  if (targetId) {
-    tambahKeBlacklist(targetId);
-    window.riwayatGenerateList = window.riwayatGenerateList.filter(function(t) {
-      var idTugas = String(t.id || t.taskId || "").trim();
-      if (idTugas === targetId) {
-        if (t.intervalObj) clearInterval(t.intervalObj);
-        return false;
-      }
-      return true;
-    });
-  } else if (typeof target === 'number') {
-    var del = window.riwayatGenerateList.splice(target, 1);
-    if (del[0] && del[0].id) tambahKeBlacklist(del[0].id);
-  }
-
-  riwayatGenerateList = window.riwayatGenerateList;
-  simpanStorage();
-
-  if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-  if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-}
-
-async function refreshSaldoKunciOtomatis(apiKey) {
-  if (!apiKey) return;
-  try {
-    var res = await fetch('/api/saldo', {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ apiKey: apiKey })
-    });
-    var hasil = await res.json();
-    if (res.ok && hasil) {
-      var rawData = hasil.data || hasil;
-      var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.credit ?? rawData.balance ?? rawData.remainCoins;
-      if (k !== undefined && k !== null) {
-        var koinNum = Number(k);
-        var idxKetemu = listKunciPro.findIndex(function(a) { return a.key === apiKey; });
-        if (idxKetemu !== -1) {
-          listKunciPro[idxKetemu].koin = koinNum;
-          simpanStorage();
-          updateStatistikDashboard();
-          renderListAkunDiKelola();
-        }
-      }
-    }
-  } catch (err) {}
-}
-
-function updateStatistikDashboard() {
-  var totalKoin = 0, maxKoin = 0;
-  listKunciPro.forEach(function(a) {
-    var k = Number(a.koin) || 0;
-    totalKoin += k;
-    if (k > maxKoin) maxKoin = k;
-  });
-  
-  var elTotal = document.querySelector('[id*="total-koin"]');
-  var elAkun = document.querySelector('[id*="total-akun"]');
-  var elMax = document.querySelector('[id*="max-koin"]');
-  
-  if (elTotal) elTotal.innerText = totalKoin;
-  if (elAkun) elAkun.innerText = listKunciPro.length;
-  if (elMax) elMax.innerText = maxKoin;
-
-  if (window.riwayatGenerateList) {
-    var elSelesai = document.querySelector('[id*="stat-video-selesai"]');
-    if (elSelesai) elSelesai.innerText = window.riwayatGenerateList.filter(function(r) { return r.selesai; }).length;
-  }
-}
-
-async function mulaiProsesGenerate() {
-  var btn = document.getElementById('btn-submit-generate');
-  var realEmail = null;
-  var realUserId = null;
-  var profilUser = null;
-
-  if (typeof supa !== 'undefined') {
-    if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA STATUS..."; }
-    try {
-      var sessionRes = await supa.auth.getSession();
-      var sessionUser = sessionRes?.data?.session?.user;
-
-      if (!sessionUser && typeof supa.auth.getUser === 'function') {
-        var userRes = await supa.auth.getUser();
-        sessionUser = userRes?.data?.user;
-      }
-
-      if (sessionUser && sessionUser.email) realEmail = sessionUser.email.toLowerCase().trim();
-      if (sessionUser && sessionUser.id) realUserId = sessionUser.id;
-      
-      if (realEmail) {
-        var { data: dbUser } = await supa
-          .from('users')
-          .select('*')
-          .ilike('email', realEmail)
-          .maybeSingle();
-        if (dbUser) {
-          profilUser = dbUser;
-          if (!realUserId && dbUser.id) realUserId = dbUser.id;
-        }
-      }
-    } catch (err) {}
-  }
-
-  if (!realEmail && typeof currentUserEmail !== 'undefined' && currentUserEmail) realEmail = currentUserEmail;
-  if (!realEmail || !realUserId) {
-    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-    return tampilkanNotifPusat('Sesi login berakhir, silakan login ulang!');
-  }
-
-  // JALUR GENERATE KHUSUS KLING 2.6
-  if (window.engineMode === 'kling') {
-    if (!urlBahanFoto || !urlBahanVideo) {
-      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      return tampilkanNotifPusat('Foto karakter dan Video gerakan wajib selesai diunggah!');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = "⚡ MEMPROSES KLING...";
     }
 
-    if (btn) { btn.disabled = true; btn.innerText = "⚡ MEMPROSES KLING..."; }
-
     try {
-      var resKling = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      var res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          urlBahanFoto: urlBahanFoto,
-          urlBahanVideo: urlBahanVideo,
-          provider: 'kling',
+          urlBahanFoto: bahanFoto,
+          urlBahanVideo: bahanVideo,
+          provider: "kling",
           userId: realUserId,
-          prompt: "High quality cinematic motion capture, smooth movement, realistic studio lighting"
-        })
+          prompt: "High quality cinematic motion capture, smooth movement, realistic studio lighting",
+        }),
       });
 
-      var dataKling = await resKling.json();
-      if (!resKling.ok || !dataKling.success) {
-        throw new Error(dataKling.message || 'Gagal mengirim tugas render ke PiAPI.');
+      var data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || "Gagal memproses render ke PiAPI.");
       }
 
-      var tugasKlingBaru = {
-        id: dataKling.taskId,
+      var tugasKling = {
+        id: data.taskId,
         key: null,
         pool_id: null,
         user_id: realUserId,
@@ -1004,371 +227,215 @@ async function mulaiProsesGenerate() {
         videoUrl: null,
         status: "⚡ Sedang Memproses Video...",
         selesai: false,
-        progress: 10
+        progress: 10,
       };
 
-      window.riwayatGenerateList.unshift(tugasKlingBaru);
-      riwayatGenerateList = window.riwayatGenerateList;
-      simpanStorage();
+      window.riwayatGenerateList = window.riwayatGenerateList || [];
+      window.riwayatGenerateList.unshift(tugasKling);
+      if (typeof simpanStorage === "function") simpanStorage();
 
-      resetFormBahanInput();
-      tampilkanModalCeklisSukses(tugasKlingBaru.id);
+      if (typeof resetFormBahanInput === "function") resetFormBahanInput();
+      window.urlBahanFotoKling = null;
+      window.urlBahanVideoKling = null;
 
-      pantauStatusVideo(tugasKlingBaru, null, null, tugasKlingBaru.user_id, false);
-      return;
+      if (typeof tampilkanModalCeklisSukses === "function") tampilkanModalCeklisSukses(tugasKling.id);
 
-    } catch (errKling) {
-      tampilkanNotifPusat(errKling.message || 'Koneksi ke PiAPI bermasalah.');
-      return;
+      pantauStatusKling(tugasKling);
+    } catch (err) {
+      if (typeof tampilkanNotifPusat === "function") {
+        tampilkanNotifPusat("Kling Error: " + (err.message || "Koneksi terputus"));
+      }
     } finally {
-      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-    }
-  }
-
-  // JALUR GENERATE RUNNINGHUB & KIIX
-  var isMemberVip = profilUser && (
-    profilUser.is_vip === true ||
-    profilUser.is_pro === true ||
-    profilUser.role === 'pro' ||
-    profilUser.role === 'vip' ||
-    profilUser.status === 'pro' ||
-    profilUser.status === 'vip'
-  );
-
-  if (isMemberVip && engineMode === 'kiix') {
-    setProviderUtama('pro');
-  }
-
-  if (engineMode === 'pro') {
-    if (!isMemberVip) {
-      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      tampilkanNotifPusat('Kamu belum punya akses Pro!');
-      setTimeout(function() { alihkanKeMenuLangganan(); }, 500);
-      return;
-    }
-
-    if (!listKunciPro || listKunciPro.length === 0) {
-      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-      return tampilkanNotifPusat('Hubungkan API Key kamu di menu Add Key!');
-    }
-  }
-
-  if (!urlBahanFoto || !urlBahanVideo) {
-    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-    return tampilkanNotifPusat('Foto karakter dan Video gerakan wajib selesai diunggah!');
-  }
-
-  var apiKeyPribadi = null;
-
-  if (engineMode === 'pro') {
-    var sel = document.getElementById('sel-dropdown-akun');
-    var idx = sel ? sel.value : "";
-    var akunPribadi = (idx === "random" || idx === "") ? listKunciPro[0] : listKunciPro[parseInt(idx, 10)];
-    apiKeyPribadi = akunPribadi.key;
-  }
-
-  if (btn) { btn.disabled = true; btn.innerText = "⚡ MEMPROSES VIDEO..."; }
-
-  try {
-    var res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        urlBahanFoto: urlBahanFoto,
-        urlBahanVideo: urlBahanVideo,
-        provider: engineMode,
-        apiKeyPribadi: apiKeyPribadi,
-        userId: realUserId,
-        userEmail: realEmail
-      })
-    });
-
-    var data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || 'Gagal memproses render ke server.');
-    }
-
-    var taskIdAsli = data.taskId;
-    var poolIdDipakai = data.poolId;
-    var didDeductCredit = data.didDeductCredit;
-
-    var tugasBaru = {
-      id: taskIdAsli,
-      key: apiKeyPribadi || null,
-      pool_id: poolIdDipakai,
-      user_id: realUserId,
-      user_email: realEmail,
-      did_deduct: didDeductCredit,
-      refunded: false,
-      startedAt: Date.now(),
-      model: "Wan Motion Control",
-      provider: (engineMode === 'pro') ? "KiixMotion Pro Engine" : "KiixMotion Control",
-      engine: "Wan Motion Control 1080HD",
-      prov: (engineMode === 'pro') ? "Pro" : "KiixMotion",
-      tgl: "Baru saja",
-      biaya: didDeductCredit ? "1 Kredit" : "≈ 478 coin",
-      videoUrl: null,
-      status: "⚡ Sedang Memproses Video...",
-      selesai: false,
-      progress: 0
-    };
-
-    window.riwayatGenerateList.unshift(tugasBaru);
-    riwayatGenerateList = window.riwayatGenerateList;
-    simpanStorage();
-
-    resetFormBahanInput();
-    tampilkanModalCeklisSukses(tugasBaru.id);
-
-    if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(realEmail);
-    pantauStatusVideo(tugasBaru, apiKeyPribadi, poolIdDipakai, tugasBaru.user_id, didDeductCredit);
-
-  } catch (err) {
-    var pesan = err.message || 'Terjadi gangguan koneksi ke server render.';
-    var pesanLower = pesan.toLowerCase();
-
-    var isBukanPro = pesanLower.includes("akses pro") || 
-                    pesanLower.includes("akses ditolak") || 
-                    pesanLower.includes("vip") || 
-                    pesanLower.includes("berlangganan") ||
-                    /\bpro\b/.test(pesanLower);
-
-    if (isBukanPro) {
-      tampilkanNotifPusat('Kamu belum punya akses Pro!');
-      setTimeout(function() { alihkanKeMenuLangganan(); }, 500);
-      return;
-    }
-
-    var isMasalahKredit = pesanLower.includes("kredit") || pesanLower.includes("saldo");
-    if (isMasalahKredit) {
-      tampilkanNotifPusat(pesan);
-      setTimeout(function() { alihkanKeMenuLangganan(); }, 900);
-      return;
-    }
-
-    tampilkanNotifPusat(pesan);
-  } finally {
-    if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-  }
-}
-
-function renderListAkunDiKelola() {
-  var wadah = document.getElementById('wadah-kartu-akun-list');
-  if (!wadah) return; 
-  wadah.innerHTML = '';
-  var totalKredit = 0;
-
-  if (!listKunciPro || listKunciPro.length === 0) {
-    wadah.innerHTML = '<div class="p-10 text-center text-slate-400 text-sm border-2 border-dashed border-kmBorder rounded-3xl bg-white modern-shadow">Belum ada akun terhubung. Klik "+ Add Key" di atas.</div>';
-    return;
-  }
-
-  var toolbarEl = document.createElement('div');
-  toolbarEl.className = "flex items-center justify-between px-1 pb-1 pt-1";
-  toolbarEl.innerHTML = '<span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Daftar API Key (' + listKunciPro.length + ')</span>' +
-    '<button type="button" onclick="refreshSemuaKunciPro()" class="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 hover:text-kmViolet border border-kmBorder rounded-xl text-xs font-bold transition shadow-sm cursor-pointer flex items-center gap-1.5">' +
-      '<i class="ph ph-arrows-clockwise text-sm"></i> Sync Semua' +
-    '</button>';
-  wadah.appendChild(toolbarEl);
-
-  listKunciPro.forEach(function(a, i) {
-    var koinVal = Number(a.koin) || 0; totalKredit += koinVal;
-    var el = document.createElement('div');
-    el.className = "bg-white border border-kmBorder p-4 sm:p-5 rounded-2xl flex items-center justify-between modern-shadow";
-    
-    var refreshBtnHtml = '<button type="button" onclick="manualRefreshAkunSatu(' + i + ')" class="p-2 text-slate-400 hover:text-kmViolet bg-slate-50 hover:bg-violet-50 rounded-xl transition cursor-pointer border border-slate-200" title="Refresh Saldo">' +
-        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>' +
-      '</button>';
-
-    el.innerHTML = '<div class="flex items-center gap-3.5"><input type="checkbox" data-idx="' + i + '" class="chk-seleksi-akun ' + (typeof isModePilih !== 'undefined' && isModePilih ? '' : 'hidden') + ' w-5 h-5 rounded-lg accent-kmViolet cursor-pointer" /><span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0 ring-4 ring-emerald-100"></span><span class="text-xs sm:text-sm font-bold text-kmTextPrimary font-mono break-all w-28 sm:w-56 truncate" title="' + a.key + '">' + a.nama + '</span></div>' +
-    '<div class="flex items-center gap-2 sm:gap-3">' +
-      '<span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-bold">Aktif</span>' +
-      '<span class="text-sm sm:text-base font-black text-kmViolet font-mono bg-violet-50 px-3 py-1 rounded-xl">' + koinVal + ' coin</span>' +
-      refreshBtnHtml +
-      '<button type="button" onclick="hapusAkunSatu(' + i + ')" class="text-rose-500 hover:text-rose-700 text-xs font-bold font-sans px-2 py-1">Hapus</button>' +
-    '</div>';
-    wadah.appendChild(el);
-  });
-}
-
-async function manualRefreshAkunSatu(idx) {
-  var akun = listKunciPro[idx];
-  if (!akun) return;
-
-  tampilkanNotifPusat('Menyegarkan status koneksi...');
-  try {
-    var res = await fetch('/api/saldo', {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ apiKey: akun.key })
-    });
-    var hasil = await res.json();
-    if (res.ok && hasil) {
-      var rawData = hasil.data || hasil;
-      var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.credit ?? rawData.balance ?? rawData.remainCoins;
-      if (k !== undefined && k !== null) {
-        akun.koin = Number(k);
-        simpanStorage();
-        renderListAkunDiKelola();
-        updateStatistikDashboard();
-        if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Status akun berhasil diperbarui', 'sukses');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerText = "GENERATE VIDEO";
       }
     }
-  } catch (err) {
-    tampilkanNotifPusat('Koneksi terputus: ' + err.message);
-  }
-}
-
-async function refreshSemuaKunciPro() {
-  if (!listKunciPro || listKunciPro.length === 0) {
-    return tampilkanNotifPusat('Belum ada akun yang terhubung di Kelola Akun');
   }
 
-  tampilkanNotifPusat('Menyinkronkan semua akun...');
-  var suksesHitung = 0;
+  // ========================================================================
+  // 4. PEMANTAU TUGAS KLING
+  // ========================================================================
+  function pantauStatusKling(tugas) {
+    if (tugas.selesai) return;
+    if (tugas.intervalObj) clearInterval(tugas.intervalObj);
 
-  var antreanSync = listKunciPro.map(async function(akun) {
-    try {
-      var res = await fetch('/api/saldo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: akun.key })
-      });
-      var hasil = await res.json();
-      if (res.ok && hasil) {
-        var rawData = hasil.data || hasil;
-        var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
-        if (k !== undefined && k !== null) {
-          akun.koin = Number(k);
-          suksesHitung++;
+    async function cekStatus() {
+      if (tugas.selesai) {
+        clearInterval(tugas.intervalObj);
+        return;
+      }
+
+      var kData = null;
+      try {
+        var res = await fetch("/api/outputs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId: tugas.id, provider: "kling" }),
+        });
+        if (res.ok) {
+          var j = await res.json();
+          kData = j.data || j;
+        }
+      } catch (e) {}
+
+      // Fallback langsung ke gateway PiAPI jika backend proxy belum aktif
+      if (!kData || !kData.status) {
+        try {
+          var resDirect = await fetch("https://api.piapi.ai/api/v1/task/" + tugas.id, {
+            headers: { "x-api-key": "c888d3ae20f708738c2271103e93c6a22dc769a54cc83495ea9acbdc0798f05d" },
+          });
+          if (resDirect.ok) {
+            var jDirect = await resDirect.json();
+            kData = jDirect.data || jDirect;
+          }
+        } catch (eDirect) {}
+      }
+
+      if (kData) {
+        var st = (kData.status || "").toLowerCase();
+
+        if (st === "completed" || st === "success") {
+          var videoUrl = kData.output?.video_url || kData.output?.video || kData.works?.[0]?.video_url;
+          if (videoUrl) {
+            clearInterval(tugas.intervalObj);
+            tugas.status = "Selesai";
+            tugas.selesai = true;
+            tugas.progress = 100;
+            tugas.videoUrl = videoUrl;
+
+            if (typeof simpanStorage === "function") simpanStorage();
+            if (typeof renderVideoAsliKeGrid === "function") renderVideoAsliKeGrid();
+            if (typeof aturTampilanHalamanUtama === "function") aturTampilanHalamanUtama();
+            if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Video Kling berhasil selesai!", "sukses");
+            return;
+          }
+        } else if (st === "failed" || st === "error") {
+          clearInterval(tugas.intervalObj);
+          var alasan = kData.error?.message || "Gagal diproses Kling";
+          tugas.status = "❌ " + alasan;
+          tugas.selesai = true;
+          tugas.progress = 100;
+
+          if (typeof simpanStorage === "function") simpanStorage();
+          if (typeof renderVideoAsliKeGrid === "function") renderVideoAsliKeGrid();
+          if (typeof aturTampilanHalamanUtama === "function") aturTampilanHalamanUtama();
+          if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Kling Gagal: " + alasan);
+          return;
+        } else {
+          tugas.status = "⚡ Sedang Memproses Video...";
+          if (tugas.progress < 92) tugas.progress += 4;
+          if (typeof simpanStorage === "function") simpanStorage();
+
+          var cardEls = document.querySelectorAll('.grid > div, [class*="card"]');
+          for (var i = 0; i < cardEls.length; i++) {
+            if (cardEls[i].innerText && cardEls[i].innerText.includes(String(tugas.id))) {
+              var spans = cardEls[i].querySelectorAll("div, p, span");
+              for (var j = 0; j < spans.length; j++) {
+                var t = (spans[j].innerText || "").trim();
+                if (t.endsWith("%") && t.length <= 5) spans[j].innerText = tugas.progress + "%";
+              }
+              break;
+            }
+          }
         }
       }
-    } catch (e) {}
-  });
-
-  await Promise.allSettled(antreanSync);
-
-  simpanStorage();
-  renderListAkunDiKelola();
-  updateStatistikDashboard();
-
-  if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ ' + suksesHitung + ' akun berhasil disinkronkan!', 'sukses');
-}
-
-function hapusAkunSatu(idx) {
-  mintaKonfirmasi("Yakin ingin menghapus akun ini?", function() {
-    listKunciPro.splice(idx, 1); 
-    simpanStorage(); 
-    renderListAkunDiKelola(); 
-    setProviderUtama(engineMode);
-    if (typeof tampilkanNotif === 'function') tampilkanNotif('Akun berhasil dihapus', 'sukses');
-  });
-}
-
-function eksekusiHapusAkun() {
-  var checkedBoxes = document.querySelectorAll('.chk-seleksi-akun:checked');
-  if (checkedBoxes.length === 0) return tampilkanNotifPusat('Pilih minimal satu akun!');
-  mintaKonfirmasi('Hapus ' + checkedBoxes.length + ' akun terpilih?', function() {
-    var toDel = [];
-    checkedBoxes.forEach(function(c) { toDel.push(parseInt(c.getAttribute('data-idx'), 10)); });
-    toDel.sort(function(a, b) { return b - a; }).forEach(function(idx) { listKunciPro.splice(idx, 1); });
-    simpanStorage(); 
-    if (typeof toggleModePilihHapus === 'function') toggleModePilihHapus(); 
-    renderListAkunDiKelola(); 
-    setProviderUtama(engineMode);
-    if (typeof tampilkanNotif === 'function') tampilkanNotif('Akun terpilih berhasil dihapus', 'sukses');
-  });
-}
-
-async function simpanAkunBaruDariModal() {
-  var inKey = document.getElementById('in-modal-key'), valKey = inKey ? inKey.value.trim() : "";
-  if (!valKey) return tampilkanNotifPusat('Masukkan API Key terlebih dahulu!');
-  var btnSimpan = document.getElementById('btn-simpan-key');
-  if (btnSimpan) { btnSimpan.innerText = 'Menyinkronkan...'; btnSimpan.disabled = true; }
-  var saldoDidapat = 0;
-
-  try {
-    var res = await fetch('/api/saldo', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: valKey })
-    });
-    var hasil = await res.json();
-    if (res.ok && hasil && (hasil.code === 0 || hasil.code === 200 || hasil.data)) {
-      var rawData = hasil.data || hasil;
-      var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.credit ?? rawData.balance ?? rawData.remainCoins;
-      saldoDidapat = (k !== undefined && k !== null) ? Number(k) : 0;
-    } else {
-      if (btnSimpan) { btnSimpan.innerText = 'Tambah'; btnSimpan.disabled = false; }
-      return tampilkanNotifPusat('API Key tidak valid atau ditolak sistem');
     }
-  } catch (err) {
-    if (btnSimpan) { btnSimpan.innerText = 'Tambah'; btnSimpan.disabled = false; }
-    return tampilkanNotifPusat('Gagal terhubung ke verifikasi server');
+
+    cekStatus();
+    tugas.intervalObj = setInterval(cekStatus, 6000);
   }
 
-  if (btnSimpan) { btnSimpan.innerText = 'Tambah'; btnSimpan.disabled = false; }
-  
-  var indexKetemu = listKunciPro.findIndex(function(a) { return a.key === valKey; });
-  if (indexKetemu !== -1) {
-    listKunciPro[indexKetemu].koin = Number(saldoDidapat); 
-    if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Jalur akun berhasil disinkronkan!', 'sukses');
-  } else {
-    listKunciPro.push({ nama: valKey, key: valKey, koin: Number(saldoDidapat) }); 
-    if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Jalur akun baru berhasil ditambahkan!', 'sukses');
-  }
-  simpanStorage(); 
-  if (typeof tutupModalFormKey === 'function') tutupModalFormKey(); 
-  renderListAkunDiKelola(); 
-  setProviderUtama(engineMode);
-}
+  // ========================================================================
+  // 5. INTERCEPTOR & BINDING UI (Mencegat Tanpa Mengubah Script Utama)
+  // ========================================================================
+  function inisialisasiKlingEngine() {
+    // A. Intercept Pemilihan Kartu Provider
+    var provKlingEl = document.getElementById("c-prov-kling");
+    if (provKlingEl) {
+      provKlingEl.addEventListener("click", function (e) {
+        e.stopPropagation();
+        window.engineMode = "kling";
 
-document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'visible') {
+        var cards = [
+          document.getElementById("c-prov-kiix"),
+          document.getElementById("c-prov-runninghub"),
+          document.getElementById("c-prov-kling")
+        ];
+        var badges = [
+          document.getElementById("b-prov-kiix"),
+          document.getElementById("b-prov-runninghub"),
+          document.getElementById("b-prov-kling")
+        ];
+
+        cards.forEach(function (c, idx) {
+          if (c) {
+            c.className = (idx === 2)
+              ? "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition"
+              : "bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+          }
+        });
+
+        badges.forEach(function (b, idx) {
+          if (b) b.style.display = (idx === 2) ? "inline-block" : "none";
+        });
+
+        var tTitle = document.getElementById("t-engine-title");
+        var tTotal = document.getElementById("t-engine-total");
+        var dropWrap = document.getElementById("box-wrap-dropdown-akun");
+
+        if (tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL";
+        if (tTotal) tTotal.innerText = "Testing Trial";
+        if (dropWrap) dropWrap.style.display = "none";
+      }, true);
+    }
+
+    // B. Intercept Input File Khusus Mode Kling
+    var inFoto = document.getElementById("input-file-foto");
+    var inVideo = document.getElementById("input-file-video");
+
+    if (inFoto) {
+      inFoto.addEventListener("change", function (e) {
+        if (window.engineMode === "kling") {
+          e.stopImmediatePropagation();
+          if (this.files && this.files[0]) unggahBahanKling(this.files[0], "foto");
+        }
+      }, true);
+    }
+
+    if (inVideo) {
+      inVideo.addEventListener("change", function (e) {
+        if (window.engineMode === "kling") {
+          e.stopImmediatePropagation();
+          if (this.files && this.files[0]) unggahBahanKling(this.files[0], "video");
+        }
+      }, true);
+    }
+
+    // C. Intercept Tombol Generate Khusus Mode Kling
+    var btnSubmit = document.getElementById("btn-submit-generate");
+    if (btnSubmit) {
+      btnSubmit.addEventListener("click", function (e) {
+        if (window.engineMode === "kling") {
+          e.stopImmediatePropagation();
+          eksekusiGenerateKling();
+        }
+      }, true);
+    }
+
+    // D. Pulihkan Polling Tugas Kling yang Belum Selesai
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
-      window.riwayatGenerateList.forEach(function(tugas) {
-        if (!tugas.selesai && tugas.id) {
-          pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
+      window.riwayatGenerateList.forEach(function (t) {
+        if ((t.prov === "kling" || String(t.id).includes("-")) && !t.selesai) {
+          pantauStatusKling(t);
         }
       });
     }
   }
-});
 
-setInterval(function() {
-  try {
-    var tombolSync = document.querySelector('button[onclick*="sync"], button[onclick*="Sync"]');
-    if (tombolSync && document.visibilityState === 'visible') {
-      if (typeof syncSemuaKunciKolam === 'function') {
-        syncSemuaKunciKolam(true);
-      } else if (typeof syncSaldoSemua === 'function') {
-        syncSaldoSemua(true);
-      } else if (typeof muatUlangDaftarPool === 'function') {
-        muatUlangDaftarPool();
-      }
-    }
-  } catch (e) {}
-}, 20000);
-
-window.addEventListener('DOMContentLoaded', function() {
-  muatStorage();
-  selaraskanRiwayatDenganAkun();
-});
-
-window.onload = function() {
-  muatStorage();
-  selaraskanRiwayatDenganAkun();
-  renderListAkunDiKelola();
-  updateStatistikDashboard();
-
-  if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-  if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-
-  if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
-    window.riwayatGenerateList.forEach(function(tugas) {
-      if (tugas.selesai && tugas.pool_id) {
-        lepaskanKunciPoolOtomatis(tugas.pool_id);
-      } else if (!tugas.selesai && tugas.id) {
-        pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
-      }
-    });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inisialisasiKlingEngine);
+  } else {
+    inisialisasiKlingEngine();
   }
-};
+})();

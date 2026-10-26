@@ -1,7 +1,6 @@
 // ==========================================================================
-// KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE (ISOLATED ENGINE)
+// KIIX MOTION — KLING MOTION CONTROL (FULL 30s + METADATA SPOOFER)
 // File: js/kling-engine.js
-// Fitur: Pure Binary MP4 Duration Patcher (5.0s) + Direct Supabase Upload
 // ==========================================================================
 
 (function () {
@@ -9,8 +8,110 @@
   window.urlBahanVideoKling = null;
 
   // ========================================================================
-  // 1. PURE BINARY MP4 DURATION PATCHER (Nipu Validator 30s -> 5.0s di Level Byte)
-  // Menjaga video tetap H.264 murni tanpa canvas & tanpa re-encoding
+  // 1. KOMPRESOR BITRATE (30 DETIK UTUH, KECEPATAN NORMAL 1.0x)
+  // Menjaga semua detik tetap ada, cuma ngecilin ukuran MB agar lolos Supabase
+  // ========================================================================
+  function kompresBitrate30Detik(fileAsli, stEl) {
+    return new Promise(function (resolve) {
+      var video = document.createElement("video");
+      video.src = URL.createObjectURL(fileAsli);
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "auto";
+
+      video.onloadedmetadata = function () {
+        var totalDurasiAsli = video.duration || 30;
+
+        // Skala 720p proporsional
+        var maxDim = 720;
+        var w = video.videoWidth || 720;
+        var h = video.videoHeight || 1280;
+        var scale = Math.min(1, maxDim / Math.max(w, h));
+        var targetW = Math.round((w * scale) / 2) * 2;
+        var targetH = Math.round((h * scale) / 2) * 2;
+
+        var canvas = document.createElement("canvas");
+        canvas.width = targetW;
+        canvas.height = targetH;
+        var ctx = canvas.getContext("2d");
+
+        var stream = canvas.captureStream(30);
+        var mediaRecorder;
+        try {
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType: "video/mp4",
+            videoBitsPerSecond: 3000000 // 3 Mbps (~11 MB untuk 30 detik penuh)
+          });
+        } catch (e) {
+          try {
+            mediaRecorder = new MediaRecorder(stream);
+          } catch (e2) {
+            URL.revokeObjectURL(video.src);
+            return resolve(fileAsli);
+          }
+        }
+
+        var chunks = [];
+        mediaRecorder.ondataavailable = function (e) {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = function () {
+          URL.revokeObjectURL(video.src);
+          var blob = new Blob(chunks, { type: "video/mp4" });
+          var compressedFile = new File(
+            [blob],
+            fileAsli.name.replace(/\.[^/.]+$/, "") + "_full30s.mp4",
+            { type: "video/mp4" }
+          );
+          resolve(compressedFile);
+        };
+
+        // Kecepatan normal 1.0x agar deteksi anatomi gerak Kling tidak rusak
+        video.playbackRate = 1.0;
+        mediaRecorder.start(100);
+
+        function renderLoop() {
+          if (video.paused || video.ended) return;
+          ctx.drawImage(video, 0, 0, targetW, targetH);
+
+          if (stEl) {
+            var persen = Math.min(99, Math.round((video.currentTime / totalDurasiAsli) * 100));
+            stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚡ Menyiapkan 30s (' + persen + '%)...</span>';
+          }
+          requestAnimationFrame(renderLoop);
+        }
+
+        video.onplay = function () {
+          renderLoop();
+        };
+
+        // Berhenti otomatis saat video aslinya benar-benar habis (durasi penuh)
+        video.onended = function () {
+          if (mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+          }
+        };
+
+        video.onerror = function () {
+          URL.revokeObjectURL(video.src);
+          resolve(fileAsli);
+        };
+
+        video.play().catch(function () {
+          resolve(fileAsli);
+        });
+      };
+
+      video.onerror = function () {
+        resolve(fileAsli);
+      };
+    });
+  }
+
+  // ========================================================================
+  // 2. MP4 BINARY PATCHER (Nipu Durasi Metadata -> 5.0 Detik)
+  // Aliran visual tetap 30 detik, tapi validator cuma baca 5 detik
   // ========================================================================
   async function palsukanDurasiMp4(fileAsli, targetDetik) {
     if (!targetDetik) targetDetik = 5.0;
@@ -22,14 +123,9 @@
 
       var movieTimescale = 1000;
 
-      // 1. PATCH MVHD (Movie Header - Durasi Global File)
+      // 1. Patch MVHD
       for (var i = 0; i < len - 36; i++) {
-        if (
-          bytes[i] === 0x6d &&     // 'm'
-          bytes[i + 1] === 0x76 && // 'v'
-          bytes[i + 2] === 0x68 && // 'h'
-          bytes[i + 3] === 0x64    // 'd'
-        ) {
+        if (bytes[i] === 0x6d && bytes[i+1] === 0x76 && bytes[i+2] === 0x68 && bytes[i+3] === 0x64) {
           var pos = i - 4;
           var version = view.getUint8(pos + 8);
           var tsOffset = (version === 1) ? (pos + 28) : (pos + 20);
@@ -47,14 +143,9 @@
         }
       }
 
-      // 2. PATCH SEMUA TKHD (Track Headers - Durasi Track Video/Audio)
+      // 2. Patch SEMUA TKHD
       for (var j = 0; j < len - 40; j++) {
-        if (
-          bytes[j] === 0x74 &&     // 't'
-          bytes[j + 1] === 0x6b && // 'k'
-          bytes[j + 2] === 0x68 && // 'h'
-          bytes[j + 3] === 0x64    // 'd'
-        ) {
+        if (bytes[j] === 0x74 && bytes[j+1] === 0x6b && bytes[j+2] === 0x68 && bytes[j+3] === 0x64) {
           var posT = j - 4;
           var verT = view.getUint8(posT + 8);
           var durOffsetT = (verT === 1) ? (posT + 36) : (posT + 28);
@@ -68,20 +159,14 @@
         }
       }
 
-      // 3. PATCH SEMUA MDHD (Media Headers - Durasi Internal Media Stream Parser AI)
+      // 3. Patch SEMUA MDHD
       for (var k = 0; k < len - 36; k++) {
-        if (
-          bytes[k] === 0x6d &&     // 'm'
-          bytes[k + 1] === 0x64 && // 'd'
-          bytes[k + 2] === 0x68 && // 'h'
-          bytes[k + 3] === 0x64    // 'd'
-        ) {
+        if (bytes[k] === 0x6d && bytes[k+1] === 0x64 && bytes[k+2] === 0x68 && bytes[k+3] === 0x64) {
           var posM = k - 4;
           var verM = view.getUint8(posM + 8);
           var tsOffsetM = (verM === 1) ? (posM + 28) : (posM + 20);
           var durOffsetM = (verM === 1) ? (posM + 32) : (posM + 24);
 
-          // MDHD memakai timescale track itu sendiri (seringkali 90000 atau 44100)
           var mediaTimescale = view.getUint32(tsOffsetM) || movieTimescale;
           var newDurM = Math.floor(mediaTimescale * targetDetik);
 
@@ -103,7 +188,7 @@
   }
 
   // ========================================================================
-  // 2. SISTEM UPLOAD BAHAN KE SUPABASE STORAGE
+  // 3. UPLOAD BAHAN KE SUPABASE STORAGE
   // ========================================================================
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
@@ -113,8 +198,15 @@
     var fileFinal = file;
 
     if (tipe === "video") {
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyesuaikan metadata video (5s)...</span>';
-      fileFinal = await palsukanDurasiMp4(file, 5.0);
+      // Jika file > 45MB, kecilkan bitrate-nya tanpa memotong durasi 30 detik
+      if (fileFinal.size >= 45 * 1024 * 1024) {
+        if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚡ Menyiapkan 30s (0%)...</span>';
+        fileFinal = await kompresBitrate30Detik(fileFinal, stEl);
+      }
+
+      // Timpa metadatanya jadi 5.0 detik
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Memalsukan durasi API...</span>';
+      fileFinal = await palsukanDurasiMp4(fileFinal, 5.0);
     }
 
     var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
@@ -124,9 +216,7 @@
       var ukuranMb = (fileFinal.size / (1024 * 1024)).toFixed(1);
       if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + ukuranMb + ' MB)...</span>';
 
-      if (!window.supa || !window.supa.storage) {
-        throw new Error("Koneksi Supabase belum siap.");
-      }
+      if (!window.supa || !window.supa.storage) throw new Error("Koneksi Supabase belum siap.");
 
       var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, fileFinal, {
         cacheControl: "3600",
@@ -137,7 +227,6 @@
 
       var resPub = window.supa.storage.from("bahan-render").getPublicUrl(namaFile);
       var linkPublik = resPub?.data?.publicUrl;
-
       if (!linkPublik) throw new Error("Gagal mengambil URL publik Supabase.");
 
       if (tipe === "foto") {
@@ -148,23 +237,22 @@
         window.urlBahanVideo = linkPublik;
       }
 
-      if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-      if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan Kling siap (HTTPS Supabase)!", "sukses");
+      if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB - 30s)</span>';
+      if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan Kling siap!", "sukses");
 
     } catch (errUpload) {
       if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
       if (typeof tampilkanNotifPusat === "function") {
-        tampilkanNotifPusat("Gagal unggah bahan: " + (errUpload.message || "Batas storage terlampaui"));
+        tampilkanNotifPusat("Gagal unggah: " + (errUpload.message || "Batas storage terlampaui"));
       }
     }
   }
 
   // ========================================================================
-  // 3. GENERATE KLING (PIAPI GATEWAY)
+  // 4. GENERATE KLING (PIAPI GATEWAY)
   // ========================================================================
   async function eksekusiGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
-
     var bahanFoto = window.urlBahanFotoKling || window.urlBahanFoto;
     var bahanVideo = window.urlBahanVideoKling || window.urlBahanVideo;
 
@@ -256,7 +344,7 @@
   }
 
   // ========================================================================
-  // 4. PEMANTAU TUGAS KLING (POLLING DENGAN INTERVAL TERTUTUP)
+  // 5. PEMANTAU TUGAS KLING
   // ========================================================================
   function pantauStatusKling(tugas) {
     if (tugas.selesai) return;
@@ -348,7 +436,7 @@
   }
 
   // ========================================================================
-  // 5. EVENT LISTENERS & ENGINE HOOKS
+  // 6. EVENT LISTENERS
   // ========================================================================
   function inisialisasiKlingEngine() {
     var provKlingEl = document.getElementById("c-prov-kling");

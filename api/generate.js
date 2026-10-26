@@ -92,12 +92,10 @@ export default async function handler(req, res) {
 
   // =========================================================
   // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - EXCLUSIVE OWNER)
-  // Fitur: Explicit Duration Parameter Override (Target 5s Billing)
   // =========================================================
   if (provider === 'kling') {
     let emailTerverifikasi = (userEmail || "").trim().toLowerCase();
 
-    // Fallback: verifikasi ID ke Supabase Auth jika email belum terkirim
     if (!emailTerverifikasi && userId && SUPABASE_URL && SUPABASE_SERVICE_ROLE) {
       try {
         const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
@@ -118,19 +116,30 @@ export default async function handler(req, res) {
     try {
       const PIAPI_KEY = process.env.PIAPI_KEY || "b6d3705e08d8e2330e60639119bd04bc304be592eebda976ec2551f82ea072da";
 
+      let finalFoto = urlBahanFoto ? urlBahanFoto.trim() : "";
+      let finalVideo = urlBahanVideo ? urlBahanVideo.trim() : "";
+
+      const WORKER_BASE = "https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev";
+
+      if (finalFoto.startsWith("api/") || !finalFoto.startsWith("http")) {
+        finalFoto = `${WORKER_BASE}/${finalFoto.replace(/^\/+/, '')}`;
+      }
+
+      if (finalVideo.startsWith("api/") || !finalVideo.startsWith("http")) {
+        finalVideo = `${WORKER_BASE}/${finalVideo.replace(/^\/+/, '')}`;
+      }
+
       const piapiPayload = {
         model: "kling",
         task_type: "motion_control",
-        duration: 5,
         input: {
-          image_url: urlBahanFoto,
+          image_url: finalFoto,
+          video_url: finalVideo,
           version: "2.6",
           mode: "std",
           motion_direction: "video",
           keep_original_sound: false,
-          video_url: urlBahanVideo,
           duration: 5,
-          duration_seconds: 5,
           prompt: prompt || "High quality cinematic motion capture, smooth movement, realistic studio lighting"
         }
       };
@@ -162,7 +171,7 @@ export default async function handler(req, res) {
       } else {
         return res.status(400).json({
           success: false,
-          message: `[HTTP ${piapiRes.status}] ${rawText} | FOTO: ${urlBahanFoto} | VIDEO: ${urlBahanVideo}`
+          message: `[HTTP ${piapiRes.status}] ${rawText} | FOTO: ${finalFoto} | VIDEO: ${finalVideo}`
         });
       }
     } catch (errKling) {

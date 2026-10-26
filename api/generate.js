@@ -71,6 +71,7 @@ export default async function handler(req, res) {
     provider,
     apiKeyPribadi,
     userId,
+    userEmail,
     prompt
   } = req.body;
 
@@ -93,32 +94,27 @@ export default async function handler(req, res) {
   // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - EXCLUSIVE OWNER)
   // =========================================================
   if (provider === 'kling') {
-    // Validasi email pemohon langsung ke Supabase
-    if (!userId) {
-      return res.status(401).json({ success: false, message: 'Sesi login tidak valid.' });
-    }
+    let emailTerverifikasi = (userEmail || "").trim().toLowerCase();
 
-    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE) {
+    // Fallback: verifikasi ID ke Supabase Auth jika email belum terkirim
+    if (!emailTerverifikasi && userId && SUPABASE_URL && SUPABASE_SERVICE_ROLE) {
       try {
-        const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=email`, {
+        const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
           headers: supaHeaders
         });
-        const userData = await userRes.json();
-        const userEmail = userData?.[0]?.email || "";
+        const authUser = await authRes.json();
+        emailTerverifikasi = (authUser?.email || "").trim().toLowerCase();
+      } catch (e) {}
+    }
 
-        if (userEmail.toLowerCase() !== EMAIL_OWNER.toLowerCase()) {
-          return res.status(403).json({
-            success: false,
-            message: `Akses ditolak: Fitur Kling 2.6 hanya boleh digunakan oleh Owner (${EMAIL_OWNER}).`
-          });
-        }
-      } catch (authErr) {
-        return res.status(500).json({ success: false, message: 'Gagal memverifikasi akun pemohon.' });
-      }
+    if (emailTerverifikasi !== EMAIL_OWNER.toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        message: `Akses ditolak: Fitur Kling 2.6 hanya boleh digunakan oleh Owner (${EMAIL_OWNER}).`
+      });
     }
 
     try {
-      // API Key PiAPI Baru
       const PIAPI_KEY = process.env.PIAPI_KEY || "b6d3705e08d8e2330e60639119bd04bc304be592eebda976ec2551f82ea072da";
 
       const piapiPayload = {

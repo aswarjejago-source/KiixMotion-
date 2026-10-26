@@ -1,5 +1,5 @@
 // ==========================================
-// PILAR 3: ENGINE LOGIC (STRICT STATUS RUNNINGHUB)
+// PILAR 3: ENGINE LOGIC (CORE MOTION ENGINE)
 // File: js/api-engine.js
 // ==========================================
 
@@ -7,6 +7,7 @@ window.riwayatGenerateList = window.riwayatGenerateList || [];
 var riwayatGenerateList = window.riwayatGenerateList;
 
 var engineMode = 'kiix'; 
+window.engineMode = 'kiix';
 var urlBahanFoto = null;
 var urlBahanVideo = null;
 var listKunciPro = [];
@@ -171,7 +172,7 @@ async function selaraskanRiwayatDenganAkun() {
           .ilike('email', emailTarget)
           .maybeSingle();
 
-        if (dbUser) {
+        if (dbUser && window.engineMode !== 'kling') {
           var isVIP = (
             dbUser.is_vip === true ||
             dbUser.is_pro === true ||
@@ -261,6 +262,8 @@ function ambilLinkOutputResmi(jsonObj) {
 function resetFormBahanInput() {
   urlBahanFoto = null;
   urlBahanVideo = null;
+  window.urlBahanFoto = null;
+  window.urlBahanVideo = null;
 
   var inFoto = document.getElementById('input-file-foto');
   var inVideo = document.getElementById('input-file-video');
@@ -299,7 +302,10 @@ function tampilkanModalCeklisSukses(taskId) {
 }
 
 function setProviderUtama(mode) {
+  if (mode === 'kling') return;
+
   engineMode = (mode === 'kiix') ? 'kiix' : 'pro';
+  window.engineMode = engineMode;
   
   var cards = document.querySelectorAll('[id^="c-prov-"]');
   var badges = document.querySelectorAll('[id^="b-prov-"]');
@@ -399,8 +405,13 @@ function unggahBahanLangsung(input, tipe) {
 
         if (!fileUrl) throw new Error("Link file tidak ditemukan dari server.");
 
-        if (tipe === 'foto') urlBahanFoto = fileUrl;
-        else urlBahanVideo = fileUrl;
+        if (tipe === 'foto') {
+          urlBahanFoto = fileUrl;
+          window.urlBahanFoto = fileUrl;
+        } else {
+          urlBahanVideo = fileUrl;
+          window.urlBahanVideo = fileUrl;
+        }
 
         var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
         if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
@@ -536,7 +547,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         if (tugas.intervalObj) clearInterval(tugas.intervalObj);
         lepaskanKunciPoolOtomatis(currentPoolId);
 
-        var labelStatus = (code === 807 || statusTeks.includes("CANCEL")) ? "❌ Dibatalkan di RunningHub" : "❌ Gagal Diproses Studio";
+        var labelStatus = (code === 807 || statusTeks.includes("CANCEL")) ? "❌ Dibatalkan di Server" : "❌ Gagal Diproses Studio";
         tugas.status = labelStatus;
         tugas.selesai = true;
         tugas.progress = 100;

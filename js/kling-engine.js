@@ -1,7 +1,7 @@
 // ==========================================================================
 // KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE
 // File: js/kling-engine.js
-// Fitur: Client-Side Auto Compressor (Canvas/MediaRecorder) + MP4 Duration Patcher
+// Fitur: Direct MP4 Parser + Deep ISO-BMFF Atom Patcher + Owner Integration
 // ==========================================================================
 
 (function () {
@@ -9,8 +9,7 @@
   window.urlBahanVideoKling = null;
 
   // ========================================================================
-  // 1. AUTO VIDEO COMPRESSOR (CLIENT-SIDE)
-  // Menurunkan resolusi ke max 720p & bitrate 1.8 Mbps jika file > 45 MB
+  // 1. AUTO VIDEO COMPRESSOR (FALLBACK JIKA FILE BESAR)
   // ========================================================================
   async function kompresVideoKlien(file, onProgress) {
     return new Promise(function (resolve, reject) {
@@ -26,7 +25,6 @@
         var targetTinggi = tinggiAsli;
         var batasMaks = 1280;
 
-        // Downscale ke max 720p/1280px jika resolusi terlalu besar
         if (lebarAsli > batasMaks || tinggiAsli > batasMaks) {
           if (lebarAsli >= tinggiAsli) {
             targetLebar = batasMaks;
@@ -36,7 +34,6 @@
             targetLebar = Math.round((lebarAsli * batasMaks) / tinggiAsli);
           }
         }
-        // Pastikan ukuran genap untuk encoder video
         targetLebar = targetLebar - (targetLebar % 2);
         targetTinggi = targetTinggi - (targetTinggi % 2);
 
@@ -59,11 +56,11 @@
         try {
           recorder = new MediaRecorder(stream, {
             mimeType: mimeType,
-            videoBitsPerSecond: 1800000 // Bitrate 1.8 Mbps
+            videoBitsPerSecond: 1800000
           });
         } catch (e) {
           URL.revokeObjectURL(video.src);
-          return resolve(file); // Fallback ke file awal jika browser tidak dukung recorder
+          return resolve(file);
         }
 
         var chunks = [];
@@ -120,7 +117,8 @@
   }
 
   // ========================================================================
-  // 2. ROBUST ISO-BMFF ATOM TRAVERSER (SPOOF DURASI 5.0s)
+  // 2. ROBUST ISO-BMFF ATOM TRAVERSER & SAMPLE PATCHER (TARGET 5.0s)
+  // Memanipulasi mvhd, tkhd, mdhd, elst, dan stts ke batas 5 detik
   // ========================================================================
   async function palsukanDurasiMp4(fileAsli, targetDetik) {
     if (!targetDetik) targetDetik = 5.0;
@@ -130,6 +128,7 @@
       var view = new DataView(buffer);
       var totalBytes = buffer.byteLength;
       var movieTimescale = 1000;
+      var videoFps = 30;
 
       function getBoxType(offset) {
         var str = "";
@@ -158,7 +157,7 @@
 
           var payloadPos = pos + headerSize;
 
-          if (["moov", "trak", "mdia", "minf", "stbl"].includes(boxType)) {
+          if (["moov", "trak", "mdia", "minf", "stbl", "edts"].includes(boxType)) {
             prosesBox(payloadPos, pos + boxSize);
           } else if (boxType === "mvhd") {
             var verMv = view.getUint8(payloadPos);
@@ -201,23 +200,15 @@
             var tablePos = payloadPos + 8;
 
             if (entryCount > 0 && entryCount < 10000 && tablePos + (entryCount * 8) <= pos + boxSize) {
-              var totalDelta = 0;
+              var totalFrames = 0;
               for (var e = 0; e < entryCount; e++) {
-                var count = view.getUint32(tablePos + (e * 8));
-                var delta = view.getUint32(tablePos + (e * 8) + 4);
-                totalDelta += count * delta;
+                totalFrames += view.getUint32(tablePos + (e * 8));
               }
 
-              if (totalDelta > 0) {
-                var targetDelta = Math.floor(movieTimescale * targetDetik);
-                var ratio = targetDelta / totalDelta;
-
-                for (var e2 = 0; e2 < entryCount; e2++) {
-                  var oldD = view.getUint32(tablePos + (e2 * 8) + 4);
-                  var newD = Math.max(1, Math.floor(oldD * ratio));
-                  view.setUint32(tablePos + (e2 * 8) + 4, newD);
-                }
-              }
+              var targetDelta = Math.floor((movieTimescale * targetDetik) / Math.max(1, Math.min(totalFrames, 150)));
+              view.setUint32(payloadPos + 4, 1);
+              view.setUint32(tablePos, Math.min(totalFrames, Math.floor(targetDetik * videoFps)));
+              view.setUint32(tablePos + 4, targetDelta);
             }
           } else if (boxType === "elst") {
             var verEl = view.getUint8(payloadPos);
@@ -260,22 +251,22 @@
     var fileFinal = file;
 
     if (tipe === "video") {
-      var sizeMb = file.size / (1024 * 1024);
+      // 1. Eksekusi spoof biner langsung ke file MP4 asli murni
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Memodifikasi biner atom FFmpeg (5.0s)...</span>';
+      fileFinal = await palsukanDurasiMp4(file, 5.0);
 
-      // Auto kompres jika ukuran file lebih dari 45 MB
+      // 2. Kompresi otomatis jika file masih > 45 MB
+      var sizeMb = fileFinal.size / (1024 * 1024);
       if (sizeMb > 45) {
-        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengompres video (>50MB)... 0%</span>';
+        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengompres video (>45MB)... 0%</span>';
         try {
-          fileFinal = await kompresVideoKlien(file, function (persen) {
+          fileFinal = await kompresVideoKlien(fileFinal, function (persen) {
             if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengompres video... ' + persen + '%</span>';
           });
         } catch (eKompres) {
           console.warn("Gagal kompres otomatis, mencoba lanjut...", eKompres);
         }
       }
-
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyesuaikan durasi binary...</span>';
-      fileFinal = await palsukanDurasiMp4(fileFinal, 5.0);
     }
 
     var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
@@ -318,7 +309,7 @@
   }
 
   // ========================================================================
-  // 4. GENERATE KLING
+  // 4. GENERATE KLING (KIRIM EMAIL OWNER KE BACKEND)
   // ========================================================================
   async function eksekusiGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
@@ -359,6 +350,7 @@
           urlBahanVideo: bahanVideo,
           provider: "kling",
           userId: realUserId,
+          userEmail: realEmail,
           prompt: "High quality cinematic motion capture, smooth movement, realistic studio lighting",
         }),
       });

@@ -1,18 +1,13 @@
 // ==========================================================================
 // KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE
 // File: js/kling-engine.js
-// Fitur: Auto-Cap Size (<48MB Supabase) + Pure Binary 5.0s Timeline Lock
 // ==========================================================================
 
 (function () {
   window.urlBahanFotoKling = null;
   window.urlBahanVideoKling = null;
 
-  // ========================================================================
-  // 1. PURE BINARY SAMPLE & TIMELINE CAPPER (TARGET 5.0s / MAX 150 FRAMES)
-  // Memodifikasi atom mvhd, tkhd, mdhd, elst, stts, dan stsz langsung pada biner
-  // tanpa MediaRecorder agar tidak memicu freeze di browser HP.
-  // ========================================================================
+  // 1. MANIPULASI BINER TIMELINE MP4
   async function palsukanDurasiMp4(fileAsli, targetDetik) {
     if (!targetDetik) targetDetik = 5.0;
 
@@ -142,9 +137,7 @@
     }
   }
 
-  // ========================================================================
-  // 2. SISTEM UPLOAD BAHAN KE SUPABASE (AUTO-BYPASS LIMIT 50MB)
-  // ========================================================================
+  // 2. SISTEM UNGGAH BAHAN KE SUPABASE
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
     var txtEl = document.getElementById(tipe === "foto" ? "txt-file-foto" : "txt-file-video");
@@ -155,7 +148,6 @@
     if (tipe === "video") {
       var sizeMb = file.size / (1024 * 1024);
 
-      // POTONG LANGSUNG JIKA MELEBIHI 48MB AGAR TIDAK DIBLOKIR SUPABASE
       if (sizeMb > 48) {
         if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Memangkas ke batas 45MB...</span>';
         var batasBytes = 45 * 1024 * 1024;
@@ -212,10 +204,8 @@
     }
   }
 
-  // ========================================================================
-  // 3. GENERATE KLING
-  // ========================================================================
-  async function eksekusiGenerateKling() {
+  // 3. GENERATE KLING (DIKUNCI KE WINDOW AGAR DAPAT DIAKSES DARI MANA SAJA)
+  window.eksekusiGenerateKling = async function () {
     var btn = document.getElementById("btn-submit-generate");
     var bahanFoto = window.urlBahanFotoKling || window.urlBahanFoto;
     var bahanVideo = window.urlBahanVideoKling || window.urlBahanVideo;
@@ -232,10 +222,15 @@
 
     if (window.supa) {
       try {
-        var { data: sessData } = await window.supa.auth.getSession();
-        if (sessData?.session?.user) {
-          realUserId = sessData.session.user.id;
-          realEmail = sessData.session.user.email;
+        var sess = await window.supa.auth.getSession();
+        var user = sess?.data?.session?.user;
+        if (!user && typeof window.supa.auth.getUser === "function") {
+          var uRes = await window.supa.auth.getUser();
+          user = uRes?.data?.user;
+        }
+        if (user) {
+          realUserId = user.id;
+          realEmail = user.email;
         }
       } catch (e) {}
     }
@@ -311,11 +306,9 @@
         btn.innerText = "GENERATE VIDEO";
       }
     }
-  }
+  };
 
-  // ========================================================================
-  // 4. PEMANTAU STATUS KLING
-  // ========================================================================
+  // 4. PEMANTAU STATUS
   function pantauStatusKling(tugas) {
     if (tugas.selesai) return;
     if (tugas.intervalObj) clearInterval(tugas.intervalObj);
@@ -393,9 +386,7 @@
     tugas.intervalObj = setInterval(cekStatus, 6000);
   }
 
-  // ========================================================================
   // 5. INISIALISASI
-  // ========================================================================
   function inisialisasiKlingEngine() {
     var provKlingEl = document.getElementById("c-prov-kling");
     if (provKlingEl) {
@@ -462,9 +453,10 @@
 
     var btnSubmit = document.getElementById("btn-submit-generate");
     if (btnSubmit) {
-      btnSubmit.addEventListener("click", function () {
+      btnSubmit.addEventListener("click", function (e) {
         if (window.engineMode === "kling") {
-          eksekusiGenerateKling();
+          e.preventDefault();
+          window.eksekusiGenerateKling();
         }
       });
     }

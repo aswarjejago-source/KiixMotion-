@@ -1,7 +1,6 @@
 // ==========================================================================
 // KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE
 // File: js/kling-engine.js
-// Fitur: Deep MP4 Binary Duration Patcher (stts, elst, mdhd, mvhd -> 5.0s)
 // ==========================================================================
 
 (function () {
@@ -9,126 +8,153 @@
   window.urlBahanVideoKling = null;
 
   // ========================================================================
-  // 1. DEEP BINARY PATCHER (Manipulasi stts, elst, mdhd, mvhd ke 5.0 Detik)
-  // Menipu FFprobe validator tanpa membuang frame dan tanpa re-encode
+  // 1. ROBUST ISO-BMFF ATOM TRAVERSER (SPOOF DURASI 5.0s)
+  // Menelusuri hirarki atom (moov -> mvhd, trak -> mdia -> mdhd, minf -> stbl -> stts)
   // ========================================================================
   async function palsukanDurasiMp4(fileAsli, targetDetik) {
     if (!targetDetik) targetDetik = 5.0;
+
     try {
       var buffer = await fileAsli.arrayBuffer();
       var view = new DataView(buffer);
-      var bytes = new Uint8Array(buffer);
-      var len = bytes.length;
+      var totalBytes = buffer.byteLength;
 
       var movieTimescale = 1000;
-      var mediaTimescale = 1000;
 
-      // LANGKAH 1: Ambil & Patch MVHD (Movie Header)
-      for (var i = 0; i < len - 36; i++) {
-        if (bytes[i] === 0x6d && bytes[i+1] === 0x76 && bytes[i+2] === 0x68 && bytes[i+3] === 0x64) { // 'mvhd'
-          var posMv = i - 4;
-          var verMv = view.getUint8(posMv + 8);
-          var tsOffMv = (verMv === 1) ? (posMv + 28) : (posMv + 20);
-          var durOffMv = (verMv === 1) ? (posMv + 32) : (posMv + 24);
-
-          movieTimescale = view.getUint32(tsOffMv) || 1000;
-          var newDurMv = Math.floor(movieTimescale * targetDetik);
-
-          if (verMv === 1) {
-            view.setBigUint64(durOffMv, BigInt(newDurMv));
-          } else {
-            view.setUint32(durOffMv, newDurMv);
-          }
-          break;
+      // Helper membaca 4-karakter tipe box
+      function getBoxType(offset) {
+        var str = "";
+        for (var i = 0; i < 4; i++) {
+          str += String.fromCharCode(view.getUint8(offset + i));
         }
+        return str;
       }
 
-      // LANGKAH 2: Ambil & Patch MDHD (Media Header)
-      for (var j = 0; j < len - 36; j++) {
-        if (bytes[j] === 0x6d && bytes[j+1] === 0x64 && bytes[j+2] === 0x68 && bytes[j+3] === 0x64) { // 'mdhd'
-          var posMd = j - 4;
-          var verMd = view.getUint8(posMd + 8);
-          var tsOffMd = (verMd === 1) ? (posMd + 28) : (posMd + 20);
-          var durOffMd = (verMd === 1) ? (posMd + 32) : (posMd + 24);
+      // Traverser rekursif box MP4
+      function prosesBox(offset, maxOffset) {
+        var pos = offset;
 
-          mediaTimescale = view.getUint32(tsOffMd) || movieTimescale;
-          var newDurMd = Math.floor(mediaTimescale * targetDetik);
+        while (pos + 8 <= maxOffset) {
+          var boxSize = view.getUint32(pos);
+          var boxType = getBoxType(pos + 4);
 
-          if (verMd === 1) {
-            view.setBigUint64(durOffMd, BigInt(newDurMd));
-          } else {
-            view.setUint32(durOffMd, newDurMd);
+          // Handle extended size (64-bit) atau box sampai EOF
+          var headerSize = 8;
+          if (boxSize === 1) {
+            boxSize = Number(view.getBigUint64(pos + 8));
+            headerSize = 16;
+          } else if (boxSize === 0) {
+            boxSize = maxOffset - pos;
           }
-        }
-      }
 
-      // LANGKAH 3: Patch TKHD (Track Headers)
-      for (var k = 0; k < len - 40; k++) {
-        if (bytes[k] === 0x74 && bytes[k+1] === 0x6b && bytes[k+2] === 0x68 && bytes[k+3] === 0x64) { // 'tkhd'
-          var posTk = k - 4;
-          var verTk = view.getUint8(posTk + 8);
-          var durOffTk = (verTk === 1) ? (posTk + 36) : (posTk + 28);
-          var newDurTk = Math.floor(movieTimescale * targetDetik);
+          if (boxSize < headerSize || pos + boxSize > maxOffset) break;
 
-          if (verTk === 1) {
-            view.setBigUint64(durOffTk, BigInt(newDurTk));
-          } else {
-            view.setUint32(durOffTk, newDurTk);
+          var payloadPos = pos + headerSize;
+          var payloadSize = boxSize - headerSize;
+
+          // 1. Container Boxes: moov, trak, mdia, minf, stbl
+          if (["moov", "trak", "mdia", "minf", "stbl"].includes(boxType)) {
+            prosesBox(payloadPos, pos + boxSize);
           }
-        }
-      }
 
-      // LANGKAH 4: Patch STTS (Time-to-Sample — Kunci Utama Pembacaan FFprobe)
-      for (var m = 0; m < len - 24; m++) {
-        if (bytes[m] === 0x73 && bytes[m+1] === 0x74 && bytes[m+2] === 0x74 && bytes[m+3] === 0x73) { // 'stts'
-          var posSt = m - 4;
-          var entryCount = view.getUint32(posSt + 12);
+          // 2. MVHD (Movie Header Box)
+          else if (boxType === "mvhd") {
+            var verMv = view.getUint8(payloadPos);
+            var tsOff = (verMv === 1) ? (payloadPos + 20) : (payloadPos + 12);
+            var durOff = (verMv === 1) ? (payloadPos + 28) : (payloadPos + 16);
 
-          if (entryCount > 0 && entryCount < 10000) {
-            var totalOldDelta = 0;
-            for (var e = 0; e < entryCount; e++) {
-              var count = view.getUint32(posSt + 16 + e * 8);
-              var delta = view.getUint32(posSt + 16 + e * 8 + 4);
-              totalOldDelta += count * delta;
+            movieTimescale = view.getUint32(tsOff) || 1000;
+            var targetDurMv = Math.floor(movieTimescale * targetDetik);
+
+            if (verMv === 1) {
+              view.setBigUint64(durOff, BigInt(targetDurMv));
+            } else {
+              view.setUint32(durOff, targetDurMv);
             }
+          }
 
-            if (totalOldDelta > 0) {
-              var targetTotalDelta = Math.floor(mediaTimescale * targetDetik);
-              var ratio = targetTotalDelta / totalOldDelta;
+          // 3. TKHD (Track Header Box)
+          else if (boxType === "tkhd") {
+            var verTk = view.getUint8(payloadPos);
+            var durOffTk = (verTk === 1) ? (payloadPos + 28) : (payloadPos + 20);
+            var targetDurTk = Math.floor(movieTimescale * targetDetik);
 
-              for (var e2 = 0; e2 < entryCount; e2++) {
-                var oldDelta = view.getUint32(posSt + 16 + e2 * 8 + 4);
-                var newDelta = Math.max(1, Math.floor(oldDelta * ratio));
-                view.setUint32(posSt + 16 + e2 * 8 + 4, newDelta);
+            if (verTk === 1) {
+              view.setBigUint64(durOffTk, BigInt(targetDurTk));
+            } else {
+              view.setUint32(durOffTk, targetDurTk);
+            }
+          }
+
+          // 4. MDHD (Media Header Box)
+          else if (boxType === "mdhd") {
+            var verMd = view.getUint8(payloadPos);
+            var tsOffMd = (verMd === 1) ? (payloadPos + 20) : (payloadPos + 12);
+            var durOffMd = (verMd === 1) ? (payloadPos + 28) : (payloadPos + 16);
+
+            var trackTimescale = view.getUint32(tsOffMd) || movieTimescale;
+            var targetDurMd = Math.floor(trackTimescale * targetDetik);
+
+            if (verMd === 1) {
+              view.setBigUint64(durOffMd, BigInt(targetDurMd));
+            } else {
+              view.setUint32(durOffMd, targetDurMd);
+            }
+          }
+
+          // 5. STTS (Time-to-Sample Box)
+          else if (boxType === "stts") {
+            var entryCount = view.getUint32(payloadPos + 4);
+            var tablePos = payloadPos + 8;
+
+            if (entryCount > 0 && entryCount < 10000 && tablePos + (entryCount * 8) <= pos + boxSize) {
+              var totalDelta = 0;
+              for (var e = 0; e < entryCount; e++) {
+                var count = view.getUint32(tablePos + (e * 8));
+                var delta = view.getUint32(tablePos + (e * 8) + 4);
+                totalDelta += count * delta;
+              }
+
+              if (totalDelta > 0) {
+                var targetDelta = Math.floor(movieTimescale * targetDetik);
+                var ratio = targetDelta / totalDelta;
+
+                for (var e2 = 0; e2 < entryCount; e2++) {
+                  var oldD = view.getUint32(tablePos + (e2 * 8) + 4);
+                  var newD = Math.max(1, Math.floor(oldD * ratio));
+                  view.setUint32(tablePos + (e2 * 8) + 4, newD);
+                }
               }
             }
           }
-        }
-      }
 
-      // LANGKAH 5: Patch ELST (Edit List — Jika Video Berasal dari CapCut/Editor)
-      for (var n = 0; n < len - 24; n++) {
-        if (bytes[n] === 0x65 && bytes[n+1] === 0x6c && bytes[n+2] === 0x73 && bytes[n+3] === 0x74) { // 'elst'
-          var posEl = n - 4;
-          var verEl = view.getUint8(posEl + 8);
-          var elstEntries = view.getUint32(posEl + 12);
-          var targetElstDur = Math.floor(movieTimescale * targetDetik);
+          // 6. ELST (Edit List Box)
+          else if (boxType === "elst") {
+            var verEl = view.getUint8(payloadPos);
+            var elCount = view.getUint32(payloadPos + 4);
+            var entryElPos = payloadPos + 8;
+            var targetDurEl = Math.floor(movieTimescale * targetDetik);
 
-          for (var e3 = 0; e3 < elstEntries; e3++) {
-            if (verEl === 1) {
-              view.setBigUint64(posEl + 16 + e3 * 20, BigInt(targetElstDur));
-            } else {
-              view.setUint32(posEl + 16 + e3 * 12, targetElstDur);
+            for (var e3 = 0; e3 < elCount; e3++) {
+              if (verEl === 1) {
+                view.setBigUint64(entryElPos + (e3 * 20), BigInt(targetDurEl));
+              } else {
+                view.setUint32(entryElPos + (e3 * 12), targetDurEl);
+              }
             }
           }
+
+          pos += boxSize;
         }
       }
 
-      return new File([bytes], fileAsli.name.replace(/\.[^/.]+$/, "") + "_kling5s.mp4", {
+      prosesBox(0, totalBytes);
+
+      return new File([buffer], fileAsli.name.replace(/\.[^/.]+$/, "") + "_kling5s.mp4", {
         type: "video/mp4",
       });
     } catch (errSpoof) {
-      console.warn("Spoofing biner gagal:", errSpoof);
+      console.warn("Pemeriksaan biner gagal, fallback ke file asli:", errSpoof);
       return fileAsli;
     }
   }
@@ -144,7 +170,7 @@
     var fileFinal = file;
 
     if (tipe === "video") {
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyamarkan durasi ke 5.0s...</span>';
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyesuaikan durasi binary...</span>';
       fileFinal = await palsukanDurasiMp4(file, 5.0);
     }
 
@@ -177,7 +203,7 @@
       }
 
       if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-      if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan Kling siap!", "sukses");
+      if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan siap diproses!", "sukses");
 
     } catch (errUpload) {
       if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
@@ -188,7 +214,7 @@
   }
 
   // ========================================================================
-  // 3. GENERATE KLING (PIAPI GATEWAY)
+  // 3. GENERATE KLING
   // ========================================================================
   async function eksekusiGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
@@ -235,7 +261,7 @@
 
       var data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || "Gagal memproses render ke PiAPI.");
+        throw new Error(data.message || "Gagal memproses render ke gateway.");
       }
 
       var tugasKling = {
@@ -283,7 +309,7 @@
   }
 
   // ========================================================================
-  // 4. PEMANTAU STATUS KLING
+  // 4. PEMANTAU STATUS
   // ========================================================================
   function pantauStatusKling(tugas) {
     if (tugas.selesai) return;
@@ -306,18 +332,8 @@
           var j = await res.json();
           kData = j.data || j;
         }
-      } catch (e) {}
-
-      if (!kData || !kData.status) {
-        try {
-          var resDirect = await fetch("https://api.piapi.ai/api/v1/task/" + tugas.id, {
-            headers: { "x-api-key": "c888d3ae20f708738c2271103e93c6a22dc769a54cc83495ea9acbdc0798f05d" },
-          });
-          if (resDirect.ok) {
-            var jDirect = await resDirect.json();
-            kData = jDirect.data || jDirect;
-          }
-        } catch (eDirect) {}
+      } catch (e) {
+        console.warn("Gagal mengecek status:", e);
       }
 
       if (kData) {
@@ -340,7 +356,7 @@
           }
         } else if (st === "failed" || st === "error") {
           clearInterval(tugas.intervalObj);
-          var alasan = kData.error?.message || "Gagal diproses Kling";
+          var alasan = kData.error?.message || "Gagal diproses engine";
           tugas.status = "❌ " + alasan;
           tugas.selesai = true;
           tugas.progress = 100;
@@ -348,7 +364,7 @@
           if (typeof simpanStorage === "function") simpanStorage();
           if (typeof renderVideoAsliKeGrid === "function") renderVideoAsliKeGrid();
           if (typeof aturTampilanHalamanUtama === "function") aturTampilanHalamanUtama();
-          if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Kling Gagal: " + alasan);
+          if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Gagal: " + alasan);
           return;
         } else {
           tugas.status = "⚡ Sedang Memproses Video...";

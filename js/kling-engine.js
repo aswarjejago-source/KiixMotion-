@@ -1,7 +1,7 @@
 // ==========================================================================
 // KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE
 // File: js/kling-engine.js
-// Fitur: Bitstream-Level Sample Table Traverser (Time-Stretch 5.0s) + Owner Gate
+// Fitur: Adaptive Frame Decimator (Max 150 Frame) + ISO-BMFF Time-Stretch 5.0s
 // ==========================================================================
 
 (function () {
@@ -9,7 +9,96 @@
   window.urlBahanVideoKling = null;
 
   // ========================================================================
-  // 1. DEEP ISO-BMFF SAMPLE TABLE TRAVERSER (SPOOF TIME-STRETCH 5.0s)
+  // 1. ADAPTIVE FRAME DECIMATOR (MAX 150 FRAME UNTUK DURASI HINGGA 30s)
+  // Menjaga seluruh gerakan utuh namun membatasi total sampel fisik ke 150 frame
+  // agar worker inferensi Kling tidak mengalami buffer overflow / Internal error.
+  // ========================================================================
+  async function kompresDanKunci150Frame(file, onProgress) {
+    return new Promise(function (resolve) {
+      var video = document.createElement("video");
+      video.src = URL.createObjectURL(file);
+      video.muted = true;
+      video.playsInline = true;
+
+      video.onloadedmetadata = function () {
+        var durasi = video.duration || 5.0;
+        var TARGET_TOTAL_FRAME = 150; // Standar frame rate 5 detik AI Kling
+        var targetFps = Math.max(4, Math.min(30, TARGET_TOTAL_FRAME / durasi));
+
+        var targetLebar = 640;
+        var targetTinggi = Math.round((video.videoHeight * targetLebar) / video.videoWidth);
+        targetTinggi = targetTinggi - (targetTinggi % 2);
+
+        var canvas = document.createElement("canvas");
+        canvas.width = targetLebar;
+        canvas.height = targetTinggi;
+        var ctx = canvas.getContext("2d");
+
+        var stream = canvas.captureStream(targetFps);
+        var mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/mp4";
+        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = "video/webm";
+
+        var recorder;
+        try {
+          recorder = new MediaRecorder(stream, {
+            mimeType: mimeType,
+            videoBitsPerSecond: 1000000 // 1 Mbps (Sangat ringan, anti-timeout upload)
+          });
+        } catch (e) {
+          URL.revokeObjectURL(video.src);
+          return resolve(file);
+        }
+
+        var chunks = [];
+        recorder.ondataavailable = function (e) {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+
+        recorder.onstop = function () {
+          URL.revokeObjectURL(video.src);
+          var formatAkhir = mimeType.includes("mp4") ? "video/mp4" : "video/webm";
+          var blobHasil = new Blob(chunks, { type: formatAkhir });
+          var fileHasil = new File([blobHasil], file.name.replace(/\.[^/.]+$/, "") + "_decimated.mp4", {
+            type: "video/mp4"
+          });
+          resolve(fileHasil);
+        };
+
+        recorder.start(100);
+
+        function drawFrame() {
+          if (video.paused || video.ended) return;
+          ctx.drawImage(video, 0, 0, targetLebar, targetTinggi);
+          if (typeof onProgress === "function" && durasi > 0) {
+            var persen = Math.min(99, Math.floor((video.currentTime / durasi) * 100));
+            onProgress(persen);
+          }
+          requestAnimationFrame(drawFrame);
+        }
+
+        video.onplay = drawFrame;
+        video.onended = function () {
+          setTimeout(function () {
+            if (recorder.state === "recording") recorder.stop();
+          }, 200);
+        };
+
+        video.play().catch(function () {
+          URL.revokeObjectURL(video.src);
+          resolve(file);
+        });
+      };
+
+      video.onerror = function () {
+        URL.revokeObjectURL(video.src);
+        resolve(file);
+      };
+    });
+  }
+
+  // ========================================================================
+  // 2. DEEP ISO-BMFF SAMPLE TABLE TRAVERSER (SPOOF TIME-STRETCH 5.0s)
   // Menulis ulang mvhd, tkhd, mdhd, elst, dan membagi rata delta stts
   // agar seluruh sampel frame terkunci di timeline 0.0 - 5.0 detik.
   // ========================================================================
@@ -88,7 +177,6 @@
               view.setUint32(durOffMd, targetDurMd);
             }
           } else if (boxType === "stts") {
-            // Trik Inti: Tulis ulang delta waktu tiap sampel frame
             var entryCount = view.getUint32(payloadPos + 4);
             var tablePos = payloadPos + 8;
 
@@ -99,18 +187,15 @@
               }
 
               if (totalFrames > 0) {
-                // Hitung total unit waktu untuk durasi 5.0s
                 var totalWaktuTarget = Math.floor(movieTimescale * targetDetik);
                 var deltaBaruPerFrame = Math.max(1, Math.floor(totalWaktuTarget / totalFrames));
 
-                // Kompres entri stts menjadi 1 entri tunggal yang mencakup semua frame
                 view.setUint32(payloadPos + 4, 1);
                 view.setUint32(tablePos, totalFrames);
                 view.setUint32(tablePos + 4, deltaBaruPerFrame);
               }
             }
           } else if (boxType === "elst") {
-            // Edit list boundary lock
             var verEl = view.getUint8(payloadPos);
             var elCount = view.getUint32(payloadPos + 4);
             var entryElPos = payloadPos + 8;
@@ -141,7 +226,7 @@
   }
 
   // ========================================================================
-  // 2. SISTEM UPLOAD BAHAN
+  // 3. SISTEM UPLOAD BAHAN
   // ========================================================================
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
@@ -151,18 +236,16 @@
     var fileFinal = file;
 
     if (tipe === "video") {
-      var sizeMb = file.size / (1024 * 1024);
+      if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan frame gerakan... 0%</span>';
 
-      if (sizeMb > 50) {
-        if (typeof tampilkanNotifPusat === "function") {
-          tampilkanNotifPusat("Ukuran file di atas 50MB! Gunakan video di bawah 50MB agar stabil.");
-        }
-        if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ File > 50MB</span>';
-        return;
-      }
+      // Tahap 1: Batasi seluruh durasi video (hingga 30 detik) menjadi 150 frame fisik
+      fileFinal = await kompresDanKunci150Frame(file, function (persen) {
+        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan frame gerakan... ' + persen + '%</span>';
+      });
 
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Memodifikasi biner atom FFmpeg (5.0s)...</span>';
-      fileFinal = await palsukanDurasiMp4(file, 5.0);
+      // Tahap 2: Setel biner container MP4 tepat ke 5.0 detik
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyetel container 5.0s...</span>';
+      fileFinal = await palsukanDurasiMp4(fileFinal, 5.0);
     }
 
     var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
@@ -205,7 +288,7 @@
   }
 
   // ========================================================================
-  // 3. GENERATE KLING (KIRIM EMAIL OWNER KE BACKEND)
+  // 4. GENERATE KLING (KIRIM EMAIL OWNER KE BACKEND)
   // ========================================================================
   async function eksekusiGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
@@ -301,7 +384,7 @@
   }
 
   // ========================================================================
-  // 4. PEMANTAU STATUS
+  // 5. PEMANTAU STATUS
   // ========================================================================
   function pantauStatusKling(tugas) {
     if (tugas.selesai) return;
@@ -383,7 +466,7 @@
   }
 
   // ========================================================================
-  // 5. EVENT LISTENERS
+  // 6. EVENT LISTENERS
   // ========================================================================
   function inisialisasiKlingEngine() {
     var provKlingEl = document.getElementById("c-prov-kling");

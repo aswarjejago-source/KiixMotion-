@@ -3,6 +3,8 @@
 
 export const maxDuration = 60;
 
+const EMAIL_OWNER = "anggraingki@gmail.com";
+
 function ambilPathDariUrl(publicUrl) {
   try {
     if (!publicUrl || typeof publicUrl !== 'string') return null;
@@ -76,12 +78,48 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, message: 'Bahan foto dan video wajib diisi.' });
   }
 
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || 
+                                process.env.SUPABASE_SERVICE_ROLE || 
+                                process.env.SUPABASE_KEY;
+
+  const supaHeaders = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_SERVICE_ROLE,
+    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
+  };
+
   // =========================================================
-  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - FULL DEBUG PAYLOAD)
+  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - EXCLUSIVE OWNER)
   // =========================================================
   if (provider === 'kling') {
+    // Validasi email pemohon langsung ke Supabase
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Sesi login tidak valid.' });
+    }
+
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE) {
+      try {
+        const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=email`, {
+          headers: supaHeaders
+        });
+        const userData = await userRes.json();
+        const userEmail = userData?.[0]?.email || "";
+
+        if (userEmail.toLowerCase() !== EMAIL_OWNER.toLowerCase()) {
+          return res.status(403).json({
+            success: false,
+            message: `Akses ditolak: Fitur Kling 2.6 hanya boleh digunakan oleh Owner (${EMAIL_OWNER}).`
+          });
+        }
+      } catch (authErr) {
+        return res.status(500).json({ success: false, message: 'Gagal memverifikasi akun pemohon.' });
+      }
+    }
+
     try {
-      const PIAPI_KEY = "c888d3ae20f708738c2271103e93c6a22dc769a54cc83495ea9acbdc0798f05d";
+      // API Key PiAPI Baru
+      const PIAPI_KEY = process.env.PIAPI_KEY || "b6d3705e08d8e2330e60639119bd04bc304be592eebda976ec2551f82ea072da";
 
       const piapiPayload = {
         model: "kling",
@@ -139,11 +177,6 @@ export default async function handler(req, res) {
   // JALUR 2 & 3: RUNNINGHUB & KIIX KREDIT
   // =========================================================
   const RUNNINGHUB_WORKFLOW_ID = "2099509417535340546";
-  
-  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || 
-                                process.env.SUPABASE_SERVICE_ROLE || 
-                                process.env.SUPABASE_KEY;
 
   if (!SUPABASE_URL) {
     return res.status(500).json({
@@ -151,12 +184,6 @@ export default async function handler(req, res) {
       message: 'SUPABASE_URL tidak terbaca di environment Vercel.'
     });
   }
-
-  const supaHeaders = {
-    'Content-Type': 'application/json',
-    'apikey': SUPABASE_SERVICE_ROLE,
-    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE}`
-  };
 
   let apiKeyDipakai = null;
   let poolIdDipakai = null;

@@ -7,13 +7,14 @@
   window.urlBahanFotoKling = null;
   window.urlBahanVideoKling = null;
 
-  // 1. KOMPRESOR VIDEO KHUSUS HP (MENGECILKAN UKURAN KE < 20MB SECARA CEPAT)
+  // 1. KOMPRESOR VIDEO CANVAS KHUSUS HP (RINGAN & STABIL)
   async function perkecilVideoHP(file, onProgress) {
     return new Promise(function (resolve) {
       var video = document.createElement("video");
       video.src = URL.createObjectURL(file);
       video.muted = true;
       video.playsInline = true;
+      video.preload = "auto";
 
       video.onloadedmetadata = function () {
         var durasi = video.duration || 5;
@@ -96,13 +97,13 @@
 
     var fileFinal = file;
 
-    // JIKA VIDEO LEBIH DARI 40MB, KOMPRES OTOMATIS SUPAYA LOLOS SUPABASE 50MB
     if (tipe === "video") {
       var sizeMbAwal = file.size / (1024 * 1024);
-      if (sizeMbAwal > 40) {
-        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan video HP... 0%</span>';
+      // Kompres otomatis jika file mendekati/melebihi limit Supabase (45MB+)
+      if (sizeMbAwal > 45) {
+        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan video... 0%</span>';
         fileFinal = await perkecilVideoHP(file, function (persen) {
-          if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan video HP... ' + persen + '%</span>';
+          if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan video... ' + persen + '%</span>';
         });
       }
     }
@@ -115,7 +116,7 @@
       if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + ukuranMb + ' MB)...</span>';
 
       if (!window.supa || !window.supa.storage) {
-        throw new Error("Koneksi Supabase belum siap. Coba refresh browser.");
+        throw new Error("Koneksi Supabase belum siap. Coba refresh halaman.");
       }
 
       var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, fileFinal, {
@@ -151,6 +152,9 @@
       }
     }
   }
+
+  // EXPOSE FUNGSI AGAR BISA DIPANGGIL SECARA GLOBAL
+  window.unggahBahanKling = unggahBahanKling;
 
   // 3. EKSEKUSI GENERATE KE BACKEND
   async function jalankanGenerateKling() {
@@ -334,7 +338,7 @@
     tugas.intervalObj = setInterval(cekStatus, 6000);
   }
 
-  // 5. INISIALISASI & ISOLASI EVENT KLING
+  // 5. INISIALISASI & INTERCEPTOR KETAT (MENCEGAH RUNNINGHUB MEREBUT EVENT)
   function inisialisasiKlingEngine() {
     var provKlingEl = document.getElementById("c-prov-kling");
     if (provKlingEl) {
@@ -383,20 +387,27 @@
     var inFoto = document.getElementById("input-file-foto");
     var inVideo = document.getElementById("input-file-video");
 
+    // Intercept input file pada fase capturing (true) agar mendahului listener lain
     if (inFoto) {
-      inFoto.addEventListener("change", function () {
-        if (window.engineMode === "kling" && this.files && this.files[0]) {
-          unggahBahanKling(this.files[0], "foto");
+      inFoto.addEventListener("change", function (e) {
+        if (window.engineMode === "kling") {
+          e.stopImmediatePropagation();
+          if (this.files && this.files[0]) {
+            unggahBahanKling(this.files[0], "foto");
+          }
         }
-      });
+      }, true);
     }
 
     if (inVideo) {
-      inVideo.addEventListener("change", function () {
-        if (window.engineMode === "kling" && this.files && this.files[0]) {
-          unggahBahanKling(this.files[0], "video");
+      inVideo.addEventListener("change", function (e) {
+        if (window.engineMode === "kling") {
+          e.stopImmediatePropagation();
+          if (this.files && this.files[0]) {
+            unggahBahanKling(this.files[0], "video");
+          }
         }
-      });
+      }, true);
     }
 
     var btnSubmit = document.getElementById("btn-submit-generate");
@@ -404,9 +415,10 @@
       btnSubmit.addEventListener("click", function (e) {
         if (window.engineMode === "kling") {
           e.preventDefault();
+          e.stopImmediatePropagation();
           jalankanGenerateKling();
         }
-      });
+      }, true);
     }
 
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {

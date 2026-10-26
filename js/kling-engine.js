@@ -8,7 +8,7 @@
   window.urlBahanFotoKling = null;
   window.urlBahanVideoKling = null;
 
-  // 1. MANIPULASI BINER TIMELINE MP4 KE 5.0 DETIK (TARGET inferensi KLING)
+  // 1. MANIPULASI BINER TIMELINE MP4 KE 5.0 DETIK (TARGET INFERENSI KLING)
   async function sesuaikanBinerVideoKling(fileAsli, targetDetik) {
     if (!targetDetik) targetDetik = 5.0;
 
@@ -138,21 +138,11 @@
     }
   }
 
-  // 2. UNGGAH BAHAN KE SUPABASE STORAGE
+  // 2. UNGGAH BAHAN (SUPABASE STORAGE UNTUK <45MB, WORKER UNTUK FILE BESAR)
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
     var txtEl = document.getElementById(tipe === "foto" ? "txt-file-foto" : "txt-file-video");
     if (txtEl) txtEl.innerText = file.name;
-
-    var sizeMb = file.size / (1024 * 1024);
-
-    if (tipe === "video" && sizeMb > 50) {
-      if (typeof tampilkanNotifPusat === "function") {
-        tampilkanNotifPusat("File > 50MB! Gunakan video di bawah 50MB agar diterima Supabase.");
-      }
-      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ File > 50MB</span>';
-      return;
-    }
 
     var fileFinal = file;
     if (tipe === "video") {
@@ -160,47 +150,104 @@
       fileFinal = await sesuaikanBinerVideoKling(file, 5.0);
     }
 
-    var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
-    var namaFile = "kling_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7) + "." + ext;
+    var sizeMb = fileFinal.size / (1024 * 1024);
+    var ukuranMb = sizeMb.toFixed(1);
 
-    try {
-      var ukuranMb = (fileFinal.size / (1024 * 1024)).toFixed(1);
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + ukuranMb + ' MB)...</span>';
+    // JIKA DI BAWAH 45MB: GUNAKAN SUPABASE STORAGE
+    if (sizeMb <= 45 && window.supa && window.supa.storage) {
+      var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
+      var namaFile = "kling_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7) + "." + ext;
 
-      if (!window.supa || !window.supa.storage) throw new Error("Koneksi Supabase belum siap.");
+      try {
+        if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + ukuranMb + ' MB)...</span>';
 
-      var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, fileFinal, {
-        cacheControl: "3600",
-        upsert: true,
-      });
+        var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, fileFinal, {
+          cacheControl: "3600",
+          upsert: true,
+        });
 
-      if (resUp.error) throw resUp.error;
+        if (resUp.error) throw resUp.error;
 
-      var resPub = window.supa.storage.from("bahan-render").getPublicUrl(namaFile);
-      var linkPublik = resPub?.data?.publicUrl;
-      if (!linkPublik) throw new Error("Gagal mengambil URL publik Supabase.");
+        var resPub = window.supa.storage.from("bahan-render").getPublicUrl(namaFile);
+        var linkPublik = resPub?.data?.publicUrl;
+        if (!linkPublik) throw new Error("Gagal mengambil link publik Supabase.");
 
-      if (tipe === "foto") {
-        window.urlBahanFotoKling = linkPublik;
-      } else {
-        window.urlBahanVideoKling = linkPublik;
-      }
+        if (tipe === "foto") {
+          window.urlBahanFotoKling = linkPublik;
+        } else {
+          window.urlBahanVideoKling = linkPublik;
+        }
 
-      if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-      if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan siap diproses!", "sukses");
+        if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
+        if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan siap diproses!", "sukses");
 
-      var btn = document.getElementById("btn-submit-generate");
-      if (btn) {
-        btn.disabled = false;
-        btn.innerText = "GENERATE VIDEO";
-      }
-
-    } catch (errUpload) {
-      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-      if (typeof tampilkanNotifPusat === "function") {
-        tampilkanNotifPusat("Gagal: " + (errUpload.message || "Gagal upload"));
+        var btn = document.getElementById("btn-submit-generate");
+        if (btn) { btn.disabled = false; btn.innerText = "GENERATE VIDEO"; }
+        return;
+      } catch (errSupabase) {
+        console.warn("Supabase gagal, dialihkan ke Worker:", errSupabase);
       }
     }
+
+    // JIKA DI ATAS 45MB ATAU SUPABASE GAGAL: GUNAKAN WORKER BEBAS LIMIT
+    if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah via Worker (0%)...</span>';
+
+    var formData = new FormData();
+    formData.append("file", fileFinal);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev", true);
+
+    xhr.upload.onprogress = function (e) {
+      if (e.lengthComputable && stEl) {
+        var persen = Math.round((e.loaded / e.total) * 100);
+        stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah (' + persen + '%)...</span>';
+      }
+    };
+
+    xhr.onload = function () {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          var resJson = JSON.parse(xhr.responseText || "{}");
+          var linkWorker = null;
+
+          if (resJson && resJson.data) {
+            if (typeof resJson.data === "string") {
+              linkWorker = resJson.data;
+            } else if (typeof resJson.data === "object") {
+              linkWorker = resJson.data.fileUrl || resJson.data.fileName || resJson.data.url || resJson.data.path;
+            }
+          }
+
+          if (!linkWorker) throw new Error("Link file Worker tidak ditemukan.");
+
+          if (tipe === "foto") {
+            window.urlBahanFotoKling = linkWorker;
+          } else {
+            window.urlBahanVideoKling = linkWorker;
+          }
+
+          if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
+          if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan siap diproses!", "sukses");
+
+          var btnSubmit = document.getElementById("btn-submit-generate");
+          if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.innerText = "GENERATE VIDEO"; }
+        } catch (errParse) {
+          if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
+          if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Respon server gagal dibaca.");
+        }
+      } else {
+        if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
+        if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Gagal mengunggah file.");
+      }
+    };
+
+    xhr.onerror = function () {
+      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
+      if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Koneksi pengunggahan terputus.");
+    };
+
+    xhr.send(formData);
   }
 
   // 3. EKSEKUSI GENERATE KE BACKEND

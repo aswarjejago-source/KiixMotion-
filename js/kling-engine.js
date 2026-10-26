@@ -4,12 +4,11 @@
 // ==========================================================================
 
 (function () {
-  // Simpan referensi bahan khusus engine Kling
   window.urlBahanFotoKling = null;
   window.urlBahanVideoKling = null;
 
   // ========================================================================
-  // 1. MP4 HEADER SPOOFER (Memanipulasi Atom MVHD Durasi 30s -> 9.5s)
+  // 1. MP4 HEADER SPOOFER (Perbaikan Offset Standar MP4 30s -> 9.5s)
   // ========================================================================
   async function palsukanDurasiMp4(fileAsli) {
     try {
@@ -32,13 +31,8 @@
 
       if (posMvhd !== -1) {
         var versi = view.getUint8(posMvhd + 8);
-        var offsetTimescale = posMvhd + 12;
-        var offsetDuration = posMvhd + 16;
-
-        if (versi === 1) {
-          offsetTimescale = posMvhd + 20;
-          offsetDuration = posMvhd + 28;
-        }
+        var offsetTimescale = (versi === 1) ? (posMvhd + 28) : (posMvhd + 20);
+        var offsetDuration = (versi === 1) ? (posMvhd + 32) : (posMvhd + 24);
 
         var timescale = view.getUint32(offsetTimescale);
         if (timescale > 0) {
@@ -55,13 +49,13 @@
         type: "video/mp4",
       });
     } catch (errSpoof) {
-      console.warn("Gagal modifikasi metadata MP4:", errSpoof);
+      console.warn("Gagal spoofing metadata MP4:", errSpoof);
       return fileAsli;
     }
   }
 
   // ========================================================================
-  // 2. SISTEM UPLOAD BAHAN KLING (Supabase & Direct Cloud)
+  // 2. SISTEM UPLOAD OTOMATIS (SUPABASE < 45MB | WORKER CLOUDFLARE > 45MB)
   // ========================================================================
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
@@ -70,17 +64,17 @@
 
     var fileFinal = file;
     if (tipe === "video") {
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyesuaikan Metadata Video...</span>';
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyesuaikan format video...</span>';
       fileFinal = await palsukanDurasiMp4(file);
     }
 
     var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
     var namaFile = "kling_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7) + "." + ext;
 
-    // A. Prioritas Supabase Storage (Foto & Bahan di bawah 48 MB)
-    if (fileFinal.size < 48 * 1024 * 1024 && window.supa && window.supa.storage) {
+    // Jalur A: File ringan (< 45MB) diunggah ke Supabase Storage
+    if (fileFinal.size < 45 * 1024 * 1024 && window.supa && window.supa.storage) {
       try {
-        if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Upload ke Cloud Kling...</span>';
+        if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + (fileFinal.size / (1024 * 1024)).toFixed(1) + ' MB)...</span>';
         var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, fileFinal, {
           cacheControl: "3600",
           upsert: true,
@@ -94,53 +88,59 @@
             return;
           }
         }
-      } catch (errSupa) {
-        console.warn("Upload Supabase gagal, beralih ke direct cloud...", errSupa);
-      }
+      } catch (errSupa) {}
     }
 
-    // B. Direct Cloud (tmpfiles.org dengan Direct Link)
+    // Jalur B: File besar (> 45MB) dialihkan ke Worker Cloudflare
     try {
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Upload Cloud (0%)...</span>';
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah High-Res (' + (fileFinal.size / (1024 * 1024)).toFixed(1) + ' MB)...</span>';
+      
       var fd = new FormData();
       fd.append("file", fileFinal);
 
       var xhr = new XMLHttpRequest();
-      xhr.open("POST", "https://tmpfiles.org/api/v1/upload", true);
+      xhr.open("POST", "https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev", true);
 
       xhr.upload.onprogress = function (e) {
         if (e.lengthComputable && stEl) {
           var p = Math.round((e.loaded / e.total) * 100);
-          stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Upload Cloud (' + p + "%)...</span>";
+          stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + p + "%)...</span>";
         }
       };
 
       xhr.onload = function () {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
-            var j = JSON.parse(xhr.responseText);
-            var rawUrl = j.data?.url;
-            if (!rawUrl) throw new Error("Gagal generate link publik.");
-            var directHttps = rawUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
-            simpanBahanKling(directHttps, fileFinal, tipe, stEl);
+            var resJson = JSON.parse(xhr.responseText);
+            var fileUrl = null;
+
+            if (resJson && resJson.data) {
+              if (typeof resJson.data === "string") {
+                fileUrl = resJson.data;
+              } else if (typeof resJson.data === "object") {
+                fileUrl = resJson.data.fileUrl || resJson.data.fileName || resJson.data.url;
+              }
+            }
+
+            if (!fileUrl) throw new Error("Link gagal didapatkan.");
+            simpanBahanKling(fileUrl, fileFinal, tipe, stEl);
+
           } catch (eParse) {
-            if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Link</span>';
-            if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Respon direct cloud gagal.");
+            if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal URL</span>';
+            if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Respon server tidak valid.");
           }
         } else {
-          if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Upload</span>';
-          if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Direct cloud menolak file.");
+          if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Server</span>';
         }
       };
 
       xhr.onerror = function () {
         if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Koneksi Putus</span>';
-        if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Koneksi upload direct cloud terputus.");
       };
 
       xhr.send(fd);
-    } catch (errXhr) {
-      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Error</span>';
+    } catch (errUpload) {
+      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal</span>';
     }
   }
 
@@ -154,11 +154,11 @@
     }
     var mb = (file.size / (1024 * 1024)).toFixed(1);
     if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + mb + " MB)</span>";
-    if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan Kling siap (HTTPS Aktif)!", "sukses");
+    if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan Kling siap!", "sukses");
   }
 
   // ========================================================================
-  // 3. EKSEKUTOR GENERATE KLING (PIAPI GATEWAY)
+  // 3. GENERATE KLING (PIAPI GATEWAY)
   // ========================================================================
   async function eksekusiGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
@@ -279,7 +279,6 @@
         }
       } catch (e) {}
 
-      // Fallback langsung ke gateway PiAPI jika backend proxy belum aktif
       if (!kData || !kData.status) {
         try {
           var resDirect = await fetch("https://api.piapi.ai/api/v1/task/" + tugas.id, {
@@ -347,10 +346,9 @@
   }
 
   // ========================================================================
-  // 5. INTERCEPTOR & BINDING UI (Mencegat Tanpa Mengubah Script Utama)
+  // 5. EVENT LISTENER & HOOKS
   // ========================================================================
   function inisialisasiKlingEngine() {
-    // A. Intercept Pemilihan Kartu Provider
     var provKlingEl = document.getElementById("c-prov-kling");
     if (provKlingEl) {
       provKlingEl.addEventListener("click", function (e) {
@@ -390,7 +388,6 @@
       }, true);
     }
 
-    // B. Intercept Input File Khusus Mode Kling
     var inFoto = document.getElementById("input-file-foto");
     var inVideo = document.getElementById("input-file-video");
 
@@ -412,7 +409,6 @@
       }, true);
     }
 
-    // C. Intercept Tombol Generate Khusus Mode Kling
     var btnSubmit = document.getElementById("btn-submit-generate");
     if (btnSubmit) {
       btnSubmit.addEventListener("click", function (e) {
@@ -423,7 +419,6 @@
       }, true);
     }
 
-    // D. Pulihkan Polling Tugas Kling yang Belum Selesai
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
       window.riwayatGenerateList.forEach(function (t) {
         if ((t.prov === "kling" || String(t.id).includes("-")) && !t.selesai) {

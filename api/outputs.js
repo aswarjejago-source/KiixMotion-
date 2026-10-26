@@ -20,7 +20,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ code: 400, msg: "Data taskId Kling kurang!" });
     }
 
-    const PIAPI_KEY = process.env.PIAPI_KEY || "c888d3ae20f708738c2271103e93c6a22dc769a54cc83495ea9acbdc0798f05d";
+    // API Key PiAPI Baru
+    const PIAPI_KEY = process.env.PIAPI_KEY || "b6d3705e08d8e2330e60639119bd04bc304be592eebda976ec2551f82ea072da";
 
     try {
       const piapiRes = await fetch(`https://api.piapi.ai/api/v1/task/${taskId}`, {
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
       const taskData = piapiJson.data || {};
       const statusTeks = (taskData.status || piapiJson.status || "").toString().toUpperCase().trim();
 
-      // Cari URL video dari output PiAPI
+      // Ambil link video dari output PiAPI
       let videoUrl = null;
       const out = taskData.output;
       if (out) {
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
         } else if (out.videos && Array.isArray(out.videos) && out.videos[0]?.url) {
           videoUrl = out.videos[0].url;
         } else {
-          // Pencarian otomatis regex link mp4
+          // Cari regex format mp4 otomatis
           const match = JSON.stringify(out).match(/https?:\/\/[^"'\s]+\.mp4[^"'\s]*/i);
           if (match) videoUrl = match[0].replace(/\\/g, '');
         }
@@ -111,7 +112,6 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // Otomatis kembalikan status pool ke 'idle' dari server kalau render selesai atau gagal
     const textResp = JSON.stringify(data).toUpperCase();
     const isDone = textResp.includes('.MP4') || textResp.includes('FAILED') || textResp.includes('ERROR') || data.code === 807;
 

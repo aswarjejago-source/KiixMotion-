@@ -1,26 +1,25 @@
 // ==========================================================================
 // KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE
 // File: js/kling-engine.js
-// Fitur: Independent Uploader + Auto Browser Compressor (<50MB) + Direct Task Handler
 // ==========================================================================
 
 (function () {
   window.urlBahanFotoKling = null;
   window.urlBahanVideoKling = null;
 
-  function setStatusTombol(aktif, teks) {
+  function lepasKunciTombol() {
     var btn = document.getElementById("btn-submit-generate");
     if (btn) {
-      btn.disabled = !aktif;
-      if (teks) btn.innerText = teks;
+      btn.disabled = false;
+      btn.innerText = "GENERATE VIDEO";
     }
   }
 
   // ========================================================================
-  // 1. KOMPRESOR MANDIRI DI BROWSER (MENGECILKAN UKURAN KE < 50MB)
-  // Menjaga struktur MP4 tetap legal tanpa manipulasi biner atom
+  // 1. KOMPRESOR OTOMATIS BROWSER (<50MB)
+  // Menjaga video 20-30s tetap utuh tanpa merusak container MP4
   // ========================================================================
-  async function kompresVideoKling(file, onProgress) {
+  async function kompresOtomatisVideo(file, onProgress) {
     return new Promise(function (resolve) {
       var video = document.createElement("video");
       video.src = URL.createObjectURL(file);
@@ -102,9 +101,9 @@
   }
 
   // ========================================================================
-  // 2. SISTEM UNGGAH BAHAN KHUSUS KLING
+  // 2. SISTEM UPLOAD LANGSUNG KE SUPABASE
   // ========================================================================
-  async function prosesUnggahBahan(file, tipe) {
+  async function unggahBahanKlingLangsung(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
     var txtEl = document.getElementById(tipe === "foto" ? "txt-file-foto" : "txt-file-video");
     if (txtEl) txtEl.innerText = file.name;
@@ -114,10 +113,10 @@
     if (tipe === "video") {
       var sizeMbAwal = file.size / (1024 * 1024);
       if (sizeMbAwal > 45) {
-        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Menyesuaikan resolusi (<50MB)... 0%</span>';
+        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Kompresi resolusi... 0%</span>';
 
-        fileFinal = await kompresVideoKling(file, function (persen) {
-          if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Menyesuaikan resolusi... ' + persen + '%</span>';
+        fileFinal = await kompresOtomatisVideo(file, function (persen) {
+          if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Kompresi resolusi... ' + persen + '%</span>';
         });
       }
     }
@@ -153,20 +152,21 @@
       if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
       if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Bahan siap diproses!", "sukses");
 
-      setStatusTombol(true, "GENERATE VIDEO");
+      lepasKunciTombol();
     } catch (errUpload) {
       if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
       if (typeof tampilkanNotifPusat === "function") {
         tampilkanNotifPusat("Gagal: " + (errUpload.message || "Gagal upload"));
       }
-      setStatusTombol(true, "GENERATE VIDEO");
+      lepasKunciTombol();
     }
   }
 
   // ========================================================================
-  // 3. GENERATE KLING (TRIGGER DIRECT KE BACKEND)
+  // 3. GENERATE KLING (TRIGGER REQUEST KE /api/generate)
   // ========================================================================
-  async function jalankanGenerateKling() {
+  async function eksekusiKlingSubmit() {
+    var btn = document.getElementById("btn-submit-generate");
     var bahanFoto = window.urlBahanFotoKling || window.urlBahanFoto;
     var bahanVideo = window.urlBahanVideoKling || window.urlBahanVideo;
 
@@ -174,7 +174,7 @@
       if (typeof tampilkanNotifPusat === "function") {
         tampilkanNotifPusat("Foto karakter dan Video gerakan wajib selesai diunggah!");
       }
-      setStatusTombol(true, "GENERATE VIDEO");
+      lepasKunciTombol();
       return;
     }
 
@@ -198,7 +198,10 @@
 
     if (!realEmail && typeof currentUserEmail !== "undefined") realEmail = currentUserEmail;
 
-    setStatusTombol(false, "⚡ MEMPROSES KLING...");
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = "⚡ MEMPROSES KLING...";
+    }
 
     try {
       var inPrompt = document.getElementById("in-prompt-gerak");
@@ -259,12 +262,12 @@
         tampilkanNotifPusat("Kling Error: " + (err.message || "Koneksi terputus"));
       }
     } finally {
-      setStatusTombol(true, "GENERATE VIDEO");
+      lepasKunciTombol();
     }
   }
 
   // ========================================================================
-  // 4. PEMANTAU STATUS RENDER
+  // 4. PEMANTAU STATUS RENDER KLING
   // ========================================================================
   function pantauStatusKling(tugas) {
     if (tugas.selesai) return;
@@ -344,9 +347,9 @@
   }
 
   // ========================================================================
-  // 5. INISIALISASI EVENT LOKAL (NON-BLOCKING)
+  // 5. INISIALISASI DENGAN CAPTURE MODE (ANTI TABRAKAN EVENT)
   // ========================================================================
-  function pasangEventKling() {
+  function pasangEvent() {
     var provKlingEl = document.getElementById("c-prov-kling");
     if (provKlingEl) {
       provKlingEl.addEventListener("click", function () {
@@ -383,7 +386,7 @@
         if (tTotal) tTotal.innerText = "Testing Trial";
         if (dropWrap) dropWrap.style.display = "none";
 
-        setStatusTombol(true, "GENERATE VIDEO");
+        lepasKunciTombol();
       });
     }
 
@@ -391,28 +394,31 @@
     var inVideo = document.getElementById("input-file-video");
 
     if (inFoto) {
-      inFoto.addEventListener("change", function () {
-        if (window.engineMode === "kling" && this.files && this.files[0]) {
-          prosesUnggahBahan(this.files[0], "foto");
+      inFoto.addEventListener("change", function (e) {
+        if (window.engineMode === "kling") {
+          e.stopImmediatePropagation();
+          if (this.files && this.files[0]) unggahBahanKlingLangsung(this.files[0], "foto");
         }
-      });
+      }, true);
     }
 
     if (inVideo) {
-      inVideo.addEventListener("change", function () {
-        if (window.engineMode === "kling" && this.files && this.files[0]) {
-          prosesUnggahBahan(this.files[0], "video");
+      inVideo.addEventListener("change", function (e) {
+        if (window.engineMode === "kling") {
+          e.stopImmediatePropagation();
+          if (this.files && this.files[0]) unggahBahanKlingLangsung(this.files[0], "video");
         }
-      });
+      }, true);
     }
 
     var btn = document.getElementById("btn-submit-generate");
     if (btn) {
-      btn.addEventListener("click", function () {
+      btn.addEventListener("click", function (e) {
         if (window.engineMode === "kling") {
-          jalankanGenerateKling();
+          e.stopImmediatePropagation();
+          eksekusiKlingSubmit();
         }
-      });
+      }, true);
     }
 
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
@@ -425,8 +431,8 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", pasangEventKling);
+    document.addEventListener("DOMContentLoaded", pasangEvent);
   } else {
-    pasangEventKling();
+    pasangEvent();
   }
 })();

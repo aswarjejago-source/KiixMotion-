@@ -1,14 +1,15 @@
 // ==========================================================================
-// KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE
+// KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE (STANDALONE ENGINE)
 // File: js/kling-engine.js
+// 100% Mandiri: Berdiri sendiri, tanpa ubah logika RunningHub di api-engine.js
 // ==========================================================================
 
 (function () {
   window.urlBahanFotoKling = null;
   window.urlBahanVideoKling = null;
 
-  // 1. MANIPULASI BINER TIMELINE MP4
-  async function palsukanDurasiMp4(fileAsli, targetDetik) {
+  // 1. MANIPULASI BINER TIMELINE MP4 KE 5.0 DETIK (TARGET inferensi KLING)
+  async function sesuaikanBinerVideoKling(fileAsli, targetDetik) {
     if (!targetDetik) targetDetik = 5.0;
 
     try {
@@ -132,31 +133,31 @@
         type: "video/mp4",
       });
     } catch (errSpoof) {
-      console.warn("Pemeriksaan biner gagal, fallback ke file asli:", errSpoof);
+      console.warn("Manipulasi biner dilewati, memakai file asli:", errSpoof);
       return fileAsli;
     }
   }
 
-  // 2. SISTEM UNGGAH BAHAN KE SUPABASE
+  // 2. UNGGAH BAHAN KE SUPABASE STORAGE
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
     var txtEl = document.getElementById(tipe === "foto" ? "txt-file-foto" : "txt-file-video");
     if (txtEl) txtEl.innerText = file.name;
 
-    var fileFinal = file;
+    var sizeMb = file.size / (1024 * 1024);
 
-    if (tipe === "video") {
-      var sizeMb = file.size / (1024 * 1024);
-
-      if (sizeMb > 48) {
-        if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Memangkas ke batas 45MB...</span>';
-        var batasBytes = 45 * 1024 * 1024;
-        var blobDipotong = file.slice(0, batasBytes, file.type || "video/mp4");
-        fileFinal = new File([blobDipotong], file.name, { type: file.type || "video/mp4" });
+    if (tipe === "video" && sizeMb > 50) {
+      if (typeof tampilkanNotifPusat === "function") {
+        tampilkanNotifPusat("File > 50MB! Gunakan video di bawah 50MB agar diterima Supabase.");
       }
+      if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ File > 50MB</span>';
+      return;
+    }
 
+    var fileFinal = file;
+    if (tipe === "video") {
       if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⚙️ Menyiapkan biner 5.0s...</span>';
-      fileFinal = await palsukanDurasiMp4(fileFinal, 5.0);
+      fileFinal = await sesuaikanBinerVideoKling(file, 5.0);
     }
 
     var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
@@ -177,14 +178,12 @@
 
       var resPub = window.supa.storage.from("bahan-render").getPublicUrl(namaFile);
       var linkPublik = resPub?.data?.publicUrl;
-      if (!linkPublik) throw new Error("Gagal mengambil link publik.");
+      if (!linkPublik) throw new Error("Gagal mengambil URL publik Supabase.");
 
       if (tipe === "foto") {
         window.urlBahanFotoKling = linkPublik;
-        window.urlBahanFoto = linkPublik;
       } else {
         window.urlBahanVideoKling = linkPublik;
-        window.urlBahanVideo = linkPublik;
       }
 
       if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
@@ -204,11 +203,11 @@
     }
   }
 
-  // 3. GENERATE KLING (DIKUNCI KE WINDOW AGAR DAPAT DIAKSES DARI MANA SAJA)
-  window.eksekusiGenerateKling = async function () {
+  // 3. EKSEKUSI GENERATE KE BACKEND
+  async function jalankanGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
-    var bahanFoto = window.urlBahanFotoKling || window.urlBahanFoto;
-    var bahanVideo = window.urlBahanVideoKling || window.urlBahanVideo;
+    var bahanFoto = window.urlBahanFotoKling;
+    var bahanVideo = window.urlBahanVideoKling;
 
     if (!bahanFoto || !bahanVideo) {
       if (typeof tampilkanNotifPusat === "function") {
@@ -306,9 +305,9 @@
         btn.innerText = "GENERATE VIDEO";
       }
     }
-  };
+  }
 
-  // 4. PEMANTAU STATUS
+  // 4. PEMANTAU STATUS KLING
   function pantauStatusKling(tugas) {
     if (tugas.selesai) return;
     if (tugas.intervalObj) clearInterval(tugas.intervalObj);
@@ -386,7 +385,7 @@
     tugas.intervalObj = setInterval(cekStatus, 6000);
   }
 
-  // 5. INISIALISASI
+  // 5. INISIALISASI & ISOLASI EVENT KLING
   function inisialisasiKlingEngine() {
     var provKlingEl = document.getElementById("c-prov-kling");
     if (provKlingEl) {
@@ -456,14 +455,14 @@
       btnSubmit.addEventListener("click", function (e) {
         if (window.engineMode === "kling") {
           e.preventDefault();
-          window.eksekusiGenerateKling();
+          jalankanGenerateKling();
         }
       });
     }
 
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
       window.riwayatGenerateList.forEach(function (t) {
-        if ((t.prov === "kling" || String(t.id).includes("-")) && !t.selesai) {
+        if (t.prov === "kling" && !t.selesai) {
           pantauStatusKling(t);
         }
       });

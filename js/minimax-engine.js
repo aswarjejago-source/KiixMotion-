@@ -1,9 +1,8 @@
 // ==========================================
-// PILAR 4: MINIMAX H3 ENGINE LOGIC (AUTO-SCAN DOM INPUT)
+// PILAR 4: MINIMAX H3 ENGINE LOGIC (FINAL CLEAN)
 // File: js/minimax-engine.js
 // ==========================================
 
-// 1. FUNGSI UPLOAD BAHAN KE CLOUDFLARE WORKER
 async function kirimFileKeCloudflare(file, indexSlot) {
   var formData = new FormData();
   formData.append('file', file);
@@ -29,7 +28,6 @@ async function kirimFileKeCloudflare(file, indexSlot) {
   return fileUrl;
 }
 
-// 2. LOGIKA GENERATE UTAMA (MEMINDAI LANGSUNG DARI INPUT DI LAYAR)
 window.mulaiProsesGenerateMinimax = async function() {
   var btn = document.getElementById('btn-submit-minimax');
   var promptEl = document.getElementById('prompt-minimax');
@@ -44,7 +42,6 @@ window.mulaiProsesGenerateMinimax = async function() {
     return;
   }
 
-  // Pindai langsung seluruh elemen input file di dalam grid 9 slot
   var containerGrid = document.getElementById('grid-minimax-images');
   var inputs = containerGrid ? containerGrid.querySelectorAll('input[type="file"]') : [];
   
@@ -66,7 +63,6 @@ window.mulaiProsesGenerateMinimax = async function() {
     btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Memvalidasi Kredit...';
   }
 
-  // Verifikasi autentikasi & saldo kredit Supabase
   var clientSupa = window.supa || supa;
   var userAuth = null;
   try {
@@ -96,7 +92,6 @@ window.mulaiProsesGenerateMinimax = async function() {
     return;
   }
 
-  // Unggah seluruh foto yang terdeteksi ke Cloudflare Worker
   var listUrlFinal = [];
   try {
     for (var i = 0; i < daftarFileTerdeteksi.length; i++) {
@@ -119,7 +114,6 @@ window.mulaiProsesGenerateMinimax = async function() {
 
   if (btn) btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Menghubungkan ke MiniMax GPU...';
 
-  // Kirim data ke backend proxy
   try {
     var payload = {
       provider: 'minimax',
@@ -167,15 +161,44 @@ window.mulaiProsesGenerateMinimax = async function() {
       progress: 0
     };
 
+    window.riwayatGenerateList = window.riwayatGenerateList || [];
     window.riwayatGenerateList.unshift(tugasBaru);
     if (typeof simpanStorage === 'function') simpanStorage();
 
-    // Kosongkan formulir setelah pengiriman berhasil
+    // Reset formulir secara aman langsung ke elemen DOM
+    if (window.minimaxFiles) window.minimaxFiles = {};
+    if (window.minimaxUrls) window.minimaxUrls = {};
+    
     for (var k = 1; k <= 9; k++) {
-      if (typeof window.hapusPreviewMinimax === 'function') {
-        window.hapusPreviewMinimax(null, k);
+      var divBg = document.getElementById('prev-mm-' + k);
+      var delBtn = document.getElementById('del-mm-' + k);
+      var plusIcon = document.getElementById('plus-mm-' + k);
+      var lblText = document.getElementById('lbl-mm-' + k);
+
+      if (divBg) {
+        divBg.style.backgroundImage = '';
+        divBg.classList.add('hidden');
+      }
+      if (delBtn) {
+        delBtn.classList.add('hidden');
+        delBtn.classList.remove('flex');
+      }
+      if (plusIcon) {
+        plusIcon.classList.remove('hidden');
+      }
+      if (lblText) {
+        lblText.innerText = String(k);
+        lblText.className = 'text-[10px] font-bold text-slate-400 mt-0.5 z-10';
+        lblText.classList.remove('hidden');
       }
     }
+
+    if (containerGrid) {
+      containerGrid.querySelectorAll('input[type="file"]').forEach(function(inp) {
+        inp.value = '';
+      });
+    }
+
     if (promptEl) promptEl.value = '';
 
     if (typeof tampilkanModalCeklisSukses === 'function') {

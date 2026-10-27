@@ -234,7 +234,7 @@
       
       <!-- Area Engine Options -->
       <div>
-        <!-- Konten 1: Motion Control (Muncul jika subnav Motion dipilih) -->
+        <!-- Konten 1: Motion Control -->
         <div id="tab-content-motion" class="transition-all duration-300">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MOTION CONTROL ENGINE</label>
           <div class="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
@@ -278,7 +278,7 @@
           </div>
         </div>
 
-        <!-- Konten 2: MiniMax H3 (Muncul jika subnav MiniMax dipilih) -->
+        <!-- Konten 2: MiniMax H3 -->
         <div id="tab-content-minimax" class="transition-all duration-300 hidden">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MINIMAX ENGINE</label>
           <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -329,13 +329,12 @@
             <!-- 1. Multi-Gambar Input (Grid 9 Kotak) -->
             <div>
               <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex justify-between items-center">
-                <span>Unggah Gambar (Maks 9)[span_0](start_span)[span_0](end_span)</span>
+                <span>Unggah Gambar (Maks 9)</span>
                 <span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full">MiniMax H3</span>
               </label>
               
               <div class="grid grid-cols-3 gap-2" id="grid-minimax-images">
-                <!-- Kotak 1-9 dibuat via manual agar presisi -->
-                <!-- 1 -->
+                <!-- Kotak 1 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-1">+</span>
                   <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-1">Gambar 1</span>
@@ -343,7 +342,7 @@
                   <div id="prev-mm-1" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 1)" id="del-mm-1" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
                 </label>
-                <!-- 2 -->
+                <!-- Kotak 2 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-2">+</span>
                   <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-2">Gambar 2</span>
@@ -351,7 +350,7 @@
                   <div id="prev-mm-2" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 2)" id="del-mm-2" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
                 </label>
-                <!-- 3 -->
+                <!-- Kotak 3 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-3">+</span>
                   <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-3">Gambar 3</span>
@@ -359,7 +358,7 @@
                   <div id="prev-mm-3" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 3)" id="del-mm-3" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
                 </label>
-                <!-- 4 -->
+                <!-- Kotak 4 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-4">+</span>
                   <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-4">Gambar 4</span>
@@ -367,7 +366,7 @@
                   <div id="prev-mm-4" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 4)" id="del-mm-4" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
                 </label>
-                <!-- 5 -->
+                <!-- Kotak 5 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-5">+</span>
                   <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-5">Gambar 5</span>
@@ -375,7 +374,7 @@
                   <div id="prev-mm-5" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 5)" id="del-mm-5" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
                 </label>
-                <!-- 6 -->
+                <!-- Kotak 6 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-6">+</span>
                   <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-6">Gambar 6</span>
@@ -383,7 +382,7 @@
                   <div id="prev-mm-6" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 6)" id="del-mm-6" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
                 </label>
-                <!-- 7 -->
+                <!-- Kotak 7 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-7">+</span>
                   <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-7">Gambar 7</span>
@@ -391,7 +390,7 @@
                   <div id="prev-mm-7" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 7)" id="del-mm-7" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
                 </label>
-                <!-- 8 -->
+                <!-- Kotak 8 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-8">+</span>
                   <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-8">Gambar 8</span>
@@ -399,7 +398,7 @@
                   <div id="prev-mm-8" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 8)" id="del-mm-8" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
                 </label>
-                <!-- 9 -->
+                <!-- Kotak 9 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-9">+</span>
                   <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-9">Gambar 9</span>
@@ -414,32 +413,32 @@
             <div class="space-y-3 pt-2 border-t border-slate-100">
               <!-- Tipe Performa -->
               <div>
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Tipe Performa[span_1](start_span)[span_1](end_span)</label>
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Tipe Performa</label>
                 <select id="sel-minimax-performa" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2.5 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
-                  <option value="dramatis" selected>Adegan dramatis[span_2](start_span)[span_2](end_span)</option>
-                  <option value="laga">Adegan laga[span_3](start_span)[span_3](end_span)</option>
+                  <option value="dramatis" selected>Adegan dramatis</option>
+                  <option value="laga">Adegan laga</option>
                 </select>
               </div>
 
               <!-- Aspect Ratio -->
               <div>
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Aspect Ratio (Rasio Aspek Video)[span_4](start_span)[span_4](end_span)</label>
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Aspect Ratio (Rasio Aspek Video)</label>
                 <select id="sel-minimax-ratio" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2.5 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
-                  <option value="1:1">1:1 (Square)[span_5](start_span)[span_5](end_span)</option>
-                  <option value="2:3">2:3 (Portrait Photo)[span_6](start_span)[span_6](end_span)</option>
-                  <option value="3:2">3:2 (Photo)[span_7](start_span)[span_7](end_span)</option>
-                  <option value="3:4" selected>3:4 (Portrait Standard)[span_8](start_span)[span_8](end_span)</option>
-                  <option value="4:3">4:3 (Standard)[span_9](start_span)[span_9](end_span)</option>
-                  <option value="9:16">9:16 (Portrait Widescreen)[span_10](start_span)[span_10](end_span)</option>
-                  <option value="16:9">16:9 (Widescreen)[span_11](start_span)[span_11](end_span)</option>
+                  <option value="1:1">1:1 (Square)</option>
+                  <option value="2:3">2:3 (Portrait Photo)</option>
+                  <option value="3:2">3:2 (Photo)</option>
+                  <option value="3:4" selected>3:4 (Portrait Standard)</option>
+                  <option value="4:3">4:3 (Standard)</option>
+                  <option value="9:16">9:16 (Portrait Widescreen)</option>
+                  <option value="16:9">16:9 (Widescreen)</option>
                 </select>
               </div>
             </div>
 
             <!-- 3. Textarea Prompt -->
             <div class="pt-2 border-t border-slate-100">
-              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Prompt / Script[span_12](start_span)[span_12](end_span)</label>
-              <textarea id="prompt-minimax" class="w-full bg-slate-50 border border-kmBorder rounded-xl p-3 text-xs text-slate-700 font-mono focus:border-orange-400 focus:outline-none focus:bg-white h-28 resize-none transition" placeholder="subject_definitions&#10;<Subject 1>: Persian dancer (female)...[span_13](start_span)[span_13](end_span)"></textarea>
+              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Prompt / Script</label>
+              <textarea id="prompt-minimax" class="w-full bg-slate-50 border border-kmBorder rounded-xl p-3 text-xs text-slate-700 font-mono focus:border-orange-400 focus:outline-none focus:bg-white h-28 resize-none transition" placeholder="subject_definitions...&#10;<Subject 1>: Persian dancer (female)..."></textarea>
             </div>
 
           </div>

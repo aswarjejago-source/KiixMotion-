@@ -101,7 +101,7 @@
         <i class="ph ph-squares-four text-lg"></i> Dashboard
       </button>
       
-      <!-- MENU GENERATE (DENGAN DROPDOWN KATEGORI ENGINE) -->
+      <!-- MENU GENERATE -->
       <div class="flex flex-col w-full">
         <button id="nav-btn-generate" onclick="toggleMenuGenerate()" class="btn-nav-sidebar flex items-center justify-between w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer transition whitespace-nowrap">
           <div class="flex items-center gap-3"><i class="ph ph-magic-wand text-lg"></i> Generate</div>
@@ -135,12 +135,12 @@
         <i class="ph ph-key text-lg"></i> Add Apikey
       </button>
 
-      <!-- TAB TERPISAH 1: BELI KREDIT -->
+      <!-- TAB BELI KREDIT -->
       <button id="nav-btn-beli-kredit" onclick="gantiLayarNav('beli-kredit')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-lightning text-lg text-amber-500"></i> Beli Kredit
       </button>
 
-      <!-- TAB TERPISAH 2: LANGGANAN VIP PRO -->
+      <!-- TAB LANGGANAN VIP PRO -->
       <button id="nav-btn-langganan" onclick="gantiLayarNav('langganan')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-crown text-lg text-kmViolet"></i> Langganan VIP
       </button>
@@ -279,7 +279,7 @@
         </div>
 
         <!-- Konten 2: MiniMax H3 -->
-        <div id="tab-content-minimax" class="transition-all duration-300 hidden">
+        <div id="tab-content-minimax" class="transition-all duration-300" style="display: none;">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MINIMAX ENGINE</label>
           <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border-2 border-orange-500 ring-4 ring-orange-50 p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div class="space-y-1.5">
@@ -287,7 +287,7 @@
                 <span class="text-xs font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">NEW H3</span>
                 <h4 class="font-bold text-slate-900 text-base">MiniMax H3 Master Workflow (Portskill)</h4>
               </div>
-              <p class="text-xs text-slate-500">Workflow multi-image acting, combat action & dramatic acting.</p>
+              <p class="text-xs text-slate-500">Workflow multi-image acting, combat action & dramatic acting[span_2](start_span)[span_2](end_span).</p>
             </div>
             <span id="b-prov-minimax" class="text-[10px] bg-orange-500 text-white font-extrabold px-3 py-1 rounded-full">AKTIF</span>
           </div>
@@ -324,7 +324,7 @@
           </div>
 
           <!-- FORM 2: MINIMAX H3 (6 Slot Foto, Frame, Durasi 10-30s, Adegan Laga/Dramatis, Prompt) -->
-          <div id="form-input-minimax" class="hidden flex-col gap-4 flex-1 max-h-[580px] overflow-y-auto pr-1.5 custom-scrollbar">
+          <div id="form-input-minimax" style="display: none;" class="flex-col gap-4 flex-1 max-h-[580px] overflow-y-auto pr-1.5 custom-scrollbar">
             
             <!-- 1. Multi-Gambar Input (GRID 6 KOTAK GAMBAR) -->
             <div>
@@ -915,7 +915,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
     </div>
   </div>
 
-  <!-- SCRIPT SUPABASE & ENGINE REFERRAL TERPADU -->
+  <!-- SCRIPT SUPABASE & ENGINE LOGIC TERPADU -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
       var supabaseUrl = window.supabaseUrl || 'https://fybyupwcburndxulqqnn.supabase.co';
@@ -929,6 +929,8 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
       window.toggleMenuGenerate = function() {
           var submenu = document.getElementById('nav-submenu-generate');
           var icon = document.getElementById('nav-icon-generate');
+          if (!submenu || !icon) return;
+
           if (submenu.classList.contains('hidden')) {
               submenu.classList.remove('hidden');
               submenu.classList.add('flex');
@@ -940,34 +942,51 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           }
       };
 
-      // FUNGSI GANTI KATEGORI ENGINE DARI SIDEBAR DROPDOWN
+      // FUNGSI GANTI KATEGORI ENGINE DARI SIDEBAR DROPDOWN (ANTI-RESET)
       window.switchKategoriEngine = function(kategori) {
         var subnavMotion = document.getElementById('subnav-motion');
         var subnavMinimax = document.getElementById('subnav-minimax');
         var contentMotion = document.getElementById('tab-content-motion');
         var contentMinimax = document.getElementById('tab-content-minimax');
         
-        if (typeof gantiLayarNav === 'function') gantiLayarNav('generate');
+        // Kunci nilai provider aktif terlebih dahulu agar tidak tertimpa gantiLayarNav
+        if (kategori === 'minimax') {
+            window.engineProvider = 'minimax';
+            window.engineMode = 'minimax';
+            window.providerAktif = 'minimax';
+        } else {
+            window.engineProvider = 'kiix';
+            window.engineMode = 'kiix';
+            window.providerAktif = 'kiix';
+        }
+
+        // Buka layar generate hanya jika sedang berada di layar lain
+        if (typeof gantiLayarNav === 'function' && navLayarAktif !== 'generate') {
+            gantiLayarNav('generate');
+        }
         
         if (kategori === 'motion') {
             if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-violet-50 text-kmViolet transition cursor-pointer flex items-center gap-2";
             if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
-            if (contentMotion) contentMotion.classList.remove('hidden');
-            if (contentMinimax) contentMinimax.classList.add('hidden');
+            if (contentMotion) contentMotion.style.display = 'block';
+            if (contentMinimax) contentMinimax.style.display = 'none';
             setProviderUtama('kiix');
         } else {
             if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 transition cursor-pointer flex items-center gap-2";
             if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
-            if (contentMinimax) contentMinimax.classList.remove('hidden');
-            if (contentMotion) contentMotion.classList.add('hidden');
+            if (contentMinimax) contentMinimax.style.display = 'block';
+            if (contentMotion) contentMotion.style.display = 'none';
             setProviderUtama('minimax');
         }
       };
 
-      // FUNGSI PILIH PROVIDER/ENGINE UTAMA
+      // FUNGSI PILIH PROVIDER/ENGINE UTAMA (MUTLAK INLINE STYLE)
       window.setProviderUtama = function(prov) {
+        window.engineProvider = prov;
+        window.engineMode = prov;
         window.providerAktif = prov;
 
+        // Reset styling seluruh kartu engine
         ['kiix', 'runninghub', 'kling', 'minimax'].forEach(function(p) {
           const card = document.getElementById('c-prov-' + p);
           const badge = document.getElementById('b-prov-' + p);
@@ -982,13 +1001,17 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
               }
               if (badge) badge.style.display = 'inline-block';
             } else {
-              card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+              if (p === 'minimax') {
+                card.className = "bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
+              } else {
+                card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+              }
               if (badge) badge.style.display = 'none';
             }
           }
         });
 
-        // Switch formulir input & rincian biaya
+        // Selektor Form & Info Estimasi
         var formMotion = document.getElementById('form-input-motion');
         var formMinimax = document.getElementById('form-input-minimax');
         var tTitle = document.getElementById('t-engine-title');
@@ -997,13 +1020,20 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
         var lblBadge = document.getElementById('lbl-badge-mode');
         var dotStep1 = document.getElementById('dot-step1');
         var dotStep2 = document.getElementById('dot-step2');
+        var btnSubmit = document.getElementById('btn-submit-generate');
 
         if (prov === 'minimax') {
-            if (formMotion) { formMotion.style.display = 'none'; }
-            if (formMinimax) { 
-              formMinimax.style.display = 'flex'; 
-              formMinimax.classList.remove('hidden'); 
+            // Tampilkan Form MiniMax (6 Slot Foto, Frame, Laga/Dramatis, Durasi 10-30s)
+            if (formMotion) {
+                formMotion.style.setProperty('display', 'none', 'important');
+                formMotion.classList.add('hidden');
+                formMotion.classList.remove('grid');
             }
+            if (formMinimax) { 
+                formMinimax.style.setProperty('display', 'flex', 'important');
+                formMinimax.classList.remove('hidden'); 
+            }
+
             if (tTitle) tTitle.innerText = "MINIMAX H3 MASTER WORKFLOW";
             if (tTotal) {
               tTotal.innerText = "≈ 257 coin / render";
@@ -1016,20 +1046,29 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
             }
             if (dotStep1) dotStep1.className = "w-2.5 h-2.5 rounded-full bg-orange-500";
             if (dotStep2) dotStep2.className = "w-2.5 h-2.5 rounded-full bg-orange-500";
+            if (btnSubmit) {
+              btnSubmit.className = "w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl shadow-lg shadow-orange-500/20 transition transform active:scale-95 cursor-pointer";
+            }
+            if (typeof updateBadgeKoinGenerate === 'function') updateBadgeKoinGenerate();
         } else {
+            // Tampilkan Form Motion Control
             if (formMinimax) { 
-              formMinimax.style.display = 'none'; 
-              formMinimax.classList.add('hidden'); 
+                formMinimax.style.setProperty('display', 'none', 'important');
+                formMinimax.classList.add('hidden'); 
             }
             if (formMotion) { 
-              formMotion.style.display = 'grid'; 
-              formMotion.classList.remove('hidden'); 
+                formMotion.style.setProperty('display', 'grid', 'important');
+                formMotion.classList.remove('hidden'); 
             }
-            if (dotStep1) dotStep1.className = "w-2.5 h-2.5 rounded-full bg-kmViolet";
-            if (dotStep2) dotStep2.className = "w-2.5 h-2.5 rounded-full bg-kmViolet";
+
             if (lblBadge) {
               lblBadge.innerText = "Motion Mode";
               lblBadge.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm";
+            }
+            if (dotStep1) dotStep1.className = "w-2.5 h-2.5 rounded-full bg-kmViolet";
+            if (dotStep2) dotStep2.className = "w-2.5 h-2.5 rounded-full bg-kmViolet";
+            if (btnSubmit) {
+              btnSubmit.className = "w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer";
             }
 
             if (prov === 'runninghub') {
@@ -1039,6 +1078,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                 tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
               }
               if (dropWrap) dropWrap.style.display = 'block';
+              if (typeof updateBadgeKoinGenerate === 'function') updateBadgeKoinGenerate();
             } else if (prov === 'kling') {
               if (tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL";
               if (tTotal) {
@@ -1054,10 +1094,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
               }
               if (dropWrap) dropWrap.style.display = 'none';
             }
-        }
-        
-        if (typeof window.updateUIProvider === 'function') {
-            try { window.updateUIProvider(prov); } catch (e) {}
         }
       };
 
@@ -1133,7 +1169,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   let storageKey = 'km_referral_code_' + emailUser;
                   let cachedCode = localStorage.getItem(storageKey);
 
-                  const { data: userRows, error } = await supa
+                  const { data: userRows } = await supa
                       .from('users')
                       .select('id, is_vip, vip_expires_at, referral_code, referred_by')
                       .ilike('email', emailUser)
@@ -1147,21 +1183,17 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                       kodeReferral = 'KIIX-' + randomString;
                       let pendingRef = localStorage.getItem('km_pending_ref') || session.user.user_metadata?.referred_by || null;
                       if (userRow) {
-                          let updateData = { referral_code: kodeReferral };
-                          if (!userRow.referred_by && pendingRef) updateData.referred_by = pendingRef;
-                          await supa.from('users').update(updateData).eq('id', userRow.id);
+                          await supa.from('users').update({ referral_code: kodeReferral, ...(pendingRef && !userRow.referred_by ? { referred_by: pendingRef } : {}) }).eq('id', userRow.id);
                       } else {
                           await supa.from('users').insert({
                               email: emailUser, referral_code: kodeReferral, referred_by: pendingRef, is_vip: false
                           });
                       }
-                  } else if (userRow && !userRow.referral_code) {
-                      await supa.from('users').update({ referral_code: kodeReferral }).eq('id', userRow.id);
                   }
 
                   localStorage.setItem(storageKey, kodeReferral);
                   const elKode = document.getElementById('kode-referral-user');
-                  if (elKode) { elKode.innerText = kodeReferral; }
+                  if (elKode) elKode.innerText = kodeReferral;
                   window.kodeReferralAktifUser = kodeReferral;
                   
                   await updateStatusMemberUI(emailUser, session);
@@ -1185,7 +1217,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
               let targetEmail = emailUser || session?.user?.email;
               if (!targetEmail) return;
               targetEmail = targetEmail.toLowerCase().trim();
-
               const authId = session?.user?.id;
 
               const { data: userRows, error } = await supa
@@ -1204,14 +1235,12 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
               const boxKreditInfo = document.getElementById('label-box-kredit-info');
 
               var isVipActive = false;
-              
               if (!error && userRow && userRow.is_vip === true) {
-                  let formattedDate = "";
                   if (userRow.vip_expires_at) {
                       const expDate = new Date(userRow.vip_expires_at);
                       if (expDate.getTime() > new Date().getTime()) {
                           isVipActive = true;
-                          formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                          var formattedDate = expDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
                       }
                   } else {
                       isVipActive = true;
@@ -1259,37 +1288,13 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
 
                 if (userCredit && userCredit.credits_balance > 0) {
                   const expDate = new Date(userCredit.expires_at);
-                  const expTime = expDate.getTime();
-                  
-                  if (expTime > new Date().getTime()) {
-                    const diffMs = expTime - new Date().getTime();
+                  if (expDate.getTime() > new Date().getTime()) {
+                    const diffMs = expDate.getTime() - new Date().getTime();
                     const jamSisa = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
-                    
-                    const tglFormat = expDate.toLocaleDateString('id-ID', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                    });
-                    
-                    const jamFormat = expDate.toLocaleTimeString('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }).replace('.', ':');
-
-                    const teksExpiredLengkap = `${tglFormat} pukul ${jamFormat} WIB`;
+                    const teksExpiredLengkap = expDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 
                     if (boxKreditAngka) boxKreditAngka.innerText = userCredit.credits_balance;
                     if (boxKreditInfo) boxKreditInfo.innerText = `Berlaku untuk ${userCredit.credits_balance} video · Hangus: ${teksExpiredLengkap} (${jamSisa} jam lagi)`;
-                    
-                    if (!isVipActive && badgeEl) {
-                      badgeEl.innerText = "🎟️ " + userCredit.credits_balance + " Kredit Aktif";
-                      badgeEl.className = "text-[11px] font-bold text-kmViolet bg-violet-50 px-2.5 py-0.5 rounded-full inline-block";
-                      if (expEl) {
-                        expEl.innerText = "Hangus: " + teksExpiredLengkap;
-                        expEl.classList.remove('hidden');
-                      }
-                    }
                     return;
                   }
                 }
@@ -1297,12 +1302,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
 
               if (boxKreditAngka) boxKreditAngka.innerText = "0";
               if (boxKreditInfo) boxKreditInfo.innerText = "Belum ada paket kredit aktif. Beli paket di bawah untuk render.";
-
-              if (!isVipActive && badgeEl) {
-                  badgeEl.innerText = "Member Aktif";
-                  badgeEl.className = "text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full inline-block";
-                  if (expEl) expEl.classList.add('hidden');
-              }
           } catch (err) {
               console.error("Gagal membaca status member:", err);
           } finally {
@@ -1314,28 +1313,11 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           if (!window.kodeReferralAktifUser) { alert('Kode referral sedang dimuat, coba sesaat lagi ya!'); return; }
           let domainWeb = window.location.origin;
           let linkLengkap = domainWeb + '/register.html?ref=' + window.kodeReferralAktifUser;
-
           if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(linkLengkap).then(function() {
-                  if (typeof tampilkanNotif === 'function') { tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses'); } else { alert('Link referral berhasil disalin:\n' + linkLengkap); }
-              }).catch(function() { fallbackSalinTeks(linkLengkap); });
-          } else { fallbackSalinTeks(linkLengkap); }
-      }
-
-      function fallbackSalinTeks(text) {
-          const textArea = document.createElement("textarea");
-          textArea.value = text;
-          textArea.style.position = "fixed";
-          textArea.style.left = "-9999px";
-          textArea.style.top = "0";
-          document.body.appendChild(textArea);
-          textArea.focus();
-          textArea.select();
-          try {
-              document.execCommand('copy');
-              if (typeof tampilkanNotif === 'function') { tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses'); } else { alert('Link referral berhasil disalin:\n' + text); }
-          } catch (err) { prompt('Salin link referral Anda di bawah ini:', text); }
-          document.body.removeChild(textArea);
+                  if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses');
+              });
+          }
       }
 
       async function prosesLogout() { 

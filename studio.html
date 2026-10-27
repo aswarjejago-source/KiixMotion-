@@ -1095,9 +1095,16 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           configurable: true
       });
 
-      // PREVIEW GAMBAR 1-9 KHUSUS MINIMAX H3
+      // WADAH PENYIMPANAN DATA GAMBAR MINIMAX
+      window.minimaxFiles = window.minimaxFiles || {};
+      window.minimaxUrls = window.minimaxUrls || {};
+
+      // PREVIEW & OTOMATIS UNGGAH GAMBAR 1-9 KHUSUS MINIMAX H3
       window.previewMinimax = function(input, index) {
           if (input.files && input.files[0]) {
+              var file = input.files[0];
+              window.minimaxFiles[index] = file;
+
               var reader = new FileReader();
               reader.onload = function(e) {
                   var divBg = document.getElementById('prev-mm-' + index);
@@ -1109,40 +1116,75 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                       divBg.style.backgroundImage = 'url(' + e.target.result + ')';
                       divBg.classList.remove('hidden');
                   }
-                  if (delBtn) {
-                      delBtn.classList.remove('hidden');
-                      delBtn.classList.add('flex');
-                  }
+                  if (delBtn) delBtn.classList.remove('hidden');
                   if (plusIcon) plusIcon.classList.add('hidden');
-                  if (lblText) lblText.classList.add('hidden');
+                  if (lblText) {
+                      lblText.innerText = 'Uploading...';
+                      lblText.className = 'text-[8px] font-bold text-amber-400 bg-black/60 px-1 py-0.5 rounded absolute bottom-1 z-10';
+                      lblText.classList.remove('hidden');
+                  }
               };
-              reader.readAsDataURL(input.files[0]);
+              reader.readAsDataURL(file);
+
+              // Otomatis unggah langsung ke Cloudflare Storage
+              var formData = new FormData();
+              formData.append('file', file);
+              fetch('https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev', {
+                  method: 'POST',
+                  body: formData
+              })
+              .then(res => res.json())
+              .then(resJson => {
+                  var fileUrl = resJson?.data?.fileUrl || resJson?.data?.url || (typeof resJson?.data === 'string' ? resJson.data : null);
+                  if (fileUrl) {
+                      window.minimaxUrls[index] = fileUrl;
+                      var lblText = document.getElementById('lbl-mm-' + index);
+                      if (lblText) {
+                          lblText.innerText = '✓ Siap';
+                          lblText.className = 'text-[8px] font-bold text-emerald-400 bg-black/60 px-1 py-0.5 rounded absolute bottom-1 z-10';
+                      }
+                  }
+              })
+              .catch(err => {
+                  console.error('Gagal upload slot ' + index, err);
+                  var lblText = document.getElementById('lbl-mm-' + index);
+                  if (lblText) {
+                      lblText.innerText = '❌ Gagal';
+                      lblText.className = 'text-[8px] font-bold text-rose-400 bg-black/60 px-1 py-0.5 rounded absolute bottom-1 z-10';
+                  }
+              });
           }
       };
 
       window.hapusPreviewMinimax = function(event, index) {
-          event.preventDefault();
-          event.stopPropagation();
+          if (event) {
+              event.preventDefault();
+              event.stopPropagation();
+          }
+          if (window.minimaxFiles) delete window.minimaxFiles[index];
+          if (window.minimaxUrls) delete window.minimaxUrls[index];
+
           var divBg = document.getElementById('prev-mm-' + index);
           var delBtn = document.getElementById('del-mm-' + index);
           var plusIcon = document.getElementById('plus-mm-' + index);
           var lblText = document.getElementById('lbl-mm-' + index);
           
-          if (delBtn && delBtn.previousElementSibling && delBtn.previousElementSibling.previousElementSibling) {
-              var fileInput = delBtn.previousElementSibling.previousElementSibling;
-              if (fileInput.type === 'file') fileInput.value = '';
+          if (delBtn && delBtn.parentElement) {
+              var fileInput = delBtn.parentElement.querySelector('input[type="file"]');
+              if (fileInput) fileInput.value = '';
           }
           
           if (divBg) {
               divBg.style.backgroundImage = '';
               divBg.classList.add('hidden');
           }
-          if (delBtn) {
-              delBtn.classList.add('hidden');
-              delBtn.classList.remove('flex');
-          }
+          if (delBtn) delBtn.classList.add('hidden');
           if (plusIcon) plusIcon.classList.remove('hidden');
-          if (lblText) lblText.classList.remove('hidden');
+          if (lblText) {
+              lblText.innerText = String(index);
+              lblText.className = 'text-[10px] font-bold text-slate-400 mt-0.5 z-10';
+              lblText.classList.remove('hidden');
+          }
       };
 
       async function ambilDataLoginAsli() {

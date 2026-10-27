@@ -281,15 +281,15 @@
         <!-- Konten 2: MiniMax H3 -->
         <div id="tab-content-minimax" class="transition-all duration-300 hidden">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MINIMAX ENGINE</label>
-          <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border-2 border-orange-500 ring-4 ring-orange-50 p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div class="space-y-1.5">
               <div class="flex items-center gap-2">
                 <span class="text-xs font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">NEW H3</span>
-                <h4 class="font-bold text-slate-900 text-base">MiniMax H3 Master Workflow</h4>
+                <h4 class="font-bold text-slate-900 text-base">MiniMax H3 Master Workflow (Portskill)</h4>
               </div>
-              <p class="text-xs text-slate-500">Workflow khusus multi-image acting & cinematic generation.</p>
+              <p class="text-xs text-slate-500">Workflow multi-image acting, combat action & dramatic acting.</p>
             </div>
-            <span id="b-prov-minimax" style="display:none;" class="text-[10px] bg-orange-500 text-white font-extrabold px-3 py-1 rounded-full">AKTIF</span>
+            <span id="b-prov-minimax" class="text-[10px] bg-orange-500 text-white font-extrabold px-3 py-1 rounded-full">AKTIF</span>
           </div>
         </div>
       </div>
@@ -299,10 +299,10 @@
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow flex flex-col">
           <div class="flex items-center justify-between mb-2">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet" id="dot-step1"></span> 1. Bahan Input
             </h2>
             <div class="flex gap-1 bg-slate-100 p-1 rounded-xl border border-kmBorder">
-              <span class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm">File Upload</span>
+              <span id="lbl-badge-mode" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm">Motion Mode</span>
             </div>
           </div>
 
@@ -323,122 +323,127 @@
             </label>
           </div>
 
-          <!-- FORM 2: MINIMAX H3 (Multi-Image, Parameter, Prompt) -->
-          <div id="form-input-minimax" class="hidden flex-col gap-5 flex-1 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+          <!-- FORM 2: MINIMAX H3 (6 Slot Foto, Frame, Durasi 10-30s, Adegan Laga/Dramatis, Prompt) -->
+          <div id="form-input-minimax" class="hidden flex-col gap-4 flex-1 max-h-[580px] overflow-y-auto pr-1.5 custom-scrollbar">
             
-            <!-- 1. Multi-Gambar Input (Grid 9 Kotak) -->
+            <!-- 1. Multi-Gambar Input (GRID 6 KOTAK GAMBAR) -->
             <div>
-              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex justify-between items-center">
-                <span>Unggah Gambar (Maks 9)</span>
-                <span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full">MiniMax H3</span>
-              </label>
+              <div class="flex justify-between items-center mb-2">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unggah Gambar (Maks 6 Foto)</label>
+                <span class="text-[9px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">H3 Reference</span>
+              </div>
               
               <div class="grid grid-cols-3 gap-2" id="grid-minimax-images">
                 <!-- Kotak 1 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-1">+</span>
-                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-1">Gambar 1</span>
+                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-1">Foto 1</span>
                   <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 1)" />
                   <div id="prev-mm-1" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 1)" id="del-mm-1" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 1)" id="del-mm-1" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
                 <!-- Kotak 2 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-2">+</span>
-                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-2">Gambar 2</span>
+                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-2">Foto 2</span>
                   <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 2)" />
                   <div id="prev-mm-2" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 2)" id="del-mm-2" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 2)" id="del-mm-2" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
                 <!-- Kotak 3 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-3">+</span>
-                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-3">Gambar 3</span>
+                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-3">Foto 3</span>
                   <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 3)" />
                   <div id="prev-mm-3" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 3)" id="del-mm-3" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 3)" id="del-mm-3" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
                 <!-- Kotak 4 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-4">+</span>
-                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-4">Gambar 4</span>
+                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-4">Foto 4</span>
                   <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 4)" />
                   <div id="prev-mm-4" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 4)" id="del-mm-4" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 4)" id="del-mm-4" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
                 <!-- Kotak 5 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-5">+</span>
-                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-5">Gambar 5</span>
+                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-5">Foto 5</span>
                   <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 5)" />
                   <div id="prev-mm-5" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 5)" id="del-mm-5" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 5)" id="del-mm-5" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
                 <!-- Kotak 6 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-6">+</span>
-                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-6">Gambar 6</span>
+                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-6">Foto 6</span>
                   <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 6)" />
                   <div id="prev-mm-6" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 6)" id="del-mm-6" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
-                </label>
-                <!-- Kotak 7 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-7">+</span>
-                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-7">Gambar 7</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 7)" />
-                  <div id="prev-mm-7" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 7)" id="del-mm-7" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
-                </label>
-                <!-- Kotak 8 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-8">+</span>
-                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-8">Gambar 8</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 8)" />
-                  <div id="prev-mm-8" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 8)" id="del-mm-8" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
-                </label>
-                <!-- Kotak 9 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-9">+</span>
-                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-9">Gambar 9</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 9)" />
-                  <div id="prev-mm-9" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 9)" id="del-mm-9" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 6)" id="del-mm-6" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
               </div>
             </div>
 
-            <!-- 2. Parameter Dropdown -->
-            <div class="space-y-3 pt-2 border-t border-slate-100">
+            <!-- 2. Parameter Pilihan (Tipe Performa & Frame) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
               <!-- Tipe Performa -->
               <div>
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Tipe Performa</label>
-                <select id="sel-minimax-performa" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2.5 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Tipe Performa</label>
+                <select id="sel-minimax-performa" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
                   <option value="dramatis" selected>Adegan dramatis</option>
                   <option value="laga">Adegan laga</option>
                 </select>
               </div>
 
-              <!-- Aspect Ratio -->
+              <!-- Pilihan Frame / FPS Mode -->
               <div>
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Aspect Ratio (Rasio Aspek Video)</label>
-                <select id="sel-minimax-ratio" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2.5 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
-                  <option value="1:1">1:1 (Square)</option>
-                  <option value="2:3">2:3 (Portrait Photo)</option>
-                  <option value="3:2">3:2 (Photo)</option>
-                  <option value="3:4" selected>3:4 (Portrait Standard)</option>
-                  <option value="4:3">4:3 (Standard)</option>
-                  <option value="9:16">9:16 (Portrait Widescreen)</option>
-                  <option value="16:9">16:9 (Widescreen)</option>
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Pilihan Frame / FPS</label>
+                <select id="sel-minimax-frame" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
+                  <option value="24fps" selected>24 FPS (Cinematic Standard)</option>
+                  <option value="25fps">25 FPS (Smooth Motion)</option>
+                  <option value="30fps">30 FPS (High Motion Smooth)</option>
+                  <option value="first_frame">First Frame Anchor (Foto 1 Kunci)</option>
+                  <option value="multi_keyframe">Multi-Frame Keyframe Transition</option>
                 </select>
               </div>
             </div>
 
-            <!-- 3. Textarea Prompt -->
+            <!-- 3. Parameter Durasi (10-30s) & Rasio Aspek -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Durasi 10 - 30 Detik -->
+              <div>
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Durasi Video</label>
+                <select id="sel-minimax-durasi" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer font-bold text-orange-600">
+                  <option value="10">10 Detik (Fast Action)</option>
+                  <option value="15" selected>15 Detik (Standard H3)</option>
+                  <option value="20">20 Detik (Extended)</option>
+                  <option value="25">25 Detik (Cinematic Scene)</option>
+                  <option value="30">30 Detik (Full Story)</option>
+                </select>
+              </div>
+
+              <!-- Aspect Ratio -->
+              <div>
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Rasio Aspek Video</label>
+                <select id="sel-minimax-ratio" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
+                  <option value="3:4" selected>3:4 (Portrait Standard)</option>
+                  <option value="9:16">9:16 (TikTok / Reels Widescreen)</option>
+                  <option value="16:9">16:9 (Landscape YouTube)</option>
+                  <option value="1:1">1:1 (Square)</option>
+                  <option value="2:3">2:3 (Portrait Photo)</option>
+                  <option value="4:3">4:3 (Standard)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 4. Textarea Prompt / Script -->
             <div class="pt-2 border-t border-slate-100">
-              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Prompt / Script</label>
-              <textarea id="prompt-minimax" class="w-full bg-slate-50 border border-kmBorder rounded-xl p-3 text-xs text-slate-700 font-mono focus:border-orange-400 focus:outline-none focus:bg-white h-28 resize-none transition" placeholder="subject_definitions...&#10;<Subject 1>: Persian dancer (female)..."></textarea>
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Prompt / Script Karakter</label>
+                <span class="text-[9px] text-slate-400">H3 Structure Tag</span>
+              </div>
+              <textarea id="prompt-minimax" class="w-full bg-slate-50 border border-kmBorder rounded-xl p-3 text-xs text-slate-700 font-mono focus:border-orange-400 focus:outline-none focus:bg-white h-24 resize-none transition leading-relaxed" placeholder="subject_definitions&#10;&lt;Subject 1&gt;: Karakter utama (female), reference Picture 1&#10;&lt;Subject 2&gt;: Karakter lawan (male), reference Picture 2&#10;&lt;Action&gt;: Adegan pertarungan sengit di kuil kuno..."></textarea>
             </div>
 
           </div>
@@ -448,7 +453,7 @@
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
           <div class="space-y-5">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet" id="dot-step2"></span> 2. Akun & Estimasi
             </h2>
 
             <div id="box-wrap-dropdown-akun" class="space-y-2" style="display: none;">
@@ -792,7 +797,7 @@
         </div>
       </div>
 
-      <!-- FITUR BARU: API KEY CHECKER (LOKAL) -->
+      <!-- API KEY CHECKER (LOKAL) -->
       <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-6 rounded-3xl modern-shadow space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -828,7 +833,6 @@ rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy" class="w-full bg-white border border-blue-20
         </div>
 
         <div id="wadah-hasil-checker" class="space-y-2 mt-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-            <!-- Hasil checker masuk ke sini -->
         </div>
       </div>
 
@@ -943,7 +947,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
         var contentMotion = document.getElementById('tab-content-motion');
         var contentMinimax = document.getElementById('tab-content-minimax');
         
-        // Pindah layar ke menu generate dulu
         if (typeof gantiLayarNav === 'function') gantiLayarNav('generate');
         
         if (kategori === 'motion') {
@@ -951,60 +954,114 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
             if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
             if (contentMotion) contentMotion.classList.remove('hidden');
             if (contentMinimax) contentMinimax.classList.add('hidden');
-            if(typeof setProviderUtama === 'function') setProviderUtama('kiix');
+            setProviderUtama('kiix');
         } else {
             if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 transition cursor-pointer flex items-center gap-2";
             if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
             if (contentMinimax) contentMinimax.classList.remove('hidden');
             if (contentMotion) contentMotion.classList.add('hidden');
-            if(typeof setProviderUtama === 'function') setProviderUtama('minimax');
+            setProviderUtama('minimax');
         }
       };
 
-      // FUNGSI PILIH PROVIDER/ENGINE UTAMA TERMASUK MINIMAX
+      // FUNGSI PILIH PROVIDER/ENGINE UTAMA
       window.setProviderUtama = function(prov) {
+        window.providerAktif = prov;
+
         ['kiix', 'runninghub', 'kling', 'minimax'].forEach(function(p) {
           const card = document.getElementById('c-prov-' + p);
           const badge = document.getElementById('b-prov-' + p);
           if (card) {
             if (p === prov) {
               if (p === 'minimax') {
-                card.className = card.className.replace('border border-kmBorder', 'border-2 border-orange-500 ring-4 ring-orange-50');
+                card.className = "bg-white border-2 border-orange-500 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-orange-50 transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4";
+              } else if (p === 'kling') {
+                card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-indigo-600 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-indigo-50 transition";
               } else {
-                card.className = card.className.replace('border border-kmBorder', 'border-2 border-kmViolet ring-4 ring-violet-50');
+                card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition";
               }
               if (badge) badge.style.display = 'inline-block';
             } else {
-              if (p === 'minimax') {
-                card.className = card.className.replace('border-2 border-orange-500 ring-4 ring-orange-50', 'border border-kmBorder');
-              } else {
-                card.className = card.className.replace('border-2 border-kmViolet ring-4 ring-violet-50', 'border border-kmBorder');
-              }
+              card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
               if (badge) badge.style.display = 'none';
             }
           }
         });
-        window.providerAktif = prov;
-        
-        // --- SWITCH FORM INPUT MOTION/MINIMAX ---
+
+        // Switch formulir input & rincian biaya
         var formMotion = document.getElementById('form-input-motion');
         var formMinimax = document.getElementById('form-input-minimax');
-        
+        var tTitle = document.getElementById('t-engine-title');
+        var tTotal = document.getElementById('t-engine-total');
+        var dropWrap = document.getElementById('box-wrap-dropdown-akun');
+        var lblBadge = document.getElementById('lbl-badge-mode');
+        var dotStep1 = document.getElementById('dot-step1');
+        var dotStep2 = document.getElementById('dot-step2');
+
         if (prov === 'minimax') {
-            if (formMotion) { formMotion.classList.remove('grid'); formMotion.classList.add('hidden'); }
-            if (formMinimax) { formMinimax.classList.remove('hidden'); formMinimax.classList.add('flex'); }
+            if (formMotion) { formMotion.style.display = 'none'; }
+            if (formMinimax) { 
+              formMinimax.style.display = 'flex'; 
+              formMinimax.classList.remove('hidden'); 
+            }
+            if (tTitle) tTitle.innerText = "MINIMAX H3 MASTER WORKFLOW";
+            if (tTotal) {
+              tTotal.innerText = "≈ 257 coin / render";
+              tTotal.className = "text-lg sm:text-xl font-black text-orange-600 tracking-tight";
+            }
+            if (dropWrap) dropWrap.style.display = 'block';
+            if (lblBadge) {
+              lblBadge.innerText = "MiniMax H3";
+              lblBadge.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 shadow-sm";
+            }
+            if (dotStep1) dotStep1.className = "w-2.5 h-2.5 rounded-full bg-orange-500";
+            if (dotStep2) dotStep2.className = "w-2.5 h-2.5 rounded-full bg-orange-500";
         } else {
-            if (formMotion) { formMotion.classList.remove('hidden'); formMotion.classList.add('grid'); }
-            if (formMinimax) { formMinimax.classList.remove('flex'); formMinimax.classList.add('hidden'); }
+            if (formMinimax) { 
+              formMinimax.style.display = 'none'; 
+              formMinimax.classList.add('hidden'); 
+            }
+            if (formMotion) { 
+              formMotion.style.display = 'grid'; 
+              formMotion.classList.remove('hidden'); 
+            }
+            if (dotStep1) dotStep1.className = "w-2.5 h-2.5 rounded-full bg-kmViolet";
+            if (dotStep2) dotStep2.className = "w-2.5 h-2.5 rounded-full bg-kmViolet";
+            if (lblBadge) {
+              lblBadge.innerText = "Motion Mode";
+              lblBadge.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm";
+            }
+
+            if (prov === 'runninghub') {
+              if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
+              if (tTotal) {
+                tTotal.innerText = "≈ 478 coin / render";
+                tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
+              }
+              if (dropWrap) dropWrap.style.display = 'block';
+            } else if (prov === 'kling') {
+              if (tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL";
+              if (tTotal) {
+                tTotal.innerText = "1 Coin VIP / render";
+                tTotal.className = "text-lg sm:text-xl font-black text-indigo-600 tracking-tight";
+              }
+              if (dropWrap) dropWrap.style.display = 'none';
+            } else { // kiix
+              if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
+              if (tTotal) {
+                tTotal.innerText = "1 Kredit";
+                tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
+              }
+              if (dropWrap) dropWrap.style.display = 'none';
+            }
         }
         
-        // Panggil update UI Controller jika ada
         if (typeof window.updateUIProvider === 'function') {
-            window.updateUIProvider(prov);
+            try { window.updateUIProvider(prov); } catch (e) {}
         }
       };
 
-      // FUNGSI PREVIEW GAMBAR KHUSUS MINIMAX H3
+      // FUNGSI PREVIEW GAMBAR KHUSUS MINIMAX H3 (1 s.d. 6 GAMBAR)
       window.previewMinimax = function(input, index) {
           if (input.files && input.files[0]) {
               var reader = new FileReader();
@@ -1018,8 +1075,10 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                       divBg.style.backgroundImage = 'url(' + e.target.result + ')';
                       divBg.classList.remove('hidden');
                   }
-                  if (delBtn) delBtn.classList.remove('hidden');
-                  if (delBtn) delBtn.classList.add('flex');
+                  if (delBtn) {
+                      delBtn.classList.remove('hidden');
+                      delBtn.classList.add('flex');
+                  }
                   if (plusIcon) plusIcon.classList.add('hidden');
                   if (lblText) lblText.classList.add('hidden');
               };
@@ -1035,7 +1094,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           var plusIcon = document.getElementById('plus-mm-' + index);
           var lblText = document.getElementById('lbl-mm-' + index);
           
-          // Kosongkan value file input yang ada di sebelahnya
           if (delBtn && delBtn.previousElementSibling && delBtn.previousElementSibling.previousElementSibling) {
               var fileInput = delBtn.previousElementSibling.previousElementSibling;
               if (fileInput.type === 'file') fileInput.value = '';

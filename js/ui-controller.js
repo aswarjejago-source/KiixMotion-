@@ -136,6 +136,13 @@ window.gantiLayarNav = function(layar) {
                 } else {
                     btn.className = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-amber-500/10 text-amber-600 border border-amber-300 hover:bg-amber-500 hover:text-white cursor-pointer whitespace-nowrap transition mt-2";
                 }
+            } else if (id === 'generate') {
+                var baseClass = "btn-nav-sidebar flex items-center justify-between w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer transition whitespace-nowrap ";
+                if (layar === id) {
+                    btn.className = baseClass + "bg-[#F3EEFF] text-[#7C3AED]";
+                } else {
+                    btn.className = baseClass + "text-slate-600 hover:bg-slate-50 hover:text-slate-800";
+                }
             } else {
                 var baseClass = "btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap transition ";
                 if (layar === id) {
@@ -184,27 +191,48 @@ window.gantiLayarNav = function(layar) {
 };
 
 // -------------------------------------------------------------
-// FITUR GENERATE (PILIH ENGINE & BADGE KOIN) - TERMASUK MINIMAX H3
+// FITUR GENERATE (PILIH ENGINE & DROPDOWN MENU)
 // -------------------------------------------------------------
 
 window.engineProvider = 'kiix';
 
-// FUNGSI GANTI KATEGORI TAB SWITCHER
+// FUNGSI BUKA TUTUP DROPDOWN SIDEBAR GENERATE
+window.toggleMenuGenerate = function() {
+    var submenu = document.getElementById('nav-submenu-generate');
+    var icon = document.getElementById('nav-icon-generate');
+    
+    if (!submenu || !icon) return;
+    
+    if (submenu.classList.contains('hidden')) {
+        submenu.classList.remove('hidden');
+        submenu.classList.add('flex');
+        icon.style.transform = 'rotate(180deg)';
+        if (navLayarAktif !== 'generate') gantiLayarNav('generate');
+    } else {
+        submenu.classList.remove('flex');
+        submenu.classList.add('hidden');
+        icon.style.transform = 'rotate(0deg)';
+    }
+};
+
+// FUNGSI GANTI KATEGORI ENGINE DARI SIDEBAR DROPDOWN
 window.switchKategoriEngine = function(kategori) {
-    var btnMotion = document.getElementById('tab-btn-motion');
-    var btnMinimax = document.getElementById('tab-btn-minimax');
+    var subnavMotion = document.getElementById('subnav-motion');
+    var subnavMinimax = document.getElementById('subnav-minimax');
     var contentMotion = document.getElementById('tab-content-motion');
     var contentMinimax = document.getElementById('tab-content-minimax');
     
+    if (navLayarAktif !== 'generate') gantiLayarNav('generate');
+    
     if (kategori === 'motion') {
-        if (btnMotion) btnMotion.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-kmViolet bg-violet-50 text-kmViolet shadow-sm whitespace-nowrap cursor-pointer";
-        if (btnMinimax) btnMinimax.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-transparent bg-white border-kmBorder text-slate-500 hover:bg-slate-50 whitespace-nowrap modern-shadow cursor-pointer";
+        if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-violet-50 text-kmViolet transition cursor-pointer flex items-center gap-2";
+        if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
         if (contentMotion) contentMotion.classList.remove('hidden');
         if (contentMinimax) contentMinimax.classList.add('hidden');
         setProviderUtama('kiix');
     } else {
-        if (btnMinimax) btnMinimax.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-orange-500 bg-orange-50 text-orange-600 shadow-sm whitespace-nowrap cursor-pointer";
-        if (btnMotion) btnMotion.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-transparent bg-white border-kmBorder text-slate-500 hover:bg-slate-50 whitespace-nowrap modern-shadow cursor-pointer";
+        if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 transition cursor-pointer flex items-center gap-2";
+        if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
         if (contentMinimax) contentMinimax.classList.remove('hidden');
         if (contentMotion) contentMotion.classList.add('hidden');
         setProviderUtama('minimax');

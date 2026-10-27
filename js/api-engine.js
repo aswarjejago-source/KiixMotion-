@@ -96,12 +96,21 @@ function alihkanKeMenuLangganan() {
 function simpanStorage() {
   try {
     localStorage.setItem('km_list_kunci_pro', JSON.stringify(listKunciPro));
+    
     if (window.riwayatGenerateList && Array.isArray(window.riwayatGenerateList)) {
+      // Proteksi anti-timpa jika memori sementara masih kosong
+      if (window.riwayatGenerateList.length === 0) {
+        var dataAda = localStorage.getItem('km_riwayat_generate') || localStorage.getItem('km_riwayat_generate_bak');
+        if (dataAda && dataAda !== '[]') {
+          muatStorage();
+          return;
+        }
+      }
+
       var dataStr = JSON.stringify(window.riwayatGenerateList);
       localStorage.setItem('km_riwayat_generate', dataStr);
+      localStorage.setItem('km_riwayat_generate_bak', dataStr);
     }
-    var kunciZombie = ['riwayat_generate', 'km_riwayat', 'km_history', 'riwayat_video', 'km_riwayat_backup', 'riwayatGenerateList'];
-    kunciZombie.forEach(function(k) { localStorage.removeItem(k); });
   } catch (e) {}
 }
 window.simpanStorage = simpanStorage;
@@ -114,7 +123,7 @@ function muatStorage() {
     var blacklisted = getBlacklistTugas();
     var listUtama = [];
 
-    var rawRiwayat = localStorage.getItem('km_riwayat_generate');
+    var rawRiwayat = localStorage.getItem('km_riwayat_generate') || localStorage.getItem('km_riwayat_generate_bak');
     if (rawRiwayat) {
       try { listUtama = JSON.parse(rawRiwayat) || []; } catch (e) {}
     }
@@ -150,10 +159,18 @@ function muatStorage() {
 
     window.riwayatGenerateList = hasilBersih;
     riwayatGenerateList = hasilBersih;
-    simpanStorage();
+
+    if (hasilBersih.length > 0) {
+      var dataStr = JSON.stringify(hasilBersih);
+      localStorage.setItem('km_riwayat_generate', dataStr);
+      localStorage.setItem('km_riwayat_generate_bak', dataStr);
+    }
   } catch (e) {}
 }
 window.muatStorage = muatStorage;
+
+// Panggil muatStorage seketika file dibaca
+muatStorage();
 
 async function selaraskanRiwayatDenganAkun() {
   if (typeof supa !== 'undefined') {
@@ -194,8 +211,8 @@ async function selaraskanRiwayatDenganAkun() {
 
         if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
           window.riwayatGenerateList.forEach(function(t) {
-            t.user_id = sUser.id;
-            if (sUser.email) t.user_email = sUser.email.toLowerCase().trim();
+            if (!t.user_id) t.user_id = sUser.id;
+            if (!t.user_email && sUser.email) t.user_email = emailTarget;
           });
 
           simpanStorage();
@@ -287,11 +304,21 @@ function resetFormBahanInput() {
   if (inPromptMM) inPromptMM.value = '';
 
   for (var i = 1; i <= 9; i++) {
-    if (typeof hapusPreviewMinimax === 'function') {
-      try {
-        hapusPreviewMinimax({ preventDefault: function(){}, stopPropagation: function(){} }, i);
-      } catch (e) {}
+    var divBg = document.getElementById('prev-mm-' + i);
+    var delBtn = document.getElementById('del-mm-' + i);
+    var plusIcon = document.getElementById('plus-mm-' + i);
+    var lblText = document.getElementById('lbl-mm-' + i);
+    var inSlot = document.getElementById('input-mm-' + i);
+
+    if (divBg) {
+      divBg.style.backgroundImage = '';
+      divBg.removeAttribute('data-url');
+      divBg.classList.add('hidden');
     }
+    if (delBtn) { delBtn.classList.add('hidden'); delBtn.classList.remove('flex'); }
+    if (plusIcon) plusIcon.classList.remove('hidden');
+    if (lblText) { lblText.innerText = String(i); lblText.className = 'text-[10px] font-bold text-slate-400 mt-0.5 z-10'; }
+    if (inSlot) inSlot.value = '';
   }
 }
 
@@ -715,9 +742,16 @@ async function mulaiProsesGenerate() {
     var listGambarMM = [];
     for (var idx = 1; idx <= 9; idx++) {
       var prev = document.getElementById('prev-mm-' + idx);
-      if (prev && !prev.classList.contains('hidden') && prev.style.backgroundImage) {
-        var cleanBg = prev.style.backgroundImage.replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
-        if (cleanBg) listGambarMM.push(cleanBg);
+      if (prev && !prev.classList.contains('hidden')) {
+        var cleanBg = (prev.dataset.url || prev.getAttribute('data-url') || prev.style.backgroundImage || '')
+          .replace(/^url\(["']?/, '')
+          .replace(/["']?\)$/, '')
+          .replace(/["']/g, '')
+          .trim();
+
+        if (cleanBg) {
+          listGambarMM.push({ slot: idx, url: cleanBg });
+        }
       }
     }
 

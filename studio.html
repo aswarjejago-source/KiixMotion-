@@ -723,7 +723,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-xl font-black text-slate-900 tracking-tight" id="label-plan-nama">Free</h2>
-                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlangganan VIP</p>
+                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlanggan VIP</p>
                 </div>
                 <span class="px-3.5 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-full" id="label-status-vip-badge">Non-Aktif</span>
             </div>
@@ -1156,11 +1156,22 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           }
       };
 
+      // FUNGSI HAPUS PREVIEW & RESET FORM (KEBAL ERROR NULL / AUTO-RESET)
       window.hapusPreviewMinimax = function(event, index) {
-          if (event) {
-              event.preventDefault();
-              event.stopPropagation();
+          if (typeof event === 'number' && typeof index === 'undefined') {
+              index = event;
+              event = null;
           }
+          if (event) {
+              if (typeof event.preventDefault === 'function') {
+                  try { event.preventDefault(); } catch (e) {}
+              }
+              if (typeof event.stopPropagation === 'function') {
+                  try { event.stopPropagation(); } catch (e) {}
+              }
+          }
+          if (!index) return;
+
           if (window.minimaxFiles) delete window.minimaxFiles[index];
           if (window.minimaxUrls) delete window.minimaxUrls[index];
 

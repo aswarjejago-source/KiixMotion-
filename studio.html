@@ -34,7 +34,7 @@
   <style>
     body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background-color: #FBF9F5; color: #1A1816; -webkit-tap-highlight-color: transparent; }
     .modern-shadow { box-shadow: 0 10px 30px -5px rgba(26, 24, 22, 0.04), 0 4px 6px -2px rgba(26, 24, 22, 0.02); }
-    .violet-glow { box-shadow: 0 8px 20px -4px rgba(124, 58, 237, 0.2); }
+    .violet-glow { box-shadow: 0 8px 20px -4px rgba(124, 58, 237, 0.25); }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .nav-btn-smooth { display: flex; align-items: center; gap: 12px; transition: all 0.2s ease-in-out; }
@@ -46,7 +46,7 @@
       100% { transform: scale(1); opacity: 1; }
     }
     .anim-check-pop { animation: checkmarkPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
   </style>
@@ -101,7 +101,7 @@
         <i class="ph ph-squares-four text-lg"></i> Dashboard
       </button>
       
-      <!-- MENU GENERATE (DENGAN DROPDOWN SUBMENU) -->
+      <!-- MENU GENERATE -->
       <div class="flex flex-col w-full">
         <button id="nav-btn-generate" onclick="toggleMenuGenerate()" class="btn-nav-sidebar flex items-center justify-between w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer transition whitespace-nowrap">
           <div class="flex items-center gap-3"><i class="ph ph-magic-wand text-lg"></i> Generate</div>
@@ -234,7 +234,7 @@
       
       <!-- Area Engine Options Atas -->
       <div>
-        <!-- Konten 1: Motion Control Engines -->
+        <!-- Konten 1: Motion Control Engines (Kartu Atas) -->
         <div id="tab-content-motion" class="transition-all duration-300">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MOTION CONTROL ENGINE</label>
           <div class="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
@@ -278,35 +278,37 @@
           </div>
         </div>
 
-        <!-- Konten 2: MiniMax H3 Engine -->
+        <!-- Konten 2: MiniMax H3 Engine (Kartu Atas - Warna Khas KiixMotion) -->
         <div id="tab-content-minimax" class="transition-all duration-300" style="display: none;">
-          <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MINIMAX ENGINE</label>
-          <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border-2 border-orange-500 ring-4 ring-orange-50 p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition">
-            <div class="space-y-1.5">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MINIMAX WORKFLOW ENGINE</label>
+          <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border-2 border-kmViolet ring-4 ring-violet-50 p-5 rounded-3xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition">
+            <div class="space-y-1">
               <div class="flex items-center gap-2">
-                <span class="text-xs font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">NEW H3</span>
-                <h4 class="font-bold text-slate-900 text-base">MiniMax H3 Master Workflow</h4>
+                <span class="text-[10px] font-black px-2.5 py-0.5 bg-violet-100 text-kmViolet rounded-full tracking-wide">H3 MASTER</span>
+                <h4 class="font-extrabold text-slate-900 text-base">MiniMax H3 Multi-Image Engine</h4>
               </div>
-              <p class="text-xs text-slate-500">Workflow multi-image acting, combat action & cinematic generation.</p>
+              <p class="text-xs text-slate-500">Multi-image acting, character combat & cinematic camera motion.</p>
             </div>
-            <span id="b-prov-minimax" class="text-[10px] bg-orange-500 text-white font-extrabold px-3 py-1 rounded-full">AKTIF</span>
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-bold text-kmViolet bg-violet-50 border border-violet-200 px-3 py-1 rounded-xl">1 Kredit / Video</span>
+              <span id="b-prov-minimax" class="text-[10px] bg-kmViolet text-white font-extrabold px-3 py-1 rounded-full">AKTIF</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- AREA FORM UTAMA -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- TAMPILAN 1: MOTION CONTROL (2 KOLOM: BAHAN INPUT & AKUN/ESTIMASI) -->
+      <div id="wrap-motion-flow" class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow flex flex-col">
           <div class="flex items-center justify-between mb-2">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet" id="dot-step1"></span> 1. Bahan Input
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
             </h2>
             <div class="flex gap-1 bg-slate-100 p-1 rounded-xl border border-kmBorder">
-              <span id="lbl-badge-mode" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm">Motion Mode</span>
+              <span class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm">Motion Mode</span>
             </div>
           </div>
 
-          <!-- FORM 1: MOTION CONTROL (Hanya 1 Foto + 1 Video) -->
           <div id="form-input-motion" class="grid grid-cols-2 gap-4 flex-1">
             <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group h-full min-h-[140px]">
               <span class="text-4xl mb-2 group-hover:scale-105 transition">🖼️</span>
@@ -322,159 +324,13 @@
               <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
             </label>
           </div>
-
-          <!-- FORM 2: MINIMAX H3 (9 Slot Foto, Frame, Durasi 10-30s, Adegan Laga/Dramatis, Prompt) -->
-          <div id="form-input-minimax" style="display: none;" class="flex-col gap-4 flex-1 max-h-[580px] overflow-y-auto pr-1.5 custom-scrollbar">
-            
-            <!-- 1. Grid 9 Slot Foto -->
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unggah Gambar (Maks 9 Foto)</label>
-                <span class="text-[9px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">H3 Reference</span>
-              </div>
-              
-              <div class="grid grid-cols-3 gap-2" id="grid-minimax-images">
-                <!-- Slot 1 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-1">+</span>
-                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-1">Foto 1</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 1)" />
-                  <div id="prev-mm-1" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 1)" id="del-mm-1" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
-                </label>
-                <!-- Slot 2 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-2">+</span>
-                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-2">Foto 2</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 2)" />
-                  <div id="prev-mm-2" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 2)" id="del-mm-2" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
-                </label>
-                <!-- Slot 3 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-3">+</span>
-                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-3">Foto 3</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 3)" />
-                  <div id="prev-mm-3" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 3)" id="del-mm-3" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
-                </label>
-                <!-- Slot 4 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-4">+</span>
-                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-4">Foto 4</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 4)" />
-                  <div id="prev-mm-4" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 4)" id="del-mm-4" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
-                </label>
-                <!-- Slot 5 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-5">+</span>
-                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-5">Foto 5</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 5)" />
-                  <div id="prev-mm-5" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 5)" id="del-mm-5" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
-                </label>
-                <!-- Slot 6 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-6">+</span>
-                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-6">Foto 6</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 6)" />
-                  <div id="prev-mm-6" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 6)" id="del-mm-6" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
-                </label>
-                <!-- Slot 7 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-7">+</span>
-                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-7">Foto 7</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 7)" />
-                  <div id="prev-mm-7" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 7)" id="del-mm-7" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
-                </label>
-                <!-- Slot 8 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-8">+</span>
-                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-8">Foto 8</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 8)" />
-                  <div id="prev-mm-8" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 8)" id="del-mm-8" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
-                </label>
-                <!-- Slot 9 -->
-                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
-                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-9">+</span>
-                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-9">Foto 9</span>
-                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 9)" />
-                  <div id="prev-mm-9" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
-                  <button type="button" onclick="hapusPreviewMinimax(event, 9)" id="del-mm-9" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
-                </label>
-              </div>
-            </div>
-
-            <!-- 2. Parameter Tipe Performa & Pilihan Frame -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-              <div>
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Tipe Performa</label>
-                <select id="sel-minimax-performa" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
-                  <option value="dramatis" selected>Adegan dramatis</option>
-                  <option value="laga">Adegan laga</option>
-                </select>
-              </div>
-
-              <div>
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Pilihan Frame / FPS</label>
-                <select id="sel-minimax-frame" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
-                  <option value="24fps" selected>24 FPS (Cinematic Standard)</option>
-                  <option value="25fps">25 FPS (Smooth Motion)</option>
-                  <option value="30fps">30 FPS (High Motion Smooth)</option>
-                  <option value="first_frame">First Frame Anchor (Foto 1 Kunci)</option>
-                  <option value="multi_keyframe">Multi-Frame Keyframe Transition</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- 3. Parameter Durasi (10-30s) & Rasio Aspek -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Durasi Video</label>
-                <select id="sel-minimax-durasi" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer font-bold text-orange-600">
-                  <option value="10">10 Detik (Fast Action)</option>
-                  <option value="15" selected>15 Detik (Standard H3)</option>
-                  <option value="20">20 Detik (Extended)</option>
-                  <option value="25">25 Detik (Cinematic Scene)</option>
-                  <option value="30">30 Detik (Full Story)</option>
-                </select>
-              </div>
-
-              <div>
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Rasio Aspek Video</label>
-                <select id="sel-minimax-ratio" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
-                  <option value="3:4" selected>3:4 (Portrait Standard)</option>
-                  <option value="9:16">9:16 (TikTok / Reels Widescreen)</option>
-                  <option value="16:9">16:9 (Landscape YouTube)</option>
-                  <option value="1:1">1:1 (Square)</option>
-                  <option value="2:3">2:3 (Portrait Photo)</option>
-                  <option value="4:3">4:3 (Standard)</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- 4. Textarea Prompt / Script -->
-            <div class="pt-2 border-t border-slate-100">
-              <div class="flex justify-between items-center mb-1">
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Prompt / Script Karakter</label>
-                <span class="text-[9px] text-slate-400">H3 Structure Tag</span>
-              </div>
-              <textarea id="prompt-minimax" class="w-full bg-slate-50 border border-kmBorder rounded-xl p-3 text-xs text-slate-700 font-mono focus:border-orange-400 focus:outline-none focus:bg-white h-24 resize-none transition leading-relaxed" placeholder="subject_definitions&#10;&lt;Subject 1&gt;: Karakter utama (female), reference Picture 1&#10;&lt;Subject 2&gt;: Karakter lawan (male), reference Picture 2&#10;&lt;Action&gt;: Adegan pertarungan sengit di kuil kuno..."></textarea>
-            </div>
-
-          </div>
-
         </div>
 
-        <!-- Kolom Kanan: Akun & Estimasi -->
-        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
+        <!-- Kolom Kanan Khusus Motion Control -->
+        <div id="card-kanan-motion" class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
           <div class="space-y-5">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet" id="dot-step2"></span> 2. Akun & Estimasi
+              <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 2. Akun & Estimasi
             </h2>
 
             <div id="box-wrap-dropdown-akun" class="space-y-2" style="display: none;">
@@ -504,6 +360,168 @@
           </button>
         </div>
       </div>
+
+      <!-- TAMPILAN 2: MINIMAX H3 (1 CARD LEGA PENUH, TANPA BOX KANAN, IDENTIK KIIX PURPLE) -->
+      <div id="wrap-minimax-flow" style="display: none;" class="bg-kmCard border border-kmBorder p-6 sm:p-8 rounded-3xl space-y-6 modern-shadow">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-kmBorder pb-4">
+          <div>
+            <h2 class="text-lg font-black text-kmTextPrimary flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-kmViolet"></span> Konfigurasi MiniMax H3
+            </h2>
+            <p class="text-xs text-kmTextSecondary mt-0.5">Unggah foto referensi aktor/karakter, atur gaya kamera, dan masukkan deskripsi prompt adegan.</p>
+          </div>
+          <div class="flex items-center gap-2 self-start sm:self-auto">
+            <span class="px-3 py-1 rounded-xl text-xs font-bold bg-violet-50 text-kmViolet border border-violet-200">
+              ⚡ 1 Video = 1 Kredit
+            </span>
+          </div>
+        </div>
+
+        <!-- 1. Grid 9 Slot Gambar Unggahan -->
+        <div>
+          <div class="flex justify-between items-center mb-2.5">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Unggah Gambar Karakter (Maksimal 9 Foto)</label>
+            <span class="text-[11px] font-semibold text-kmViolet bg-violet-50 px-2 py-0.5 rounded-md">JPG, PNG, WebP</span>
+          </div>
+
+          <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-3" id="grid-minimax-images">
+            <!-- 9 Kotak Foto Responsif -->
+            <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
+              <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-1">+</span>
+              <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-1">1</span>
+              <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 1)" />
+              <div id="prev-mm-1" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <button type="button" onclick="hapusPreviewMinimax(event, 1)" id="del-mm-1" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+            </label>
+            <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
+              <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-2">+</span>
+              <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-2">2</span>
+              <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 2)" />
+              <div id="prev-mm-2" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <button type="button" onclick="hapusPreviewMinimax(event, 2)" id="del-mm-2" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+            </label>
+            <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
+              <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-3">+</span>
+              <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-3">3</span>
+              <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 3)" />
+              <div id="prev-mm-3" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <button type="button" onclick="hapusPreviewMinimax(event, 3)" id="del-mm-3" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+            </label>
+            <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
+              <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-4">+</span>
+              <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-4">4</span>
+              <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 4)" />
+              <div id="prev-mm-4" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <button type="button" onclick="hapusPreviewMinimax(event, 4)" id="del-mm-4" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+            </label>
+            <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
+              <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-5">+</span>
+              <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-5">5</span>
+              <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 5)" />
+              <div id="prev-mm-5" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <button type="button" onclick="hapusPreviewMinimax(event, 5)" id="del-mm-5" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+            </label>
+            <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
+              <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-6">+</span>
+              <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-6">6</span>
+              <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 6)" />
+              <div id="prev-mm-6" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <button type="button" onclick="hapusPreviewMinimax(event, 6)" id="del-mm-6" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+            </label>
+            <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
+              <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-7">+</span>
+              <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-7">7</span>
+              <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 7)" />
+              <div id="prev-mm-7" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <button type="button" onclick="hapusPreviewMinimax(event, 7)" id="del-mm-7" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+            </label>
+            <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
+              <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-8">+</span>
+              <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-8">8</span>
+              <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 8)" />
+              <div id="prev-mm-8" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <button type="button" onclick="hapusPreviewMinimax(event, 8)" id="del-mm-8" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+            </label>
+            <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
+              <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-9">+</span>
+              <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-9">9</span>
+              <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 9)" />
+              <div id="prev-mm-9" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <button type="button" onclick="hapusPreviewMinimax(event, 9)" id="del-mm-9" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+            </label>
+          </div>
+        </div>
+
+        <!-- 2. Parameter Baris (Lega 4 Kolom) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 border-t border-kmBorder">
+          <div>
+            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Tipe Performa</label>
+            <select id="sel-minimax-performa" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3 text-xs sm:text-sm text-kmTextPrimary font-semibold focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer transition">
+              <option value="dramatis" selected>Adegan dramatis</option>
+              <option value="laga">Adegan laga</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Pilihan Frame / FPS</label>
+            <select id="sel-minimax-frame" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3 text-xs sm:text-sm text-kmTextPrimary font-semibold focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer transition">
+              <option value="24fps" selected>24 FPS (Cinematic Standard)</option>
+              <option value="25fps">25 FPS (Smooth Motion)</option>
+              <option value="30fps">30 FPS (High Motion)</option>
+              <option value="first_frame">First Frame Anchor (Foto 1 Kunci)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Durasi Video</label>
+            <select id="sel-minimax-durasi" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-kmViolet focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer transition">
+              <option value="10">10 Detik (Fast Action)</option>
+              <option value="15" selected>15 Detik (Standard H3)</option>
+              <option value="20">20 Detik (Extended)</option>
+              <option value="25">25 Detik (Cinematic Scene)</option>
+              <option value="30">30 Detik (Full Story)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Rasio Aspek Video</label>
+            <select id="sel-minimax-ratio" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3 text-xs sm:text-sm text-kmTextPrimary font-semibold focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer transition">
+              <option value="3:4" selected>3:4 (Portrait Standard)</option>
+              <option value="9:16">9:16 (TikTok / Reels Widescreen)</option>
+              <option value="16:9">16:9 (Landscape YouTube)</option>
+              <option value="1:1">1:1 (Square)</option>
+              <option value="2:3">2:3 (Portrait Photo)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 3. Textarea Prompt / Script -->
+        <div class="pt-2 border-t border-kmBorder space-y-1.5">
+          <div class="flex justify-between items-center">
+            <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Prompt / Script Karakter & Aksi</label>
+            <span class="text-[11px] text-slate-400">Contoh format: &lt;Subject 1&gt;, &lt;Action&gt;</span>
+          </div>
+          <textarea id="prompt-minimax" class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs sm:text-sm text-slate-800 font-mono focus:border-kmViolet focus:outline-none focus:bg-white h-28 resize-none transition leading-relaxed shadow-inner" placeholder="subject_definitions&#10;&lt;Subject 1&gt;: Karakter wanita bergaun emas, referensi Foto 1&#10;&lt;Subject 2&gt;: Prajurit bertopeng, referensi Foto 2&#10;&lt;Action&gt;: Keduanya bertarung menggunakan pedang di dalam istana kuno..."></textarea>
+        </div>
+
+        <!-- 4. Footer Action Bar (Estimasi 1 Kredit & Tombol Generate Ungu Khas Kiix) -->
+        <div class="pt-4 border-t border-kmBorder flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-violet-100 flex items-center justify-center text-kmViolet font-bold text-lg">⚡</div>
+            <div>
+              <p class="text-xs font-semibold text-slate-500">Biaya Generate</p>
+              <p class="text-base font-black text-kmViolet">1 Kredit Cloud <span class="text-xs text-slate-400 font-medium">/ video</span></p>
+            </div>
+          </div>
+
+          <button id="btn-submit-minimax" onclick="mulaiProsesGenerate()" class="w-full sm:w-auto px-8 py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer flex items-center justify-center gap-2">
+            <i class="ph-bold ph-magic-wand text-lg"></i> GENERATE VIDEO MINIMAX
+          </button>
+        </div>
+
+      </div>
+
     </div>
 
     <!-- 3. HISTORY VIEW -->
@@ -704,7 +722,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-xl font-black text-slate-900 tracking-tight" id="label-plan-nama">Free</h2>
-                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlangganan VIP</p>
+                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlanggan VIP</p>
                 </div>
                 <span class="px-3.5 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-full" id="label-status-vip-badge">Non-Aktif</span>
             </div>
@@ -963,12 +981,14 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           }
       };
 
-      // FUNGSI GANTI KATEGORI ENGINE (TERKUNCI & ANTI-OVERWRITE)
+      // FUNGSI GANTI KATEGORI ENGINE (SEMPURNA: MOTION 2-KOLOM VS MINIMAX 1-CARD LEGA)
       function eksekusiGantiKategori(kategori) {
         var subnavMotion = document.getElementById('subnav-motion');
         var subnavMinimax = document.getElementById('subnav-minimax');
         var contentMotion = document.getElementById('tab-content-motion');
         var contentMinimax = document.getElementById('tab-content-minimax');
+        var wrapMotion = document.getElementById('wrap-motion-flow');
+        var wrapMinimax = document.getElementById('wrap-minimax-flow');
         
         window.engineProvider = (kategori === 'minimax') ? 'minimax' : 'kiix';
         window.engineMode = window.engineProvider;
@@ -981,41 +1001,50 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
         if (kategori === 'motion') {
             if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-violet-50 text-kmViolet transition cursor-pointer flex items-center gap-2";
             if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
+            
             if (contentMotion) contentMotion.style.setProperty('display', 'block', 'important');
             if (contentMinimax) contentMinimax.style.setProperty('display', 'none', 'important');
+            
+            if (wrapMotion) wrapMotion.style.setProperty('display', 'grid', 'important');
+            if (wrapMinimax) wrapMinimax.style.setProperty('display', 'none', 'important');
+
             eksekusiSetProvider('kiix');
         } else {
-            if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 transition cursor-pointer flex items-center gap-2";
+            if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-violet-50 text-kmViolet transition cursor-pointer flex items-center gap-2";
             if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
+            
             if (contentMinimax) contentMinimax.style.setProperty('display', 'block', 'important');
             if (contentMotion) contentMotion.style.setProperty('display', 'none', 'important');
+
+            if (wrapMotion) wrapMotion.style.setProperty('display', 'none', 'important');
+            if (wrapMinimax) wrapMinimax.style.setProperty('display', 'block', 'important');
+
             eksekusiSetProvider('minimax');
         }
       }
 
-      // FUNGSI SET PROVIDER UTAMA (MUTLAK MENGATUR FORM DENGAN STYLE IMPORTANT)
+      // FUNGSI SET PROVIDER UTAMA
       function eksekusiSetProvider(prov) {
         window.engineProvider = prov;
         window.engineMode = prov;
         window.providerAktif = prov;
 
-        // Atur status aktif kartu provider
         ['kiix', 'runninghub', 'kling', 'minimax'].forEach(function(p) {
           const card = document.getElementById('c-prov-' + p);
           const badge = document.getElementById('b-prov-' + p);
           if (card) {
             if (p === prov) {
-              if (p === 'minimax') {
-                card.className = "bg-white border-2 border-orange-500 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-orange-50 transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4";
-              } else if (p === 'kling') {
+              if (p === 'kling') {
                 card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-indigo-600 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-indigo-50 transition";
+              } else if (p === 'minimax') {
+                card.className = "bg-white border-2 border-kmViolet ring-4 ring-violet-50 p-5 rounded-3xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
               } else {
                 card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition";
               }
               if (badge) badge.style.display = 'inline-block';
             } else {
               if (p === 'minimax') {
-                card.className = "bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
+                card.className = "bg-white border border-kmBorder p-5 rounded-3xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
               } else {
                 card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
               }
@@ -1024,92 +1053,36 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           }
         });
 
-        var formMotion = document.getElementById('form-input-motion');
-        var formMinimax = document.getElementById('form-input-minimax');
         var tTitle = document.getElementById('t-engine-title');
         var tTotal = document.getElementById('t-engine-total');
         var dropWrap = document.getElementById('box-wrap-dropdown-akun');
-        var lblBadge = document.getElementById('lbl-badge-mode');
-        var dotStep1 = document.getElementById('dot-step1');
-        var dotStep2 = document.getElementById('dot-step2');
-        var btnSubmit = document.getElementById('btn-submit-generate');
 
-        if (prov === 'minimax') {
-            // Tampilkan Form MiniMax 9 Kotak
-            if (formMotion) {
-                formMotion.style.setProperty('display', 'none', 'important');
-                formMotion.classList.add('hidden');
-                formMotion.classList.remove('grid');
-            }
-            if (formMinimax) { 
-                formMinimax.style.setProperty('display', 'flex', 'important');
-                formMinimax.classList.remove('hidden'); 
-            }
-
-            if (tTitle) tTitle.innerText = "MINIMAX H3 MASTER WORKFLOW";
-            if (tTotal) {
-              tTotal.innerText = "≈ 257 coin / render";
-              tTotal.className = "text-lg sm:text-xl font-black text-orange-600 tracking-tight";
-            }
-            if (dropWrap) dropWrap.style.setProperty('display', 'block', 'important');
-            if (lblBadge) {
-              lblBadge.innerText = "MiniMax H3";
-              lblBadge.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 shadow-sm";
-            }
-            if (dotStep1) dotStep1.className = "w-2.5 h-2.5 rounded-full bg-orange-500";
-            if (dotStep2) dotStep2.className = "w-2.5 h-2.5 rounded-full bg-orange-500";
-            if (btnSubmit) {
-              btnSubmit.className = "w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl shadow-lg shadow-orange-500/20 transition transform active:scale-95 cursor-pointer";
-            }
-            if (typeof updateBadgeKoinGenerate === 'function') updateBadgeKoinGenerate();
-        } else {
-            // Tampilkan Form Motion Control (Foto + Video)
-            if (formMinimax) { 
-                formMinimax.style.setProperty('display', 'none', 'important');
-                formMinimax.classList.add('hidden'); 
-            }
-            if (formMotion) { 
-                formMotion.style.setProperty('display', 'grid', 'important');
-                formMotion.classList.remove('hidden'); 
-            }
-
-            if (lblBadge) {
-              lblBadge.innerText = "Motion Mode";
-              lblBadge.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm";
-            }
-            if (dotStep1) dotStep1.className = "w-2.5 h-2.5 rounded-full bg-kmViolet";
-            if (dotStep2) dotStep2.className = "w-2.5 h-2.5 rounded-full bg-kmViolet";
-            if (btnSubmit) {
-              btnSubmit.className = "w-full py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer";
-            }
-
-            if (prov === 'runninghub') {
-              if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
-              if (tTotal) {
-                tTotal.innerText = "≈ 478 coin / render";
-                tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
-              }
-              if (dropWrap) dropWrap.style.setProperty('display', 'block', 'important');
-              if (typeof updateBadgeKoinGenerate === 'function') updateBadgeKoinGenerate();
-            } else if (prov === 'kling') {
-              if (tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL";
-              if (tTotal) {
-                tTotal.innerText = "1 Coin VIP / render";
-                tTotal.className = "text-lg sm:text-xl font-black text-indigo-600 tracking-tight";
-              }
-              if (dropWrap) dropWrap.style.setProperty('display', 'none', 'important');
-            } else { // kiix
-              if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
-              if (tTotal) {
-                tTotal.innerText = "1 Kredit";
-                tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
-              }
-              if (dropWrap) dropWrap.style.setProperty('display', 'none', 'important');
-            }
+        if (prov === 'runninghub') {
+          if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
+          if (tTotal) {
+            tTotal.innerText = "≈ 478 coin / render";
+            tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
+          }
+          if (dropWrap) dropWrap.style.setProperty('display', 'block', 'important');
+          if (typeof updateBadgeKoinGenerate === 'function') updateBadgeKoinGenerate();
+        } else if (prov === 'kling') {
+          if (tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL";
+          if (tTotal) {
+            tTotal.innerText = "1 Coin VIP / render";
+            tTotal.className = "text-lg sm:text-xl font-black text-indigo-600 tracking-tight";
+          }
+          if (dropWrap) dropWrap.style.setProperty('display', 'none', 'important');
+        } else { // kiix
+          if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
+          if (tTotal) {
+            tTotal.innerText = "1 Kredit";
+            tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
+          }
+          if (dropWrap) dropWrap.style.setProperty('display', 'none', 'important');
         }
       }
 
-      // KUNCI KEDUA FUNGSI AGAR TIDAK BISA DITIMPA OLEH FILE JS LAIN
+      // KUNCI KEDUA FUNGSI AGAR TIDAK DIBEGAL FILE LAIN
       Object.defineProperty(window, 'switchKategoriEngine', {
           get: function() { return eksekusiGantiKategori; },
           set: function() {},
@@ -1121,7 +1094,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           configurable: true
       });
 
-      // FUNGSI PREVIEW GAMBAR KHUSUS MINIMAX H3 (1 s.d. 9 GAMBAR)
+      // PREVIEW GAMBAR 1-9 KHUSUS MINIMAX H3
       window.previewMinimax = function(input, index) {
           if (input.files && input.files[0]) {
               var reader = new FileReader();

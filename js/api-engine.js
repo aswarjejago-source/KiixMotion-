@@ -98,7 +98,6 @@ function simpanStorage() {
     localStorage.setItem('km_list_kunci_pro', JSON.stringify(listKunciPro));
     
     if (window.riwayatGenerateList && Array.isArray(window.riwayatGenerateList)) {
-      // Proteksi anti-timpa jika memori sementara masih kosong
       if (window.riwayatGenerateList.length === 0) {
         var dataAda = localStorage.getItem('km_riwayat_generate') || localStorage.getItem('km_riwayat_generate_bak');
         if (dataAda && dataAda !== '[]') {
@@ -169,7 +168,6 @@ function muatStorage() {
 }
 window.muatStorage = muatStorage;
 
-// Panggil muatStorage seketika file dibaca
 muatStorage();
 
 async function selaraskanRiwayatDenganAkun() {
@@ -242,9 +240,7 @@ async function lepaskanKunciPoolOtomatis(poolId) {
 
 function ambilLinkOutputResmi(jsonObj) {
   if (!jsonObj) return null;
-  var data = jsonObj.data;
-  if (!data) return null;
-
+  var data = jsonObj.data || jsonObj;
   var hasilLink = null;
 
   function validasiLinkOutput(url) {
@@ -264,7 +260,18 @@ function ambilLinkOutputResmi(jsonObj) {
     }
   }
 
-  if (Array.isArray(data)) {
+  // 1. Memeriksa format standar RunningHub OpenAPI v2 (results array)
+  var listHasil = data.results || jsonObj.results;
+  if (Array.isArray(listHasil)) {
+    listHasil.forEach(function(item) {
+      if (item && typeof item === 'object') {
+        validasiLinkOutput(item.url || item.fileUrl || item.file_url || item.path);
+      }
+    });
+  }
+
+  // 2. Memeriksa data jika berupa array langsung
+  if (!hasilLink && Array.isArray(data)) {
     data.forEach(function(item) {
       if (item && typeof item === 'object') {
         validasiLinkOutput(item.fileUrl || item.file_url || item.url || item.path);
@@ -272,7 +279,9 @@ function ambilLinkOutputResmi(jsonObj) {
         validasiLinkOutput(item);
       }
     });
-  } else if (typeof data === 'object') {
+  } 
+  // 3. Memeriksa data jika berupa object tunggal
+  else if (!hasilLink && typeof data === 'object') {
     validasiLinkOutput(data.fileUrl || data.file_url || data.videoUrl || data.url || data.path);
   }
 
@@ -425,7 +434,7 @@ function unggahBahanLangsung(input, tipe) {
 window.unggahBahanLangsung = unggahBahanLangsung;
 
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
-  if (tugas.selesai) return; 
+  if (tugas.selesai && tugas.videoUrl) return; 
   if (!tugas.progress) tugas.progress = 0; 
   if (!tugas.startedAt) tugas.startedAt = Date.now();
 
@@ -435,14 +444,15 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.intervalObj) clearInterval(tugas.intervalObj);
 
   async function jalankanCek() {
-    if (tugas.selesai) {
+    if (tugas.selesai && tugas.videoUrl) {
       if (tugas.intervalObj) clearInterval(tugas.intervalObj);
       return;
     }
 
-    var waktuBerjalan = Date.now() - tugas.startedAt;
+    var waktuBerjalan = Date.now() - (tugas.startedAt || Date.now());
     
-    if (waktuBerjalan >= 3600000) {
+    // Batas waktu pemantauan: 2 JAM (7.200.000 ms)
+    if (waktuBerjalan >= 7200000 && !tugas.videoUrl) {
       if (tugas.intervalObj) clearInterval(tugas.intervalObj);
       lepaskanKunciPoolOtomatis(currentPoolId);
       tugas.status = "❌ Gagal (Waktu Habis)"; 
@@ -478,65 +488,45 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
 
       var jsonObj = await res.json();
       var code = Number(jsonObj.code);
-      var statusTeks = "";
+      var rawObj = jsonObj.data || jsonObj;
+      var statusTeks = (rawObj.status || jsonObj.status || "").toString().toUpperCase().trim();
 
-      if (jsonObj.data && typeof jsonObj.data === 'object' && !Array.isArray(jsonObj.data)) {
-        statusTeks = (jsonObj.data.status || "").toString().toUpperCase().trim();
+      // PRIORITAS 1: CEK APAKAH HASIL VIDEO SUDAH SIAP
+      var linkOutputAsli = ambilLinkOutputResmi(jsonObj);
+      if (statusTeks === "SUCCESS" || linkOutputAsli) {
+        if (linkOutputAsli) {
+          if (tugas.intervalObj) clearInterval(tugas.intervalObj);
+          lepaskanKunciPoolOtomatis(currentPoolId);
+
+          tugas.status = "Selesai"; 
+          tugas.selesai = true;
+          tugas.progress = 100; 
+          tugas.videoUrl = linkOutputAsli;
+
+          simpanStorage();
+          if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
+          if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
+          if (currentApiKey) refreshSaldoKunciOtomatis(currentApiKey);
+          if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video berhasil selesai!', 'sukses');
+          return;
+        }
       }
 
-      var isSedangJalan = (
-        code === 804 ||
-        code === 805 ||
-        code === 806 ||
-        statusTeks === "RUNNING" ||
-        statusTeks === "QUEUED" ||
-        statusTeks === "PROCESSING"
-      );
-
-      if (isSedangJalan) {
-        if (code === 804 || statusTeks === "QUEUED") {
-          tugas.status = "⏳ Mengantre di Server...";
-        } else {
-          tugas.status = "⚡ Sedang Memproses Video...";
-        }
-
-        if (tugas.progress < 92) {
-          tugas.progress += 2;
-        }
-        simpanStorage();
-
-        var taskIdStr = String(tugas.id || tugas.taskId || "");
-        var semuaKad = document.querySelectorAll('.grid > div, [class*="card"], [class*="shadow"]');
-        for (var k = 0; k < semuaKad.length; k++) {
-          if (semuaKad[k].innerText && semuaKad[k].innerText.includes(taskIdStr)) {
-            var elemenTeks = semuaKad[k].querySelectorAll('div, p, span');
-            for (var tIdx = 0; tIdx < elemenTeks.length; tIdx++) {
-              var txt = (elemenTeks[tIdx].innerText || "").trim();
-              if (txt.endsWith('%') && txt.length <= 5) {
-                elemenTeks[tIdx].innerText = tugas.progress + "%";
-              }
-            }
-            break;
-          }
-        }
-        return;
-      }
-
+      // PRIORITAS 2: CEK KATA KUNCI KEGAGALAN / CANCEL DARI SERVER
       var isGagalAtauBatal = (
         code === 801 || 
         code === 802 || 
         code === 807 ||
-        statusTeks === "FAILED" ||
-        statusTeks === "ERROR" ||
-        statusTeks === "CANCELED" ||
-        statusTeks === "CANCELLED"
+        statusTeks.includes("FAIL") ||
+        statusTeks.includes("ERR") ||
+        statusTeks.includes("CANCEL")
       );
 
-      if (isGagalAtauBatal) {
+      if (isGagalAtauBatal && !linkOutputAsli) {
         if (tugas.intervalObj) clearInterval(tugas.intervalObj);
         lepaskanKunciPoolOtomatis(currentPoolId);
 
-        var labelStatus = (code === 807 || statusTeks.includes("CANCEL")) ? "❌ Dibatalkan di Server" : "❌ Gagal Diproses Studio";
+        var labelStatus = statusTeks.includes("CANCEL") ? "❌ Dibatalkan di Server" : "❌ Gagal Diproses Studio";
         tugas.status = labelStatus;
         tugas.selesai = true;
         tugas.progress = 100;
@@ -560,24 +550,41 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      if (code === 0 && jsonObj.data) {
-        var linkOutputAsli = ambilLinkOutputResmi(jsonObj);
-        
-        if (linkOutputAsli) {
-          if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-          lepaskanKunciPoolOtomatis(currentPoolId);
+      // PRIORITAS 3: STATUS SEDANG BERJALAN ATAU MENGANTRE
+      var isSedangJalan = (
+        code === 804 ||
+        code === 805 ||
+        code === 806 ||
+        statusTeks === "RUNNING" ||
+        statusTeks === "QUEUED" ||
+        statusTeks === "PROCESSING"
+      );
 
-          tugas.status = "Selesai"; 
-          tugas.selesai = true;
-          tugas.progress = 100; 
-          tugas.videoUrl = linkOutputAsli;
+      if (isSedangJalan) {
+        if (code === 804 || statusTeks === "QUEUED") {
+          tugas.status = "⏳ Mengantre di Server...";
+        } else {
+          tugas.status = "⚡ Sedang Memproses Video...";
+        }
 
-          simpanStorage();
-          if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-          if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-          if (currentApiKey) refreshSaldoKunciOtomatis(currentApiKey);
-          if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video berhasil selesai!', 'sukses');
-          return;
+        if (tugas.progress < 95) {
+          tugas.progress += 2;
+        }
+        simpanStorage();
+
+        var taskIdStr = String(tugas.id || tugas.taskId || "");
+        var semuaKad = document.querySelectorAll('.grid > div, [class*="card"], [class*="shadow"]');
+        for (var k = 0; k < semuaKad.length; k++) {
+          if (semuaKad[k].innerText && semuaKad[k].innerText.includes(taskIdStr)) {
+            var elemenTeks = semuaKad[k].querySelectorAll('div, p, span');
+            for (var tIdx = 0; tIdx < elemenTeks.length; tIdx++) {
+              var txt = (elemenTeks[tIdx].innerText || "").trim();
+              if (txt.endsWith('%') && txt.length <= 5) {
+                elemenTeks[tIdx].innerText = tugas.progress + "%";
+              }
+            }
+            break;
+          }
         }
       }
 
@@ -871,11 +878,13 @@ async function mulaiProsesGenerate() {
 }
 window.mulaiProsesGenerate = mulaiProsesGenerate;
 
+// Otomatis cek ulang saat kembali ke tab browser jika ada video yang belum dapat URL
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') {
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
       window.riwayatGenerateList.forEach(function(tugas) {
-        if (!tugas.selesai && tugas.id) {
+        if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
+          tugas.selesai = false;
           pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
         }
       });
@@ -913,9 +922,11 @@ window.onload = function() {
 
   if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
     window.riwayatGenerateList.forEach(function(tugas) {
-      if (tugas.selesai && tugas.pool_id) {
+      if (tugas.selesai && tugas.videoUrl && tugas.pool_id) {
         lepaskanKunciPoolOtomatis(tugas.pool_id);
-      } else if (!tugas.selesai && tugas.id) {
+      } else if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
+        // Otomatis periksa ulang tugas yang belum punya link video ke RunningHub
+        tugas.selesai = false;
         pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
       }
     });

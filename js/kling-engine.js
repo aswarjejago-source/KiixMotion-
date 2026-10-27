@@ -7,7 +7,13 @@
   window.urlBahanFotoKling = null;
   window.urlBahanVideoKling = null;
 
-  // 1. KOMPRESOR VIDEO CANVAS KHUSUS HP (RINGAN & STABIL)
+  function bungkusStreamProxy(url) {
+    if (!url || typeof url !== 'string') return url;
+    if (url.startsWith('/api/stream') || url.includes('/api/stream?url=')) return url;
+    return '/api/stream?url=' + encodeURIComponent(url);
+  }
+
+  // 1. KOMPRESOR UKURAN HP (GERAKAN NORMAL 1X, TIDAK DIPERCEPAT/DIPOTONG)
   async function perkecilVideoHP(file, onProgress) {
     return new Promise(function (resolve) {
       var video = document.createElement("video");
@@ -18,6 +24,8 @@
 
       video.onloadedmetadata = function () {
         var durasi = video.duration || 5;
+        video.playbackRate = 1.0; // Kecepatan normal asli tanpa percepatan
+
         var targetLebar = 540;
         var targetTinggi = Math.round((video.videoHeight * targetLebar) / video.videoWidth);
         targetTinggi = targetTinggi - (targetTinggi % 2);
@@ -97,9 +105,9 @@
 
     var fileFinal = file;
 
+    // Video asli dipakai langsung, kompresi hanya jika ukuran melebihi limit Supabase (45MB+)
     if (tipe === "video") {
       var sizeMbAwal = file.size / (1024 * 1024);
-      // Kompres otomatis jika file mendekati/melebihi limit Supabase (45MB+)
       if (sizeMbAwal > 45) {
         if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan video... 0%</span>';
         fileFinal = await perkecilVideoHP(file, function (persen) {
@@ -153,10 +161,9 @@
     }
   }
 
-  // EXPOSE FUNGSI AGAR BISA DIPANGGIL SECARA GLOBAL
   window.unggahBahanKling = unggahBahanKling;
 
-  // 3. EKSEKUSI GENERATE KE BACKEND
+  // 3. EKSEKUSI GENERATE (DATA DURASI DISAMARKAN TETAP 5 DETIK)
   async function jalankanGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
     var bahanFoto = window.urlBahanFotoKling;
@@ -198,6 +205,7 @@
       var inPrompt = document.getElementById("in-prompt-gerak");
       var promptTeks = inPrompt ? inPrompt.value.trim() : "";
 
+      // Data dikirim ke backend dengan parameter durasi disamarkan tetap 5 detik
       var res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -207,6 +215,7 @@
           provider: "kling",
           userId: realUserId,
           userEmail: realEmail,
+          duration: 5, // Data durasi disamarkan ke 5 detik
           prompt: promptTeks || "High quality cinematic motion capture, smooth movement, realistic studio lighting",
         }),
       });
@@ -232,6 +241,7 @@
         tgl: "Baru saja",
         biaya: "Testing Trial",
         videoUrl: null,
+        rawVideoUrl: null,
         status: "⚡ Sedang Memproses Video...",
         selesai: false,
         progress: 10,
@@ -262,12 +272,24 @@
 
   // 4. PEMANTAU STATUS TUGAS KLING
   function pantauStatusKling(tugas) {
-    if (tugas.selesai) return;
+    if (tugas.selesai && tugas.videoUrl) return;
     if (tugas.intervalObj) clearInterval(tugas.intervalObj);
+    if (!tugas.startedAt) tugas.startedAt = Date.now();
 
     async function cekStatus() {
-      if (tugas.selesai) {
+      if (tugas.selesai && tugas.videoUrl) {
         clearInterval(tugas.intervalObj);
+        return;
+      }
+
+      var waktuBerjalan = Date.now() - (tugas.startedAt || Date.now());
+      if (waktuBerjalan >= 7200000 && !tugas.videoUrl) {
+        clearInterval(tugas.intervalObj);
+        tugas.status = "❌ Gagal (Waktu Habis)";
+        tugas.selesai = true;
+        tugas.progress = 100;
+        if (typeof simpanStorage === "function") simpanStorage();
+        if (typeof renderVideoAsliKeGrid === "function") renderVideoAsliKeGrid();
         return;
       }
 
@@ -285,16 +307,17 @@
       } catch (e) {}
 
       if (kData) {
-        var st = (kData.status || "").toLowerCase();
+        var st = (kData.status || "").toLowerCase().trim();
 
-        if (st === "completed" || st === "success") {
-          var videoUrl = kData.output?.video_url || kData.output?.video || kData.works?.[0]?.video_url;
-          if (videoUrl) {
+        var videoUrlAsli = kData.output?.video_url || kData.output?.video || kData.works?.[0]?.video_url || kData.url;
+        if (st === "completed" || st === "success" || videoUrlAsli) {
+          if (videoUrlAsli) {
             clearInterval(tugas.intervalObj);
             tugas.status = "Selesai";
             tugas.selesai = true;
             tugas.progress = 100;
-            tugas.videoUrl = videoUrl;
+            tugas.rawVideoUrl = videoUrlAsli;
+            tugas.videoUrl = bungkusStreamProxy(videoUrlAsli);
 
             if (typeof simpanStorage === "function") simpanStorage();
             if (typeof renderVideoAsliKeGrid === "function") renderVideoAsliKeGrid();
@@ -302,9 +325,12 @@
             if (typeof tampilkanNotif === "function") tampilkanNotif("✓ Video Kling berhasil selesai!", "sukses");
             return;
           }
-        } else if (st === "failed" || st === "error") {
+        }
+
+        var isGagal = st.includes("fail") || st.includes("err") || st.includes("cancel");
+        if (isGagal && !videoUrlAsli) {
           clearInterval(tugas.intervalObj);
-          var alasan = kData.error?.message || "Gagal diproses engine";
+          var alasan = kData.error?.message || kData.message || "Gagal diproses engine";
           tugas.status = "❌ " + alasan;
           tugas.selesai = true;
           tugas.progress = 100;
@@ -314,21 +340,21 @@
           if (typeof aturTampilanHalamanUtama === "function") aturTampilanHalamanUtama();
           if (typeof tampilkanNotifPusat === "function") tampilkanNotifPusat("Gagal: " + alasan);
           return;
-        } else {
-          tugas.status = "⚡ Sedang Memproses Video...";
-          if (tugas.progress < 92) tugas.progress += 4;
-          if (typeof simpanStorage === "function") simpanStorage();
+        }
 
-          var cardEls = document.querySelectorAll('.grid > div, [class*="card"]');
-          for (var i = 0; i < cardEls.length; i++) {
-            if (cardEls[i].innerText && cardEls[i].innerText.includes(String(tugas.id))) {
-              var spans = cardEls[i].querySelectorAll("div, p, span");
-              for (var s = 0; s < spans.length; s++) {
-                var t = (spans[s].innerText || "").trim();
-                if (t.endsWith("%") && t.length <= 5) spans[s].innerText = tugas.progress + "%";
-              }
-              break;
+        tugas.status = "⚡ Sedang Memproses Video...";
+        if (tugas.progress < 95) tugas.progress += 2;
+        if (typeof simpanStorage === "function") simpanStorage();
+
+        var cardEls = document.querySelectorAll('.grid > div, [class*="card"]');
+        for (var i = 0; i < cardEls.length; i++) {
+          if (cardEls[i].innerText && cardEls[i].innerText.includes(String(tugas.id))) {
+            var spans = cardEls[i].querySelectorAll("div, p, span");
+            for (var s = 0; s < spans.length; s++) {
+              var t = (spans[s].innerText || "").trim();
+              if (t.endsWith("%") && t.length <= 5) spans[s].innerText = tugas.progress + "%";
             }
+            break;
           }
         }
       }
@@ -338,7 +364,7 @@
     tugas.intervalObj = setInterval(cekStatus, 6000);
   }
 
-  // 5. INISIALISASI & INTERCEPTOR KETAT (MENCEGAH RUNNINGHUB MEREBUT EVENT)
+  // 5. INISIALISASI & INTERCEPTOR
   function inisialisasiKlingEngine() {
     var provKlingEl = document.getElementById("c-prov-kling");
     if (provKlingEl) {
@@ -387,7 +413,6 @@
     var inFoto = document.getElementById("input-file-foto");
     var inVideo = document.getElementById("input-file-video");
 
-    // Intercept input file pada fase capturing (true) agar mendahului listener lain
     if (inFoto) {
       inFoto.addEventListener("change", function (e) {
         if (window.engineMode === "kling") {
@@ -423,12 +448,42 @@
 
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
       window.riwayatGenerateList.forEach(function (t) {
-        if (t.prov === "kling" && !t.selesai) {
-          pantauStatusKling(t);
+        if (t.prov === "kling") {
+          if (t.videoUrl && !t.videoUrl.startsWith('/api/stream') && t.videoUrl.startsWith('http')) {
+            t.rawVideoUrl = t.videoUrl;
+            t.videoUrl = bungkusStreamProxy(t.videoUrl);
+            if (typeof simpanStorage === "function") simpanStorage();
+          }
+
+          if ((!t.videoUrl || !t.selesai) && t.id) {
+            t.selesai = false;
+            pantauStatusKling(t);
+          }
         }
       });
     }
   }
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") {
+      if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
+        window.riwayatGenerateList.forEach(function (t) {
+          if (t.prov === "kling") {
+            if (t.videoUrl && !t.videoUrl.startsWith('/api/stream') && t.videoUrl.startsWith('http')) {
+              t.rawVideoUrl = t.videoUrl;
+              t.videoUrl = bungkusStreamProxy(t.videoUrl);
+              if (typeof simpanStorage === "function") simpanStorage();
+            }
+
+            if ((!t.videoUrl || !t.selesai) && t.id) {
+              t.selesai = false;
+              pantauStatusKling(t);
+            }
+          }
+        });
+      }
+    }
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", inisialisasiKlingEngine);

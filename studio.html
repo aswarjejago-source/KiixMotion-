@@ -211,96 +211,76 @@
       </div>
     </div>
 
-    <!-- 2. GENERATE VIEW (REVISI ACCORDION & ENGINE MINI_MAX H3) -->
+    <!-- 2. GENERATE VIEW (TAB SWITCHER) -->
     <div id="layar-generate" class="layar-konten space-y-6" style="display: none;">
       <div>
-        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH ENGINE AI</label>
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH KATEGORI ENGINE</label>
         
-        <div class="space-y-4">
-          
-          <!-- KATEGORI 1: MOTION CONTROL (Accordion) -->
-          <div class="border border-kmBorder rounded-2xl bg-white shadow-sm overflow-hidden transition-all duration-300">
-            <button onclick="toggleCategory('motion-section')" class="w-full flex items-center justify-between p-4 sm:p-5 bg-gradient-to-r from-violet-50/50 to-white hover:from-violet-50 transition text-left cursor-pointer">
-              <div class="flex items-center space-x-3">
-                <div class="w-9 h-9 rounded-xl bg-kmViolet text-white flex items-center justify-center font-bold text-base shadow-sm">🎬</div>
-                <div>
-                  <h3 class="font-bold text-slate-900 text-sm sm:text-base">Motion Control Engine</h3>
-                  <p class="text-xs text-slate-500">KiixMotion Control, RunningHub Pro, Kling 2.6</p>
+        <!-- Tab Menu Atas -->
+        <div class="flex space-x-3 overflow-x-auto hide-scrollbar mb-5 pb-1">
+          <button id="tab-btn-motion" onclick="switchKategoriEngine('motion')" class="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-kmViolet bg-violet-50 text-kmViolet shadow-sm whitespace-nowrap cursor-pointer">
+            🎬 Motion Control
+          </button>
+          <button id="tab-btn-minimax" onclick="switchKategoriEngine('minimax')" class="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-transparent bg-white border-kmBorder text-slate-500 hover:bg-slate-50 whitespace-nowrap modern-shadow cursor-pointer">
+            ⚡ MiniMax H3
+          </button>
+        </div>
+        
+        <!-- Konten Tab 1: Motion Control -->
+        <div id="tab-content-motion" class="transition-all duration-300">
+          <div class="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
+            
+            <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow cursor-pointer transition ring-4 ring-violet-50">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg bg-kmViolet text-white flex items-center justify-center font-black text-xs shadow-sm">⚡</div>
+                  <span class="text-sm font-extrabold text-kmTextPrimary">KiixMotion Control</span>
                 </div>
+                <span id="b-prov-kiix" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
               </div>
-              <span id="icon-motion-section" class="transform transition-transform duration-300 text-slate-500 font-bold text-lg rotate-180">▼</span>
-            </button>
-
-            <div id="motion-section" class="p-4 sm:p-5 border-t border-kmBorder bg-slate-50/50">
-              <div class="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
-                
-                <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-kmViolet p-4 rounded-2xl modern-shadow cursor-pointer transition">
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2">
-                      <div class="w-6 h-6 rounded-lg bg-kmViolet text-white flex items-center justify-center font-black text-xs shadow-sm">⚡</div>
-                      <span class="text-xs sm:text-sm font-extrabold text-kmTextPrimary">KiixMotion Control</span>
-                    </div>
-                    <span id="b-prov-kiix" class="text-[9px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
-                  </div>
-                  <p class="text-[11px] text-kmTextSecondary">Wan Motion Control 1080HD</p>
-                  <p class="text-[11px] text-kmViolet mt-2 font-bold">1 Kredit / render</p>
-                </div>
-
-                <div id="c-prov-runninghub" onclick="setProviderUtama('runninghub')" class="min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-4 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2">
-                      <div class="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">R</div>
-                      <span class="text-xs sm:text-sm font-bold text-kmTextPrimary">RunningHub Pro</span>
-                    </div>
-                    <span id="b-prov-runninghub" style="display:none;" class="text-[9px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
-                  </div>
-                  <p class="text-[11px] text-kmTextSecondary">Wan Motion Control 1080HD</p>
-                  <p class="text-[11px] text-kmViolet mt-2 font-bold">≈ 478 coin / render</p>
-                </div>
-
-                <div id="c-prov-kling" onclick="setProviderUtama('kling')" class="min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-4 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow">
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-2">
-                      <div class="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">K</div>
-                      <span class="text-xs sm:text-sm font-bold text-kmTextPrimary">Kling 2.6</span>
-                    </div>
-                    <span id="b-prov-kling" style="display:none;" class="text-[9px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
-                  </div>
-                  <p class="text-[11px] text-kmTextSecondary">Cinematic Motion Engine</p>
-                  <p class="text-[11px] text-indigo-600 mt-2 font-bold">1 Coin VIP / render</p>
-                </div>
-
-              </div>
+              <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p>
+              <p class="text-xs text-kmViolet mt-3 font-bold">1 Kredit / render</p>
             </div>
-          </div>
 
-          <!-- KATEGORI 2: MINIMAX H3 ENGINE (Accordion) -->
-          <div class="border border-kmBorder rounded-2xl bg-white shadow-sm overflow-hidden transition-all duration-300">
-            <button onclick="toggleCategory('minimax-section')" class="w-full flex items-center justify-between p-4 sm:p-5 bg-gradient-to-r from-orange-50/50 to-white hover:from-orange-50 transition text-left cursor-pointer">
-              <div class="flex items-center space-x-3">
-                <div class="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold text-base shadow-sm">⚡</div>
-                <div>
-                  <h3 class="font-bold text-slate-900 text-sm sm:text-base">MiniMax H3 Engine</h3>
-                  <p class="text-xs text-slate-500">H3 Merged acting and cinematic workflow</p>
+            <div id="c-prov-runninghub" onclick="setProviderUtama('runninghub')" class="min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">R</div>
+                  <span class="text-sm font-bold text-kmTextPrimary">RunningHub Pro</span>
                 </div>
+                <span id="b-prov-runninghub" style="display:none;" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
               </div>
-              <span id="icon-minimax-section" class="transform transition-transform duration-300 text-slate-500 font-bold text-lg">▼</span>
-            </button>
-
-            <div id="minimax-section" class="p-4 sm:p-5 border-t border-kmBorder bg-orange-50/10 hidden">
-              <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border-2 border-orange-400 p-4 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div class="space-y-1">
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">NEW H3</span>
-                    <h4 class="font-bold text-slate-900 text-sm">MiniMax H3 Master Workflow</h4>
-                  </div>
-                  <p class="text-xs text-slate-500">Workflow khusus multi-image acting & cinematic generation.</p>
-                </div>
-                <span id="b-prov-minimax" style="display:none;" class="text-[10px] bg-orange-500 text-white font-extrabold px-3 py-1 rounded-full">AKTIF</span>
-              </div>
+              <p class="text-xs text-kmTextSecondary">Wan Motion Control 1080HD</p>
+              <p class="text-xs text-kmViolet mt-3 font-bold">≈ 478 coin / render</p>
             </div>
-          </div>
 
+            <div id="c-prov-kling" onclick="setProviderUtama('kling')" class="min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">K</div>
+                  <span class="text-sm font-bold text-kmTextPrimary">Kling 2.6</span>
+                </div>
+                <span id="b-prov-kling" style="display:none;" class="text-[10px] bg-kmViolet text-white font-extrabold px-2 py-0.5 rounded-full">AKTIF</span>
+              </div>
+              <p class="text-xs text-kmTextSecondary">Cinematic Motion Engine</p>
+              <p class="text-xs text-indigo-600 mt-3 font-bold">1 Coin VIP / render</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Konten Tab 2: MiniMax H3 -->
+        <div id="tab-content-minimax" class="transition-all duration-300 hidden">
+          <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">NEW H3</span>
+                <h4 class="font-bold text-slate-900 text-base">MiniMax H3 Master Workflow</h4>
+              </div>
+              <p class="text-xs text-slate-500">Workflow khusus multi-image acting & cinematic generation.</p>
+            </div>
+            <span id="b-prov-minimax" style="display:none;" class="text-[10px] bg-orange-500 text-white font-extrabold px-3 py-1 rounded-full">AKTIF</span>
+          </div>
         </div>
       </div>
 
@@ -808,45 +788,58 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
 
       var sedangUpdateMemberUI = false;
 
-      // FUNGSI ACCORDION KATEGORI ENGINE
-      function toggleCategory(sectionId) {
-        const section = document.getElementById(sectionId);
-        const icon = document.getElementById('icon-' + sectionId);
+      // FUNGSI GANTI KATEGORI TAB SWITCHER
+      window.switchKategoriEngine = function(kategori) {
+        var btnMotion = document.getElementById('tab-btn-motion');
+        var btnMinimax = document.getElementById('tab-btn-minimax');
+        var contentMotion = document.getElementById('tab-content-motion');
+        var contentMinimax = document.getElementById('tab-content-minimax');
         
-        if (section.classList.contains('hidden')) {
-          section.classList.remove('hidden');
-          icon.style.transform = 'rotate(180deg)';
+        if (kategori === 'motion') {
+            btnMotion.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-kmViolet bg-violet-50 text-kmViolet shadow-sm whitespace-nowrap cursor-pointer";
+            btnMinimax.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-transparent bg-white border-kmBorder text-slate-500 hover:bg-slate-50 whitespace-nowrap modern-shadow cursor-pointer";
+            contentMotion.classList.remove('hidden');
+            contentMinimax.classList.add('hidden');
+            if(typeof setProviderUtama === 'function') setProviderUtama('kiix');
         } else {
-          section.classList.add('hidden');
-          icon.style.transform = 'rotate(0deg)';
+            btnMinimax.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-orange-500 bg-orange-50 text-orange-600 shadow-sm whitespace-nowrap cursor-pointer";
+            btnMotion.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-transparent bg-white border-kmBorder text-slate-500 hover:bg-slate-50 whitespace-nowrap modern-shadow cursor-pointer";
+            contentMinimax.classList.remove('hidden');
+            contentMotion.classList.add('hidden');
+            if(typeof setProviderUtama === 'function') setProviderUtama('minimax');
         }
-      }
+      };
 
       // FUNGSI PILIH PROVIDER/ENGINE UTAMA TERMASUK MINIMAX
-      function setProviderUtama(prov) {
+      window.setProviderUtama = function(prov) {
         ['kiix', 'runninghub', 'kling', 'minimax'].forEach(function(p) {
           const card = document.getElementById('c-prov-' + p);
           const badge = document.getElementById('b-prov-' + p);
           if (card) {
             if (p === prov) {
               if (p === 'minimax') {
-                card.className = card.className.replace('border border-kmBorder', 'border-2 border-orange-500');
+                card.className = card.className.replace('border border-kmBorder', 'border-2 border-orange-500 ring-4 ring-orange-50');
               } else {
-                card.className = card.className.replace('border border-kmBorder', 'border-2 border-kmViolet');
+                card.className = card.className.replace('border border-kmBorder', 'border-2 border-kmViolet ring-4 ring-violet-50');
               }
               if (badge) badge.style.display = 'inline-block';
             } else {
               if (p === 'minimax') {
-                card.className = card.className.replace('border-2 border-orange-500', 'border border-kmBorder');
+                card.className = card.className.replace('border-2 border-orange-500 ring-4 ring-orange-50', 'border border-kmBorder');
               } else {
-                card.className = card.className.replace('border-2 border-kmViolet', 'border border-kmBorder');
+                card.className = card.className.replace('border-2 border-kmViolet ring-4 ring-violet-50', 'border border-kmBorder');
               }
               if (badge) badge.style.display = 'none';
             }
           }
         });
         window.providerAktif = prov;
-      }
+        
+        // Panggil update UI Controller jika ada
+        if (typeof window.updateUIProvider === 'function') {
+            window.updateUIProvider(prov);
+        }
+      };
 
       async function ambilDataLoginAsli() {
           try {

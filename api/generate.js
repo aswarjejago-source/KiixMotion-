@@ -15,6 +15,12 @@ function ambilPathDariUrl(publicUrl) {
   }
 }
 
+function bersihkanNamaFileRH(nama) {
+  if (!nama || typeof nama !== 'string') return "None";
+  // Menghapus prefix 'api/' atau 'openapi/' dan path folder agar murni nama filenya saja
+  return nama.replace(/^(api\/|openapi\/)/, '').split('/').pop();
+}
+
 async function uploadKeEngineServer(fileUrl, fileType, apiKey) {
   const fileRes = await fetch(fileUrl);
   if (!fileRes.ok) throw new Error("Gagal mengambil file bahan dari storage.");
@@ -348,8 +354,13 @@ export default async function handler(req, res) {
 
         if (rawUrl) {
           try {
-            finalVal = await siapkanBahan(rawUrl, 'image', apiKeyDipakai);
+            const uploaded = await siapkanBahan(rawUrl, 'image', apiKeyDipakai);
+            finalVal = bersihkanNamaFileRH(uploaded);
           } catch (e) {
+            // Proteksi: Jika foto utama Slot 1 gagal upload, batalkan render agar koin akun tidak terpotong sia-sia
+            if (mapping.slot === 1) {
+              throw new Error("Gagal mengunggah Foto Karakter (Slot 1) ke server AI. Render dibatalkan, kredit aman.");
+            }
             finalVal = "None";
           }
         }
@@ -362,14 +373,14 @@ export default async function handler(req, res) {
         });
       }));
 
-      // Urutkan node gambar berdasarkan slot
+      // Urutkan node gambar berdasarkan slot (1 sampai 9)
       nodeInfoList.sort((a, b) => {
         const idxA = nodeSlotMap.findIndex(n => n.nodeId === a.nodeId);
         const idxB = nodeSlotMap.findIndex(n => n.nodeId === b.nodeId);
         return idxA - idxB;
       });
 
-      // Tambahkan parameter bawaan alur kerja MiniMax H3
+      // Tambahkan parameter alur kerja MiniMax H3
       nodeInfoList.push(
         { nodeId: "65", fieldName: "index", fieldValue: "0", description: null },
         { nodeId: "27", fieldName: "value", fieldValue: String(duration || "15"), description: null },

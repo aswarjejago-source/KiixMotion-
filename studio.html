@@ -56,6 +56,7 @@
   <script src="js/ui-controller.js" defer></script>
   <script src="js/api-engine.js" defer></script>
   <script src="js/kling-engine.js" defer></script>
+  <script src="js/minimax-engine.js" defer></script>
 </head>
 <body class="selection:bg-kmViolet selection:text-white pb-14 md:pb-0 md:flex md:h-screen md:overflow-hidden bg-kmBg">
   
@@ -515,7 +516,7 @@
             </div>
           </div>
 
-          <button id="btn-submit-minimax" onclick="mulaiProsesGenerate()" class="w-full sm:w-auto px-8 py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer flex items-center justify-center gap-2">
+          <button id="btn-submit-minimax" onclick="mulaiProsesGenerateMinimax()" class="w-full sm:w-auto px-8 py-4 bg-kmViolet hover:bg-kmVioletHover text-white font-extrabold text-sm sm:text-base uppercase tracking-wider rounded-2xl violet-glow transition transform active:scale-95 cursor-pointer flex items-center justify-center gap-2">
             <i class="ph-bold ph-magic-wand text-lg"></i> GENERATE VIDEO MINIMAX
           </button>
         </div>
@@ -722,7 +723,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-xl font-black text-slate-900 tracking-tight" id="label-plan-nama">Free</h2>
-                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlanggan VIP</p>
+                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlangganan VIP</p>
                 </div>
                 <span class="px-3.5 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-full" id="label-status-vip-badge">Non-Aktif</span>
             </div>

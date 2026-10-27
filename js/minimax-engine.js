@@ -1,112 +1,35 @@
 // ==========================================
-// PILAR 4: MINIMAX H3 ENGINE LOGIC
+// PILAR 4: MINIMAX H3 ENGINE LOGIC (AUTO-SCAN DOM INPUT)
 // File: js/minimax-engine.js
-// Fokus: MiniMax H3 Master Workflow & 1 Kredit / Render
 // ==========================================
 
-var fileGambarMinimax = {}; 
-var urlGambarMinimax = {};
-
-// 1. FUNGSI UPLOAD SETIAP GAMBAR KE CLOUDFLARE WORKER
-window.unggahGambarSlotMinimax = async function(file, slotIndex) {
-  var lblSlot = document.getElementById('lbl-mm-' + slotIndex);
-  if (lblSlot) lblSlot.innerText = 'Uploading...';
-
+// 1. FUNGSI UPLOAD BAHAN KE CLOUDFLARE WORKER
+async function kirimFileKeCloudflare(file, indexSlot) {
   var formData = new FormData();
   formData.append('file', file);
 
-  try {
-    var res = await fetch('https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev', {
-      method: 'POST',
-      body: formData
-    });
+  var res = await fetch('https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev', {
+    method: 'POST',
+    body: formData
+  });
 
-    var rawText = await res.text();
-    var resJson = JSON.parse(rawText);
-    var fileUrl = null;
+  var rawText = await res.text();
+  var resJson = JSON.parse(rawText);
+  var fileUrl = null;
 
-    if (resJson && resJson.data) {
-      if (typeof resJson.data === 'string') {
-        fileUrl = resJson.data;
-      } else if (typeof resJson.data === 'object') {
-        fileUrl = resJson.data.fileUrl || resJson.data.fileName || resJson.data.url || resJson.data.path;
-      }
+  if (resJson && resJson.data) {
+    if (typeof resJson.data === 'string') {
+      fileUrl = resJson.data;
+    } else if (typeof resJson.data === 'object') {
+      fileUrl = resJson.data.fileUrl || resJson.data.fileName || resJson.data.url || resJson.data.path;
     }
-
-    if (!fileUrl) throw new Error('URL file tidak ditemukan');
-
-    urlGambarMinimax[slotIndex] = fileUrl;
-    if (lblSlot) lblSlot.innerText = '✓ Siap';
-    return fileUrl;
-  } catch (err) {
-    if (lblSlot) lblSlot.innerText = '❌ Gagal';
-    throw err;
   }
-};
 
-// 2. MODIFIKASI PREVIEW MINIMAX AGAR OTOMATIS UPLOAD
-var previewAsli = window.previewMinimax;
-window.previewMinimax = function(input, index) {
-  if (input.files && input.files[0]) {
-    var file = input.files[0];
-    fileGambarMinimax[index] = file;
+  if (!fileUrl) throw new Error('Gagal mendapatkan link upload slot ' + indexSlot);
+  return fileUrl;
+}
 
-    // Tampilkan preview lokal instan
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var divBg = document.getElementById('prev-mm-' + index);
-      var delBtn = document.getElementById('del-mm-' + index);
-      var plusIcon = document.getElementById('plus-mm-' + index);
-      var lblText = document.getElementById('lbl-mm-' + index);
-
-      if (divBg) {
-        divBg.style.backgroundImage = 'url(' + e.target.result + ')';
-        divBg.classList.remove('hidden');
-      }
-      if (delBtn) delBtn.classList.remove('hidden');
-      if (plusIcon) plusIcon.classList.add('hidden');
-      if (lblText) lblText.classList.remove('hidden');
-    };
-    reader.readAsDataURL(file);
-
-    // Upload background ke cloud storage
-    window.unggahGambarSlotMinimax(file, index).catch(function(e) {
-      console.error('Gagal upload slot ' + index, e);
-      if (typeof tampilkanNotif === 'function') {
-        tampilkanNotif('Gagal upload gambar slot ' + index + ' ke storage.', 'error');
-      }
-    });
-  }
-};
-
-// 3. OVERRIDE HAPUS PREVIEW UNTUK MEMBERSIHKAN DATA SLOT
-var hapusAsli = window.hapusPreviewMinimax;
-window.hapusPreviewMinimax = function(event, index) {
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-  delete fileGambarMinimax[index];
-  delete urlGambarMinimax[index];
-
-  var divBg = document.getElementById('prev-mm-' + index);
-  var delBtn = document.getElementById('del-mm-' + index);
-  var plusIcon = document.getElementById('plus-mm-' + index);
-  var lblText = document.getElementById('lbl-mm-' + index);
-
-  if (divBg) {
-    divBg.style.backgroundImage = '';
-    divBg.classList.add('hidden');
-  }
-  if (delBtn) delBtn.classList.add('hidden');
-  if (plusIcon) plusIcon.classList.remove('hidden');
-  if (lblText) {
-    lblText.innerText = String(index);
-    lblText.classList.remove('hidden');
-  }
-};
-
-// 4. EKSEKUSI GENERATE KHUSUS MINIMAX H3 (1 KREDIT MEMBER)
+// 2. LOGIKA GENERATE UTAMA (MEMINDAI LANGSUNG DARI INPUT DI LAYAR)
 window.mulaiProsesGenerateMinimax = async function() {
   var btn = document.getElementById('btn-submit-minimax');
   var promptEl = document.getElementById('prompt-minimax');
@@ -117,19 +40,23 @@ window.mulaiProsesGenerateMinimax = async function() {
 
   var promptTeks = promptEl ? promptEl.value.trim() : '';
   if (!promptTeks) {
-    if (typeof tampilkanNotif === 'function') tampilkanNotif('Prompt atau skrip aksi wajib diisi!', 'error');
+    if (typeof tampilkanNotif === 'function') tampilkanNotif('Prompt / skrip aksi wajib diisi!', 'error');
     return;
   }
 
-  // Kumpulkan list URL gambar dari slot 1-9
-  var listUrlFinal = [];
-  for (var i = 1; i <= 9; i++) {
-    if (urlGambarMinimax[i]) {
-      listUrlFinal.push({ slot: i, url: urlGambarMinimax[i] });
+  // Pindai langsung seluruh elemen input file di dalam grid 9 slot
+  var containerGrid = document.getElementById('grid-minimax-images');
+  var inputs = containerGrid ? containerGrid.querySelectorAll('input[type="file"]') : [];
+  
+  var daftarFileTerdeteksi = [];
+  inputs.forEach(function(inp, idx) {
+    var slot = idx + 1;
+    if (inp.files && inp.files[0]) {
+      daftarFileTerdeteksi.push({ slot: slot, file: inp.files[0] });
     }
-  }
+  });
 
-  if (listUrlFinal.length === 0) {
+  if (daftarFileTerdeteksi.length === 0) {
     if (typeof tampilkanNotif === 'function') tampilkanNotif('Unggah minimal 1 gambar referensi!', 'error');
     return;
   }
@@ -139,21 +66,21 @@ window.mulaiProsesGenerateMinimax = async function() {
     btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Memvalidasi Kredit...';
   }
 
-  // Verifikasi login & saldo kredit member
+  // Verifikasi autentikasi & saldo kredit Supabase
+  var clientSupa = window.supa || supa;
   var userAuth = null;
   try {
-    var sessionRes = await supa.auth.getSession();
+    var sessionRes = await clientSupa.auth.getSession();
     userAuth = sessionRes?.data?.session?.user;
   } catch (err) {}
 
   if (!userAuth) {
-    if (btn) { btn.disabled = false; btn.innerText = 'GENERATE VIDEO MINIMAX'; }
-    if (typeof tampilkanNotif === 'function') tampilkanNotif('Sesi login kamu berakhir. Silakan login ulang!', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-magic-wand text-lg"></i> GENERATE VIDEO MINIMAX'; }
+    if (typeof tampilkanNotif === 'function') tampilkanNotif('Sesi login berakhir, silakan login ulang!', 'error');
     return;
   }
 
-  // Cek apakah punya minimal 1 kredit
-  var { data: creditRow } = await supa
+  var { data: creditRow } = await clientSupa
     .from('user_credits')
     .select('credits_balance, expires_at')
     .eq('user_id', userAuth.id)
@@ -164,13 +91,35 @@ window.mulaiProsesGenerateMinimax = async function() {
   var isExpired = creditRow ? (new Date(creditRow.expires_at).getTime() < Date.now()) : true;
 
   if (sisaKredit < 1 || isExpired) {
-    if (btn) { btn.disabled = false; btn.innerText = 'GENERATE VIDEO MINIMAX'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-magic-wand text-lg"></i> GENERATE VIDEO MINIMAX'; }
     if (typeof tampilkanNotif === 'function') tampilkanNotif('Kredit render kamu habis! Beli kredit dulu di tab Beli Kredit.', 'error');
+    return;
+  }
+
+  // Unggah seluruh foto yang terdeteksi ke Cloudflare Worker
+  var listUrlFinal = [];
+  try {
+    for (var i = 0; i < daftarFileTerdeteksi.length; i++) {
+      var target = daftarFileTerdeteksi[i];
+      if (btn) {
+        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Mengunggah Foto (' + (i + 1) + '/' + daftarFileTerdeteksi.length + ')...';
+      }
+
+      var urlCloud = await kirimFileKeCloudflare(target.file, target.slot);
+      listUrlFinal.push({
+        slot: target.slot,
+        url: urlCloud
+      });
+    }
+  } catch (errUpload) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-magic-wand text-lg"></i> GENERATE VIDEO MINIMAX'; }
+    if (typeof tampilkanNotif === 'function') tampilkanNotif('Gagal mengunggah foto: ' + errUpload.message, 'error');
     return;
   }
 
   if (btn) btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Menghubungkan ke MiniMax GPU...';
 
+  // Kirim data ke backend proxy
   try {
     var payload = {
       provider: 'minimax',
@@ -221,9 +170,11 @@ window.mulaiProsesGenerateMinimax = async function() {
     window.riwayatGenerateList.unshift(tugasBaru);
     if (typeof simpanStorage === 'function') simpanStorage();
 
-    // Reset form MiniMax
+    // Kosongkan formulir setelah pengiriman berhasil
     for (var k = 1; k <= 9; k++) {
-      window.hapusPreviewMinimax(null, k);
+      if (typeof window.hapusPreviewMinimax === 'function') {
+        window.hapusPreviewMinimax(null, k);
+      }
     }
     if (promptEl) promptEl.value = '';
 
@@ -235,7 +186,6 @@ window.mulaiProsesGenerateMinimax = async function() {
       updateStatusMemberUI(userAuth.email);
     }
 
-    // Sambungkan ke polling riwayat universal
     if (typeof pantauStatusVideo === 'function') {
       pantauStatusVideo(tugasBaru, null, poolIdDipakai, userAuth.id, true);
     }
@@ -251,14 +201,3 @@ window.mulaiProsesGenerateMinimax = async function() {
     }
   }
 };
-
-// 5. HUBUNGKAN TOMBOL GENERATE MINIMAX DI DOM
-document.addEventListener('DOMContentLoaded', function() {
-  var btnMinimax = document.getElementById('btn-submit-minimax');
-  if (btnMinimax) {
-    btnMinimax.onclick = function(e) {
-      e.preventDefault();
-      window.mulaiProsesGenerateMinimax();
-    };
-  }
-});

@@ -381,7 +381,7 @@ export default async function handler(req, res) {
 
       const minimaxPayload = {
         nodeInfoList: nodeInfoList,
-        instanceType: "default",
+        instanceType: "plus",
         usePersonalQueue: "false"
       };
 

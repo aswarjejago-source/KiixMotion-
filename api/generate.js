@@ -15,12 +15,6 @@ function ambilPathDariUrl(publicUrl) {
   }
 }
 
-function bersihkanNamaFileRH(nama) {
-  if (!nama || typeof nama !== 'string') return "None";
-  // Menghapus prefix 'api/' atau 'openapi/' dan path folder agar murni nama filenya saja
-  return nama.replace(/^(api\/|openapi\/)/, '').split('/').pop();
-}
-
 async function uploadKeEngineServer(fileUrl, fileType, apiKey) {
   const fileRes = await fetch(fileUrl);
   if (!fileRes.ok) throw new Error("Gagal mengambil file bahan dari storage.");
@@ -98,7 +92,7 @@ export default async function handler(req, res) {
     aspectRatio
   } = req.body;
 
-  // Validasi input disesuaikan: MiniMax menggunakan multi-gambar + prompt
+  // Validasi input: MiniMax menggunakan multi-gambar + prompt
   if (provider === 'minimax') {
     if ((!images || images.length === 0) && !urlBahanFoto) {
       return res.status(400).json({ success: false, message: 'Minimal unggah 1 foto karakter untuk MiniMax H3.' });
@@ -355,7 +349,8 @@ export default async function handler(req, res) {
         if (rawUrl) {
           try {
             const uploaded = await siapkanBahan(rawUrl, 'image', apiKeyDipakai);
-            finalVal = bersihkanNamaFileRH(uploaded);
+            // Kembalikan jalur nama file utuh apa adanya sesuai hasil upload server
+            finalVal = uploaded || "None";
           } catch (e) {
             // Proteksi: Jika foto utama Slot 1 gagal upload, batalkan render agar koin akun tidak terpotong sia-sia
             if (mapping.slot === 1) {

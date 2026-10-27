@@ -117,7 +117,7 @@ window.togglePanduanKey = function() {
 window.gantiLayarNav = function(layar) {
     navLayarAktif = layar;
     var ids = [
-        'dashboard', 'generate', 'history', 'workflow-ugc', 
+        'dashboard', 'generate', 'history', 
         'galeri', 'kelola-akun', 'beli-kredit', 'langganan', 'admin-pool'
     ];
     
@@ -161,10 +161,6 @@ window.gantiLayarNav = function(layar) {
         renderVideoAsliKeGrid();
     }
     
-    if (layar === 'workflow-ugc') {
-        if (typeof initWorkflowUGC === 'function') initWorkflowUGC();
-    }
-    
     if (layar === 'galeri') {
         renderGaleri();
     }
@@ -188,7 +184,7 @@ window.gantiLayarNav = function(layar) {
 };
 
 // -------------------------------------------------------------
-// FITUR GENERATE (PILIH ENGINE & BADGE KOIN)
+// FITUR GENERATE (PILIH ENGINE & BADGE KOIN) - TERMASUK MINIMAX H3
 // -------------------------------------------------------------
 
 window.engineProvider = 'kiix';
@@ -200,15 +196,18 @@ window.setProviderUtama = function(prov) {
         engineMode = (prov === 'runninghub') ? 'pro' : prov;
     }
     
-    var providers = ['kiix', 'runninghub', 'kling'];
+    var providers = ['kiix', 'runninghub', 'kling', 'minimax'];
     
     providers.forEach(function(p) {
         let card = document.getElementById('c-prov-' + p);
         let badge = document.getElementById('b-prov-' + p);
         
         if (card) {
-            card.classList.remove('border-2', 'border-kmViolet', 'ring-4', 'ring-violet-50', 'bg-white');
-            card.classList.add('border', 'border-kmBorder', 'bg-kmCard');
+            if (p === 'minimax') {
+                card.className = "bg-white border-2 border-orange-400 p-4 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
+            } else {
+                card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-4 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+            }
         }
         if (badge) {
             badge.style.display = 'none';
@@ -219,8 +218,11 @@ window.setProviderUtama = function(prov) {
     let activeBadge = document.getElementById('b-prov-' + prov);
     
     if (activeCard) {
-        activeCard.classList.remove('border', 'border-kmBorder', 'bg-kmCard');
-        activeCard.classList.add('border-2', 'border-kmViolet', 'ring-4', 'ring-violet-50', 'bg-white');
+        if (prov === 'minimax') {
+            activeCard.className = "bg-white border-2 border-orange-500 p-4 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition ring-4 ring-orange-50";
+        } else {
+            activeCard.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-kmViolet p-4 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer transition";
+        }
     }
     if (activeBadge) {
         activeBadge.style.display = 'inline-block';
@@ -243,6 +245,11 @@ window.setProviderUtama = function(prov) {
         if (title) title.innerText = 'KLING 2.6 MOTION CONTROL';
         if (cost) cost.innerText = '1 Coin VIP';
         if (boxAkun) boxAkun.style.display = 'none';
+    } else if (prov === 'minimax') {
+        if (title) title.innerText = 'MINIMAX H3 MASTER WORKFLOW';
+        if (cost) cost.innerText = 'Sesuai Konsumsi';
+        if (boxAkun) boxAkun.style.display = 'block';
+        updateBadgeKoinGenerate();
     }
 };
 

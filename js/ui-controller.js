@@ -189,6 +189,28 @@ window.gantiLayarNav = function(layar) {
 
 window.engineProvider = 'kiix';
 
+// FUNGSI GANTI KATEGORI TAB SWITCHER
+window.switchKategoriEngine = function(kategori) {
+    var btnMotion = document.getElementById('tab-btn-motion');
+    var btnMinimax = document.getElementById('tab-btn-minimax');
+    var contentMotion = document.getElementById('tab-content-motion');
+    var contentMinimax = document.getElementById('tab-content-minimax');
+    
+    if (kategori === 'motion') {
+        if (btnMotion) btnMotion.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-kmViolet bg-violet-50 text-kmViolet shadow-sm whitespace-nowrap cursor-pointer";
+        if (btnMinimax) btnMinimax.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-transparent bg-white border-kmBorder text-slate-500 hover:bg-slate-50 whitespace-nowrap modern-shadow cursor-pointer";
+        if (contentMotion) contentMotion.classList.remove('hidden');
+        if (contentMinimax) contentMinimax.classList.add('hidden');
+        setProviderUtama('kiix');
+    } else {
+        if (btnMinimax) btnMinimax.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-orange-500 bg-orange-50 text-orange-600 shadow-sm whitespace-nowrap cursor-pointer";
+        if (btnMotion) btnMotion.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-transparent bg-white border-kmBorder text-slate-500 hover:bg-slate-50 whitespace-nowrap modern-shadow cursor-pointer";
+        if (contentMinimax) contentMinimax.classList.remove('hidden');
+        if (contentMotion) contentMotion.classList.add('hidden');
+        setProviderUtama('minimax');
+    }
+};
+
 window.setProviderUtama = function(prov) {
     window.engineProvider = prov;
     window.engineMode = prov;
@@ -204,9 +226,9 @@ window.setProviderUtama = function(prov) {
         
         if (card) {
             if (p === 'minimax') {
-                card.className = "bg-white border-2 border-orange-400 p-4 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
+                card.className = "bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
             } else {
-                card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-4 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+                card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
             }
         }
         if (badge) {
@@ -219,9 +241,9 @@ window.setProviderUtama = function(prov) {
     
     if (activeCard) {
         if (prov === 'minimax') {
-            activeCard.className = "bg-white border-2 border-orange-500 p-4 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition ring-4 ring-orange-50";
+            activeCard.className = "bg-white border-2 border-orange-500 p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition ring-4 ring-orange-50";
         } else {
-            activeCard.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-kmViolet p-4 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer transition";
+            activeCard.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer transition";
         }
     }
     if (activeBadge) {

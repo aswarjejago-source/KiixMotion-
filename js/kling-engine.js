@@ -1,5 +1,5 @@
 // ==========================================================================
-// KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE (MURNI SUPABASE STORAGE)
+// KIIX MOTION — KLING 2.6 MOTION CONTROL MODULE (MANDIRI & TERISOLASI)
 // File: js/kling-engine.js
 // ==========================================================================
 
@@ -13,7 +13,21 @@
     return '/api/stream?url=' + encodeURIComponent(url);
   }
 
-  // 1. KOMPRESOR UKURAN HP (GERAKAN NORMAL 1X, TIDAK DIPERCEPAT/DIPOTONG)
+  // 1. TAMENG OTOMATIS: CEGAH API-ENGINE IKUT CAMPUR MEMANTAU TUGAS KLING
+  function pasangTamengPemantauGlobal() {
+    var pemantauLama = window.pantauStatusVideo;
+    if (typeof pemantauLama === 'function' && !pemantauLama._isShielded) {
+      window.pantauStatusVideo = function (tugas) {
+        if (tugas && (tugas.prov === 'kling' || tugas.provider === 'kling' || String(tugas.id).includes('-'))) {
+          return pantauStatusKling(tugas);
+        }
+        return pemantauLama.apply(this, arguments);
+      };
+      window.pantauStatusVideo._isShielded = true;
+    }
+  }
+
+  // 2. KOMPRESOR VIDEO KHUSUS HP (MENJAGA FILE DI BAWAH 50 MB SUPABASE, GERAKAN NORMAL 1X)
   async function perkecilVideoHP(file, onProgress) {
     return new Promise(function (resolve) {
       var video = document.createElement("video");
@@ -24,7 +38,7 @@
 
       video.onloadedmetadata = function () {
         var durasi = video.duration || 5;
-        video.playbackRate = 1.0; // Kecepatan normal asli tanpa percepatan
+        video.playbackRate = 1.0;
 
         var targetLebar = 540;
         var targetTinggi = Math.round((video.videoHeight * targetLebar) / video.videoWidth);
@@ -97,7 +111,7 @@
     });
   }
 
-  // 2. SISTEM UNGGAH MURNI KE SUPABASE STORAGE
+  // 3. SISTEM UNGGAH MURNI SUPABASE DENGAN PENGAMAN LIMIT 50 MB
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
     var txtEl = document.getElementById(tipe === "foto" ? "txt-file-foto" : "txt-file-video");
@@ -105,10 +119,10 @@
 
     var fileFinal = file;
 
-    // Video asli dipakai langsung, kompresi hanya jika ukuran melebihi limit Supabase (45MB+)
+    // Kompres otomatis kalau video melebihi 40 MB agar lolos limit 50 MB Supabase
     if (tipe === "video") {
       var sizeMbAwal = file.size / (1024 * 1024);
-      if (sizeMbAwal > 45) {
+      if (sizeMbAwal > 40) {
         if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan video... 0%</span>';
         fileFinal = await perkecilVideoHP(file, function (persen) {
           if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan video... ' + persen + '%</span>';
@@ -124,7 +138,7 @@
       if (stEl) stEl.innerHTML = '<span class="text-indigo-600 font-bold animate-pulse">⏳ Mengunggah (' + ukuranMb + ' MB)...</span>';
 
       if (!window.supa || !window.supa.storage) {
-        throw new Error("Koneksi Supabase belum siap. Coba refresh halaman.");
+        throw new Error("Koneksi Supabase belum siap. Refresh halaman.");
       }
 
       var resUp = await window.supa.storage.from("bahan-render").upload(namaFile, fileFinal, {
@@ -160,10 +174,9 @@
       }
     }
   }
-
   window.unggahBahanKling = unggahBahanKling;
 
-  // 3. EKSEKUSI GENERATE (DATA DURASI DISAMARKAN TETAP 5 DETIK)
+  // 4. EKSEKUSI GENERATE MURNI KLING (DURASI DISAMARKAN 5 DETIK KE BACKEND)
   async function jalankanGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
     var bahanFoto = window.urlBahanFotoKling;
@@ -205,7 +218,6 @@
       var inPrompt = document.getElementById("in-prompt-gerak");
       var promptTeks = inPrompt ? inPrompt.value.trim() : "";
 
-      // Data dikirim ke backend dengan parameter durasi disamarkan tetap 5 detik
       var res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -215,14 +227,14 @@
           provider: "kling",
           userId: realUserId,
           userEmail: realEmail,
-          duration: 5, // Data durasi disamarkan ke 5 detik
+          duration: 5,
           prompt: promptTeks || "High quality cinematic motion capture, smooth movement, realistic studio lighting",
         }),
       });
 
       var data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || "Gagal memproses render ke server gateway.");
+        throw new Error(data.message || "Gagal memproses render ke PiAPI.");
       }
 
       var tugasKling = {
@@ -235,7 +247,7 @@
         refunded: false,
         startedAt: Date.now(),
         model: "Kling 2.6 Motion Control",
-        provider: "Kling 2.6 Engine",
+        provider: "kling",
         engine: "Kling 2.6 Motion Control",
         prov: "kling",
         tgl: "Baru saja",
@@ -256,6 +268,7 @@
       window.urlBahanVideoKling = null;
 
       if (typeof tampilkanModalCeklisSukses === "function") tampilkanModalCeklisSukses(tugasKling.id);
+      if (typeof renderVideoAsliKeGrid === "function") renderVideoAsliKeGrid();
 
       pantauStatusKling(tugasKling);
     } catch (err) {
@@ -270,9 +283,9 @@
     }
   }
 
-  // 4. PEMANTAU STATUS TUGAS KLING
+  // 5. PEMANTAU STATUS TUGAS KLING
   function pantauStatusKling(tugas) {
-    if (tugas.selesai && tugas.videoUrl) return;
+    if (!tugas || (tugas.selesai && tugas.videoUrl)) return;
     if (tugas.intervalObj) clearInterval(tugas.intervalObj);
     if (!tugas.startedAt) tugas.startedAt = Date.now();
 
@@ -364,12 +377,17 @@
     tugas.intervalObj = setInterval(cekStatus, 6000);
   }
 
-  // 5. INISIALISASI & INTERCEPTOR
+  // 6. INISIALISASI & ISOLASI TOTAL (HIJACK LISTENER)
   function inisialisasiKlingEngine() {
+    pasangTamengPemantauGlobal();
+
     var provKlingEl = document.getElementById("c-prov-kling");
     if (provKlingEl) {
-      provKlingEl.onclick = function () {
+      provKlingEl.onclick = function (e) {
         window.engineMode = "kling";
+        window.providerAktif = "kling";
+        window.engineProvider = "kling";
+        window._klingIsActive = true;
 
         var cards = [
           document.getElementById("c-prov-kiix"),
@@ -410,27 +428,32 @@
       };
     }
 
+    var otherCards = [document.getElementById("c-prov-kiix"), document.getElementById("c-prov-runninghub")];
+    otherCards.forEach(function (el) {
+      if (el) {
+        el.addEventListener("click", function () {
+          window._klingIsActive = false;
+        });
+      }
+    });
+
     var inFoto = document.getElementById("input-file-foto");
     var inVideo = document.getElementById("input-file-video");
 
     if (inFoto) {
       inFoto.addEventListener("change", function (e) {
-        if (window.engineMode === "kling") {
+        if (window.engineMode === "kling" || window._klingIsActive) {
           e.stopImmediatePropagation();
-          if (this.files && this.files[0]) {
-            unggahBahanKling(this.files[0], "foto");
-          }
+          if (this.files && this.files[0]) unggahBahanKling(this.files[0], "foto");
         }
       }, true);
     }
 
     if (inVideo) {
       inVideo.addEventListener("change", function (e) {
-        if (window.engineMode === "kling") {
+        if (window.engineMode === "kling" || window._klingIsActive) {
           e.stopImmediatePropagation();
-          if (this.files && this.files[0]) {
-            unggahBahanKling(this.files[0], "video");
-          }
+          if (this.files && this.files[0]) unggahBahanKling(this.files[0], "video");
         }
       }, true);
     }
@@ -438,7 +461,7 @@
     var btnSubmit = document.getElementById("btn-submit-generate");
     if (btnSubmit) {
       btnSubmit.addEventListener("click", function (e) {
-        if (window.engineMode === "kling") {
+        if (window.engineMode === "kling" || window._klingIsActive) {
           e.preventDefault();
           e.stopImmediatePropagation();
           jalankanGenerateKling();
@@ -448,7 +471,7 @@
 
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
       window.riwayatGenerateList.forEach(function (t) {
-        if (t.prov === "kling") {
+        if (t.prov === "kling" || t.provider === "kling" || String(t.id).includes("-")) {
           if (t.videoUrl && !t.videoUrl.startsWith('/api/stream') && t.videoUrl.startsWith('http')) {
             t.rawVideoUrl = t.videoUrl;
             t.videoUrl = bungkusStreamProxy(t.videoUrl);
@@ -466,15 +489,10 @@
 
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") {
+      pasangTamengPemantauGlobal();
       if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
         window.riwayatGenerateList.forEach(function (t) {
-          if (t.prov === "kling") {
-            if (t.videoUrl && !t.videoUrl.startsWith('/api/stream') && t.videoUrl.startsWith('http')) {
-              t.rawVideoUrl = t.videoUrl;
-              t.videoUrl = bungkusStreamProxy(t.videoUrl);
-              if (typeof simpanStorage === "function") simpanStorage();
-            }
-
+          if (t.prov === "kling" || t.provider === "kling" || String(t.id).includes("-")) {
             if ((!t.videoUrl || !t.selesai) && t.id) {
               t.selesai = false;
               pantauStatusKling(t);

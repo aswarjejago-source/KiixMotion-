@@ -116,7 +116,6 @@
           <button id="subnav-minimax" onclick="switchKategoriEngine('minimax')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2">
             ⚡ MiniMax H3
           </button>
-          <!-- Nanti tambahin GPT Image atau Pixerve di bawah sini Bree -->
         </div>
       </div>
 
@@ -230,7 +229,7 @@
       </div>
     </div>
 
-    <!-- 2. GENERATE VIEW (BERSIH, TANPA TAB DI ATAS) -->
+    <!-- 2. GENERATE VIEW -->
     <div id="layar-generate" class="layar-konten space-y-6" style="display: none;">
       
       <!-- Area Engine Options -->
@@ -295,10 +294,10 @@
         </div>
       </div>
 
-      <!-- AREA FORM (Bahan Input & Akun Estimasi) TETAP -->
+      <!-- AREA FORM DENGAN SWITCHER MOTION/MINIMAX -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
-          <div class="flex items-center justify-between">
+        <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow flex flex-col">
+          <div class="flex items-center justify-between mb-2">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-full bg-kmViolet"></span> 1. Bahan Input
             </h2>
@@ -307,21 +306,144 @@
             </div>
           </div>
 
-          <div id="v-mode-upload" class="grid grid-cols-2 gap-4">
-            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+          <!-- FORM 1: MOTION CONTROL (Hanya 1 Foto + 1 Video) -->
+          <div id="form-input-motion" class="grid grid-cols-2 gap-4 flex-1">
+            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group h-full min-h-[140px]">
               <span class="text-4xl mb-2 group-hover:scale-105 transition">🖼️</span>
               <span id="txt-file-foto" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Foto Karakter</span>
               <span id="st-file-foto" class="text-[11px] text-slate-400 mt-1">JPG / PNG</span>
               <input id="input-file-foto" type="file" accept="image/*" class="hidden" onchange="unggahBahanLangsung(this, 'foto')" />
             </label>
 
-            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group">
+            <label class="border-2 border-dashed border-kmBorder hover:border-kmViolet rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/50 hover:bg-violet-50/20 group h-full min-h-[140px]">
               <span class="text-4xl mb-2 group-hover:scale-105 transition">🎬</span>
               <span id="txt-file-video" class="text-xs sm:text-sm font-bold text-kmTextPrimary">Video Gerakan</span>
               <span id="st-file-video" class="text-[11px] text-slate-400 mt-1">MP4 (Maks 10s)</span>
               <input id="input-file-video" type="file" accept="video/*" class="hidden" onchange="unggahBahanLangsung(this, 'video')" />
             </label>
           </div>
+
+          <!-- FORM 2: MINIMAX H3 (Multi-Image, Parameter, Prompt) -->
+          <div id="form-input-minimax" class="hidden flex-col gap-5 flex-1 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            
+            <!-- 1. Multi-Gambar Input (Grid 9 Kotak) -->
+            <div>
+              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex justify-between items-center">
+                <span>Unggah Gambar (Maks 9)[span_0](start_span)[span_0](end_span)</span>
+                <span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full">MiniMax H3</span>
+              </label>
+              
+              <div class="grid grid-cols-3 gap-2" id="grid-minimax-images">
+                <!-- Kotak 1-9 dibuat via manual agar presisi -->
+                <!-- 1 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-1">+</span>
+                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-1">Gambar 1</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 1)" />
+                  <div id="prev-mm-1" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 1)" id="del-mm-1" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                </label>
+                <!-- 2 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-2">+</span>
+                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-2">Gambar 2</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 2)" />
+                  <div id="prev-mm-2" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 2)" id="del-mm-2" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                </label>
+                <!-- 3 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-3">+</span>
+                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-3">Gambar 3</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 3)" />
+                  <div id="prev-mm-3" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 3)" id="del-mm-3" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                </label>
+                <!-- 4 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-4">+</span>
+                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-4">Gambar 4</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 4)" />
+                  <div id="prev-mm-4" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 4)" id="del-mm-4" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                </label>
+                <!-- 5 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-5">+</span>
+                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-5">Gambar 5</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 5)" />
+                  <div id="prev-mm-5" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 5)" id="del-mm-5" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                </label>
+                <!-- 6 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-6">+</span>
+                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-6">Gambar 6</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 6)" />
+                  <div id="prev-mm-6" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 6)" id="del-mm-6" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                </label>
+                <!-- 7 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-7">+</span>
+                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-7">Gambar 7</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 7)" />
+                  <div id="prev-mm-7" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 7)" id="del-mm-7" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                </label>
+                <!-- 8 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-8">+</span>
+                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-8">Gambar 8</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 8)" />
+                  <div id="prev-mm-8" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 8)" id="del-mm-8" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                </label>
+                <!-- 9 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/50 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-9">+</span>
+                  <span class="text-[9px] text-slate-400 mt-1 z-10" id="lbl-mm-9">Gambar 9</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 9)" />
+                  <div id="prev-mm-9" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 9)" id="del-mm-9" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600">✕</button>
+                </label>
+              </div>
+            </div>
+
+            <!-- 2. Parameter Dropdown -->
+            <div class="space-y-3 pt-2 border-t border-slate-100">
+              <!-- Tipe Performa -->
+              <div>
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Tipe Performa[span_1](start_span)[span_1](end_span)</label>
+                <select id="sel-minimax-performa" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2.5 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
+                  <option value="dramatis" selected>Adegan dramatis[span_2](start_span)[span_2](end_span)</option>
+                  <option value="laga">Adegan laga[span_3](start_span)[span_3](end_span)</option>
+                </select>
+              </div>
+
+              <!-- Aspect Ratio -->
+              <div>
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Aspect Ratio (Rasio Aspek Video)[span_4](start_span)[span_4](end_span)</label>
+                <select id="sel-minimax-ratio" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2.5 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
+                  <option value="1:1">1:1 (Square)[span_5](start_span)[span_5](end_span)</option>
+                  <option value="2:3">2:3 (Portrait Photo)[span_6](start_span)[span_6](end_span)</option>
+                  <option value="3:2">3:2 (Photo)[span_7](start_span)[span_7](end_span)</option>
+                  <option value="3:4" selected>3:4 (Portrait Standard)[span_8](start_span)[span_8](end_span)</option>
+                  <option value="4:3">4:3 (Standard)[span_9](start_span)[span_9](end_span)</option>
+                  <option value="9:16">9:16 (Portrait Widescreen)[span_10](start_span)[span_10](end_span)</option>
+                  <option value="16:9">16:9 (Widescreen)[span_11](start_span)[span_11](end_span)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 3. Textarea Prompt -->
+            <div class="pt-2 border-t border-slate-100">
+              <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 block">Prompt / Script[span_12](start_span)[span_12](end_span)</label>
+              <textarea id="prompt-minimax" class="w-full bg-slate-50 border border-kmBorder rounded-xl p-3 text-xs text-slate-700 font-mono focus:border-orange-400 focus:outline-none focus:bg-white h-28 resize-none transition" placeholder="subject_definitions&#10;<Subject 1>: Persian dancer (female)...[span_13](start_span)[span_13](end_span)"></textarea>
+            </div>
+
+          </div>
+
         </div>
 
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
@@ -865,10 +987,71 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
         });
         window.providerAktif = prov;
         
+        // --- SWITCH FORM INPUT MOTION/MINIMAX ---
+        var formMotion = document.getElementById('form-input-motion');
+        var formMinimax = document.getElementById('form-input-minimax');
+        
+        if (prov === 'minimax') {
+            if (formMotion) { formMotion.classList.remove('grid'); formMotion.classList.add('hidden'); }
+            if (formMinimax) { formMinimax.classList.remove('hidden'); formMinimax.classList.add('flex'); }
+        } else {
+            if (formMotion) { formMotion.classList.remove('hidden'); formMotion.classList.add('grid'); }
+            if (formMinimax) { formMinimax.classList.remove('flex'); formMinimax.classList.add('hidden'); }
+        }
+        
         // Panggil update UI Controller jika ada
         if (typeof window.updateUIProvider === 'function') {
             window.updateUIProvider(prov);
         }
+      };
+
+      // FUNGSI PREVIEW GAMBAR KHUSUS MINIMAX H3
+      window.previewMinimax = function(input, index) {
+          if (input.files && input.files[0]) {
+              var reader = new FileReader();
+              reader.onload = function(e) {
+                  var divBg = document.getElementById('prev-mm-' + index);
+                  var delBtn = document.getElementById('del-mm-' + index);
+                  var plusIcon = document.getElementById('plus-mm-' + index);
+                  var lblText = document.getElementById('lbl-mm-' + index);
+                  
+                  if (divBg) {
+                      divBg.style.backgroundImage = 'url(' + e.target.result + ')';
+                      divBg.classList.remove('hidden');
+                  }
+                  if (delBtn) delBtn.classList.remove('hidden');
+                  if (delBtn) delBtn.classList.add('flex');
+                  if (plusIcon) plusIcon.classList.add('hidden');
+                  if (lblText) lblText.classList.add('hidden');
+              };
+              reader.readAsDataURL(input.files[0]);
+          }
+      };
+
+      window.hapusPreviewMinimax = function(event, index) {
+          event.preventDefault();
+          event.stopPropagation();
+          var divBg = document.getElementById('prev-mm-' + index);
+          var delBtn = document.getElementById('del-mm-' + index);
+          var plusIcon = document.getElementById('plus-mm-' + index);
+          var lblText = document.getElementById('lbl-mm-' + index);
+          
+          // Kosongkan value file input yang ada di sebelahnya
+          if (delBtn && delBtn.previousElementSibling && delBtn.previousElementSibling.previousElementSibling) {
+              var fileInput = delBtn.previousElementSibling.previousElementSibling;
+              if (fileInput.type === 'file') fileInput.value = '';
+          }
+          
+          if (divBg) {
+              divBg.style.backgroundImage = '';
+              divBg.classList.add('hidden');
+          }
+          if (delBtn) {
+              delBtn.classList.add('hidden');
+              delBtn.classList.remove('flex');
+          }
+          if (plusIcon) plusIcon.classList.remove('hidden');
+          if (lblText) lblText.classList.remove('hidden');
       };
 
       async function ambilDataLoginAsli() {

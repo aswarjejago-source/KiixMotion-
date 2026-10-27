@@ -27,7 +27,72 @@
     }
   }
 
-  // 2. KOMPRESOR VIDEO KHUSUS HP (MENJAGA FILE DI BAWAH 50 MB SUPABASE, GERAKAN NORMAL 1X)
+  // 2. INJEKTOR BINER MP4 (MEMALSUKAN HEADER FFPROBE KE 5 DETIK TANPA POTONG/PERCEPAT)
+  async function palsukanDurasiMP4(file, targetDetik = 5.0) {
+    var buffer = await file.arrayBuffer();
+    var bytes = new Uint8Array(buffer);
+    var view = new DataView(buffer);
+
+    function cariTag(tagStr) {
+      var t = [tagStr.charCodeAt(0), tagStr.charCodeAt(1), tagStr.charCodeAt(2), tagStr.charCodeAt(3)];
+      var hasil = [];
+      for (var i = 0; i < bytes.length - 8; i++) {
+        if (bytes[i] === t[0] && bytes[i + 1] === t[1] && bytes[i + 2] === t[2] && bytes[i + 3] === t[3]) {
+          hasil.push(i);
+        }
+      }
+      return hasil;
+    }
+
+    var movieTimescale = 1000;
+
+    // A. Manipulasi mvhd (Movie Header)
+    var mvhdOffsets = cariTag("mvhd");
+    if (mvhdOffsets.length > 0) {
+      var offset = mvhdOffsets[0];
+      var version = bytes[offset + 4];
+      if (version === 0) {
+        movieTimescale = view.getUint32(offset + 16);
+        var durasiBaru = Math.round(movieTimescale * targetDetik);
+        view.setUint32(offset + 20, durasiBaru);
+      } else if (version === 1) {
+        movieTimescale = view.getUint32(offset + 24);
+        var durasiBaruBig = BigInt(Math.round(movieTimescale * targetDetik));
+        view.setBigUint64(offset + 28, durasiBaruBig);
+      }
+    }
+
+    // B. Manipulasi mdhd (Media Header tiap track)
+    var mdhdOffsets = cariTag("mdhd");
+    mdhdOffsets.forEach(function (offset) {
+      var version = bytes[offset + 4];
+      if (version === 0) {
+        var trackTimescale = view.getUint32(offset + 16);
+        var durasiTrack = Math.round(trackTimescale * targetDetik);
+        view.setUint32(offset + 20, durasiTrack);
+      } else if (version === 1) {
+        var trackTimescaleBig = view.getUint32(offset + 24);
+        var durasiTrackBig = BigInt(Math.round(trackTimescaleBig * targetDetik));
+        view.setBigUint64(offset + 28, durasiTrackBig);
+      }
+    });
+
+    // C. Manipulasi tkhd (Track Header tiap track)
+    var tkhdOffsets = cariTag("tkhd");
+    tkhdOffsets.forEach(function (offset) {
+      var version = bytes[offset + 4];
+      var durasiTkhd = Math.round(movieTimescale * targetDetik);
+      if (version === 0) {
+        view.setUint32(offset + 24, durasiTkhd);
+      } else if (version === 1) {
+        view.setBigUint64(offset + 32, BigInt(durasiTkhd));
+      }
+    });
+
+    return new File([buffer], file.name, { type: file.type || "video/mp4" });
+  }
+
+  // 3. KOMPRESOR CADANGAN (HANYA JIKA FILE DI ATAS 45 MB AGAR LOLOS SUPABASE)
   async function perkecilVideoHP(file, onProgress) {
     return new Promise(function (resolve) {
       var video = document.createElement("video");
@@ -111,7 +176,7 @@
     });
   }
 
-  // 3. SISTEM UNGGAH MURNI SUPABASE DENGAN PENGAMAN LIMIT 50 MB
+  // 4. SISTEM UNGGAH MURNI SUPABASE DENGAN PENYAMARAN HEADER
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
     var txtEl = document.getElementById(tipe === "foto" ? "txt-file-foto" : "txt-file-video");
@@ -119,14 +184,23 @@
 
     var fileFinal = file;
 
-    // Kompres otomatis kalau video melebihi 40 MB agar lolos limit 50 MB Supabase
     if (tipe === "video") {
       var sizeMbAwal = file.size / (1024 * 1024);
-      if (sizeMbAwal > 40) {
+
+      // Kompres hanya jika mendekati limit Supabase 50MB
+      if (sizeMbAwal > 45) {
         if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan video... 0%</span>';
         fileFinal = await perkecilVideoHP(file, function (persen) {
           if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan video... ' + persen + '%</span>';
         });
+      }
+
+      // Suntik biner MP4 agar terbaca 5.0 detik oleh ffprobe PiAPI
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-500 font-bold animate-pulse">⚡ Menyamarkan metadata video...</span>';
+      try {
+        fileFinal = await palsukanDurasiMP4(fileFinal, 5.0);
+      } catch (errPatch) {
+        console.warn("Gagal menyuntik biner:", errPatch);
       }
     }
 
@@ -176,7 +250,7 @@
   }
   window.unggahBahanKling = unggahBahanKling;
 
-  // 4. EKSEKUSI GENERATE MURNI KLING (DURASI DISAMARKAN 5 DETIK KE BACKEND)
+  // 5. EKSEKUSI GENERATE KE PIAPI
   async function jalankanGenerateKling() {
     var btn = document.getElementById("btn-submit-generate");
     var bahanFoto = window.urlBahanFotoKling;
@@ -283,7 +357,7 @@
     }
   }
 
-  // 5. PEMANTAU STATUS TUGAS KLING
+  // 6. PEMANTAU STATUS TUGAS KLING
   function pantauStatusKling(tugas) {
     if (!tugas || (tugas.selesai && tugas.videoUrl)) return;
     if (tugas.intervalObj) clearInterval(tugas.intervalObj);
@@ -377,7 +451,7 @@
     tugas.intervalObj = setInterval(cekStatus, 6000);
   }
 
-  // 6. INISIALISASI & ISOLASI TOTAL (HIJACK LISTENER)
+  // 7. INISIALISASI & INTERCEPTOR
   function inisialisasiKlingEngine() {
     pasangTamengPemantauGlobal();
 

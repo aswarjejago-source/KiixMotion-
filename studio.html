@@ -101,7 +101,7 @@
         <i class="ph ph-squares-four text-lg"></i> Dashboard
       </button>
       
-      <!-- MENU GENERATE -->
+      <!-- MENU GENERATE (DENGAN DROPDOWN SUBMENU) -->
       <div class="flex flex-col w-full">
         <button id="nav-btn-generate" onclick="toggleMenuGenerate()" class="btn-nav-sidebar flex items-center justify-between w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer transition whitespace-nowrap">
           <div class="flex items-center gap-3"><i class="ph ph-magic-wand text-lg"></i> Generate</div>
@@ -232,9 +232,9 @@
     <!-- 2. GENERATE VIEW -->
     <div id="layar-generate" class="layar-konten space-y-6" style="display: none;">
       
-      <!-- Area Engine Options -->
+      <!-- Area Engine Options Atas -->
       <div>
-        <!-- Konten 1: Motion Control -->
+        <!-- Konten 1: Motion Control Engines -->
         <div id="tab-content-motion" class="transition-all duration-300">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MOTION CONTROL ENGINE</label>
           <div class="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
@@ -278,23 +278,23 @@
           </div>
         </div>
 
-        <!-- Konten 2: MiniMax H3 -->
+        <!-- Konten 2: MiniMax H3 Engine -->
         <div id="tab-content-minimax" class="transition-all duration-300" style="display: none;">
           <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MINIMAX ENGINE</label>
-          <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border-2 border-orange-500 ring-4 ring-orange-50 p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border-2 border-orange-500 ring-4 ring-orange-50 p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition">
             <div class="space-y-1.5">
               <div class="flex items-center gap-2">
                 <span class="text-xs font-bold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">NEW H3</span>
-                <h4 class="font-bold text-slate-900 text-base">MiniMax H3 Master Workflow (Portskill)</h4>
+                <h4 class="font-bold text-slate-900 text-base">MiniMax H3 Master Workflow</h4>
               </div>
-              <p class="text-xs text-slate-500">Workflow multi-image acting, combat action & dramatic acting[span_2](start_span)[span_2](end_span).</p>
+              <p class="text-xs text-slate-500">Workflow multi-image acting, combat action & cinematic generation.</p>
             </div>
             <span id="b-prov-minimax" class="text-[10px] bg-orange-500 text-white font-extrabold px-3 py-1 rounded-full">AKTIF</span>
           </div>
         </div>
       </div>
 
-      <!-- AREA FORM DENGAN SWITCHER MOTION/MINIMAX -->
+      <!-- AREA FORM UTAMA -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow flex flex-col">
           <div class="flex items-center justify-between mb-2">
@@ -323,18 +323,18 @@
             </label>
           </div>
 
-          <!-- FORM 2: MINIMAX H3 (6 Slot Foto, Frame, Durasi 10-30s, Adegan Laga/Dramatis, Prompt) -->
+          <!-- FORM 2: MINIMAX H3 (9 Slot Foto, Frame, Durasi 10-30s, Adegan Laga/Dramatis, Prompt) -->
           <div id="form-input-minimax" style="display: none;" class="flex-col gap-4 flex-1 max-h-[580px] overflow-y-auto pr-1.5 custom-scrollbar">
             
-            <!-- 1. Multi-Gambar Input (GRID 6 KOTAK GAMBAR) -->
+            <!-- 1. Grid 9 Slot Foto -->
             <div>
               <div class="flex justify-between items-center mb-2">
-                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unggah Gambar (Maks 6 Foto)</label>
+                <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Unggah Gambar (Maks 9 Foto)</label>
                 <span class="text-[9px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">H3 Reference</span>
               </div>
               
               <div class="grid grid-cols-3 gap-2" id="grid-minimax-images">
-                <!-- Kotak 1 -->
+                <!-- Slot 1 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-1">+</span>
                   <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-1">Foto 1</span>
@@ -342,7 +342,7 @@
                   <div id="prev-mm-1" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 1)" id="del-mm-1" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
-                <!-- Kotak 2 -->
+                <!-- Slot 2 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-2">+</span>
                   <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-2">Foto 2</span>
@@ -350,7 +350,7 @@
                   <div id="prev-mm-2" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 2)" id="del-mm-2" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
-                <!-- Kotak 3 -->
+                <!-- Slot 3 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-3">+</span>
                   <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-3">Foto 3</span>
@@ -358,7 +358,7 @@
                   <div id="prev-mm-3" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 3)" id="del-mm-3" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
-                <!-- Kotak 4 -->
+                <!-- Slot 4 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-4">+</span>
                   <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-4">Foto 4</span>
@@ -366,7 +366,7 @@
                   <div id="prev-mm-4" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 4)" id="del-mm-4" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
-                <!-- Kotak 5 -->
+                <!-- Slot 5 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-5">+</span>
                   <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-5">Foto 5</span>
@@ -374,7 +374,7 @@
                   <div id="prev-mm-5" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 5)" id="del-mm-5" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
-                <!-- Kotak 6 -->
+                <!-- Slot 6 -->
                 <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
                   <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-6">+</span>
                   <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-6">Foto 6</span>
@@ -382,12 +382,35 @@
                   <div id="prev-mm-6" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
                   <button type="button" onclick="hapusPreviewMinimax(event, 6)" id="del-mm-6" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
                 </label>
+                <!-- Slot 7 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-7">+</span>
+                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-7">Foto 7</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 7)" />
+                  <div id="prev-mm-7" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 7)" id="del-mm-7" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+                </label>
+                <!-- Slot 8 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-8">+</span>
+                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-8">Foto 8</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 8)" />
+                  <div id="prev-mm-8" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 8)" id="del-mm-8" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+                </label>
+                <!-- Slot 9 -->
+                <label class="border-2 border-dashed border-kmBorder rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 bg-slate-50/60 hover:bg-orange-50/30 transition aspect-square relative group overflow-hidden">
+                  <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-9">+</span>
+                  <span class="text-[9px] text-slate-400 mt-0.5 z-10" id="lbl-mm-9">Foto 9</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 9)" />
+                  <div id="prev-mm-9" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+                  <button type="button" onclick="hapusPreviewMinimax(event, 9)" id="del-mm-9" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
+                </label>
               </div>
             </div>
 
-            <!-- 2. Parameter Pilihan (Tipe Performa & Frame) -->
+            <!-- 2. Parameter Tipe Performa & Pilihan Frame -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-              <!-- Tipe Performa -->
               <div>
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Tipe Performa</label>
                 <select id="sel-minimax-performa" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
@@ -396,7 +419,6 @@
                 </select>
               </div>
 
-              <!-- Pilihan Frame / FPS Mode -->
               <div>
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Pilihan Frame / FPS</label>
                 <select id="sel-minimax-frame" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
@@ -411,7 +433,6 @@
 
             <!-- 3. Parameter Durasi (10-30s) & Rasio Aspek -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <!-- Durasi 10 - 30 Detik -->
               <div>
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Durasi Video</label>
                 <select id="sel-minimax-durasi" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer font-bold text-orange-600">
@@ -423,7 +444,6 @@
                 </select>
               </div>
 
-              <!-- Aspect Ratio -->
               <div>
                 <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 block">Rasio Aspek Video</label>
                 <select id="sel-minimax-ratio" class="w-full bg-slate-50 border border-kmBorder rounded-xl px-3 py-2 text-xs text-kmTextPrimary font-medium focus:outline-none focus:border-orange-400 cursor-pointer">
@@ -450,6 +470,7 @@
 
         </div>
 
+        <!-- Kolom Kanan: Akun & Estimasi -->
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
           <div class="space-y-5">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
@@ -683,7 +704,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h2 class="text-xl font-black text-slate-900 tracking-tight" id="label-plan-nama">Free</h2>
-                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlanggan VIP</p>
+                    <p class="text-xs text-slate-500 mt-0.5" id="label-plan-desc">Generator: Server Standar · Belum berlangganan VIP</p>
                 </div>
                 <span class="px-3.5 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-full" id="label-status-vip-badge">Non-Aktif</span>
             </div>
@@ -942,51 +963,43 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           }
       };
 
-      // FUNGSI GANTI KATEGORI ENGINE DARI SIDEBAR DROPDOWN (ANTI-RESET)
-      window.switchKategoriEngine = function(kategori) {
+      // FUNGSI GANTI KATEGORI ENGINE (TERKUNCI & ANTI-OVERWRITE)
+      function eksekusiGantiKategori(kategori) {
         var subnavMotion = document.getElementById('subnav-motion');
         var subnavMinimax = document.getElementById('subnav-minimax');
         var contentMotion = document.getElementById('tab-content-motion');
         var contentMinimax = document.getElementById('tab-content-minimax');
         
-        // Kunci nilai provider aktif terlebih dahulu agar tidak tertimpa gantiLayarNav
-        if (kategori === 'minimax') {
-            window.engineProvider = 'minimax';
-            window.engineMode = 'minimax';
-            window.providerAktif = 'minimax';
-        } else {
-            window.engineProvider = 'kiix';
-            window.engineMode = 'kiix';
-            window.providerAktif = 'kiix';
-        }
+        window.engineProvider = (kategori === 'minimax') ? 'minimax' : 'kiix';
+        window.engineMode = window.engineProvider;
+        window.providerAktif = window.engineProvider;
 
-        // Buka layar generate hanya jika sedang berada di layar lain
-        if (typeof gantiLayarNav === 'function' && navLayarAktif !== 'generate') {
+        if (typeof gantiLayarNav === 'function' && window.navLayarAktif !== 'generate') {
             gantiLayarNav('generate');
         }
         
         if (kategori === 'motion') {
             if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-violet-50 text-kmViolet transition cursor-pointer flex items-center gap-2";
             if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
-            if (contentMotion) contentMotion.style.display = 'block';
-            if (contentMinimax) contentMinimax.style.display = 'none';
-            setProviderUtama('kiix');
+            if (contentMotion) contentMotion.style.setProperty('display', 'block', 'important');
+            if (contentMinimax) contentMinimax.style.setProperty('display', 'none', 'important');
+            eksekusiSetProvider('kiix');
         } else {
             if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 transition cursor-pointer flex items-center gap-2";
             if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
-            if (contentMinimax) contentMinimax.style.display = 'block';
-            if (contentMotion) contentMotion.style.display = 'none';
-            setProviderUtama('minimax');
+            if (contentMinimax) contentMinimax.style.setProperty('display', 'block', 'important');
+            if (contentMotion) contentMotion.style.setProperty('display', 'none', 'important');
+            eksekusiSetProvider('minimax');
         }
-      };
+      }
 
-      // FUNGSI PILIH PROVIDER/ENGINE UTAMA (MUTLAK INLINE STYLE)
-      window.setProviderUtama = function(prov) {
+      // FUNGSI SET PROVIDER UTAMA (MUTLAK MENGATUR FORM DENGAN STYLE IMPORTANT)
+      function eksekusiSetProvider(prov) {
         window.engineProvider = prov;
         window.engineMode = prov;
         window.providerAktif = prov;
 
-        // Reset styling seluruh kartu engine
+        // Atur status aktif kartu provider
         ['kiix', 'runninghub', 'kling', 'minimax'].forEach(function(p) {
           const card = document.getElementById('c-prov-' + p);
           const badge = document.getElementById('b-prov-' + p);
@@ -1011,7 +1024,6 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           }
         });
 
-        // Selektor Form & Info Estimasi
         var formMotion = document.getElementById('form-input-motion');
         var formMinimax = document.getElementById('form-input-minimax');
         var tTitle = document.getElementById('t-engine-title');
@@ -1023,7 +1035,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
         var btnSubmit = document.getElementById('btn-submit-generate');
 
         if (prov === 'minimax') {
-            // Tampilkan Form MiniMax (6 Slot Foto, Frame, Laga/Dramatis, Durasi 10-30s)
+            // Tampilkan Form MiniMax 9 Kotak
             if (formMotion) {
                 formMotion.style.setProperty('display', 'none', 'important');
                 formMotion.classList.add('hidden');
@@ -1039,7 +1051,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
               tTotal.innerText = "≈ 257 coin / render";
               tTotal.className = "text-lg sm:text-xl font-black text-orange-600 tracking-tight";
             }
-            if (dropWrap) dropWrap.style.display = 'block';
+            if (dropWrap) dropWrap.style.setProperty('display', 'block', 'important');
             if (lblBadge) {
               lblBadge.innerText = "MiniMax H3";
               lblBadge.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 shadow-sm";
@@ -1051,7 +1063,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
             }
             if (typeof updateBadgeKoinGenerate === 'function') updateBadgeKoinGenerate();
         } else {
-            // Tampilkan Form Motion Control
+            // Tampilkan Form Motion Control (Foto + Video)
             if (formMinimax) { 
                 formMinimax.style.setProperty('display', 'none', 'important');
                 formMinimax.classList.add('hidden'); 
@@ -1077,7 +1089,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                 tTotal.innerText = "≈ 478 coin / render";
                 tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
               }
-              if (dropWrap) dropWrap.style.display = 'block';
+              if (dropWrap) dropWrap.style.setProperty('display', 'block', 'important');
               if (typeof updateBadgeKoinGenerate === 'function') updateBadgeKoinGenerate();
             } else if (prov === 'kling') {
               if (tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL";
@@ -1085,19 +1097,31 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                 tTotal.innerText = "1 Coin VIP / render";
                 tTotal.className = "text-lg sm:text-xl font-black text-indigo-600 tracking-tight";
               }
-              if (dropWrap) dropWrap.style.display = 'none';
+              if (dropWrap) dropWrap.style.setProperty('display', 'none', 'important');
             } else { // kiix
               if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
               if (tTotal) {
                 tTotal.innerText = "1 Kredit";
                 tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
               }
-              if (dropWrap) dropWrap.style.display = 'none';
+              if (dropWrap) dropWrap.style.setProperty('display', 'none', 'important');
             }
         }
-      };
+      }
 
-      // FUNGSI PREVIEW GAMBAR KHUSUS MINIMAX H3 (1 s.d. 6 GAMBAR)
+      // KUNCI KEDUA FUNGSI AGAR TIDAK BISA DITIMPA OLEH FILE JS LAIN
+      Object.defineProperty(window, 'switchKategoriEngine', {
+          get: function() { return eksekusiGantiKategori; },
+          set: function() {},
+          configurable: true
+      });
+      Object.defineProperty(window, 'setProviderUtama', {
+          get: function() { return eksekusiSetProvider; },
+          set: function() {},
+          configurable: true
+      });
+
+      // FUNGSI PREVIEW GAMBAR KHUSUS MINIMAX H3 (1 s.d. 9 GAMBAR)
       window.previewMinimax = function(input, index) {
           if (input.files && input.files[0]) {
               var reader = new FileReader();

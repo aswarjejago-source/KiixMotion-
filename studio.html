@@ -95,18 +95,37 @@
     <div class="w-full mt-1 hidden md:block"><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 pl-2">Meja Kerja</p></div>
 
     <nav class="flex md:flex-col items-center md:items-stretch gap-1 bg-slate-50 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-kmBorder md:border-none w-full overflow-x-auto hide-scrollbar">
+      
+      <!-- MENU DASHBOARD -->
       <button id="nav-btn-dashboard" onclick="gantiLayarNav('dashboard')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-[#F3EEFF] text-[#7C3AED] cursor-pointer whitespace-nowrap">
         <i class="ph ph-squares-four text-lg"></i> Dashboard
       </button>
       
-      <button id="nav-btn-generate" onclick="gantiLayarNav('generate')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
-        <i class="ph ph-magic-wand text-lg"></i> Generate
-      </button>
+      <!-- MENU GENERATE (DENGAN DROPDOWN KATEGORI ENGINE) -->
+      <div class="flex flex-col w-full">
+        <button id="nav-btn-generate" onclick="toggleMenuGenerate()" class="btn-nav-sidebar flex items-center justify-between w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer transition whitespace-nowrap">
+          <div class="flex items-center gap-3"><i class="ph ph-magic-wand text-lg"></i> Generate</div>
+          <i id="nav-icon-generate" class="ph ph-caret-down transition-transform duration-200 text-slate-400"></i>
+        </button>
+        
+        <!-- Dropdown Kategori Engine -->
+        <div id="nav-submenu-generate" class="hidden flex-col gap-1.5 pl-11 pr-2 mt-1 w-full overflow-y-auto max-h-48 custom-scrollbar pb-1">
+          <button id="subnav-motion" onclick="switchKategoriEngine('motion')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-violet-50 text-kmViolet transition cursor-pointer flex items-center gap-2">
+            🎬 Motion Control
+          </button>
+          <button id="subnav-minimax" onclick="switchKategoriEngine('minimax')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2">
+            ⚡ MiniMax H3
+          </button>
+          <!-- Nanti tambahin GPT Image atau Pixerve di bawah sini Bree -->
+        </div>
+      </div>
 
+      <!-- MENU HISTORY -->
       <button id="nav-btn-history" onclick="gantiLayarNav('history')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-clock-counter-clockwise text-lg"></i> History
       </button>
       
+      <!-- MENU GALERI -->
       <button id="nav-btn-galeri" onclick="gantiLayarNav('galeri')" class="btn-nav-sidebar nav-btn-smooth px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 cursor-pointer whitespace-nowrap">
         <i class="ph ph-images text-lg"></i> Galeri <span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-md font-bold">Maks 50</span>
       </button>
@@ -211,23 +230,14 @@
       </div>
     </div>
 
-    <!-- 2. GENERATE VIEW (TAB SWITCHER) -->
+    <!-- 2. GENERATE VIEW (BERSIH, TANPA TAB DI ATAS) -->
     <div id="layar-generate" class="layar-konten space-y-6" style="display: none;">
+      
+      <!-- Area Engine Options -->
       <div>
-        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">PILIH KATEGORI ENGINE</label>
-        
-        <!-- Tab Menu Atas -->
-        <div class="flex space-x-3 overflow-x-auto hide-scrollbar mb-5 pb-1">
-          <button id="tab-btn-motion" onclick="switchKategoriEngine('motion')" class="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-kmViolet bg-violet-50 text-kmViolet shadow-sm whitespace-nowrap cursor-pointer">
-            🎬 Motion Control
-          </button>
-          <button id="tab-btn-minimax" onclick="switchKategoriEngine('minimax')" class="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-transparent bg-white border-kmBorder text-slate-500 hover:bg-slate-50 whitespace-nowrap modern-shadow cursor-pointer">
-            ⚡ MiniMax H3
-          </button>
-        </div>
-        
-        <!-- Konten Tab 1: Motion Control -->
+        <!-- Konten 1: Motion Control (Muncul jika subnav Motion dipilih) -->
         <div id="tab-content-motion" class="transition-all duration-300">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MOTION CONTROL ENGINE</label>
           <div class="flex space-x-4 overflow-x-auto pb-2 hide-scrollbar">
             
             <div id="c-prov-kiix" onclick="setProviderUtama('kiix')" class="min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow cursor-pointer transition ring-4 ring-violet-50">
@@ -269,8 +279,9 @@
           </div>
         </div>
 
-        <!-- Konten Tab 2: MiniMax H3 -->
+        <!-- Konten 2: MiniMax H3 (Muncul jika subnav MiniMax dipilih) -->
         <div id="tab-content-minimax" class="transition-all duration-300 hidden">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 block">MINIMAX ENGINE</label>
           <div onclick="setProviderUtama('minimax')" id="c-prov-minimax" class="bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div class="space-y-1.5">
               <div class="flex items-center gap-2">
@@ -284,6 +295,7 @@
         </div>
       </div>
 
+      <!-- AREA FORM (Bahan Input & Akun Estimasi) TETAP -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-kmCard border border-kmBorder p-6 rounded-3xl space-y-5 modern-shadow">
           <div class="flex items-center justify-between">
@@ -788,24 +800,42 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
 
       var sedangUpdateMemberUI = false;
 
-      // FUNGSI GANTI KATEGORI TAB SWITCHER
+      // FUNGSI BUKA TUTUP DROPDOWN SIDEBAR GENERATE
+      window.toggleMenuGenerate = function() {
+          var submenu = document.getElementById('nav-submenu-generate');
+          var icon = document.getElementById('nav-icon-generate');
+          if (submenu.classList.contains('hidden')) {
+              submenu.classList.remove('hidden');
+              submenu.classList.add('flex');
+              icon.style.transform = 'rotate(180deg)';
+          } else {
+              submenu.classList.remove('flex');
+              submenu.classList.add('hidden');
+              icon.style.transform = 'rotate(0deg)';
+          }
+      };
+
+      // FUNGSI GANTI KATEGORI ENGINE DARI SIDEBAR DROPDOWN
       window.switchKategoriEngine = function(kategori) {
-        var btnMotion = document.getElementById('tab-btn-motion');
-        var btnMinimax = document.getElementById('tab-btn-minimax');
+        var subnavMotion = document.getElementById('subnav-motion');
+        var subnavMinimax = document.getElementById('subnav-minimax');
         var contentMotion = document.getElementById('tab-content-motion');
         var contentMinimax = document.getElementById('tab-content-minimax');
         
+        // Pindah layar ke menu generate dulu
+        if (typeof gantiLayarNav === 'function') gantiLayarNav('generate');
+        
         if (kategori === 'motion') {
-            btnMotion.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-kmViolet bg-violet-50 text-kmViolet shadow-sm whitespace-nowrap cursor-pointer";
-            btnMinimax.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-transparent bg-white border-kmBorder text-slate-500 hover:bg-slate-50 whitespace-nowrap modern-shadow cursor-pointer";
-            contentMotion.classList.remove('hidden');
-            contentMinimax.classList.add('hidden');
+            if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-violet-50 text-kmViolet transition cursor-pointer flex items-center gap-2";
+            if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
+            if (contentMotion) contentMotion.classList.remove('hidden');
+            if (contentMinimax) contentMinimax.classList.add('hidden');
             if(typeof setProviderUtama === 'function') setProviderUtama('kiix');
         } else {
-            btnMinimax.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-orange-500 bg-orange-50 text-orange-600 shadow-sm whitespace-nowrap cursor-pointer";
-            btnMotion.className = "flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all border-2 border-transparent bg-white border-kmBorder text-slate-500 hover:bg-slate-50 whitespace-nowrap modern-shadow cursor-pointer";
-            contentMinimax.classList.remove('hidden');
-            contentMotion.classList.add('hidden');
+            if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 transition cursor-pointer flex items-center gap-2";
+            if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
+            if (contentMinimax) contentMinimax.classList.remove('hidden');
+            if (contentMotion) contentMotion.classList.add('hidden');
             if(typeof setProviderUtama === 'function') setProviderUtama('minimax');
         }
       };

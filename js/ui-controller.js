@@ -301,6 +301,18 @@ window.setProviderUtama = function(prov) {
         if (boxAkun) boxAkun.style.display = 'block';
         updateBadgeKoinGenerate();
     }
+
+    // --- LOGIKA MENGGANTI TAMPILAN FORM INPUT (MOTION vs MINIMAX) ---
+    var formMotion = document.getElementById('form-input-motion');
+    var formMinimax = document.getElementById('form-input-minimax');
+    
+    if (prov === 'minimax') {
+        if (formMotion) { formMotion.classList.remove('grid'); formMotion.classList.add('hidden'); }
+        if (formMinimax) { formMinimax.classList.remove('hidden'); formMinimax.classList.add('flex'); }
+    } else {
+        if (formMotion) { formMotion.classList.remove('hidden'); formMotion.classList.add('grid'); }
+        if (formMinimax) { formMinimax.classList.remove('flex'); formMinimax.classList.add('hidden'); }
+    }
 };
 
 window.updateBadgeKoinGenerate = function() {
@@ -332,6 +344,58 @@ window.updateBadgeKoinGenerate = function() {
         badge.innerText = "0 coin";
         badge.className = "text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg";
     }
+};
+
+// -------------------------------------------------------------
+// FUNGSI PREVIEW GAMBAR KHUSUS MINIMAX H3
+// -------------------------------------------------------------
+window.previewMinimax = function(input, index) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var divBg = document.getElementById('prev-mm-' + index);
+            var delBtn = document.getElementById('del-mm-' + index);
+            var plusIcon = document.getElementById('plus-mm-' + index);
+            var lblText = document.getElementById('lbl-mm-' + index);
+            
+            if (divBg) {
+                divBg.style.backgroundImage = 'url(' + e.target.result + ')';
+                divBg.classList.remove('hidden');
+            }
+            if (delBtn) {
+                delBtn.classList.remove('hidden');
+                delBtn.classList.add('flex');
+            }
+            if (plusIcon) plusIcon.classList.add('hidden');
+            if (lblText) lblText.classList.add('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+};
+
+window.hapusPreviewMinimax = function(event, index) {
+    event.preventDefault();
+    event.stopPropagation();
+    var divBg = document.getElementById('prev-mm-' + index);
+    var delBtn = document.getElementById('del-mm-' + index);
+    var plusIcon = document.getElementById('plus-mm-' + index);
+    var lblText = document.getElementById('lbl-mm-' + index);
+    
+    if (delBtn && delBtn.previousElementSibling && delBtn.previousElementSibling.previousElementSibling) {
+        var fileInput = delBtn.previousElementSibling.previousElementSibling;
+        if (fileInput.type === 'file') fileInput.value = '';
+    }
+    
+    if (divBg) {
+        divBg.style.backgroundImage = '';
+        divBg.classList.add('hidden');
+    }
+    if (delBtn) {
+        delBtn.classList.add('hidden');
+        delBtn.classList.remove('flex');
+    }
+    if (plusIcon) plusIcon.classList.remove('hidden');
+    if (lblText) lblText.classList.remove('hidden');
 };
 
 // -------------------------------------------------------------
@@ -628,10 +692,10 @@ window.simpanAkunBaruDariModal = async function() {
             renderListAkunDiKelola();
             tampilkanNotif('Berhasil menambahkan API Key!', 'sukses');
         } else {
-            tampilkanNotif('API Key tidak valid atau server bermasalah!', 'error');
+            tampilkanNotif('API Key ikke gyldig eller serverproblem!', 'error');
         }
     } catch(e) {
-        tampilkanNotif('Gagal mengecek API Key. Coba lagi nanti.', 'error');
+        tampilkanNotif('Fejl ved kontrol af API Key. Prøv igen senere.', 'error');
     }
 
     if (btn) {
@@ -644,10 +708,10 @@ window.refreshSemuaAkunLokal = async function() {
     var dbAkun = JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
     
     if (dbAkun.length === 0) {
-        return tampilkanNotif('Belum ada API Key terhubung untuk di-refresh.', 'error');
+        return tampilkanNotif('Ingen API Key tilknyttet til at opdatere.', 'error');
     }
     
-    tampilkanNotif('Menyinkronkan saldo koin ke server...', 'info');
+    tampilkanNotif('Synkroniserer møntsaldo til server...', 'info');
 
     var berhasilsync = 0;
     
@@ -670,7 +734,7 @@ window.refreshSemuaAkunLokal = async function() {
                 }
             }
         } catch (e) {
-            console.error('Gagal sync akun:', dbAkun[i].key);
+            console.error('Fejl ved synkronisering af konto:', dbAkun[i].key);
         }
     }
 
@@ -680,9 +744,9 @@ window.refreshSemuaAkunLokal = async function() {
     renderListAkunDiKelola(); 
     
     if (berhasilsync > 0) {
-        tampilkanNotif('✓ Saldo berhasil disinkronisasi ulang!', 'sukses');
+        tampilkanNotif('✓ Saldo synkroniseret succesfuldt!', 'sukses');
     } else {
-        tampilkanNotif('Gagal menyinkronkan data dengan server RunningHub.', 'error');
+        tampilkanNotif('Kunne ikke synkronisere data med RunningHub server.', 'error');
     }
 };
 
@@ -696,7 +760,7 @@ window.unggahKeGaleri = function(input) {
     if (!input.files || !input.files[0]) return;
     
     if (galeriList.length >= 50) {
-        return tampilkanNotif('Kapasitas galeri penuh (Maksimal 50 file).', 'error');
+        return tampilkanNotif('Gallerikapacitet fuld (Maksimalt 50 filer).', 'error');
     }
     
     var file = input.files[0];
@@ -712,14 +776,14 @@ window.unggahKeGaleri = function(input) {
         
         localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
         renderGaleri();
-        tampilkanNotif('Media berhasil diunggah ke Galeri!', 'sukses');
+        tampilkanNotif('Medie succesfuldt uploadet til Galleri!', 'sukses');
     };
     
     reader.readAsDataURL(file);
 };
 
 window.hapusDariGaleri = function(id) {
-    mintaKonfirmasi("Yakin ingin menghapus media ini?", function() {
+    mintaKonfirmasi("Er du sikker på, at du vil slette dette medie?", function() {
         var galeriList = JSON.parse(localStorage.getItem('kiix_galeri_v1') || '[]');
         
         galeriList = galeriList.filter(function(item) {
@@ -728,7 +792,7 @@ window.hapusDariGaleri = function(id) {
         
         localStorage.setItem('kiix_galeri_v1', JSON.stringify(galeriList));
         renderGaleri();
-        tampilkanNotif('File berhasil dihapus.', 'sukses');
+        tampilkanNotif('Fil slettet succesfuldt.', 'sukses');
     });
 };
 
@@ -748,7 +812,7 @@ window.renderGaleri = function() {
     if (!wadah) return;
 
     if (galeriList.length === 0) {
-        wadah.innerHTML = `<div class="col-span-full py-8 text-center text-slate-400"><p class="text-xs font-semibold">Belum ada file media yang diunggah.</p></div>`;
+        wadah.innerHTML = `<div class="col-span-full py-8 text-center text-slate-400"><p class="text-xs font-semibold">Der er endnu ikke uploadet nogen mediefiler.</p></div>`;
         return;
     }
 
@@ -821,10 +885,10 @@ window.pilihPaketKredit = function(tipe) {
 };
 
 window.jalankanBayarKredit = async function() {
-    tampilkanNotif("Menghubungkan ke secure payment iPaymu...", "info");
+    tampilkanNotif("Opretter forbindelse til sikker betaling iPaymu...", "info");
     
-    var userEmail = prompt("Masukkan email aktif Anda untuk tagihan QRIS:", "");
-    if (!userEmail) return tampilkanNotif("Email wajib diisi untuk transaksi!", "error");
+    var userEmail = prompt("Indtast din aktive e-mail til QRIS-faktura:", "");
+    if (!userEmail) return tampilkanNotif("E-mail er påkrævet til transaktion!", "error");
 
     var nominal = 5800;
     var namaItem = "Paket 10 Kredit KiixMotion";
@@ -857,17 +921,17 @@ window.jalankanBayarKredit = async function() {
         if (data.Success || data.Data) {
             window.location.href = data.Data.Url || data.url;
         } else {
-            tampilkanNotif("Gagal membuat transaksi", "error");
+            tampilkanNotif("Kunne ikke oprette transaktion", "error");
         }
     })
     .catch(() => {
-        tampilkanNotif("Gagal koneksi ke server pembayaran.", "error");
+        tampilkanNotif("Kunne ikke oprette forbindelse til betalingsserver.", "error");
     });
 };
 
 window.jalankanBayarVIP = async function() {
-    var userEmail = prompt("Masukkan email aktif Anda untuk tagihan QRIS:", "");
-    if (!userEmail) return tampilkanNotif("Email wajib diisi untuk transaksi!", "error");
+    var userEmail = prompt("Indtast din aktive e-mail til QRIS-faktura:", "");
+    if (!userEmail) return tampilkanNotif("E-mail er påkrævet til transaktion!", "error");
 
     fetch('/api/bayar', {
         method: 'POST',
@@ -886,11 +950,11 @@ window.jalankanBayarVIP = async function() {
         if (data.Success || data.Data) {
             window.location.href = data.Data.Url || data.url;
         } else {
-            tampilkanNotif("Gagal membuat transaksi", "error");
+            tampilkanNotif("Kunne ikke oprette transaktion", "error");
         }
     })
     .catch(() => {
-        tampilkanNotif("Gagal koneksi ke server pembayaran.", "error");
+        tampilkanNotif("Kunne ikke oprette forbindelse til betalingsserver.", "error");
     });
 };
 
@@ -918,7 +982,7 @@ async function cekAksesAdminPool() {
             if (btnAdminNav) btnAdminNav.style.display = 'flex';
         }
     } catch (err) {
-        console.error("Gagal verifikasi admin pool");
+        console.error("Fejl ved bekræftelse af admin pool");
     }
 }
 
@@ -927,7 +991,7 @@ window.muatDataKolamAdmin = async function() {
     var wadah = document.getElementById('wadah-baris-pool-admin');
     if (!wadah) return;
 
-    wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Mengambil data dari Supabase...</td></tr>';
+    wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Henter data fra Supabase...</td></tr>';
     
     const { data: listAkun, error } = await supa
         .from('runninghub_pool')
@@ -935,7 +999,7 @@ window.muatDataKolamAdmin = async function() {
         .order('id', { ascending: false });
 
     if (error || !listAkun || listAkun.length === 0) {
-        wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Belum ada akun di kolam. Masukkan API key di form atas.</td></tr>';
+        wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Der er endnu ingen konti i puljen. Indtast API key i formularen ovenfor.</td></tr>';
         updateStatistikPool(0, 0, 0, 0);
         return;
     }
@@ -996,17 +1060,17 @@ window.simpanBulkKeysKeSupabase = async function() {
     var btn = document.getElementById('btn-submit-bulk-pool');
     
     if (!area || !area.value.trim()) {
-        return tampilkanNotif('Tempel minimal satu API Key!', 'error');
+        return tampilkanNotif('Indsæt mindst én API Key!', 'error');
     }
 
     var baris = area.value.split('\n').map(k => k.trim()).filter(k => k.length > 10);
     if (baris.length === 0) {
-        return tampilkanNotif('Format API key tidak valid!', 'error');
+        return tampilkanNotif('Ugyldigt API key format!', 'error');
     }
 
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Cek Saldo & Simpan...';
+        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Tjekker Saldo & Gemmer...';
     }
 
     var dataInsert = [];
@@ -1026,7 +1090,7 @@ window.simpanBulkKeysKeSupabase = async function() {
                 if (c !== undefined && c !== null) koinAsli = Number(c);
             }
         } catch (e) {
-            console.error('Gagal fetch koin saat bulk insert', e);
+            console.error('Fejl ved indhentning af mønter under masseindsættelse', e);
         }
 
         var statusOtomatis = koinAsli >= 200 ? 'idle' : 'habis';
@@ -1044,50 +1108,50 @@ window.simpanBulkKeysKeSupabase = async function() {
 
     if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam';
+        btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Gem i Puljedatabase';
     }
 
     if (!error) {
         area.value = '';
-        tampilkanNotif(`✓ Berhasil! ${dataInsert.length} API Key dicek & status otomatis aktif.`, 'sukses');
+        tampilkanNotif(`✓ Succes! ${dataInsert.length} API Keys blev tjekket & status automatisk aktiveret.`, 'sukses');
         muatDataKolamAdmin();
     } else {
-        tampilkanNotif('Gagal menyimpan: ' + error.message, 'error');
+        tampilkanNotif('Kunne ikke gemme: ' + error.message, 'error');
     }
 };
 
 window.hapusSatuKunciPool = async function(id) {
-    mintaKonfirmasi("Yakin ingin menghapus kunci ini dari kolam?", async function() {
+    mintaKonfirmasi("Er du sikker på, at du vil fjerne denne nøgle fra puljen?", async function() {
         const { error } = await supa.from('runninghub_pool').delete().eq('id', id);
         if (!error) {
-            tampilkanNotif('Kunci berhasil dihapus dari database', 'sukses');
+            tampilkanNotif('Nøgle slettet succesfuldt fra databasen', 'sukses');
             muatDataKolamAdmin();
         }
     });
 };
 
 window.sapuBersihAkunHabis = async function() {
-    mintaKonfirmasi("Hapus semua akun yang statusnya 'HABIS' dari database?", async function() {
+    mintaKonfirmasi("Slet alle konti med status 'HABIS' fra databasen?", async function() {
         const { error } = await supa.from('runninghub_pool').delete().eq('status', 'habis');
         if (!error) {
-            tampilkanNotif('Seluruh akun koin habis berhasil dibersihkan!', 'sukses');
+            tampilkanNotif('Alle tomme møntkonti blev ryddet succesfuldt!', 'sukses');
             muatDataKolamAdmin();
         }
     });
 };
 
 window.kosongkanSeluruhKolam = async function() {
-    mintaKonfirmasi("PERINGATAN NUKLIR: Yakin ingin MENGHAPUS SELURUH AKUN di kolam tanpa terkecuali?", async function() {
+    mintaKonfirmasi("NUKLEAR ADVARSEL: Er du sikker på, at du vil SLETTE ALLE KONTI i puljen uden undtagelse?", async function() {
         const { error } = await supa.from('runninghub_pool').delete().not('id', 'is', null);
         if (!error) {
-            tampilkanNotif('Seluruh akun di kolam berhasil dihapus total!', 'sukses');
+            tampilkanNotif('Alle konti i puljen blev slettet fuldstændigt!', 'sukses');
             muatDataKolamAdmin();
         }
     });
 };
 
 window.refreshDataKolamAdmin = async function() {
-    tampilkanNotif('Menyinkronkan saldo seluruh kunci kolam...', 'info');
+    tampilkanNotif('Synkroniserer saldo for alle puljenøgler...', 'info');
     
     const { data: listAkun } = await supa.from('runninghub_pool').select('id, api_key');
     if (!listAkun || listAkun.length === 0) return;
@@ -1112,10 +1176,10 @@ window.refreshDataKolamAdmin = async function() {
                 }
             }
         } catch (e) {
-            console.error('Error saat refresh kunci kolam', e);
+            console.error('Fejl under opdatering af puljenøgle', e);
         }
     }
-    tampilkanNotif('✓ Sinkronisasi saldo kolam selesai!', 'sukses');
+    tampilkanNotif('✓ Synkronisering af puljesaldo er fuldført!', 'sukses');
     muatDataKolamAdmin();
 };
 
@@ -1129,21 +1193,21 @@ window.jalankanCheckerKeys = async function() {
     var wadah = document.getElementById('wadah-hasil-checker');
     
     if (!area || !area.value.trim()) {
-        return tampilkanNotif('Tempel minimal satu API Key buat dicek!', 'error');
+        return tampilkanNotif('Indsæt mindst én API Key for at tjekke!', 'error');
     }
     
     var baris = area.value.split('\n').map(k => k.trim()).filter(k => k.length > 10);
     if (baris.length === 0) {
-        return tampilkanNotif('Format API key tidak valid!', 'error');
+        return tampilkanNotif('Ugyldigt API key format!', 'error');
     }
 
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="ph ph-spinner animate-spin text-sm"></i> Mengecek...';
+        btn.innerHTML = '<i class="ph ph-spinner animate-spin text-sm"></i> Tjekker...';
     }
     
     if (wadah) {
-        wadah.innerHTML = '<div class="text-center text-xs text-slate-500 py-4 font-semibold">Sedang mengecek ' + baris.length + ' akun ke server RunningHub...</div>';
+        wadah.innerHTML = '<div class="text-center text-xs text-slate-500 py-4 font-semibold">Tjekker ' + baris.length + ' konti på RunningHub-serveren...</div>';
     }
 
     var totalKoinDitemukan = 0;
@@ -1172,7 +1236,7 @@ window.jalankanCheckerKeys = async function() {
                 }
             }
         } catch (e) {
-            console.error('Gagal cek key checker lokal', e);
+            console.error('Kunne ikke tjekke lokal checker key', e);
         }
         
         checkerResults.push({ key: k, koin: koinAsli, status: statusCek });
@@ -1194,7 +1258,7 @@ window.jalankanCheckerKeys = async function() {
             </div>
             <div class="flex items-center gap-4">
                 <span class="text-sm font-black ${colorKoin} tabular-nums">${item.koin} <span class="text-[9px] font-bold text-slate-400 uppercase">coin</span></span>
-                <button onclick="navigator.clipboard.writeText('${item.key}'); tampilkanNotif('API Key Disalin!', 'sukses');" class="text-blue-400 hover:text-blue-600 cursor-pointer">
+                <button onclick="navigator.clipboard.writeText('${item.key}'); tampilkanNotif('API Key Kopieret!', 'sukses');" class="text-blue-400 hover:text-blue-600 cursor-pointer">
                     <i class="ph-bold ph-copy text-sm"></i>
                 </button>
             </div>
@@ -1207,7 +1271,7 @@ window.jalankanCheckerKeys = async function() {
     
     if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="ph-bold ph-play text-sm"></i> Cek Saldo Sekarang';
+        btn.innerHTML = '<i class="ph-bold ph-play text-sm"></i> Tjek Saldo Nu';
     }
 };
 

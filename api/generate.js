@@ -92,7 +92,7 @@ export default async function handler(req, res) {
     aspectRatio
   } = req.body;
 
-  // Validasi input: MiniMax menggunakan multi-gambar + prompt
+  // Validasi input
   if (provider === 'minimax') {
     if ((!images || images.length === 0) && !urlBahanFoto) {
       return res.status(400).json({ success: false, message: 'Minimal unggah 1 foto karakter untuk MiniMax H3.' });
@@ -187,7 +187,8 @@ export default async function handler(req, res) {
           success: true,
           taskId: idTugas,
           poolId: null,
-          didDeductCredit: false
+          didDeductCredit: false,
+          provider: 'kling'
         });
       } else {
         return res.status(400).json({
@@ -218,7 +219,7 @@ export default async function handler(req, res) {
   let didDeductCredit = false;
 
   try {
-    // A. Pengguna Pro dengan API key pribadi (Hanya untuk provider runninghub / pro)
+    // A. Pengguna Pro dengan API key pribadi
     if (provider === 'runninghub' || provider === 'pro' || provider === 'custom') {
       if (!apiKeyPribadi) {
         return res.status(400).json({ success: false, message: 'Kunci API pribadi belum dipilih atau kosong.' });
@@ -253,7 +254,7 @@ export default async function handler(req, res) {
 
       apiKeyDipakai = apiKeyPribadi;
     } 
-    // B. Jalur Kredit Cloud (Kiix Motion & MiniMax H3 = 1 Kredit / Render)
+    // B. Jalur Kredit Cloud (Kiix Motion & MiniMax H3)
     else {
       if (!userId) {
         return res.status(401).json({ success: false, message: 'Sesi login tidak valid.' });
@@ -275,9 +276,11 @@ export default async function handler(req, res) {
       }
       didDeductCredit = true;
 
-      // 2. Ambil akun idle dari master pool RunningHub
+      // 2. Ambil akun idle (MiniMax hanya butuh 180 koin, Wan Motion butuh 200 koin)
+      const minKoinDibutuhkan = (provider === 'minimax') ? 180 : 200;
+
       const poolRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.200&order=koin.desc&limit=1`,
+        `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.${minKoinDibutuhkan}&order=koin.desc&limit=1`,
         { headers: supaHeaders }
       );
       const poolData = await poolRes.json();
@@ -291,7 +294,7 @@ export default async function handler(req, res) {
 
         return res.status(503).json({
           success: false,
-          message: 'Semua server KiixMotion sedang sibuk. 1 kredit telah dikembalikan.'
+          message: 'Semua server KiixMotion sedang sibuk atau saldo koin pool menipis. 1 kredit telah dikembalikan.'
         });
       }
 
@@ -307,7 +310,7 @@ export default async function handler(req, res) {
     }
 
     // =========================================================
-    // CABANG EKSEKUSI MINIMAX H3 (AI-APP 2104825195000619009)
+    // CABANG EKSEKUSI MINIMAX H3 (OPENAPI V2 AI-APP)
     // =========================================================
     if (provider === 'minimax') {
       const MINIMAX_APP_ID = "2104825195000619009";
@@ -339,7 +342,6 @@ export default async function handler(req, res) {
         { slot: 9, nodeId: "42" }
       ];
 
-      // Unggah gambar slot secara paralel ke server RunningHub
       const nodeInfoList = [];
 
       await Promise.all(nodeSlotMap.map(async (mapping) => {
@@ -349,10 +351,8 @@ export default async function handler(req, res) {
         if (rawUrl) {
           try {
             const uploaded = await siapkanBahan(rawUrl, 'image', apiKeyDipakai);
-            // Kembalikan jalur nama file utuh apa adanya sesuai hasil upload server
             finalVal = uploaded || "None";
           } catch (e) {
-            // Proteksi: Jika foto utama Slot 1 gagal upload, batalkan render agar koin akun tidak terpotong sia-sia
             if (mapping.slot === 1) {
               throw new Error("Gagal mengunggah Foto Karakter (Slot 1) ke server AI. Render dibatalkan, kredit aman.");
             }
@@ -368,7 +368,6 @@ export default async function handler(req, res) {
         });
       }));
 
-      // Urutkan node gambar berdasarkan slot (1 sampai 9)
       nodeInfoList.sort((a, b) => {
         const idxA = nodeSlotMap.findIndex(n => n.nodeId === a.nodeId);
         const idxB = nodeSlotMap.findIndex(n => n.nodeId === b.nodeId);
@@ -385,9 +384,10 @@ export default async function handler(req, res) {
         { nodeId: "28", fieldName: "prompt", fieldValue: prompt || "", description: null }
       );
 
+      // Gunakan instanceType "default" agar hemat koin (cukup ~188 koin)
       const minimaxPayload = {
         nodeInfoList: nodeInfoList,
-        instanceType: "plus",
+        instanceType: "default",
         usePersonalQueue: "false"
       };
 
@@ -408,7 +408,8 @@ export default async function handler(req, res) {
           success: true,
           taskId: taskId,
           poolId: poolIdDipakai,
-          didDeductCredit: didDeductCredit
+          didDeductCredit: didDeductCredit,
+          provider: 'minimax'
         });
       } else {
         throw new Error(mmData.errorMessage || mmData.msg || 'MiniMax H3 engine menolak antrean render.');
@@ -416,7 +417,7 @@ export default async function handler(req, res) {
     }
 
     // =========================================================
-    // CABANG EKSEKUSI WAN MOTION CONTROL (WORKFLOW 2099509417535340546)
+    // CABANG EKSEKUSI WAN MOTION CONTROL (WORKFLOW V1)
     // =========================================================
     const RUNNINGHUB_WORKFLOW_ID = "2099509417535340546";
 
@@ -465,14 +466,14 @@ export default async function handler(req, res) {
         success: true,
         taskId: taskId,
         poolId: poolIdDipakai,
-        didDeductCredit: didDeductCredit
+        didDeductCredit: didDeductCredit,
+        provider: 'kiix'
       });
     } else {
       throw new Error(engineData?.msg || 'Server AI menolak antrean video.');
     }
 
   } catch (error) {
-    // Safety Net: Refund kredit jika gagal render
     if (didDeductCredit && userId) {
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
         method: 'POST',
@@ -481,7 +482,6 @@ export default async function handler(req, res) {
       }).catch(function() {});
     }
 
-    // Kembalikan status API pool menjadi idle
     if (poolIdDipakai) {
       await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
         method: 'PATCH',

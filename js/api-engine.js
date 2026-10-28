@@ -41,10 +41,34 @@ function tambahKeBlacklist(taskId) {
   } catch (e) {}
 }
 
-function bungkusStreamProxy(url) {
+// PROXY PINTAR SELEKTIF: WAN MOTION TETAP LANGSUNG, MINIMAX DI-STREAM
+function bungkusStreamProxy(url, provider) {
   if (!url || typeof url !== 'string') return url;
-  if (url.startsWith('/api/stream') || url.includes('/api/stream?url=')) return url;
-  return '/api/stream?url=' + encodeURIComponent(url);
+
+  var p = (provider || '').toLowerCase();
+  var isMiniMax = (p === 'minimax') || url.includes('minimax') || url.includes('hailuo');
+  var isWanMotion = url.includes('myqcloud') || url.includes('xiaoyaoyou') || url.includes('rh-images');
+
+  // Jika Wan Motion Control / RunningHub: Lepas proxy dan gunakan tautan asli
+  if (isWanMotion || (!isMiniMax && (p === 'kiix' || p === 'runninghub' || p === 'pro'))) {
+    if (url.includes('/api/stream?url=' || url.includes('/api/stream'))) {
+      try {
+        var raw = url.split('/api/stream?url=')[1];
+        if (raw) return decodeURIComponent(raw);
+      } catch (e) {
+        return url;
+      }
+    }
+    return url;
+  }
+
+  // Khusus MiniMax: Bungkus lewat proxy Vercel agar tembus CORS
+  if (isMiniMax) {
+    if (url.startsWith('/api/stream') || url.includes('/api/stream?url=')) return url;
+    return '/api/stream?url=' + encodeURIComponent(url);
+  }
+
+  return url;
 }
 
 function tampilkanNotifPusat(pesan) {
@@ -508,6 +532,82 @@ function unggahBahanLangsung(input, tipe) {
 }
 window.unggahBahanLangsung = unggahBahanLangsung;
 
+// UPDATE VISUAL PERSENTASE 0-100% SECARA CERDAS DI KARTU APAPUN
+function perbaruiBarProgresUI(tugas) {
+  if (!tugas) return;
+  var taskIdStr = String(tugas.id || tugas.taskId || "").trim();
+  var persenStr = (tugas.progress || 0) + "%";
+
+  // 1. Cek lewat id langsung
+  var elIdPersen = document.getElementById("label-prog-" + taskIdStr) || document.getElementById("prog-text-" + taskIdStr);
+  var elIdBar = document.getElementById("bar-prog-" + taskIdStr) || document.getElementById("prog-bar-" + taskIdStr);
+
+  if (elIdPersen) elIdPersen.innerText = persenStr;
+  if (elIdBar) elIdBar.style.width = persenStr;
+
+  // 2. Cek lewat data-id atau data-task-id
+  var elCard = document.querySelector('[data-id="' + taskIdStr + '"], [data-task-id="' + taskIdStr + '"]');
+  if (elCard) {
+    var pBars = elCard.querySelectorAll('[role="progressbar"], div[style*="width"], div[class*="bg-violet"], div[class*="bg-indigo"]');
+    pBars.forEach(function(b) {
+      if (b.style) b.style.width = persenStr;
+    });
+
+    var teksPersen = elCard.querySelectorAll('span, p, div');
+    teksPersen.forEach(function(t) {
+      var isi = (t.innerText || "").trim();
+      if (isi.endsWith('%') && isi.length <= 5) {
+        t.innerText = persenStr;
+      }
+    });
+    return;
+  }
+
+  // 3. Fallback: Cari kartu berdasarkan nomor Task ID di teks
+  var semuaKad = document.querySelectorAll('.grid > div, [class*="card"], [class*="shadow"], div[class*="rounded"]');
+  var kartuDitemukan = false;
+
+  for (var k = 0; k < semuaKad.length; k++) {
+    var cardText = semuaKad[k].innerText || "";
+    if (cardText.includes(taskIdStr)) {
+      kartuDitemukan = true;
+      var elemenTeks = semuaKad[k].querySelectorAll('div, p, span');
+      for (var tIdx = 0; tIdx < elemenTeks.length; tIdx++) {
+        var txt = (elemenTeks[tIdx].innerText || "").trim();
+        if (txt.endsWith('%') && txt.length <= 5) {
+          elemenTeks[tIdx].innerText = persenStr;
+        }
+      }
+      var bList = semuaKad[k].querySelectorAll('div[style*="width"]');
+      bList.forEach(function(b) {
+        b.style.width = persenStr;
+      });
+      break;
+    }
+  }
+
+  // 4. Fallback Pamungkas: Jika kartu loading tidak menulis ID (hanya "Sedang Memproses" & "0%")
+  if (!kartuDitemukan) {
+    for (var j = 0; j < semuaKad.length; j++) {
+      var sTxt = (semuaKad[j].innerText || "");
+      if (sTxt.includes("Sedang Memproses") || sTxt.includes("Mengantre") || sTxt.includes("Memproses")) {
+        var sps = semuaKad[j].querySelectorAll('div, p, span');
+        for (var sIdx = 0; sIdx < sps.length; sIdx++) {
+          var labelTxt = (sps[sIdx].innerText || "").trim();
+          if (labelTxt.endsWith('%') && labelTxt.length <= 5) {
+            sps[sIdx].innerText = persenStr;
+          }
+        }
+        var barDivs = semuaKad[j].querySelectorAll('div[style*="width"], div[class*="bg-violet"], div[class*="bg-indigo"]');
+        barDivs.forEach(function(b) {
+          b.style.width = persenStr;
+        });
+        break;
+      }
+    }
+  }
+}
+
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai && tugas.videoUrl) return; 
 
@@ -525,7 +625,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
     return;
   }
 
-  if (!tugas.progress) tugas.progress = 0; 
+  if (tugas.progress === undefined || tugas.progress === null) tugas.progress = 0; 
   if (!tugas.startedAt) tugas.startedAt = Date.now();
 
   var currentPoolId = poolId || tugas.pool_id;
@@ -548,6 +648,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       tugas.status = "❌ Gagal (Waktu Habis)"; 
       tugas.selesai = true;
       tugas.progress = 100;
+      perbaruiBarProgresUI(tugas);
 
       var targetUserTO = userId || tugas.user_id;
       if (didDeductCredit && !tugas.refunded && typeof supa !== 'undefined' && targetUserTO) {
@@ -588,14 +689,21 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         })
       });
 
-      if (!res.ok) return;
+      if (!res.ok) {
+        // Naikkan progres perlahan walau status polling menunggu antrean
+        if (tugas.progress < 90) {
+          tugas.progress += 2;
+          perbaruiBarProgresUI(tugas);
+        }
+        return;
+      }
 
       var jsonObj = await res.json();
       var code = Number(jsonObj.code);
       var rawObj = jsonObj.data || jsonObj;
       var statusTeks = (rawObj.status || jsonObj.status || "").toString().toUpperCase().trim();
 
-      // PRIORITAS 1: SEMAK JIKA HASIL VIDEO TELAH SIAP
+      // PRIORITAS 1: JIKA HASIL VIDEO SELESAI
       var linkOutputAsli = ambilLinkOutputResmi(jsonObj);
       if (statusTeks === "SUCCESS" || linkOutputAsli) {
         if (linkOutputAsli) {
@@ -606,9 +714,11 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
           tugas.selesai = true;
           tugas.progress = 100; 
           tugas.rawVideoUrl = linkOutputAsli;
-          tugas.videoUrl = bungkusStreamProxy(linkOutputAsli);
+          tugas.videoUrl = bungkusStreamProxy(linkOutputAsli, tugas.provider);
 
+          perbaruiBarProgresUI(tugas);
           simpanStorage();
+
           if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
           if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
           if (currentApiKey) refreshSaldoKunciOtomatis(currentApiKey);
@@ -617,7 +727,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
       }
 
-      // PRIORITAS 2: SEMAK STATUS GAGAL / BATAL DARI SERVER
+      // PRIORITAS 2: JIKA STATUS GAGAL ATAU DIBATALKAN
       var isGagalAtauBatal = (
         code === 801 || 
         code === 802 || 
@@ -635,6 +745,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         tugas.status = labelStatus;
         tugas.selesai = true;
         tugas.progress = 100;
+        perbaruiBarProgresUI(tugas);
 
         var targetUserErr = userId || tugas.user_id;
         if (didDeductCredit && !tugas.refunded && typeof supa !== 'undefined' && targetUserErr) {
@@ -662,7 +773,8 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         code === 806 ||
         statusTeks === "RUNNING" ||
         statusTeks === "QUEUED" ||
-        statusTeks === "PROCESSING"
+        statusTeks === "PROCESSING" ||
+        !tugas.selesai
       );
 
       if (isSedangJalan) {
@@ -672,32 +784,25 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
           tugas.status = "⚡ Sedang Memproses Video...";
         }
 
+        // Jalankan pertambahan progres 0 -> 95% secara teratur
         if (tugas.progress < 95) {
-          tugas.progress += 2;
+          tugas.progress = Math.min(95, tugas.progress + 4);
         }
+        
         simpanStorage();
-
-        var taskIdStr = String(tugas.id || tugas.taskId || "");
-        var semuaKad = document.querySelectorAll('.grid > div, [class*="card"], [class*="shadow"]');
-        for (var k = 0; k < semuaKad.length; k++) {
-          if (semuaKad[k].innerText && semuaKad[k].innerText.includes(taskIdStr)) {
-            var elemenTeks = semuaKad[k].querySelectorAll('div, p, span');
-            for (var tIdx = 0; tIdx < elemenTeks.length; tIdx++) {
-              var txt = (elemenTeks[tIdx].innerText || "").trim();
-              if (txt.endsWith('%') && txt.length <= 5) {
-                elemenTeks[tIdx].innerText = tugas.progress + "%";
-              }
-            }
-            break;
-          }
-        }
+        perbaruiBarProgresUI(tugas);
       }
 
-    } catch (err) {}
+    } catch (err) {
+      if (tugas.progress < 90) {
+        tugas.progress += 2;
+        perbaruiBarProgresUI(tugas);
+      }
+    }
   }
 
   jalankanCek();
-  tugas.intervalObj = setInterval(jalankanCek, 6000);
+  tugas.intervalObj = setInterval(jalankanCek, 5000);
 }
 window.pantauStatusVideo = pantauStatusVideo;
 
@@ -992,14 +1097,29 @@ async function mulaiProsesGenerate() {
 }
 window.mulaiProsesGenerate = mulaiProsesGenerate;
 
+// SINKRONISASI & PERBAIKAN TOTAL SAAT TAB AKTIF
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') {
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
       window.riwayatGenerateList.forEach(function(tugas) {
-        if (tugas.videoUrl && !tugas.videoUrl.startsWith('/api/stream') && tugas.videoUrl.startsWith('http')) {
-          tugas.rawVideoUrl = tugas.videoUrl;
-          tugas.videoUrl = bungkusStreamProxy(tugas.videoUrl);
-          simpanStorage();
+        var isMM = (tugas.provider === 'minimax' || tugas.model === 'MiniMax H3' || tugas.prov === 'minimax');
+
+        if (!isMM) {
+          // WAN MOTION: Hapus bungkus proxy lama agar video kembali normal
+          if (tugas.rawVideoUrl) {
+            tugas.videoUrl = tugas.rawVideoUrl;
+          } else if (tugas.videoUrl && tugas.videoUrl.includes('/api/stream?url=')) {
+            try {
+              tugas.videoUrl = decodeURIComponent(tugas.videoUrl.split('/api/stream?url=')[1]);
+              tugas.rawVideoUrl = tugas.videoUrl;
+            } catch (e) {}
+          }
+        } else {
+          // MINIMAX: Pertahankan proxy
+          if (tugas.videoUrl && !tugas.videoUrl.includes('/api/stream?url=')) {
+            tugas.rawVideoUrl = tugas.videoUrl;
+            tugas.videoUrl = bungkusStreamProxy(tugas.videoUrl, 'minimax');
+          }
         }
 
         if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
@@ -1020,6 +1140,9 @@ document.addEventListener('visibilitychange', function() {
           }
         }
       });
+
+      simpanStorage();
+      if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
     }
   }
 });
@@ -1045,21 +1168,33 @@ window.addEventListener('DOMContentLoaded', function() {
   selaraskanRiwayatDenganAkun();
 });
 
+// PEMULIHAN TOTAL SAAT WEB DIBUKA
 window.onload = function() {
   muatStorage();
   pasangPilihanEngineListener();
   selaraskanRiwayatDenganAkun();
   updateStatistikDashboard();
 
-  if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-  if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-
   if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
     window.riwayatGenerateList.forEach(function(tugas) {
-      if (tugas.videoUrl && !tugas.videoUrl.startsWith('/api/stream') && tugas.videoUrl.startsWith('http')) {
-        tugas.rawVideoUrl = tugas.videoUrl;
-        tugas.videoUrl = bungkusStreamProxy(tugas.videoUrl);
-        simpanStorage();
+      var isMM = (tugas.provider === 'minimax' || tugas.model === 'MiniMax H3' || tugas.prov === 'minimax');
+
+      // 1. PULIHKAN SEMUA WAN MOTION KE LINK ASLI (HAPUS KOTAK HITAM)
+      if (!isMM) {
+        if (tugas.rawVideoUrl) {
+          tugas.videoUrl = tugas.rawVideoUrl;
+        } else if (tugas.videoUrl && tugas.videoUrl.includes('/api/stream?url=')) {
+          try {
+            tugas.videoUrl = decodeURIComponent(tugas.videoUrl.split('/api/stream?url=')[1]);
+            tugas.rawVideoUrl = tugas.videoUrl;
+          } catch (e) {}
+        }
+      } else {
+        // 2. MINIMAX TETAP PAKAI PROXY
+        if (tugas.videoUrl && !tugas.videoUrl.includes('/api/stream?url=')) {
+          tugas.rawVideoUrl = tugas.videoUrl;
+          tugas.videoUrl = bungkusStreamProxy(tugas.videoUrl, 'minimax');
+        }
       }
 
       var isKling = (
@@ -1082,5 +1217,10 @@ window.onload = function() {
         }
       }
     });
+
+    simpanStorage();
   }
+
+  if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
+  if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
 };

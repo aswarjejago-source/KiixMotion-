@@ -295,7 +295,7 @@
           </div>
         </div>
 
-        <!-- Kolom Kanan Khusus Motion Control (1 Pintu Kredit Tanpa Dropdown Akun) -->
+        <!-- Kolom Kanan Khusus Motion Control -->
         <div id="card-kanan-motion" class="bg-kmCard border border-kmBorder p-6 rounded-3xl flex flex-col justify-between space-y-6 modern-shadow">
           <div class="space-y-5">
             <h2 class="text-base font-bold text-kmTextPrimary flex items-center gap-2">
@@ -377,7 +377,7 @@
               <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-5">+</span>
               <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-5">5</span>
               <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 5)" />
-              <div id="prev-mm-2" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <div id="prev-mm-5" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
               <button type="button" onclick="hapusPreviewMinimax(event, 5)" id="del-mm-5" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
             </label>
             <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
@@ -411,7 +411,7 @@
           </div>
         </div>
 
-        <!-- 2. Parameter Baris (Lega 4 Kolom) -->
+        <!-- 2. Parameter Baris (4 Kolom) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 border-t border-kmBorder">
           <div>
             <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Tipe Performa</label>
@@ -463,7 +463,7 @@
           <textarea id="prompt-minimax" class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs sm:text-sm text-slate-800 font-mono focus:border-kmViolet focus:outline-none focus:bg-white h-28 resize-none transition leading-relaxed shadow-inner" placeholder="subject_definitions&#10;&lt;Subject 1&gt;: Karakter wanita bergaun emas, referensi Foto 1&#10;&lt;Subject 2&gt;: Prajurit bertopeng, referensi Foto 2&#10;&lt;Action&gt;: Keduanya bertarung menggunakan pedang di dalam istana kuno..."></textarea>
         </div>
 
-        <!-- 4. Footer Action Bar (Estimasi 1 Kredit & Tombol Ungu) -->
+        <!-- 4. Footer Action Bar (Estimasi 1 Kredit) -->
         <div class="pt-4 border-t border-kmBorder flex flex-col sm:flex-row items-center justify-between gap-4">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-2xl bg-violet-100 flex items-center justify-center text-kmViolet font-bold text-lg">⚡</div>
@@ -687,9 +687,7 @@
           </button>
         </div>
 
-        <textarea id="in-checker-keys" placeholder="Tempel API Key yang mau dicek di sini...
-rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx
-rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy" class="w-full bg-white border border-blue-200 rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-blue-400 h-28 resize-none leading-relaxed shadow-inner"></textarea>
+        <textarea id="in-checker-keys" placeholder="Tempel API Key yang mau dicek di sini...&#10;rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx&#10;rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy" class="w-full bg-white border border-blue-200 rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-blue-400 h-28 resize-none leading-relaxed shadow-inner"></textarea>
         
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-3 rounded-2xl border border-blue-100">
             <div class="flex items-center gap-4 w-full sm:w-auto px-2">
@@ -708,8 +706,7 @@ rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy" class="w-full bg-white border border-blue-20
             </button>
         </div>
 
-        <div id="wadah-hasil-checker" class="space-y-2 mt-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-        </div>
+        <div id="wadah-hasil-checker" class="space-y-2 mt-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar"></div>
       </div>
 
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
@@ -719,10 +716,7 @@ rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy" class="w-full bg-white border border-blue-20
           </h3>
           <span class="text-[11px] font-semibold text-slate-400">1 baris = 1 API Key</span>
         </div>
-        <textarea id="in-bulk-keys" placeholder="Tempel banyak API Key di sini sekaligus...
-rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx
-rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy
-rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-amber-400 focus:bg-white h-28 resize-none leading-relaxed"></textarea>
+        <textarea id="in-bulk-keys" placeholder="Tempel banyak API Key di sini sekaligus...&#10;rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx&#10;rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy&#10;rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-amber-400 focus:bg-white h-28 resize-none leading-relaxed"></textarea>
         <div class="flex justify-end">
           <button id="btn-submit-bulk-pool" onclick="simpanBulkKeysKeSupabase()" class="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center gap-2">
             <i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam
@@ -756,8 +750,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                 <th class="py-3 px-3 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody id="wadah-baris-pool-admin" class="divide-y divide-kmBorder/60">
-            </tbody>
+            <tbody id="wadah-baris-pool-admin" class="divide-y divide-kmBorder/60"></tbody>
           </table>
         </div>
       </div>
@@ -899,7 +892,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
             tTotal.innerText = "Testing Trial";
             tTotal.className = "text-lg sm:text-xl font-black text-indigo-600 tracking-tight";
           }
-        } else { // kiix
+        } else {
           if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
           if (tTotal) {
             tTotal.innerText = "1 Kredit";
@@ -1020,12 +1013,13 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
           }
       };
 
-      // Tarik Data Login & Referral
+      // Tarik Data Login & Referral Otomatis (Upsert UUID Asli)
       async function ambilDataLoginAsli() {
           try {
               const { data: { session } } = await supa.auth.getSession();
               if (session && session.user) {
-                  const emailUser = session.user.email.toLowerCase().trim();
+                  const authUser = session.user;
+                  const emailUser = authUser.email.toLowerCase().trim();
                   const namaAsli = emailUser.split('@')[0];
                   
                   const elGreet = document.getElementById('user-greeting-name');
@@ -1046,7 +1040,7 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   const { data: userRows } = await supa
                       .from('users')
                       .select('id, referral_code, referred_by')
-                      .ilike('email', emailUser)
+                      .eq('id', authUser.id)
                       .limit(1);
 
                   const userRow = (userRows && userRows.length > 0) ? userRows[0] : null;
@@ -1055,14 +1049,15 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
                   if (!kodeReferral) {
                       let randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
                       kodeReferral = 'KIIX-' + randomString;
-                      let pendingRef = localStorage.getItem('km_pending_ref') || session.user.user_metadata?.referred_by || null;
-                      if (userRow) {
-                          await supa.from('users').update({ referral_code: kodeReferral, ...(pendingRef && !userRow.referred_by ? { referred_by: pendingRef } : {}) }).eq('id', userRow.id);
-                      } else {
-                          await supa.from('users').insert({
-                              email: emailUser, referral_code: kodeReferral, referred_by: pendingRef
-                          });
-                      }
+                      let pendingRef = localStorage.getItem('km_pending_ref') || authUser.user_metadata?.referred_by || null;
+                      
+                      await supa.from('users').upsert({
+                          id: authUser.id,
+                          email: emailUser,
+                          referral_code: kodeReferral,
+                          referred_by: pendingRef,
+                          is_vip: false
+                      }, { onConflict: 'id' });
                   }
 
                   localStorage.setItem(storageKey, kodeReferral);
@@ -1141,12 +1136,17 @@ rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBo
       }
 
       function salinLinkReferral() {
-          if (!window.kodeReferralAktifUser) { alert('Kode referral sedang dimuat, coba sesaat lagi ya!'); return; }
+          if (!window.kodeReferralAktifUser) { 
+              if (typeof tampilkanNotif === 'function') tampilkanNotif('Kode referral sedang dimuat, coba sesaat lagi!', 'error');
+              else alert('Kode referral sedang dimuat, coba sesaat lagi ya!'); 
+              return; 
+          }
           let domainWeb = window.location.origin;
           let linkLengkap = domainWeb + '/register.html?ref=' + window.kodeReferralAktifUser;
           if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(linkLengkap).then(function() {
                   if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Link referral berhasil disalin!', 'sukses');
+                  else alert('✓ Link referral berhasil disalin!');
               });
           }
       }

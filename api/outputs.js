@@ -1,4 +1,4 @@
-// File: api/outputs.js - Dual Engine Separated Handler (Anti-801 & Real Cancel Sync Fix)
+// File: api/outputs.js - Dual Engine Clean Separated Handler
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
@@ -91,7 +91,6 @@ export default async function handler(req, res) {
       const rawStatus = String(v2Data?.status || v2Data?.taskStatus || v2Json?.status || "").toUpperCase();
       const rawMsg = String(v2Json?.msg || v2Json?.message || v2Data?.msg || v2Data?.errorMessage || "").toUpperCase();
 
-      // 1. Deteksi pembatalan manual dari web RunningHub secara instan
       if (
         rawCode === 807 ||
         rawStatus.includes("CANCEL") ||
@@ -110,7 +109,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // 2. Deteksi kegagalan render
       if (
         rawStatus.includes("FAIL") ||
         rawStatus.includes("ERROR") ||
@@ -125,7 +123,6 @@ export default async function handler(req, res) {
         });
       }
 
-      // 3. Teruskan respon apa adanya dari RunningHub tanpa memalsukan status
       return res.status(200).json(v2Json);
 
     } catch (errV2) {
@@ -137,7 +134,7 @@ export default async function handler(req, res) {
   }
 
   // =========================================================
-  // JALUR 3: WAN MOTION CONTROL (OPENAPI V1 COMFYUI)
+  // JALUR 3: WAN MOTION CONTROL (OPENAPI V1 COMFYUI) MURNI
   // =========================================================
   try {
     const v1Res = await fetch('https://www.runninghub.ai/task/openapi/outputs', {
@@ -154,28 +151,6 @@ export default async function handler(req, res) {
     });
 
     const v1Json = await v1Res.json().catch(() => ({}));
-
-    // Fallback darurat jika provider tidak terkirim tapi taskId milik v2 (terdeteksi 801 di v1)
-    if (v1Json && (v1Json.code === 801 || v1Json.code === 802)) {
-      try {
-        const fallbackV2Res = await fetch('https://www.runninghub.ai/openapi/v2/query', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${effectiveApiKey}`
-          },
-          body: JSON.stringify({ 
-            taskId: cleanTaskId,
-            apiKey: effectiveApiKey
-          })
-        });
-        const fallbackV2Json = await fallbackV2Res.json().catch(() => ({}));
-        if (fallbackV2Json && (fallbackV2Json.code !== undefined || fallbackV2Json.data)) {
-          return res.status(200).json(fallbackV2Json);
-        }
-      } catch (e) {}
-    }
-
     return res.status(200).json(v1Json);
 
   } catch (errV1) {

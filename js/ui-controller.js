@@ -1,11 +1,10 @@
 // ==========================================
-// PILAR 2: UI CONTROLLER (FULL VERSION - FINAL FIX)
+// PILAR 2: UI CONTROLLER (CREDIT SYSTEM ENGINE)
 // File: js/ui-controller.js
 // ==========================================
 
 var currentView = 'workbench';
 var navLayarAktif = 'dashboard';
-var tabAkunAktif = 'runninghub';
 var isModePilih = false;
 var pendingKonfirmasiFn = null;
 var linkTelegramResmi = "https://t.me/+JS435ITO1h0xMWJl";
@@ -82,43 +81,29 @@ window.bukaGrupTelegram = function() {
     window.open(linkTelegramResmi, '_blank');
 };
 
+// Pengarah aman jika ada fungsi lama yang memanggil popup key
 window.bukaModalFormKey = function() {
-    var modal = document.getElementById('modal-popup-key');
-    var inKey = document.getElementById('in-modal-key');
-    
-    if (inKey) inKey.value = ''; 
-    if (modal) modal.style.display = 'flex';
+    gantiLayarNav('beli-kredit');
+    tampilkanNotif('Sistem API mandiri sudah ditutup. Gunakan kredit render cloud.', 'info');
 };
 
-window.tutupModalFormKey = function() {
-    var modal = document.getElementById('modal-popup-key');
-    if (modal) modal.style.display = 'none';
-};
-
-window.togglePanduanKey = function() {
-    var konten = document.getElementById('konten-panduan-key');
-    var panah = document.getElementById('icon-panah-panduan');
-    
-    if (!konten || !panah) return;
-    
-    if (konten.style.display === 'none') {
-        konten.style.display = 'block';
-        panah.style.transform = 'rotate(180deg)';
-    } else {
-        konten.style.display = 'none';
-        panah.style.transform = 'rotate(0deg)';
-    }
-};
+window.tutupModalFormKey = function() {};
+window.togglePanduanKey = function() {};
 
 // -------------------------------------------------------------
 // NAVIGASI UTAMA
 // -------------------------------------------------------------
 
 window.gantiLayarNav = function(layar) {
+    // Redirect aman jika ada link lama ke menu Pro / Kelola Akun
+    if (layar === 'langganan' || layar === 'kelola-akun' || layar === 'vip') {
+        layar = 'beli-kredit';
+    }
+
     navLayarAktif = layar;
     var ids = [
         'dashboard', 'generate', 'history', 
-        'galeri', 'kelola-akun', 'beli-kredit', 'langganan', 'admin-pool'
+        'galeri', 'beli-kredit', 'admin-pool'
     ];
     
     ids.forEach(function(id) {
@@ -161,7 +146,6 @@ window.gantiLayarNav = function(layar) {
     
     if (layar === 'generate') {
         setProviderUtama(window.engineProvider || 'kiix');
-        renderListAkunDiKelola(); 
     }
     
     if (layar === 'history') {
@@ -172,17 +156,9 @@ window.gantiLayarNav = function(layar) {
         renderGaleri();
     }
     
-    if (layar === 'kelola-akun') {
-        renderListAkunDiKelola();
-    }
-    
     if (layar === 'beli-kredit') {
         if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
         pilihPaketKredit(paketKreditAktif || '5k');
-    }
-    
-    if (layar === 'langganan') {
-        if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI();
     }
     
     if (layar === 'admin-pool') {
@@ -191,7 +167,7 @@ window.gantiLayarNav = function(layar) {
 };
 
 // -------------------------------------------------------------
-// FITUR GENERATE & ENGINE SWITCHER (KIIX / RUNNINGHUB / KLING / MINIMAX)
+// FITUR GENERATE & ENGINE SWITCHER (KIIX / KLING / MINIMAX)
 // -------------------------------------------------------------
 
 window.engineProvider = 'kiix';
@@ -219,34 +195,42 @@ window.switchKategoriEngine = function(kategori) {
     var subnavMinimax = document.getElementById('subnav-minimax');
     var contentMotion = document.getElementById('tab-content-motion');
     var contentMinimax = document.getElementById('tab-content-minimax');
+    var wrapMotion = document.getElementById('wrap-motion-flow');
+    var wrapMinimax = document.getElementById('wrap-minimax-flow');
     
     if (navLayarAktif !== 'generate') gantiLayarNav('generate');
     
     if (kategori === 'motion') {
         if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-violet-50 text-kmViolet transition cursor-pointer flex items-center gap-2";
         if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
-        if (contentMotion) { contentMotion.classList.remove('hidden'); contentMotion.style.display = 'block'; }
-        if (contentMinimax) { contentMinimax.classList.add('hidden'); contentMinimax.style.display = 'none'; }
+        
+        if (contentMotion) contentMotion.style.setProperty('display', 'block', 'important');
+        if (contentMinimax) contentMinimax.style.setProperty('display', 'none', 'important');
+        if (wrapMotion) wrapMotion.style.setProperty('display', 'grid', 'important');
+        if (wrapMinimax) wrapMinimax.style.setProperty('display', 'none', 'important');
+
         setProviderUtama('kiix');
     } else {
-        if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 transition cursor-pointer flex items-center gap-2";
+        if (subnavMinimax) subnavMinimax.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-violet-50 text-kmViolet transition cursor-pointer flex items-center gap-2";
         if (subnavMotion) subnavMotion.className = "w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition cursor-pointer flex items-center gap-2";
-        if (contentMinimax) { contentMinimax.classList.remove('hidden'); contentMinimax.style.display = 'block'; }
-        if (contentMotion) { contentMotion.classList.add('hidden'); contentMotion.style.display = 'none'; }
+        
+        if (contentMinimax) contentMinimax.style.setProperty('display', 'block', 'important');
+        if (contentMotion) contentMotion.style.setProperty('display', 'none', 'important');
+        if (wrapMotion) wrapMotion.style.setProperty('display', 'none', 'important');
+        if (wrapMinimax) wrapMinimax.style.setProperty('display', 'block', 'important');
+
         setProviderUtama('minimax');
     }
 };
 
 window.setProviderUtama = function(prov) {
+    if (prov === 'runninghub' || prov === 'pro') prov = 'kiix';
+
     window.engineProvider = prov;
     window.engineMode = prov;
     window.providerAktif = prov;
     
-    if (typeof engineMode !== 'undefined') {
-        engineMode = (prov === 'runninghub') ? 'pro' : prov;
-    }
-    
-    var providers = ['kiix', 'runninghub', 'kling', 'minimax'];
+    var providers = ['kiix', 'kling', 'minimax'];
     
     providers.forEach(function(p) {
         var card = document.getElementById('c-prov-' + p);
@@ -255,7 +239,7 @@ window.setProviderUtama = function(prov) {
         if (card) {
             if (p === prov) {
                 if (p === 'minimax') {
-                    card.className = "bg-white border-2 border-orange-500 p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition ring-4 ring-orange-50";
+                    card.className = "bg-white border-2 border-kmViolet ring-4 ring-violet-50 p-5 rounded-3xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
                 } else if (p === 'kling') {
                     card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-indigo-600 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-indigo-50 transition";
                 } else {
@@ -264,7 +248,7 @@ window.setProviderUtama = function(prov) {
                 if (badge) badge.style.display = 'inline-block';
             } else {
                 if (p === 'minimax') {
-                    card.className = "bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
+                    card.className = "bg-white border border-kmBorder p-5 rounded-3xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
                 } else {
                     card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
                 }
@@ -275,170 +259,24 @@ window.setProviderUtama = function(prov) {
 
     var title = document.getElementById('t-engine-title');
     var cost = document.getElementById('t-engine-total');
-    var boxAkun = document.getElementById('box-wrap-dropdown-akun');
-    var formMotion = document.getElementById('form-input-motion');
-    var formMinimax = document.getElementById('form-input-minimax');
-    var lblBadge = document.getElementById('lbl-badge-mode');
-    var dotStep1 = document.getElementById('dot-step1');
-    var dotStep2 = document.getElementById('dot-step2');
 
-    if (prov === 'minimax') {
-        // Tampilkan Form MiniMax (6 Gambar & Parameter Laga/Dramatis)
-        if (formMotion) {
-            formMotion.style.display = 'none';
-            formMotion.classList.add('hidden');
-            formMotion.classList.remove('grid');
-        }
-        if (formMinimax) {
-            formMinimax.style.display = 'flex';
-            formMinimax.classList.remove('hidden');
-            formMinimax.classList.add('flex');
-        }
-
-        if (title) title.innerText = 'MINIMAX H3 MASTER WORKFLOW';
+    if (prov === 'kling') {
+        if (title) title.innerText = 'KLING 2.6 MOTION CONTROL';
         if (cost) {
-            cost.innerText = '≈ 257 coin / render';
-            cost.className = 'text-lg sm:text-xl font-black text-orange-600 tracking-tight';
-        }
-        if (boxAkun) boxAkun.style.display = 'block';
-        if (lblBadge) {
-            lblBadge.innerText = 'MiniMax H3';
-            lblBadge.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold bg-orange-50 text-orange-600 shadow-sm';
-        }
-        if (dotStep1) dotStep1.className = 'w-2.5 h-2.5 rounded-full bg-orange-500';
-        if (dotStep2) dotStep2.className = 'w-2.5 h-2.5 rounded-full bg-orange-500';
-        
-        updateBadgeKoinGenerate();
-    } else {
-        // Kembalikan ke Form Motion Control
-        if (formMinimax) {
-            formMinimax.style.display = 'none';
-            formMinimax.classList.add('hidden');
-            formMinimax.classList.remove('flex');
-        }
-        if (formMotion) {
-            formMotion.style.display = 'grid';
-            formMotion.classList.remove('hidden');
-            formMotion.classList.add('grid');
-        }
-
-        if (lblBadge) {
-            lblBadge.innerText = 'Motion Mode';
-            lblBadge.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white text-kmViolet shadow-sm';
-        }
-        if (dotStep1) dotStep1.className = 'w-2.5 h-2.5 rounded-full bg-kmViolet';
-        if (dotStep2) dotStep2.className = 'w-2.5 h-2.5 rounded-full bg-kmViolet';
-
-        if (prov === 'kiix') {
-            if (title) title.innerText = 'WAN MOTION CONTROL 1080HD';
-            if (cost) {
-                cost.innerText = '1 Kredit';
-                cost.className = 'text-lg sm:text-xl font-black text-kmViolet tracking-tight';
-            }
-            if (boxAkun) boxAkun.style.display = 'none'; 
-        } else if (prov === 'runninghub' || prov === 'pro') {
-            if (title) title.innerText = 'RUNNINGHUB PRO (WAN)';
-            if (cost) {
-                cost.innerText = '≈ 478 coin / render';
-                cost.className = 'text-lg sm:text-xl font-black text-kmViolet tracking-tight';
-            }
-            if (boxAkun) boxAkun.style.display = 'block'; 
-            updateBadgeKoinGenerate(); 
-        } else if (prov === 'kling') {
-            if (title) title.innerText = 'KLING 2.6 MOTION CONTROL';
-            if (cost) {
-                cost.innerText = '1 Coin VIP / render';
-                cost.className = 'text-lg sm:text-xl font-black text-indigo-600 tracking-tight';
-            }
-            if (boxAkun) boxAkun.style.display = 'none';
-        }
-    }
-};
-
-window.updateBadgeKoinGenerate = function() {
-    var drop = document.getElementById('sel-dropdown-akun');
-    var badge = document.getElementById('badge-total-saldo-gen');
-    
-    if (!drop || !badge) return;
-    
-    var val = drop.value;
-    var dbAkun = window.dbAkun || JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
-    
-    var selected = dbAkun.find(function(a) { 
-        return String(a.id) === String(val); 
-    });
-    
-    if (!selected && dbAkun.length > 0) { 
-        selected = dbAkun[0]; 
-    }
-
-    var minCoinThreshold = (window.engineProvider === 'minimax') ? 257 : 478;
-
-    if (selected) {
-        badge.innerText = selected.saldo + " coin";
-        
-        if (selected.saldo >= minCoinThreshold) {
-            badge.className = "text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg";
-        } else {
-            badge.className = "text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg";
+            cost.innerText = 'Testing Trial';
+            cost.className = 'text-lg sm:text-xl font-black text-indigo-600 tracking-tight';
         }
     } else {
-        badge.innerText = "0 coin";
-        badge.className = "text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg";
+        if (title) title.innerText = 'WAN MOTION CONTROL 1080HD';
+        if (cost) {
+            cost.innerText = '1 Kredit';
+            cost.className = 'text-lg sm:text-xl font-black text-kmViolet tracking-tight';
+        }
     }
 };
 
-// -------------------------------------------------------------
-// FUNGSI PREVIEW GAMBAR KHUSUS MINIMAX H3 (1 s.d. 6 GAMBAR)
-// -------------------------------------------------------------
-window.previewMinimax = function(input, index) {
-    if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            var divBg = document.getElementById('prev-mm-' + index);
-            var delBtn = document.getElementById('del-mm-' + index);
-            var plusIcon = document.getElementById('plus-mm-' + index);
-            var lblText = document.getElementById('lbl-mm-' + index);
-            
-            if (divBg) {
-                divBg.style.backgroundImage = 'url(' + e.target.result + ')';
-                divBg.classList.remove('hidden');
-            }
-            if (delBtn) {
-                delBtn.classList.remove('hidden');
-                delBtn.classList.add('flex');
-            }
-            if (plusIcon) plusIcon.classList.add('hidden');
-            if (lblText) lblText.classList.add('hidden');
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-};
-
-window.hapusPreviewMinimax = function(event, index) {
-    event.preventDefault();
-    event.stopPropagation();
-    var divBg = document.getElementById('prev-mm-' + index);
-    var delBtn = document.getElementById('del-mm-' + index);
-    var plusIcon = document.getElementById('plus-mm-' + index);
-    var lblText = document.getElementById('lbl-mm-' + index);
-    
-    if (delBtn && delBtn.previousElementSibling && delBtn.previousElementSibling.previousElementSibling) {
-        var fileInput = delBtn.previousElementSibling.previousElementSibling;
-        if (fileInput.type === 'file') fileInput.value = '';
-    }
-    
-    if (divBg) {
-        divBg.style.backgroundImage = '';
-        divBg.classList.add('hidden');
-    }
-    if (delBtn) {
-        delBtn.classList.add('hidden');
-        delBtn.classList.remove('flex');
-    }
-    if (plusIcon) plusIcon.classList.remove('hidden');
-    if (lblText) lblText.classList.remove('hidden');
-};
+window.updateBadgeKoinGenerate = function() {};
+window.renderListAkunDiKelola = function() {};
 
 // -------------------------------------------------------------
 // HISTORY RENDER
@@ -455,20 +293,19 @@ window.renderVideoAsliKeGrid = function() {
         if (typeof window.riwayatGenerateList !== 'undefined' && window.riwayatGenerateList.length > 0) {
             riwayatLokal = window.riwayatGenerateList;
         } else {
-            var dariStorage = localStorage.getItem('kiix_riwayat_gen_v1');
+            var dariStorage = localStorage.getItem('km_riwayat_generate') || localStorage.getItem('kiix_riwayat_gen_v1');
             if (dariStorage) {
                 riwayatLokal = JSON.parse(dariStorage);
             }
         }
     } catch (e) {
         riwayatLokal = [];
-        console.error("Gagal memuat riwayat", e);
     }
 
     var dataTerbaru = [];
 
     if (riwayatLokal.length > 0) {
-        dataTerbaru = [...riwayatLokal].reverse();
+        dataTerbaru = [...riwayatLokal];
         if (txtCounter) txtCounter.innerText = riwayatLokal.length + ' tugas';
     } else {
         var htmlKosong = `
@@ -535,7 +372,7 @@ window.renderVideoAsliKeGrid = function() {
                 </div>
                 <div class="flex items-center justify-between border-t border-kmBorder pt-3 mt-2">
                     <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium truncate max-w-[60%]">
-                        <i class="ph-fill ph-tiktok-logo text-sm text-slate-800"></i> ID: ${video.id || '-'}
+                        <i class="ph-fill ph-video-camera text-sm text-slate-800"></i> ID: ${video.id || '-'}
                     </div>
                     <div class="flex items-center gap-4">
                         ${tombolDownload}
@@ -567,27 +404,13 @@ window.renderVideoAsliKeGrid = function() {
 
 window.hapusTugasBerdasarkanId = function(id) {
     mintaKonfirmasi("Yakin ingin menghapus riwayat tugas ini?", function() {
-        if (typeof window.riwayatGenerateList !== 'undefined' && window.riwayatGenerateList.length > 0) {
-            var findIdx = window.riwayatGenerateList.findIndex(function(t) { 
-                return String(t.id) === String(id); 
+        if (typeof window.hapusRiwayatSatu === 'function') {
+            window.hapusRiwayatSatu(id);
+        } else if (typeof window.riwayatGenerateList !== 'undefined') {
+            window.riwayatGenerateList = window.riwayatGenerateList.filter(function(t) { 
+                return String(t.id) !== String(id); 
             });
-            
-            if (findIdx > -1) {
-                if (window.riwayatGenerateList[findIdx].intervalObj) {
-                    clearInterval(window.riwayatGenerateList[findIdx].intervalObj);
-                }
-                window.riwayatGenerateList.splice(findIdx, 1);
-                
-                if (typeof simpanStorage === 'function') {
-                    simpanStorage();
-                }
-            }
-        } else {
-            var rwLokal = JSON.parse(localStorage.getItem('kiix_riwayat_gen_v1') || '[]');
-            rwLokal = rwLokal.filter(function(t) {
-                return String(t.id) !== String(id);
-            });
-            localStorage.setItem('kiix_riwayat_gen_v1', JSON.stringify(rwLokal));
+            if (typeof simpanStorage === 'function') simpanStorage();
         }
         
         renderVideoAsliKeGrid();
@@ -597,199 +420,6 @@ window.hapusTugasBerdasarkanId = function(id) {
 
 window.renderLayarHistory = function() { 
     renderVideoAsliKeGrid(); 
-};
-
-// -------------------------------------------------------------
-// KELOLA AKUN API KEY (LOKAL) & SINKRONISASI
-// -------------------------------------------------------------
-
-window.renderListAkunDiKelola = function() {
-    var wadah = document.getElementById('wadah-kartu-akun-list');
-    var dropAkun = document.getElementById('sel-dropdown-akun');
-    
-    var dbAkun = JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
-    window.dbAkun = dbAkun;
-
-    if (dbAkun.length === 0) {
-        if (wadah) {
-            wadah.innerHTML = `
-            <div class="text-center py-10 bg-slate-50/50 border border-kmBorder border-dashed rounded-3xl text-slate-400">
-                <span class="text-3xl mb-2 block">🔑</span>
-                <p class="text-sm font-bold">Belum ada API key terhubung</p>
-                <p class="text-xs mt-1">Klik "+ Add Apikey" di atas untuk menambahkan.</p>
-            </div>`;
-        }
-        
-        if (dropAkun) {
-            dropAkun.innerHTML = '<option value="">(Kosong) Tambah API Key dulu</option>';
-            updateBadgeKoinGenerate(); 
-        }
-        return;
-    }
-
-    var html = '';
-    var dropHtml = '';
-    
-    dbAkun.forEach(function(akun) {
-        var isAktif = (akun.id === (window.akunAktifId || dbAkun[0].id));
-        var maskedKey = akun.key ? (akun.key.substring(0, 8) + '••••••••' + akun.key.slice(-6)) : '••••••••';
-        
-        html += `
-        <div class="bg-white border ${isAktif ? 'border-kmViolet shadow-sm' : 'border-kmBorder'} rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:shadow-md">
-            <div class="flex items-start gap-4">
-                <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shrink-0">R</div>
-                <div>
-                    <div class="flex items-center gap-2 mb-1">
-                        <h4 class="text-sm font-bold text-slate-900">${akun.nama || 'RunningHub Account'}</h4>
-                        ${isAktif ? '<span class="px-2 py-0.5 bg-kmViolet/10 text-kmViolet text-[10px] font-black rounded uppercase tracking-wider">Default</span>' : ''}
-                    </div>
-                    <p class="text-[11px] font-mono font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">${maskedKey}</p>
-                </div>
-            </div>
-            <div class="flex flex-row items-center gap-2 w-full sm:w-auto">
-                <div class="flex-1 sm:flex-none text-left sm:text-right px-3 py-1.5 bg-emerald-50 rounded-xl border border-emerald-100">
-                    <p class="text-[9px] uppercase font-bold text-emerald-600 mb-0.5 tracking-wider">Sisa Koin</p>
-                    <p class="text-sm font-black text-emerald-700 tabular-nums leading-none">${akun.saldo || 0}</p>
-                </div>
-                <button onclick="hapusAkunLokal(${akun.id})" class="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 transition cursor-pointer" title="Hapus Akun">
-                    <i class="ph ph-trash text-lg"></i>
-                </button>
-            </div>
-        </div>`;
-
-        dropHtml += `
-        <option value="${akun.id}" ${isAktif ? 'selected' : ''}>
-            ${akun.nama || 'RunningHub'} - ${akun.saldo || 0} coin
-        </option>`;
-    });
-
-    if (wadah) wadah.innerHTML = html;
-    if (dropAkun) {
-        dropAkun.innerHTML = dropHtml;
-        updateBadgeKoinGenerate(); 
-    }
-};
-
-window.hapusAkunLokal = function(id) {
-    mintaKonfirmasi("Yakin ingin menghapus API Key ini dari perangkat?", function() {
-        var dbAkun = JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
-        
-        dbAkun = dbAkun.filter(function(a) {
-            return String(a.id) !== String(id);
-        });
-        
-        localStorage.setItem('kiix_akun_local_v1', JSON.stringify(dbAkun));
-        window.dbAkun = dbAkun;
-        
-        renderListAkunDiKelola();
-        tampilkanNotif("API Key berhasil dihapus", "sukses");
-    });
-};
-
-window.simpanAkunBaruDariModal = async function() {
-    var inKey = document.getElementById('in-modal-key');
-    var btn = document.getElementById('btn-simpan-key');
-    
-    if (!inKey || !inKey.value.trim()) {
-        return tampilkanNotif('API Key tidak boleh kosong!', 'error');
-    }
-    var newKey = inKey.value.trim();
-
-    var dbAkun = JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
-    
-    var exists = dbAkun.find(function(a) { return a.key === newKey; });
-    if(exists) {
-        return tampilkanNotif('API Key sudah pernah ditambahkan!', 'error');
-    }
-
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Mengecek...';
-    }
-
-    try {
-        var res = await fetch('/api/saldo', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: newKey })
-        });
-        var hasil = await res.json();
-        
-        if (res.ok && hasil) {
-            var rawData = hasil.data || hasil;
-            var c = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
-            var saldo = c !== undefined && c !== null ? Number(c) : 0;
-
-            dbAkun.push({ 
-                id: Date.now(), 
-                key: newKey, 
-                nama: 'RunningHub Account', 
-                saldo: saldo 
-            });
-            
-            localStorage.setItem('kiix_akun_local_v1', JSON.stringify(dbAkun));
-            window.dbAkun = dbAkun;
-            
-            tutupModalFormKey();
-            renderListAkunDiKelola();
-            tampilkanNotif('Berhasil menambahkan API Key!', 'sukses');
-        } else {
-            tampilkanNotif('API Key tidak valid atau server bermasalah!', 'error');
-        }
-    } catch(e) {
-        tampilkanNotif('Gagal memeriksa saldo API Key. Coba sesaat lagi.', 'error');
-    }
-
-    if (btn) {
-        btn.disabled = false;
-        btn.innerText = 'Tambah';
-    }
-};
-
-window.refreshSemuaAkunLokal = async function() {
-    var dbAkun = JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
-    
-    if (dbAkun.length === 0) {
-        return tampilkanNotif('Belum ada API Key untuk disinkronkan.', 'error');
-    }
-    
-    tampilkanNotif('Menyinkronkan saldo koin ke server...', 'info');
-
-    var berhasilsync = 0;
-    
-    for (let i = 0; i < dbAkun.length; i++) {
-        try {
-            var res = await fetch('/api/saldo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ apiKey: dbAkun[i].key })
-            });
-            
-            var hasil = await res.json();
-            if (res.ok && hasil) {
-                var rawData = hasil.data || hasil;
-                var c = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
-                
-                if (c !== undefined && c !== null) {
-                    dbAkun[i].saldo = Number(c);
-                    berhasilsync++;
-                }
-            }
-        } catch (e) {
-            console.error('Gagal sinkron akun:', dbAkun[i].key);
-        }
-    }
-
-    localStorage.setItem('kiix_akun_local_v1', JSON.stringify(dbAkun));
-    window.dbAkun = dbAkun;
-    
-    renderListAkunDiKelola(); 
-    
-    if (berhasilsync > 0) {
-        tampilkanNotif('✓ Seluruh saldo akun berhasil diperbarui!', 'sukses');
-    } else {
-        tampilkanNotif('Gagal menghubungkan data ke server RunningHub.', 'error');
-    }
 };
 
 // -------------------------------------------------------------
@@ -879,7 +509,7 @@ window.renderGaleri = function() {
 };
 
 // -------------------------------------------------------------
-// BELI KREDIT & LANGGANAN VIP PRO
+// BELI KREDIT RENDER (QRIS CLOUD SYSTEM)
 // -------------------------------------------------------------
 
 window.pilihPaketKredit = function(tipe) {
@@ -929,7 +559,17 @@ window.pilihPaketKredit = function(tipe) {
 window.jalankanBayarKredit = async function() {
     tampilkanNotif("Menghubungkan ke gateway pembayaran...", "info");
     
-    var userEmail = prompt("Masukkan email Anda untuk invoice QRIS:", "");
+    var userEmail = null;
+    if (typeof supa !== 'undefined') {
+        try {
+            var sessionRes = await supa.auth.getSession();
+            userEmail = sessionRes?.data?.session?.user?.email;
+        } catch(e) {}
+    }
+
+    if (!userEmail) {
+        userEmail = prompt("Masukkan email Anda untuk invoice QRIS:", "");
+    }
     if (!userEmail) return tampilkanNotif("Email wajib diisi untuk transaksi!", "error");
 
     var nominal = 5800;
@@ -971,36 +611,8 @@ window.jalankanBayarKredit = async function() {
     });
 };
 
-window.jalankanBayarVIP = async function() {
-    var userEmail = prompt("Masukkan email Anda untuk invoice QRIS:", "");
-    if (!userEmail) return tampilkanNotif("Email wajib diisi untuk transaksi!", "error");
-
-    fetch('/api/bayar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            email: userEmail, 
-            amount: 35850, 
-            name: "Member Pro (25 Hari)", 
-            phone: "081122334455",
-            tipe: "vip",
-            kredit: 0 
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.Success || data.Data) {
-            window.location.href = data.Data.Url || data.url;
-        } else {
-            tampilkanNotif("Gagal membuat sesi pembayaran", "error");
-        }
-    })
-    .catch(() => {
-        tampilkanNotif("Koneksi ke server pembayaran terputus.", "error");
-    });
-};
-
-window.prosesBeliVIP = jalankanBayarVIP;
+window.jalankanBayarVIP = window.jalankanBayarKredit;
+window.prosesBeliVIP = window.jalankanBayarKredit;
 window.prosesBeliKredit = function(nom, krd) {
     if (krd <= 4) pilihPaketKredit('2k');
     else if (krd <= 10) pilihPaketKredit('5k');
@@ -1023,9 +635,7 @@ async function cekAksesAdminPool() {
             const btnAdminNav = document.getElementById('nav-btn-admin-pool');
             if (btnAdminNav) btnAdminNav.style.display = 'flex';
         }
-    } catch (err) {
-        console.error("Gagal memeriksa hak akses admin");
-    }
+    } catch (err) {}
 }
 
 window.muatDataKolamAdmin = async function() {
@@ -1072,7 +682,7 @@ window.muatDataKolamAdmin = async function() {
         <tr class="hover:bg-slate-50/60 transition">
             <td class="py-3 px-3">${badgeStatus}</td>
             <td class="py-3 px-3 font-mono font-bold text-slate-700">${keyMasked}</td>
-            <td class="py-3 px-3 font-extrabold tabular-nums ${a.koin < 200 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
+            <td class="py-3 px-3 font-extrabold tabular-nums ${a.koin < 180 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
             <td class="py-3 px-3 text-slate-400 text-[11px]">${tglPakai}</td>
             <td class="py-3 px-3 text-right">
                 <button onclick="hapusSatuKunciPool(${a.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus Kunci Ini">
@@ -1135,7 +745,7 @@ window.simpanBulkKeysKeSupabase = async function() {
             console.error('Gagal mengambil koin saat bulk insert', e);
         }
 
-        var statusOtomatis = koinAsli >= 200 ? 'idle' : 'habis';
+        var statusOtomatis = koinAsli >= 180 ? 'idle' : 'habis';
         dataInsert.push({
             api_key: k,
             koin: koinAsli,
@@ -1213,7 +823,7 @@ window.refreshDataKolamAdmin = async function() {
                 
                 if (k !== undefined && k !== null) {
                     var koinVal = Number(k);
-                    var statusBaru = koinVal < 200 ? 'habis' : 'idle';
+                    var statusBaru = koinVal < 180 ? 'habis' : 'idle';
                     await supa.from('runninghub_pool').update({ koin: koinVal, status: statusBaru }).eq('id', akun.id);
                 }
             }
@@ -1288,7 +898,7 @@ window.jalankanCheckerKeys = async function() {
     
     checkerResults.forEach(function(item) {
         var keyMasked = item.key.substring(0, 8) + '••••••••' + item.key.slice(-6);
-        var colorKoin = item.koin >= 478 ? 'text-emerald-600' : (item.koin >= 200 ? 'text-amber-500' : 'text-rose-500');
+        var colorKoin = item.koin >= 478 ? 'text-emerald-600' : (item.koin >= 180 ? 'text-amber-500' : 'text-rose-500');
         var iconStatus = item.status === 'sukses' ? '<i class="ph-fill ph-check-circle text-emerald-500 text-base"></i>' : '<i class="ph-fill ph-x-circle text-rose-500 text-base"></i>';
         
         var el = document.createElement('div');

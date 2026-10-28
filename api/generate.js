@@ -251,7 +251,7 @@ export default async function handler(req, res) {
     });
 
     // =========================================================
-    // EKSEKUSI MINIMAX H3 (OPENAPI V2 AI-APP)
+    // EKSEKUSI MINIMAX H3 (OPENAPI V2 AI-APP) - INSTANCE PLUS (HIGH RAM)
     // =========================================================
     if (provider === 'minimax') {
       const MINIMAX_APP_ID = "2104825195000619009";
@@ -331,7 +331,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           nodeInfoList: nodeInfoList,
-          instanceType: "default",
+          instanceType: "plus",
           usePersonalQueue: "false"
         })
       });

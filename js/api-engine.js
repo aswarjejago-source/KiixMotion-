@@ -6,8 +6,11 @@
 window.riwayatGenerateList = window.riwayatGenerateList || [];
 var riwayatGenerateList = window.riwayatGenerateList;
 
-var engineMode = window.providerAktif || window.engineProvider || 'kiix'; 
+var engineMode = window.providerAktif || window.engineProvider || window.engineMode || 'kiix'; 
 window.engineMode = engineMode;
+window.providerAktif = engineMode;
+window.engineProvider = engineMode;
+
 var urlBahanFoto = null;
 var urlBahanVideo = null;
 var listKunciPro = [];
@@ -176,6 +179,88 @@ window.muatStorage = muatStorage;
 
 muatStorage();
 
+// SISTEM PEMILIHAN ENGINE & SINKRONISASI VISUAL KARTU
+function setProviderUtama(mode) {
+  var modePilihan = (mode || 'kiix').toLowerCase().trim();
+  if (modePilihan === 'pro') modePilihan = 'runninghub';
+
+  engineMode = modePilihan;
+  window.engineMode = modePilihan;
+  window.providerAktif = modePilihan;
+  window.engineProvider = modePilihan;
+  window._klingIsActive = (modePilihan === 'kling');
+
+  var cKiix = document.getElementById("c-prov-kiix");
+  var cRh = document.getElementById("c-prov-runninghub");
+  var cKling = document.getElementById("c-prov-kling");
+
+  var bKiix = document.getElementById("b-prov-kiix");
+  var bRh = document.getElementById("b-prov-runninghub");
+  var bKling = document.getElementById("b-prov-kling");
+
+  var tTitle = document.getElementById("t-engine-title");
+  var tTotal = document.getElementById("t-engine-total");
+  var dropWrap = document.getElementById("box-wrap-dropdown-akun");
+
+  var kartu = [cKiix, cRh, cKling];
+  var badge = [bKiix, bRh, bKling];
+  var targetIdx = (modePilihan === "kiix") ? 0 : (modePilihan === "runninghub") ? 1 : 2;
+
+  kartu.forEach(function(c, idx) {
+    if (c) {
+      c.className = (idx === targetIdx)
+        ? "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition"
+        : "bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+    }
+  });
+
+  badge.forEach(function(b, idx) {
+    if (b) b.style.display = (idx === targetIdx) ? "inline-block" : "none";
+  });
+
+  if (modePilihan === 'kiix') {
+    if (tTitle) tTitle.innerText = "KIIXMOTION CONTROL";
+    if (tTotal) tTotal.innerText = "1 Kredit / render";
+    if (dropWrap) dropWrap.style.display = "none";
+  } else if (modePilihan === 'runninghub') {
+    if (tTitle) tTitle.innerText = "RUNNINGHUB PRO";
+    if (tTotal) tTotal.innerText = "Akun Pribadi";
+    if (dropWrap) dropWrap.style.display = "block";
+  } else if (modePilihan === 'kling') {
+    if (tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL";
+    if (tTotal) tTotal.innerText = "Testing Trial";
+    if (dropWrap) dropWrap.style.display = "none";
+  }
+
+  var btn = document.getElementById("btn-submit-generate");
+  if (btn) {
+    btn.disabled = false;
+    btn.innerText = "GENERATE VIDEO";
+  }
+}
+window.setProviderUtama = setProviderUtama;
+
+function pasangPilihanEngineListener() {
+  var cKiix = document.getElementById("c-prov-kiix");
+  var cRh = document.getElementById("c-prov-runninghub");
+  var cKling = document.getElementById("c-prov-kling");
+
+  if (cKiix && !cKiix._hasEngineClick) {
+    cKiix._hasEngineClick = true;
+    cKiix.addEventListener("click", function() { setProviderUtama("kiix"); });
+  }
+
+  if (cRh && !cRh._hasEngineClick) {
+    cRh._hasEngineClick = true;
+    cRh.addEventListener("click", function() { setProviderUtama("runninghub"); });
+  }
+
+  if (cKling && !cKling._hasEngineClick) {
+    cKling._hasEngineClick = true;
+    cKling.addEventListener("click", function() { setProviderUtama("kling"); });
+  }
+}
+
 async function selaraskanRiwayatDenganAkun() {
   if (typeof supa !== 'undefined') {
     try {
@@ -205,11 +290,9 @@ async function selaraskanRiwayatDenganAkun() {
             dbUser.status === 'vip'
           );
 
-          var currentP = window.providerAktif || window.engineProvider;
+          var currentP = window.providerAktif || window.engineProvider || window.engineMode;
           if (!currentP || currentP === 'kiix' || currentP === 'pro' || currentP === 'runninghub') {
-            if (typeof window.setProviderUtama === 'function') {
-              window.setProviderUtama(isVIP ? 'runninghub' : 'kiix');
-            }
+            setProviderUtama(isVIP ? 'runninghub' : 'kiix');
           }
         }
 
@@ -352,16 +435,6 @@ function tampilkanModalCeklisSukses(taskId) {
   }
 }
 
-function setProviderUtama(mode) {
-  if (typeof window.setProviderUtama === 'function' && window.setProviderUtama !== setProviderUtama) {
-    window.setProviderUtama(mode);
-  } else {
-    engineMode = mode;
-    window.engineMode = mode;
-    window.providerAktif = mode;
-  }
-}
-
 function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
   var file = input.files[0];
@@ -437,6 +510,21 @@ window.unggahBahanLangsung = unggahBahanLangsung;
 
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai && tugas.videoUrl) return; 
+
+  // TAMENG ISOLASI KLING: Cegah tugas Kling ditembak ke /api/outputs RunningHub
+  var isKlingTask = (
+    tugas.prov === 'kling' || 
+    tugas.provider === 'kling' || 
+    (typeof tugas.id === 'string' && tugas.id.includes('-'))
+  );
+
+  if (isKlingTask) {
+    if (typeof window.pantauStatusKling === 'function') {
+      window.pantauStatusKling(tugas);
+    }
+    return;
+  }
+
   if (!tugas.progress) tugas.progress = 0; 
   if (!tugas.startedAt) tugas.startedAt = Date.now();
 
@@ -453,13 +541,27 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
 
     var waktuBerjalan = Date.now() - (tugas.startedAt || Date.now());
     
-    // Had masa pemantauan: 2 JAM (7.200.000 ms)
+    // Batas waktu pemantauan: 2 Jam (7.200.000 ms)
     if (waktuBerjalan >= 7200000 && !tugas.videoUrl) {
       if (tugas.intervalObj) clearInterval(tugas.intervalObj);
       lepaskanKunciPoolOtomatis(currentPoolId);
       tugas.status = "❌ Gagal (Waktu Habis)"; 
       tugas.selesai = true;
       tugas.progress = 100;
+
+      var targetUserTO = userId || tugas.user_id;
+      if (didDeductCredit && !tugas.refunded && typeof supa !== 'undefined' && targetUserTO) {
+        try {
+          tugas.refunded = true;
+          tugas.did_deduct = false;
+          await supa.rpc('refund_kredit_member', { target_user_id: String(targetUserTO) });
+          if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(tugas.user_email);
+          tampilkanNotifPusat('Waktu render habis. 1 kredit dikembalikan.');
+        } catch (e) {
+          tugas.refunded = false;
+        }
+      }
+
       simpanStorage();
       if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
       return;
@@ -493,7 +595,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       var rawObj = jsonObj.data || jsonObj;
       var statusTeks = (rawObj.status || jsonObj.status || "").toString().toUpperCase().trim();
 
-      // PRIORITI 1: SEMAK JIKA HASIL VIDEO TELAH SIAP
+      // PRIORITAS 1: SEMAK JIKA HASIL VIDEO TELAH SIAP
       var linkOutputAsli = ambilLinkOutputResmi(jsonObj);
       if (statusTeks === "SUCCESS" || linkOutputAsli) {
         if (linkOutputAsli) {
@@ -515,7 +617,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
       }
 
-      // PRIORITI 2: SEMAK STATUS GAGAL / CANCEL DARI SERVER
+      // PRIORITAS 2: SEMAK STATUS GAGAL / BATAL DARI SERVER
       var isGagalAtauBatal = (
         code === 801 || 
         code === 802 || 
@@ -553,7 +655,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // PRIORITI 3: STATUS SEDANG BERJALAN ATAU BERATUR
+      // PRIORITAS 3: STATUS SEDANG BERJALAN ATAU MENGANTRE
       var isSedangJalan = (
         code === 804 ||
         code === 805 ||
@@ -690,10 +792,21 @@ function updateStatistikDashboard() {
 
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
+  var currentProvider = window.providerAktif || window.engineProvider || window.engineMode || engineMode;
+
+  // HAND-OFF AMAN JIKA MODE KLING AKTIF
+  if (currentProvider === 'kling' || window._klingIsActive) {
+    if (typeof window.jalankanGenerateKling === 'function') {
+      return window.jalankanGenerateKling();
+    } else {
+      if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
+      return tampilkanNotifPusat('Engine Kling belum siap atau sedang dimuat.');
+    }
+  }
+
   var realEmail = null;
   var realUserId = null;
   var profilUser = null;
-  var currentProvider = window.providerAktif || window.engineProvider || engineMode;
 
   if (typeof supa !== 'undefined') {
     if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA STATUS..."; }
@@ -890,8 +1003,21 @@ document.addEventListener('visibilitychange', function() {
         }
 
         if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
-          tugas.selesai = false;
-          pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
+          var isKling = (
+            tugas.prov === 'kling' || 
+            tugas.provider === 'kling' || 
+            (typeof tugas.id === 'string' && tugas.id.includes('-'))
+          );
+
+          if (isKling) {
+            if (typeof window.pantauStatusKling === 'function') {
+              tugas.selesai = false;
+              window.pantauStatusKling(tugas);
+            }
+          } else {
+            tugas.selesai = false;
+            pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
+          }
         }
       });
     }
@@ -915,11 +1041,13 @@ setInterval(function() {
 
 window.addEventListener('DOMContentLoaded', function() {
   muatStorage();
+  pasangPilihanEngineListener();
   selaraskanRiwayatDenganAkun();
 });
 
 window.onload = function() {
   muatStorage();
+  pasangPilihanEngineListener();
   selaraskanRiwayatDenganAkun();
   updateStatistikDashboard();
 
@@ -928,18 +1056,30 @@ window.onload = function() {
 
   if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
     window.riwayatGenerateList.forEach(function(tugas) {
-      // Jika video lama masih menggunakan pautan langsung myqcloud, bungkus ke proksi strim secara automatik
       if (tugas.videoUrl && !tugas.videoUrl.startsWith('/api/stream') && tugas.videoUrl.startsWith('http')) {
         tugas.rawVideoUrl = tugas.videoUrl;
         tugas.videoUrl = bungkusStreamProxy(tugas.videoUrl);
         simpanStorage();
       }
 
-      if (tugas.selesai && tugas.videoUrl && tugas.pool_id) {
+      var isKling = (
+        tugas.prov === 'kling' || 
+        tugas.provider === 'kling' || 
+        (typeof tugas.id === 'string' && tugas.id.includes('-'))
+      );
+
+      if (tugas.selesai && tugas.videoUrl && tugas.pool_id && !isKling) {
         lepaskanKunciPoolOtomatis(tugas.pool_id);
       } else if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
-        tugas.selesai = false;
-        pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
+        if (isKling) {
+          if (typeof window.pantauStatusKling === 'function') {
+            tugas.selesai = false;
+            window.pantauStatusKling(tugas);
+          }
+        } else {
+          tugas.selesai = false;
+          pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
+        }
       }
     });
   }

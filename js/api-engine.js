@@ -188,7 +188,7 @@ function setProviderUtama(mode) {
   }
   if (cKling) {
     cKling.className = (modePilihan === "kling")
-      ? "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-indigo-600 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-indigo-50 transition"
+      ? "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-indigo600 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-indigo-50 transition"
       : "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow";
   }
 
@@ -296,13 +296,17 @@ async function lepaskanKunciPoolOtomatis(poolId) {
               koinTersisa = Number(k);
             }
           }
-        } catch (errSaldo) {}
+        } catch (errSaldo) {
+          console.warn("Gagal cek saldo live:", errSaldo);
+        }
       }
 
+      var statusAkhir = (koinTersisa !== null && koinTersisa < 180) ? 'habis' : 'idle';
       var payloadUpdate = { 
-        status: (koinTersisa !== null && koinTersisa < 180) ? 'habis' : 'idle', 
+        status: statusAkhir, 
         last_used_at: new Date().toISOString() 
       };
+
       if (koinTersisa !== null) {
         payloadUpdate.koin = koinTersisa;
       }
@@ -316,8 +320,10 @@ async function lepaskanKunciPoolOtomatis(poolId) {
     }
   }
 
+  // Refresh otomatis tampilan tabel admin pool jika sedang dibuka
   try {
-    if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
+    if (typeof refreshDataKolamAdmin === 'function') refreshDataKolamAdmin();
+    else if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
   } catch (e) {}
 }
 
@@ -593,7 +599,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
     // Batas waktu pemantauan: 2 Jam (7.200.000 ms) sesuai durasi render panjang
     if (waktuBerjalan >= 7200000 && !tugas.videoUrl) {
       if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-      lepaskanKunciPoolOtomatis(currentPoolId);
+      await lepaskanKunciPoolOtomatis(currentPoolId);
       tugas.status = "❌ Gagal (Waktu Habis)"; 
       tugas.selesai = true;
       tugas.progress = 100;
@@ -645,13 +651,13 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         var errStr = JSON.stringify(errResJson).toUpperCase();
 
         if (errStr.includes("CANCEL") || errStr.includes("TERMINAT") || errStr.includes("FAIL")) {
-          eksekusiTugasDibatalkanAtauGagal(tugas, currentPoolId, userId, didDeductCredit, true);
+          await eksekusiTugasDibatalkanAtauGagal(tugas, currentPoolId, userId, didDeductCredit, true);
           return;
         }
 
         tugas.gagalBerturut = (tugas.gagalBerturut || 0) + 1;
         if (tugas.gagalBerturut >= 8 && waktuBerjalan >= 30000) {
-          eksekusiTugasDibatalkanAtauGagal(tugas, currentPoolId, userId, didDeductCredit, false);
+          await eksekusiTugasDibatalkanAtauGagal(tugas, currentPoolId, userId, didDeductCredit, false);
           return;
         }
 
@@ -667,7 +673,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       var code = Number(jsonObj.code);
       var rawObj = (jsonObj && typeof jsonObj.data === 'object' && jsonObj.data !== null) ? jsonObj.data : jsonObj;
 
-      // Ekstraksi komprehensif semua kemungkinan field status dan pesan dari RunningHub (V1/V2 AI-App)
+      // Ekstraksi komprehensif semua field status dan pesan dari RunningHub (V1/V2 AI-App)
       var statusTeks = [
         rawObj.status,
         rawObj.taskStatus,
@@ -691,7 +697,9 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       if (statusTeks.includes("SUCCESS") || linkOutputAsli) {
         if (linkOutputAsli) {
           if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-          lepaskanKunciPoolOtomatis(currentPoolId);
+          
+          // Langsung lepaskan status pool & update sisa saldo koin otomatis
+          await lepaskanKunciPoolOtomatis(currentPoolId);
 
           var urlMurni = bungkusStreamProxy(linkOutputAsli);
           tugas.status = "Selesai"; 
@@ -712,7 +720,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
       }
 
-      // TOLERANSI SINKRONISASI AWAL (20 DETIK PERTAMA JIKA SERVER BARU MENDAFTARKAN TUGAS)
+      // TOLERANSI SINKRONISASI AWAL (20 DETIK PERTAMA)
       var isNotFoundAwal = (code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || statusTeks.includes("NOT FOUND") || (statusTeks === "" && pesanTeks === ""));
       if (isNotFoundAwal && waktuBerjalan < 20000 && !linkOutputAsli) {
         tugas.status = "⏳ Mengantre di Server...";
@@ -744,7 +752,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       );
 
       if ((isBatal || isGagal) && !linkOutputAsli) {
-        eksekusiTugasDibatalkanAtauGagal(tugas, currentPoolId, userId, didDeductCredit, isBatal);
+        await eksekusiTugasDibatalkanAtauGagal(tugas, currentPoolId, userId, didDeductCredit, isBatal);
         return;
       }
 
@@ -789,7 +797,9 @@ window.pantauStatusVideo = pantauStatusVideo;
 // Fungsi terpadu penanganan tugas dibatalkan / gagal agar UI kartu langsung berhenti
 async function eksekusiTugasDibatalkanAtauGagal(tugas, poolId, userId, didDeductCredit, isBatal) {
   if (tugas.intervalObj) clearInterval(tugas.intervalObj);
-  lepaskanKunciPoolOtomatis(poolId);
+  
+  // Langsung lepaskan kunci pool & sinkron saldo live
+  await lepaskanKunciPoolOtomatis(poolId);
 
   var labelStatus = isBatal ? "❌ Dibatalkan di Server" : "❌ Gagal Diproses Studio";
   tugas.status = labelStatus;
@@ -1120,9 +1130,9 @@ window.onload = function() {
         (typeof tugas.id === 'string' && tugas.id.includes('-'))
       );
 
-      if (tugas.selesai && tugas.videoUrl && tugas.pool_id && !isKling) {
-        lepaskanKunciPoolOtomatis(tugas.pool_id);
-      } else if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
+      // Hanya lanjutkan pantau tugas yang BELUM selesai
+      // Tidak lagi melepas kunci akun pool tugas lama agar status 'busy' render aktif tidak tertimpa!
+      if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
         if (isKling) {
           if (typeof window.pantauStatusKling === 'function') {
             tugas.selesai = false;

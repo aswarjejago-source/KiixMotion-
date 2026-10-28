@@ -1,5 +1,5 @@
 // ========================================================
-// ENDPOINT WEBHOOK IPAYMU (PURE CREDIT PASS SYSTEM)
+// ENDPOINT WEBHOOK IPAYMU (PURE CREDIT PASS SYSTEM + TELEGRAM NOTIF)
 // File: api/webhook.js
 // ========================================================
 
@@ -10,6 +10,11 @@ export default async function handler(req, res) {
 
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fybyupwcburndxulqqnn.supabase.co';
   const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || '';
+
+  // Konfigurasi Telegram Bot
+  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '9252779286:AAHx2vJDriBFObHfUSzEowhnW8d4hLkn1qw';
+  const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '-1004418697839';
+  const TELEGRAM_THREAD_ID = process.env.TELEGRAM_THREAD_ID || '1404';
 
   if (!SUPABASE_KEY) {
     return res.status(500).json({ success: false, message: 'Service Role Key Supabase belum disetel di Vercel.' });
@@ -145,6 +150,42 @@ export default async function handler(req, res) {
           status: 'BERHASIL'
         })
       });
+
+      // 6. KIRIM NOTIFIKASI OTOMATIS KE TELEGRAM (TOPIK RIWAYAT TRANSAKSI)
+      if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+        try {
+          const waktuWita = new Date().toLocaleString('id-ID', { 
+            timeZone: 'Asia/Makassar',
+            dateStyle: 'medium',
+            timeStyle: 'short'
+          });
+
+          const pesanNotif = 
+`🔔 <b>PEMBAYARAN DITERIMA</b>
+━━━━━━━━━━━━━━━━━━━━
+👤 <b>Member:</b> <code>${buyerEmail}</code>
+⚡ <b>Topup:</b> +${kreditTambah} Kredit Video (Aktif 24 Jam)
+💰 <b>Total Bayar:</b> Rp ${Number(amount).toLocaleString('id-ID')}
+🆔 <b>Trx ID:</b> <code>${trxId || '-'}</code>
+⏱ <b>Waktu:</b> ${waktuWita} WITA
+━━━━━━━━━━━━━━━━━━━━
+✅ <i>Kredit telah otomatis aktif di akun member.</i>`;
+
+          await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: TELEGRAM_CHAT_ID,
+              message_thread_id: Number(TELEGRAM_THREAD_ID), // Masuk tepat ke topik Riwayat Transaksi
+              text: pesanNotif,
+              parse_mode: 'HTML'
+            })
+          });
+          console.log('✅ Notifikasi Telegram berhasil dikirim ke topik Riwayat transaksi.');
+        } catch (tgErr) {
+          console.error('⚠️ Gagal mengirim notifikasi Telegram:', tgErr.message);
+        }
+      }
 
       return res.status(200).json({ 
         success: true, 

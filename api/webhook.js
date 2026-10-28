@@ -48,7 +48,6 @@ export default async function handler(req, res) {
       };
 
       // 1. CEK ANTI-DOBEL TRANSAKSI (IDEMPOTENCY SHIELD)
-      // Mencegah iPaymu menambahkan kredit 2x jika mengirim sinyal retry
       if (trxId) {
         try {
           const checkTrxRes = await fetch(`${SUPABASE_URL}/rest/v1/transactions?trx_id=eq.${encodeURIComponent(trxId)}&status=eq.BERHASIL&select=id`, { headers });
@@ -62,29 +61,17 @@ export default async function handler(req, res) {
 
       let finalUserId = null;
 
-      // 2. CARI USER ID DI TABEL public.users (SESUAI DATABASE KIIXMOTION)
+      // 2. CARI UUID LANGSUNG DI public.profiles (PINTU UTAMA SATU-SATUNYA)
       try {
-        const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?email=ilike.${encodeURIComponent(buyerEmail)}&select=id`, { headers });
-        const userJson = await userRes.json();
-        if (Array.isArray(userJson) && userJson.length > 0 && userJson[0]?.id) {
-          finalUserId = userJson[0].id;
-          console.log('✅ UUID ditemukan di public.users:', finalUserId);
+        const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?email=ilike.${encodeURIComponent(buyerEmail)}&select=id`, { headers });
+        const profileJson = await profileRes.json();
+        if (Array.isArray(profileJson) && profileJson.length > 0 && profileJson[0]?.id) {
+          finalUserId = profileJson[0].id;
+          console.log('✅ UUID ditemukan langsung di public.profiles:', finalUserId);
         }
       } catch (e) {}
 
-      // Fallback 1: Cek di public.profiles jika ada
-      if (!finalUserId) {
-        try {
-          const profileRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?email=ilike.${encodeURIComponent(buyerEmail)}&select=id`, { headers });
-          const profileJson = await profileRes.json();
-          if (Array.isArray(profileJson) && profileJson.length > 0 && profileJson[0]?.id) {
-            finalUserId = profileJson[0].id;
-            console.log('✅ UUID ditemukan di public.profiles:', finalUserId);
-          }
-        } catch (e) {}
-      }
-
-      // Fallback 2: Cek di auth.users Supabase
+      // Fallback: Cek di auth.users Supabase jika entah kenapa belum terdaftar di profiles
       if (!finalUserId) {
         try {
           const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, { headers });
@@ -98,8 +85,8 @@ export default async function handler(req, res) {
       }
 
       if (!finalUserId) {
-        console.error(`❌ User ${buyerEmail} belum terdaftar di sistem!`);
-        return res.status(404).json({ success: false, message: 'User tidak ditemukan di sistem database.' });
+        console.error(`❌ User ${buyerEmail} tidak ditemukan di sistem!`);
+        return res.status(404).json({ success: false, message: 'User tidak ditemukan di database profiles.' });
       }
 
       // 3. HITUNG PENAMBAHAN KREDIT BERDASARKAN NOMINAL
@@ -112,7 +99,7 @@ export default async function handler(req, res) {
       } else if (amount > 8000 && amount <= 18000) {
         kreditTambah = 20;  // Paket 10k (Rp 10.800)
       } else if (amount > 18000) {
-        kreditTambah = 75;  // Konversi otomatis jika masih ada user checkout paket 35k
+        kreditTambah = 75;  // Konversi jika nominal di atas paket normal
       }
 
       // 4. INJEKSI SALDO KE TABEL user_credits (MASA AKTIF 24 JAM)

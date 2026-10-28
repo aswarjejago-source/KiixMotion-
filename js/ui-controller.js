@@ -802,9 +802,17 @@ window.kosongkanSeluruhKolam = async function() {
     });
 };
 
-window.refreshDataKolamAdmin = async function() {
-    tampilkanNotif('Menyinkronkan saldo seluruh kunci kolam...', 'info');
+// -------------------------------------------------------------
+// SINKRONISASI SALDO KOLAM (SILENT BACKGROUND SYNC)
+// -------------------------------------------------------------
+window.refreshDataKolamAdmin = async function(isManual = false) {
+    // Popup hanya muncul jika tombol ditekan secara manual
+    if (isManual && typeof tampilkanNotif === 'function') {
+        tampilkanNotif('Menyinkronkan saldo seluruh kunci kolam...', 'info');
+    }
     
+    if (typeof supa === 'undefined') return;
+
     const { data: listAkun } = await supa.from('runninghub_pool').select('id, api_key');
     if (!listAkun || listAkun.length === 0) return;
 
@@ -831,7 +839,12 @@ window.refreshDataKolamAdmin = async function() {
             console.error('Gagal update saldo kunci kolam', e);
         }
     }
-    tampilkanNotif('✓ Sinkronisasi saldo kolam selesai!', 'sukses');
+
+    // Popup sukses hanya muncul jika ditekan secara manual
+    if (isManual && typeof tampilkanNotif === 'function') {
+        tampilkanNotif('✓ Sinkronisasi saldo kolam selesai!', 'sukses');
+    }
+    
     muatDataKolamAdmin();
 };
 

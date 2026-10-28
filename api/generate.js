@@ -132,9 +132,11 @@ export default async function handler(req, res) {
 
     if (!emailTerverifikasi && userId) {
       try {
-        const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: supaHeaders });
-        const authUser = await authRes.json();
-        emailTerverifikasi = (authUser?.email || "").trim().toLowerCase();
+        const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=email`, { headers: supaHeaders });
+        const profData = await profRes.json();
+        if (Array.isArray(profData) && profData[0]?.email) {
+          emailTerverifikasi = profData[0].email.trim().toLowerCase();
+        }
       } catch (e) {}
     }
 
@@ -200,7 +202,7 @@ export default async function handler(req, res) {
     if (!potongRes.ok || potongJson?.success !== true) {
       return res.status(400).json({
         success: false,
-        message: potongJson?.pesan || 'Sisa kredit kamu habis. Silakan beli kredit terlebih dahulu.'
+        message: potongJson?.pesan || 'Sisa kredit kamu habis atau masa aktif telah berakhir.'
       });
     }
     didDeductCredit = true;
@@ -215,7 +217,7 @@ export default async function handler(req, res) {
     const poolData = await poolRes.json();
 
     if (!poolData || poolData.length === 0) {
-      // Refund otomatis jika semua server sibuk/koin pool habis
+      // Refund otomatis jika server sibuk / pool kosong
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
         method: 'POST',
         headers: supaHeaders,

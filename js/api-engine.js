@@ -41,33 +41,26 @@ function tambahKeBlacklist(taskId) {
   } catch (e) {}
 }
 
-// 1. PROXY PINTAR SELEKTIF & PEMAKSAAN HTTPS
-function bungkusStreamProxy(url, provider) {
+// 1. PEMBERSIH PROXY & PEMAKSAAN HTTPS MURNI
+function bungkusStreamProxy(url) {
   if (!url || typeof url !== 'string') return url;
 
-  var p = (provider || '').toLowerCase();
-  var isMiniMax = (p === 'minimax') || url.includes('minimax') || url.includes('hailuo');
-  var isWanMotion = url.includes('myqcloud') || url.includes('xiaoyaoyou') || url.includes('rh-images') || url.includes('runninghub');
+  var cleanUrl = url.trim();
 
-  // Jika Wan Motion Control / RunningHub: Buka bungkus proxy dan pastikan HTTPS
-  if (isWanMotion || (!isMiniMax && (p === 'kiix' || p === 'runninghub' || p === 'pro'))) {
-    var cleanUrl = url;
-    if (cleanUrl.includes('/api/stream?url=')) {
-      try {
-        var raw = cleanUrl.split('/api/stream?url=')[1];
-        if (raw) cleanUrl = decodeURIComponent(raw);
-      } catch (e) {}
-    }
-    return cleanUrl.replace(/^http:\/\//i, 'https://');
+  // Buka total bungkus proxy Vercel untuk semua jenis video
+  if (cleanUrl.includes('/api/stream?url=')) {
+    try {
+      var raw = cleanUrl.split('/api/stream?url=')[1];
+      if (raw) cleanUrl = decodeURIComponent(raw);
+    } catch (e) {}
+  } else if (cleanUrl.startsWith('/api/stream')) {
+    try {
+      var parts = cleanUrl.split('?url=');
+      if (parts[1]) cleanUrl = decodeURIComponent(parts[1]);
+    } catch (e) {}
   }
 
-  // Khusus MiniMax: Wajib lewat proxy agar tembus CORS
-  if (isMiniMax) {
-    if (url.startsWith('/api/stream') || url.includes('/api/stream?url=')) return url;
-    return '/api/stream?url=' + encodeURIComponent(url);
-  }
-
-  return url.replace(/^http:\/\//i, 'https://');
+  return cleanUrl.replace(/^http:\/\//i, 'https://');
 }
 
 function tampilkanNotifPusat(pesan) {
@@ -350,7 +343,7 @@ async function lepaskanKunciPoolOtomatis(poolId) {
   } catch (e) {}
 }
 
-// 3. PEMBONGKAR DATA RUNNINGHUB MENDALAM (REKURSIF & HTTPS)
+// 3. PEMBONGKAR DATA RUNNINGHUB REKURSIF (HTTPS MURNI)
 function ambilLinkOutputResmi(jsonObj) {
   if (!jsonObj) return null;
   var hasilLink = null;
@@ -363,7 +356,7 @@ function ambilLinkOutputResmi(jsonObj) {
     if (clean.startsWith('http://') || clean.startsWith('https://')) {
       var lower = clean.toLowerCase();
       var isFormatVideo = lower.includes('.mp4') || lower.includes('.mov') || lower.includes('.webm') || lower.includes('.m4v');
-      var isDomainVideo = clean.includes('rh-images') || clean.includes('xiaoyaoyou') || clean.includes('myqcloud') || clean.includes('runninghub');
+      var isDomainVideo = clean.includes('rh-images') || clean.includes('xiaoyaoyou') || clean.includes('myqcloud') || clean.includes('runninghub') || clean.includes('minimax');
 
       if (isFormatVideo || isDomainVideo) {
         hasilLink = clean.replace(/^http:\/\//i, 'https://');
@@ -607,7 +600,7 @@ function perbaruiBarProgresUI(tugas) {
   }
 }
 
-// 5. PEMANTAUAN PROSES RENDER & PENARIKAN HASIL OTOMATIS
+// 5. PEMANTAUAN STATUS & PENARIKAN VIDEO (DENGAN TOLERANSI WAKTU 20 DETIK)
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai && tugas.videoUrl) return; 
 
@@ -684,7 +677,8 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         body: JSON.stringify({ 
           taskId: tugas.id, 
           poolId: currentPoolId, 
-          apiKey: currentApiKey 
+          apiKey: currentApiKey,
+          provider: tugas.provider || tugas.prov
         })
       });
 
@@ -708,11 +702,12 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
           if (tugas.intervalObj) clearInterval(tugas.intervalObj);
           lepaskanKunciPoolOtomatis(currentPoolId);
 
+          var urlMurni = bungkusStreamProxy(linkOutputAsli);
           tugas.status = "Selesai"; 
           tugas.selesai = true;
           tugas.progress = 100; 
-          tugas.rawVideoUrl = linkOutputAsli;
-          tugas.videoUrl = bungkusStreamProxy(linkOutputAsli, tugas.provider);
+          tugas.rawVideoUrl = urlMurni;
+          tugas.videoUrl = urlMurni;
 
           perbaruiBarProgresUI(tugas);
           simpanStorage();
@@ -722,17 +717,27 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
           if (currentApiKey) refreshSaldoKunciOtomatis(currentApiKey);
           if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video berhasil selesai!', 'sukses');
 
-          // Pasang pelindung anti-hotlink ke video yang baru dirender
           setTimeout(pasangPelindungVideoDOM, 500);
           return;
         }
       }
 
+      // TOLERANSI SINKRONISASI SERVER RUNNINGHUB (20 DETIK PERTAMA)
+      // Mencegah pembatalan prematur saat ID tugas belum terindeks di database query
+      var isNotFound = (code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || statusTeks.includes("NOT FOUND"));
+      if (isNotFound && waktuBerjalan < 20000) {
+        tugas.status = "⏳ Mengantre di Server...";
+        if (tugas.progress < 15) tugas.progress += 2;
+        perbaruiBarProgresUI(tugas);
+        return;
+      }
+
       // PRIORITAS 2: JIKA STATUS GAGAL ATAU DIBATALKAN
       var isGagalAtauBatal = (
-        code === 801 || 
-        code === 802 || 
+        (code === 801 && waktuBerjalan >= 20000) || 
+        (code === 802 && waktuBerjalan >= 20000) || 
         code === 807 ||
+        statusTeks === "FAILED" ||
         statusTeks.includes("FAIL") ||
         statusTeks.includes("ERR") ||
         statusTeks.includes("CANCEL")
@@ -1051,7 +1056,7 @@ async function mulaiProsesGenerate() {
     if (currentProvider === 'minimax') {
       namaModel = "MiniMax H3";
       namaEngine = "MiniMax H3 Master Workflow";
-      biayaRender = didDeductCredit ? "1 Kredit" : "≈ 257 coin";
+      biayaRender = didDeductCredit ? "1 Kredit" : "≈ 188 coin";
     }
 
     var tugasBaru = {
@@ -1096,7 +1101,7 @@ async function mulaiProsesGenerate() {
 }
 window.mulaiProsesGenerate = mulaiProsesGenerate;
 
-// 6. FUNGSI PELINDUNG ELEMEN VIDEO DOM DARI BLOKIR REFERRER
+// 6. FUNGSI PELINDUNG ELEMEN VIDEO & PRELOAD METADATA
 function pasangPelindungVideoDOM() {
   if (!document.querySelector('meta[name="referrer"]')) {
     var meta = document.createElement('meta');
@@ -1110,8 +1115,17 @@ function pasangPelindungVideoDOM() {
     v.setAttribute('referrerpolicy', 'no-referrer');
     v.setAttribute('playsinline', '');
     v.setAttribute('webkit-playsinline', '');
-    if (v.src && v.src.startsWith('http://')) {
-      v.src = v.src.replace(/^http:\/\//i, 'https://');
+    v.setAttribute('preload', 'metadata');
+
+    if (v.src) {
+      if (v.src.includes('/api/stream?url=')) {
+        try {
+          var unescaped = decodeURIComponent(v.src.split('/api/stream?url=')[1]);
+          v.src = unescaped.replace(/^http:\/\//i, 'https://');
+        } catch (e) {}
+      } else if (v.src.startsWith('http://')) {
+        v.src = v.src.replace(/^http:\/\//i, 'https://');
+      }
     }
   });
 }
@@ -1121,19 +1135,9 @@ document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') {
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
       window.riwayatGenerateList.forEach(function(tugas) {
-        var isMM = (tugas.provider === 'minimax' || tugas.model === 'MiniMax H3' || tugas.prov === 'minimax');
-
-        if (!isMM && tugas.videoUrl) {
-          if (tugas.videoUrl.includes('/api/stream?url=')) {
-            try {
-              tugas.videoUrl = decodeURIComponent(tugas.videoUrl.split('/api/stream?url=')[1]);
-            } catch (e) {}
-          }
-          tugas.videoUrl = tugas.videoUrl.replace(/^http:\/\//i, 'https://');
+        if (tugas.videoUrl) {
+          tugas.videoUrl = bungkusStreamProxy(tugas.videoUrl);
           tugas.rawVideoUrl = tugas.videoUrl;
-        } else if (isMM && tugas.videoUrl && !tugas.videoUrl.includes('/api/stream?url=')) {
-          tugas.rawVideoUrl = tugas.videoUrl;
-          tugas.videoUrl = bungkusStreamProxy(tugas.videoUrl, 'minimax');
         }
 
         if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
@@ -1157,7 +1161,7 @@ document.addEventListener('visibilitychange', function() {
 
       simpanStorage();
       if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-      setTimeout(pasangPelindungVideoDOM, 600);
+      setTimeout(pasangPelindungVideoDOM, 500);
     }
   }
 });
@@ -1193,19 +1197,9 @@ window.onload = function() {
 
   if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
     window.riwayatGenerateList.forEach(function(tugas) {
-      var isMM = (tugas.provider === 'minimax' || tugas.model === 'MiniMax H3' || tugas.prov === 'minimax');
-
-      if (!isMM && tugas.videoUrl) {
-        if (tugas.videoUrl.includes('/api/stream?url=')) {
-          try {
-            tugas.videoUrl = decodeURIComponent(tugas.videoUrl.split('/api/stream?url=')[1]);
-          } catch (e) {}
-        }
-        tugas.videoUrl = tugas.videoUrl.replace(/^http:\/\//i, 'https://');
+      if (tugas.videoUrl) {
+        tugas.videoUrl = bungkusStreamProxy(tugas.videoUrl);
         tugas.rawVideoUrl = tugas.videoUrl;
-      } else if (isMM && tugas.videoUrl && !tugas.videoUrl.includes('/api/stream?url=')) {
-        tugas.rawVideoUrl = tugas.videoUrl;
-        tugas.videoUrl = bungkusStreamProxy(tugas.videoUrl, 'minimax');
       }
 
       var isKling = (
@@ -1235,5 +1229,5 @@ window.onload = function() {
   if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
   if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
 
-  setTimeout(pasangPelindungVideoDOM, 1000);
+  setTimeout(pasangPelindungVideoDOM, 800);
 };

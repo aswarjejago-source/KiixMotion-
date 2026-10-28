@@ -1,4 +1,4 @@
-// File: api/outputs.js - Dual Engine Separated Handler (Anti-801 Fix)
+// File: api/outputs.js - Dual Engine Separated Handler (Anti-801 & Real Cancel Sync Fix)
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       const piRes = await fetch(`https://api.piapi.ai/api/v1/task/${taskId}`, {
         headers: { 'X-API-KEY': PIAPI_KEY }
       });
-      const piJson = await piRes.json();
+      const piJson = await piRes.json().catch(() => ({}));
       return res.status(200).json({ success: true, data: piJson.data || piJson });
     } catch (e) {
       return res.status(500).json({ success: false, message: e.message });
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
           'Authorization': `Bearer ${supaKey}`
         }
       });
-      const dbData = await dbRes.json();
+      const dbData = await dbRes.json().catch(() => []);
       if (Array.isArray(dbData) && dbData[0]?.api_key) {
         effectiveApiKey = dbData[0].api_key;
       }
@@ -79,31 +79,59 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${effectiveApiKey}`
         },
-        body: JSON.stringify({ taskId: cleanTaskId })
+        body: JSON.stringify({ 
+          taskId: cleanTaskId,
+          apiKey: effectiveApiKey 
+        })
       });
 
-      const v2Json = await v2Res.json();
-      const v2Data = v2Json?.data || v2Json;
-      const statusV2 = (v2Data?.status || v2Json?.status || "").toString().toUpperCase().trim();
+      const v2Json = await v2Res.json().catch(() => ({}));
+      const v2Data = (v2Json && typeof v2Json.data === 'object' && v2Json.data !== null) ? v2Json.data : (v2Json || {});
+      const rawCode = Number(v2Json?.code);
+      const rawStatus = String(v2Data?.status || v2Data?.taskStatus || v2Json?.status || "").toUpperCase();
+      const rawMsg = String(v2Json?.msg || v2Json?.message || v2Data?.msg || v2Data?.errorMessage || "").toUpperCase();
 
-      // Teruskan jika status valid atau respon sukses
-      if (statusV2 || v2Json.code === 0 || v2Data.results || v2Json.results) {
-        return res.status(200).json(v2Json);
+      // 1. Deteksi pembatalan manual dari web RunningHub secara instan
+      if (
+        rawCode === 807 ||
+        rawStatus.includes("CANCEL") ||
+        rawStatus.includes("TERMINAT") ||
+        rawStatus.includes("ABORT") ||
+        rawStatus.includes("STOP") ||
+        rawMsg.includes("CANCEL") ||
+        rawMsg.includes("TERMINAT") ||
+        rawMsg.includes("ABORT")
+      ) {
+        return res.status(200).json({
+          code: 807,
+          status: "CANCELLED",
+          msg: v2Json?.msg || "Tugas dibatalkan di server RunningHub",
+          data: { status: "CANCELLED", taskId: cleanTaskId }
+        });
       }
 
-      // Tahan status jika antrean v2 baru dibuat dan belum terindeks
-      return res.status(200).json({
-        code: 804,
-        status: "RUNNING",
-        msg: "Task sedang diproses server v2",
-        data: { status: "RUNNING", taskId: cleanTaskId }
-      });
+      // 2. Deteksi kegagalan render
+      if (
+        rawStatus.includes("FAIL") ||
+        rawStatus.includes("ERROR") ||
+        rawMsg.includes("FAIL") ||
+        rawMsg.includes("ERROR")
+      ) {
+        return res.status(200).json({
+          code: rawCode || 500,
+          status: "FAILED",
+          msg: v2Json?.msg || "Tugas gagal diproses",
+          data: { status: "FAILED", taskId: cleanTaskId }
+        });
+      }
+
+      // 3. Teruskan respon apa adanya dari RunningHub tanpa memalsukan status
+      return res.status(200).json(v2Json);
+
     } catch (errV2) {
-      return res.status(200).json({
-        code: 804,
-        status: "RUNNING",
-        msg: "Menunggu koneksi server v2",
-        data: { status: "RUNNING", taskId: cleanTaskId }
+      return res.status(500).json({
+        success: false,
+        message: 'Gagal menghubungi server v2: ' + errV2.message
       });
     }
   }
@@ -125,7 +153,7 @@ export default async function handler(req, res) {
       })
     });
 
-    const v1Json = await v1Res.json();
+    const v1Json = await v1Res.json().catch(() => ({}));
 
     // Fallback darurat jika provider tidak terkirim tapi taskId milik v2 (terdeteksi 801 di v1)
     if (v1Json && (v1Json.code === 801 || v1Json.code === 802)) {
@@ -136,11 +164,13 @@ export default async function handler(req, res) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${effectiveApiKey}`
           },
-          body: JSON.stringify({ taskId: cleanTaskId })
+          body: JSON.stringify({ 
+            taskId: cleanTaskId,
+            apiKey: effectiveApiKey
+          })
         });
-        const fallbackV2Json = await fallbackV2Res.json();
-        const fbData = fallbackV2Json?.data || fallbackV2Json;
-        if (fbData?.status || fallbackV2Json?.status || fallbackV2Json?.code === 0) {
+        const fallbackV2Json = await fallbackV2Res.json().catch(() => ({}));
+        if (fallbackV2Json && (fallbackV2Json.code !== undefined || fallbackV2Json.data)) {
           return res.status(200).json(fallbackV2Json);
         }
       } catch (e) {}

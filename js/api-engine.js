@@ -1,6 +1,6 @@
 // ==========================================
 // PILAR 3: ENGINE LOGIC (CORE MOTION & MINIMAX ENGINE)
-// File: js/api-engine.js
+// File: js/api-engine.js - Single Door Credit System
 // ==========================================
 
 window.riwayatGenerateList = window.riwayatGenerateList || [];
@@ -13,7 +13,6 @@ window.engineProvider = engineMode;
 
 var urlBahanFoto = null;
 var urlBahanVideo = null;
-var listKunciPro = [];
 
 var ID_HAPUS_PERMANEN = ["2113884739211014561"];
 
@@ -47,7 +46,6 @@ function bungkusStreamProxy(url) {
 
   var cleanUrl = url.trim();
 
-  // Buka total bungkus proxy Vercel untuk semua jenis video
   if (cleanUrl.includes('/api/stream?url=')) {
     try {
       var raw = cleanUrl.split('/api/stream?url=')[1];
@@ -85,43 +83,12 @@ function tampilkanNotifPusat(pesan) {
 
 function alihkanKeMenuLangganan() {
   if (typeof gantiLayarNav === 'function') {
-    try { gantiLayarNav('vip'); } catch (e) {}
-    try { gantiLayarNav('langganan'); } catch (e) {}
-    try { gantiLayarNav('kredit'); } catch (e) {}
-  }
-
-  var semuaEl = document.querySelectorAll('button, a, div, span, li');
-  var target = null;
-
-  for (var i = 0; i < semuaEl.length; i++) {
-    var txt = (semuaEl[i].textContent || semuaEl[i].innerText || "").trim().toLowerCase();
-    if (txt === 'langganan vip' || txt.includes('langganan vip')) {
-      target = semuaEl[i];
-      break;
-    }
-  }
-
-  if (!target) {
-    for (var j = 0; j < semuaEl.length; j++) {
-      var t = (semuaEl[j].textContent || semuaEl[j].innerText || "").trim().toLowerCase();
-      if (t === 'beli kredit' || t.includes('beli kredit')) {
-        target = semuaEl[j];
-        break;
-      }
-    }
-  }
-
-  if (target) {
-    var evt = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-    target.dispatchEvent(evt);
-    try { target.click(); } catch (e) {}
+    gantiLayarNav('beli-kredit');
   }
 }
 
 function simpanStorage() {
   try {
-    localStorage.setItem('km_list_kunci_pro', JSON.stringify(listKunciPro));
-    
     if (window.riwayatGenerateList && Array.isArray(window.riwayatGenerateList)) {
       if (window.riwayatGenerateList.length === 0) {
         var dataAda = localStorage.getItem('km_riwayat_generate') || localStorage.getItem('km_riwayat_generate_bak');
@@ -141,9 +108,6 @@ window.simpanStorage = simpanStorage;
 
 function muatStorage() {
   try {
-    var rawKeys = localStorage.getItem('km_list_kunci_pro');
-    if (rawKeys) listKunciPro = JSON.parse(rawKeys) || [];
-
     var blacklisted = getBlacklistTugas();
     var listUtama = [];
 
@@ -198,7 +162,7 @@ muatStorage();
 // 2. SISTEM PEMILIHAN ENGINE & SINKRONISASI VISUAL KARTU
 function setProviderUtama(mode) {
   var modePilihan = (mode || 'kiix').toLowerCase().trim();
-  if (modePilihan === 'pro') modePilihan = 'runninghub';
+  if (modePilihan === 'runninghub' || modePilihan === 'pro') modePilihan = 'kiix';
 
   engineMode = modePilihan;
   window.engineMode = modePilihan;
@@ -207,45 +171,49 @@ function setProviderUtama(mode) {
   window._klingIsActive = (modePilihan === 'kling');
 
   var cKiix = document.getElementById("c-prov-kiix");
-  var cRh = document.getElementById("c-prov-runninghub");
   var cKling = document.getElementById("c-prov-kling");
+  var cMinimax = document.getElementById("c-prov-minimax");
 
   var bKiix = document.getElementById("b-prov-kiix");
-  var bRh = document.getElementById("b-prov-runninghub");
   var bKling = document.getElementById("b-prov-kling");
+  var bMinimax = document.getElementById("b-prov-minimax");
 
   var tTitle = document.getElementById("t-engine-title");
   var tTotal = document.getElementById("t-engine-total");
-  var dropWrap = document.getElementById("box-wrap-dropdown-akun");
 
-  var kartu = [cKiix, cRh, cKling];
-  var badge = [bKiix, bRh, bKling];
-  var targetIdx = (modePilihan === "kiix") ? 0 : (modePilihan === "runninghub") ? 1 : 2;
+  if (cKiix) {
+    cKiix.className = (modePilihan === "kiix")
+      ? "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow cursor-pointer transition ring-4 ring-violet-50"
+      : "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
+  }
+  if (cKling) {
+    cKling.className = (modePilihan === "kling")
+      ? "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-indigo-600 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-indigo-50 transition"
+      : "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-indigo-300 transition modern-shadow";
+  }
 
-  kartu.forEach(function(c, idx) {
-    if (c) {
-      c.className = (idx === targetIdx)
-        ? "bg-white border-2 border-kmViolet p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-violet-50 transition"
-        : "bg-kmCard border border-kmBorder p-5 rounded-2xl cursor-pointer hover:border-violet-300 transition modern-shadow";
-    }
-  });
-
-  badge.forEach(function(b, idx) {
-    if (b) b.style.display = (idx === targetIdx) ? "inline-block" : "none";
-  });
+  if (bKiix) bKiix.style.display = (modePilihan === "kiix") ? "inline-block" : "none";
+  if (bKling) bKling.style.display = (modePilihan === "kling") ? "inline-block" : "none";
+  if (bMinimax) bMinimax.style.display = (modePilihan === "minimax") ? "inline-block" : "none";
 
   if (modePilihan === 'kiix') {
-    if (tTitle) tTitle.innerText = "KIIXMOTION CONTROL";
-    if (tTotal) tTotal.innerText = "1 Kredit / render";
-    if (dropWrap) dropWrap.style.display = "none";
-  } else if (modePilihan === 'runninghub') {
-    if (tTitle) tTitle.innerText = "RUNNINGHUB PRO";
-    if (tTotal) tTotal.innerText = "Akun Pribadi";
-    if (dropWrap) dropWrap.style.display = "block";
+    if (tTitle) tTitle.innerText = "WAN MOTION CONTROL 1080HD";
+    if (tTotal) {
+      tTotal.innerText = "1 Kredit";
+      tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
+    }
   } else if (modePilihan === 'kling') {
     if (tTitle) tTitle.innerText = "KLING 2.6 MOTION CONTROL";
-    if (tTotal) tTotal.innerText = "Testing Trial";
-    if (dropWrap) dropWrap.style.display = "none";
+    if (tTotal) {
+      tTotal.innerText = "Testing Trial";
+      tTotal.className = "text-lg sm:text-xl font-black text-indigo-600 tracking-tight";
+    }
+  } else if (modePilihan === 'minimax') {
+    if (tTitle) tTitle.innerText = "MINIMAX H3 MASTER WORKFLOW";
+    if (tTotal) {
+      tTotal.innerText = "1 Kredit";
+      tTotal.className = "text-lg sm:text-xl font-black text-kmViolet tracking-tight";
+    }
   }
 
   var btn = document.getElementById("btn-submit-generate");
@@ -258,17 +226,11 @@ window.setProviderUtama = setProviderUtama;
 
 function pasangPilihanEngineListener() {
   var cKiix = document.getElementById("c-prov-kiix");
-  var cRh = document.getElementById("c-prov-runninghub");
   var cKling = document.getElementById("c-prov-kling");
 
   if (cKiix && !cKiix._hasEngineClick) {
     cKiix._hasEngineClick = true;
     cKiix.addEventListener("click", function() { setProviderUtama("kiix"); });
-  }
-
-  if (cRh && !cRh._hasEngineClick) {
-    cRh._hasEngineClick = true;
-    cRh.addEventListener("click", function() { setProviderUtama("runninghub"); });
   }
 
   if (cKling && !cKling._hasEngineClick) {
@@ -289,28 +251,6 @@ async function selaraskanRiwayatDenganAkun() {
 
       if (sUser) {
         var emailTarget = sUser.email ? sUser.email.toLowerCase().trim() : '';
-        
-        var { data: dbUser } = await supa
-          .from('users')
-          .select('*')
-          .ilike('email', emailTarget)
-          .maybeSingle();
-
-        if (dbUser) {
-          var isVIP = (
-            dbUser.is_vip === true ||
-            dbUser.is_pro === true ||
-            dbUser.role === 'pro' ||
-            dbUser.role === 'vip' ||
-            dbUser.status === 'pro' ||
-            dbUser.status === 'vip'
-          );
-
-          var currentP = window.providerAktif || window.engineProvider || window.engineMode;
-          if (!currentP || currentP === 'kiix' || currentP === 'pro' || currentP === 'runninghub') {
-            setProviderUtama(isVIP ? 'runninghub' : 'kiix');
-          }
-        }
 
         if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
           window.riwayatGenerateList.forEach(function(t) {
@@ -320,7 +260,6 @@ async function selaraskanRiwayatDenganAkun() {
 
           simpanStorage();
           if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-          if (typeof updateStatistikDashboard === 'function') updateStatistikDashboard();
         }
       }
     } catch (err) {}
@@ -333,7 +272,6 @@ async function lepaskanKunciPoolOtomatis(poolId) {
 
   if (typeof supa !== 'undefined') {
     try {
-      // 1. Ambil data api_key pool yang bersangkutan dari Supabase
       var { data: poolRec } = await supa
         .from('runninghub_pool')
         .select('api_key')
@@ -342,7 +280,6 @@ async function lepaskanKunciPoolOtomatis(poolId) {
 
       var koinTersisa = null;
 
-      // 2. Tarik sisa saldo koin real-time dari server RunningHub
       if (poolRec && poolRec.api_key) {
         try {
           var resSaldo = await fetch('/api/saldo', {
@@ -362,9 +299,8 @@ async function lepaskanKunciPoolOtomatis(poolId) {
         } catch (errSaldo) {}
       }
 
-      // 3. Update status jadi idle SEKALIGUS update angka koin real ke Supabase
       var payloadUpdate = { 
-        status: 'idle', 
+        status: (koinTersisa !== null && koinTersisa < 180) ? 'habis' : 'idle', 
         last_used_at: new Date().toISOString() 
       };
       if (koinTersisa !== null) {
@@ -381,9 +317,7 @@ async function lepaskanKunciPoolOtomatis(poolId) {
   }
 
   try {
-    if (typeof muatUlangDaftarPool === 'function') muatUlangDaftarPool();
-    if (typeof renderTabelPool === 'function') renderTabelPool();
-    if (typeof hitungStatistikPool === 'function') hitungStatistikPool();
+    if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
   } catch (e) {}
 }
 
@@ -449,7 +383,6 @@ function resetFormBahanInput() {
   var txtVideo = document.getElementById('txt-file-video');
   var stFoto = document.getElementById('st-file-foto');
   var stVideo = document.getElementById('st-file-video');
-  var inPrompt = document.getElementById('in-prompt-gerak');
   var inPromptMM = document.getElementById('prompt-minimax');
 
   if (inFoto) inFoto.value = '';
@@ -458,7 +391,6 @@ function resetFormBahanInput() {
   if (txtVideo) txtVideo.innerText = 'Video Gerakan';
   if (stFoto) stFoto.innerHTML = 'JPG / PNG';
   if (stVideo) stVideo.innerHTML = 'MP4 (Maks 10s)';
-  if (inPrompt) inPrompt.value = '';
   if (inPromptMM) inPromptMM.value = '';
 
   for (var i = 1; i <= 9; i++) {
@@ -466,18 +398,22 @@ function resetFormBahanInput() {
     var delBtn = document.getElementById('del-mm-' + i);
     var plusIcon = document.getElementById('plus-mm-' + i);
     var lblText = document.getElementById('lbl-mm-' + i);
-    var inSlot = document.getElementById('input-mm-' + i);
 
     if (divBg) {
       divBg.style.backgroundImage = '';
       divBg.removeAttribute('data-url');
       divBg.classList.add('hidden');
     }
-    if (delBtn) { delBtn.classList.add('hidden'); delBtn.classList.remove('flex'); }
+    if (delBtn) delBtn.classList.add('hidden');
     if (plusIcon) plusIcon.classList.remove('hidden');
-    if (lblText) { lblText.innerText = String(i); lblText.className = 'text-[10px] font-bold text-slate-400 mt-0.5 z-10'; }
-    if (inSlot) inSlot.value = '';
+    if (lblText) { 
+      lblText.innerText = String(i); 
+      lblText.className = 'text-[10px] font-bold text-slate-400 mt-0.5 z-10'; 
+    }
   }
+
+  window.minimaxFiles = {};
+  window.minimaxUrls = {};
 }
 
 function tampilkanModalCeklisSukses(taskId) {
@@ -602,12 +538,9 @@ function perbaruiBarProgresUI(tugas) {
   }
 
   var semuaKad = document.querySelectorAll('.grid > div, [class*="card"], [class*="shadow"], div[class*="rounded"]');
-  var kartuDitemukan = false;
-
   for (var k = 0; k < semuaKad.length; k++) {
     var cardText = semuaKad[k].innerText || "";
     if (cardText.includes(taskIdStr)) {
-      kartuDitemukan = true;
       var elemenTeks = semuaKad[k].querySelectorAll('div, p, span');
       for (var tIdx = 0; tIdx < elemenTeks.length; tIdx++) {
         var txt = (elemenTeks[tIdx].innerText || "").trim();
@@ -620,26 +553,6 @@ function perbaruiBarProgresUI(tugas) {
         b.style.width = persenStr;
       });
       break;
-    }
-  }
-
-  if (!kartuDitemukan) {
-    for (var j = 0; j < semuaKad.length; j++) {
-      var sTxt = (semuaKad[j].innerText || "");
-      if (sTxt.includes("Sedang Memproses") || sTxt.includes("Mengantre") || sTxt.includes("Memproses")) {
-        var sps = semuaKad[j].querySelectorAll('div, p, span');
-        for (var sIdx = 0; sIdx < sps.length; sIdx++) {
-          var labelTxt = (sps[sIdx].innerText || "").trim();
-          if (labelTxt.endsWith('%') && labelTxt.length <= 5) {
-            sps[sIdx].innerText = persenStr;
-          }
-        }
-        var barDivs = semuaKad[j].querySelectorAll('div[style*="width"], div[class*="bg-violet"], div[class*="bg-indigo"]');
-        barDivs.forEach(function(b) {
-          b.style.width = persenStr;
-        });
-        break;
-      }
     }
   }
 }
@@ -758,7 +671,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
 
           if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
           if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-          if (currentApiKey) refreshSaldoKunciOtomatis(currentApiKey);
           if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video berhasil selesai!', 'sukses');
 
           setTimeout(pasangPelindungVideoDOM, 500);
@@ -894,58 +806,12 @@ function hapusRiwayatSatu(target) {
   if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
   if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
 }
-
-async function refreshSaldoKunciOtomatis(apiKey) {
-  if (!apiKey) return;
-  try {
-    var res = await fetch('/api/saldo', {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ apiKey: apiKey })
-    });
-    var hasil = await res.json();
-    if (res.ok && hasil) {
-      var rawData = hasil.data || hasil;
-      var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.credit ?? rawData.balance ?? rawData.remainCoins;
-      if (k !== undefined && k !== null) {
-        var koinNum = Number(k);
-        var idxKetemu = listKunciPro.findIndex(function(a) { return a.key === apiKey; });
-        if (idxKetemu !== -1) {
-          listKunciPro[idxKetemu].koin = koinNum;
-          simpanStorage();
-          updateStatistikDashboard();
-          if (typeof renderListAkunDiKelola === 'function') renderListAkunDiKelola();
-        }
-      }
-    }
-  } catch (err) {}
-}
-
-function updateStatistikDashboard() {
-  var totalKoin = 0, maxKoin = 0;
-  listKunciPro.forEach(function(a) {
-    var k = Number(a.koin) || 0;
-    totalKoin += k;
-    if (k > maxKoin) maxKoin = k;
-  });
-  
-  var elTotal = document.querySelector('[id*="total-koin"]');
-  var elAkun = document.querySelector('[id*="total-akun"]');
-  var elMax = document.querySelector('[id*="max-koin"]');
-  
-  if (elTotal) elTotal.innerText = totalKoin;
-  if (elAkun) elAkun.innerText = listKunciPro.length;
-  if (elMax) elMax.innerText = maxKoin;
-
-  if (window.riwayatGenerateList) {
-    var elSelesai = document.querySelector('[id*="stat-video-selesai"]');
-    if (elSelesai) elSelesai.innerText = window.riwayatGenerateList.filter(function(r) { return r.selesai; }).length;
-  }
-}
+window.hapusRiwayatSatu = hapusRiwayatSatu;
 
 async function mulaiProsesGenerate() {
   var btn = document.getElementById('btn-submit-generate');
   var currentProvider = window.providerAktif || window.engineProvider || window.engineMode || engineMode;
+  if (currentProvider === 'runninghub' || currentProvider === 'pro') currentProvider = 'kiix';
 
   if (currentProvider === 'kling' || window._klingIsActive) {
     if (typeof window.jalankanGenerateKling === 'function') {
@@ -958,10 +824,9 @@ async function mulaiProsesGenerate() {
 
   var realEmail = null;
   var realUserId = null;
-  var profilUser = null;
 
   if (typeof supa !== 'undefined') {
-    if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA STATUS..."; }
+    if (btn) { btn.disabled = true; btn.innerText = "🔍 MEMERIKSA KREDIT..."; }
     try {
       var sessionRes = await supa.auth.getSession();
       var sessionUser = sessionRes?.data?.session?.user;
@@ -973,18 +838,6 @@ async function mulaiProsesGenerate() {
 
       if (sessionUser && sessionUser.email) realEmail = sessionUser.email.toLowerCase().trim();
       if (sessionUser && sessionUser.id) realUserId = sessionUser.id;
-      
-      if (realEmail) {
-        var { data: dbUser } = await supa
-          .from('users')
-          .select('*')
-          .ilike('email', realEmail)
-          .maybeSingle();
-        if (dbUser) {
-          profilUser = dbUser;
-          if (!realUserId && dbUser.id) realUserId = dbUser.id;
-        }
-      }
     } catch (err) {}
   }
 
@@ -993,15 +846,6 @@ async function mulaiProsesGenerate() {
     if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
     return tampilkanNotifPusat('Sesi login berakhir, silakan login ulang!');
   }
-
-  var isMemberVip = profilUser && (
-    profilUser.is_vip === true ||
-    profilUser.is_pro === true ||
-    profilUser.role === 'pro' ||
-    profilUser.role === 'vip' ||
-    profilUser.status === 'pro' ||
-    profilUser.status === 'vip'
-  );
 
   var payloadGenerate = {
     provider: currentProvider,
@@ -1016,7 +860,11 @@ async function mulaiProsesGenerate() {
     var listGambarMM = [];
     for (var idx = 1; idx <= 9; idx++) {
       var prev = document.getElementById('prev-mm-' + idx);
-      if (prev && !prev.classList.contains('hidden')) {
+      var uploadedUrl = window.minimaxUrls ? window.minimaxUrls[idx] : null;
+
+      if (uploadedUrl) {
+        listGambarMM.push({ slot: idx, url: uploadedUrl });
+      } else if (prev && !prev.classList.contains('hidden')) {
         var cleanBg = (prev.dataset.url || prev.getAttribute('data-url') || prev.style.backgroundImage || '')
           .replace(/^url\(["']?/, '')
           .replace(/["']?\)$/, '')
@@ -1047,15 +895,6 @@ async function mulaiProsesGenerate() {
     payloadGenerate.aspectRatio = document.getElementById('sel-minimax-ratio')?.value || '3:4';
 
   } else {
-    if (currentProvider === 'runninghub' || currentProvider === 'pro') {
-      if (!isMemberVip) {
-        if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
-        tampilkanNotifPusat('Kamu belum punya akses Pro!');
-        setTimeout(function() { alihkanKeMenuLangganan(); }, 500);
-        return;
-      }
-    }
-
     if (!urlBahanFoto || !urlBahanVideo) {
       if (btn) { btn.innerText = "GENERATE VIDEO"; btn.disabled = false; }
       return tampilkanNotifPusat('Foto karakter dan Video gerakan wajib selesai diunggah!');
@@ -1064,15 +903,6 @@ async function mulaiProsesGenerate() {
     payloadGenerate.urlBahanFoto = urlBahanFoto;
     payloadGenerate.urlBahanVideo = urlBahanVideo;
   }
-
-  var apiKeyPribadi = null;
-  var selAkun = document.getElementById('sel-dropdown-akun');
-  if (selAkun && selAkun.value) {
-    var dbAkun = window.dbAkun || JSON.parse(localStorage.getItem('kiix_akun_local_v1') || '[]');
-    var foundAkun = dbAkun.find(function(a) { return String(a.id) === String(selAkun.value); });
-    if (foundAkun) apiKeyPribadi = foundAkun.key;
-  }
-  payloadGenerate.apiKeyPribadi = apiKeyPribadi;
 
   if (btn) { btn.disabled = true; btn.innerText = "⚡ MEMPROSES VIDEO..."; }
 
@@ -1092,19 +922,13 @@ async function mulaiProsesGenerate() {
     var poolIdDipakai = data.poolId;
     var didDeductCredit = data.didDeductCredit;
 
-    var namaModel = "Wan Motion Control";
-    var namaEngine = "Wan Motion Control 1080HD";
-    var biayaRender = didDeductCredit ? "1 Kredit" : "≈ 478 coin";
-
-    if (currentProvider === 'minimax') {
-      namaModel = "MiniMax H3";
-      namaEngine = "MiniMax H3 Master Workflow";
-      biayaRender = didDeductCredit ? "1 Kredit" : "≈ 188 coin";
-    }
+    var namaModel = (currentProvider === 'minimax') ? "MiniMax H3" : "Wan Motion Control";
+    var namaEngine = (currentProvider === 'minimax') ? "MiniMax H3 Master Workflow" : "Wan Motion Control 1080HD";
+    var biayaRender = "1 Kredit";
 
     var tugasBaru = {
       id: taskIdAsli,
-      key: apiKeyPribadi || null,
+      key: null,
       pool_id: poolIdDipakai,
       user_id: realUserId,
       user_email: realEmail,
@@ -1133,7 +957,7 @@ async function mulaiProsesGenerate() {
 
     if (typeof updateStatusMemberUI === 'function') updateStatusMemberUI(realEmail);
     if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-    pantauStatusVideo(tugasBaru, apiKeyPribadi, poolIdDipakai, tugasBaru.user_id, didDeductCredit);
+    pantauStatusVideo(tugasBaru, null, poolIdDipakai, tugasBaru.user_id, didDeductCredit);
 
   } catch (err) {
     var pesan = err.message || 'Terjadi gangguan koneksi ke server render.';
@@ -1143,6 +967,11 @@ async function mulaiProsesGenerate() {
   }
 }
 window.mulaiProsesGenerate = mulaiProsesGenerate;
+window.mulaiProsesGenerateMinimax = function() {
+  window.providerAktif = 'minimax';
+  window.engineProvider = 'minimax';
+  mulaiProsesGenerate();
+};
 
 // 7. FUNGSI PELINDUNG ELEMEN VIDEO & PRELOAD METADATA
 function pasangPelindungVideoDOM() {
@@ -1209,21 +1038,6 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
-setInterval(function() {
-  try {
-    var tombolSync = document.querySelector('button[onclick*="sync"], button[onclick*="Sync"]');
-    if (tombolSync && document.visibilityState === 'visible') {
-      if (typeof syncSemuaKunciKolam === 'function') {
-        syncSemuaKunciKolam(true);
-      } else if (typeof syncSaldoSemua === 'function') {
-        syncSaldoSemua(true);
-      } else if (typeof muatUlangDaftarPool === 'function') {
-        muatUlangDaftarPool();
-      }
-    }
-  } catch (e) {}
-}, 20000);
-
 window.addEventListener('DOMContentLoaded', function() {
   muatStorage();
   pasangPilihanEngineListener();
@@ -1236,7 +1050,6 @@ window.onload = function() {
   muatStorage();
   pasangPilihanEngineListener();
   selaraskanRiwayatDenganAkun();
-  updateStatistikDashboard();
 
   if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
     window.riwayatGenerateList.forEach(function(tugas) {

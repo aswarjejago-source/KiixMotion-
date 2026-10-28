@@ -1,4 +1,4 @@
-// File: api/outputs.js - Native Fetch Version (Dual Engine: ComfyUI v1 & AI-App v2)
+// File: api/outputs.js - Dual Engine Separated Handler (Anti-801 Fix)
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
@@ -27,18 +27,16 @@ export default async function handler(req, res) {
   }
 
   // =========================================================
-  // JALUR 2 & 3: RUNNINGHUB (WAN MOTION V1 & MINIMAX H3 V2)
+  // AMBIL API KEY RUNNINGHUB
   // =========================================================
-  try {
-    let effectiveApiKey = apiKey;
+  let effectiveApiKey = apiKey;
+  const supaUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 
+                  process.env.SUPABASE_ANON_KEY || 
+                  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    // Ambil kunci dari Supabase via REST API jika apiKey tidak dikirim dari klien
-    const supaUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 
-                    process.env.SUPABASE_ANON_KEY || 
-                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!effectiveApiKey && supaUrl && supaKey) {
+  if (!effectiveApiKey && supaUrl && supaKey) {
+    try {
       const queryUrl = poolId 
         ? `${supaUrl}/rest/v1/runninghub_pool?id=eq.${poolId}&select=api_key`
         : `${supaUrl}/rest/v1/runninghub_pool?select=api_key&limit=1`;
@@ -53,27 +51,86 @@ export default async function handler(req, res) {
       if (Array.isArray(dbData) && dbData[0]?.api_key) {
         effectiveApiKey = dbData[0].api_key;
       }
-    }
+    } catch (e) {}
+  }
 
-    if (!effectiveApiKey) {
-      effectiveApiKey = process.env.RUNNINGHUB_API_KEY;
-    }
+  if (!effectiveApiKey) {
+    effectiveApiKey = process.env.RUNNINGHUB_API_KEY;
+  }
 
-    if (!effectiveApiKey) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'API Key RunningHub tidak ditemukan di server.' 
+  if (!effectiveApiKey) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'API Key RunningHub tidak ditemukan di server.' 
+    });
+  }
+
+  const cleanTaskId = String(taskId).trim();
+  const isMiniMax = (provider === 'minimax');
+
+  // =========================================================
+  // JALUR 2: KHUSUS MINIMAX H3 (OPENAPI V2 AI-APP)
+  // =========================================================
+  if (isMiniMax) {
+    try {
+      const v2Res = await fetch('https://www.runninghub.ai/openapi/v2/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${effectiveApiKey}`
+        },
+        body: JSON.stringify({ taskId: cleanTaskId })
+      });
+
+      const v2Json = await v2Res.json();
+      const v2Data = v2Json?.data || v2Json;
+      const statusV2 = (v2Data?.status || v2Json?.status || "").toString().toUpperCase().trim();
+
+      // Teruskan jika status valid atau respon sukses
+      if (statusV2 || v2Json.code === 0 || v2Data.results || v2Json.results) {
+        return res.status(200).json(v2Json);
+      }
+
+      // Tahan status jika antrean v2 baru dibuat dan belum terindeks
+      return res.status(200).json({
+        code: 804,
+        status: "RUNNING",
+        msg: "Task sedang diproses server v2",
+        data: { status: "RUNNING", taskId: cleanTaskId }
+      });
+    } catch (errV2) {
+      return res.status(200).json({
+        code: 804,
+        status: "RUNNING",
+        msg: "Menunggu koneksi server v2",
+        data: { status: "RUNNING", taskId: cleanTaskId }
       });
     }
+  }
 
-    const cleanTaskId = String(taskId).trim();
-    const isExplicitMinimax = (provider === 'minimax');
-    let finalResult = null;
+  // =========================================================
+  // JALUR 3: WAN MOTION CONTROL (OPENAPI V1 COMFYUI)
+  // =========================================================
+  try {
+    const v1Res = await fetch('https://www.runninghub.ai/task/openapi/outputs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${effectiveApiKey}`,
+        'apiKey': effectiveApiKey
+      },
+      body: JSON.stringify({
+        apiKey: effectiveApiKey,
+        taskId: cleanTaskId
+      })
+    });
 
-    // A. JIKA MINIMAX ATAU PROVIDER BELUM SPESIFIK: CEK DULU KE OPENAPI V2
-    if (isExplicitMinimax || !provider) {
+    const v1Json = await v1Res.json();
+
+    // Fallback darurat jika provider tidak terkirim tapi taskId milik v2 (terdeteksi 801 di v1)
+    if (v1Json && (v1Json.code === 801 || v1Json.code === 802)) {
       try {
-        const v2Res = await fetch('https://www.runninghub.ai/openapi/v2/query', {
+        const fallbackV2Res = await fetch('https://www.runninghub.ai/openapi/v2/query', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -81,62 +138,20 @@ export default async function handler(req, res) {
           },
           body: JSON.stringify({ taskId: cleanTaskId })
         });
-
-        const v2Json = await v2Res.json();
-
-        // Valid jika ada status aktif atau hasil tanpa pesan galat
-        if (v2Json && !v2Json.errorCode && (v2Json.status || v2Json.results)) {
-          finalResult = v2Json;
+        const fallbackV2Json = await fallbackV2Res.json();
+        const fbData = fallbackV2Json?.data || fallbackV2Json;
+        if (fbData?.status || fallbackV2Json?.status || fallbackV2Json?.code === 0) {
+          return res.status(200).json(fallbackV2Json);
         }
-      } catch (errV2) {
-        // Lanjut ke fallback v1 jika v2 gagal koneksi
-      }
+      } catch (e) {}
     }
 
-    // B. JIKA BUKAN V2 ATAU V2 TIDAK MENEMUKAN TUGAS: FALLBACK KE OPENAPI V1 (COMFYUI)
-    if (!finalResult) {
-      const v1Res = await fetch('https://www.runninghub.ai/task/openapi/outputs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${effectiveApiKey}`,
-          'apiKey': effectiveApiKey
-        },
-        body: JSON.stringify({
-          apiKey: effectiveApiKey,
-          taskId: cleanTaskId
-        })
-      });
+    return res.status(200).json(v1Json);
 
-      const v1Json = await v1Res.json();
-
-      // C. JIKA DI V1 MASIH MENGEMBALIKAN GALAT 801, CEK ULANG KE V2 SEBAGAI JARING PENGAMAN
-      if (v1Json && (v1Json.code === 801 || v1Json.code === 802) && !isExplicitMinimax) {
-        try {
-          const reV2Res = await fetch('https://www.runninghub.ai/openapi/v2/query', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${effectiveApiKey}`
-            },
-            body: JSON.stringify({ taskId: cleanTaskId })
-          });
-          const reV2Json = await reV2Res.json();
-          if (reV2Json && !reV2Json.errorCode && (reV2Json.status || reV2Json.results)) {
-            return res.status(200).json(reV2Json);
-          }
-        } catch (e) {}
-      }
-
-      finalResult = v1Json;
-    }
-
-    return res.status(200).json(finalResult);
-
-  } catch (err) {
+  } catch (errV1) {
     return res.status(500).json({ 
       success: false, 
-      message: 'Gagal menghubungkan ke RunningHub: ' + err.message 
+      message: 'Gagal menghubungi server v1: ' + errV1.message 
     });
   }
 }

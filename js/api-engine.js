@@ -327,13 +327,57 @@ async function selaraskanRiwayatDenganAkun() {
   }
 }
 
+// 3. SINKRONISASI REALTIME STATUS IDLE & SISA KOIN AKUN POOL SUPABASE
 async function lepaskanKunciPoolOtomatis(poolId) {
   if (!poolId) return;
 
   if (typeof supa !== 'undefined') {
     try {
-      await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
-    } catch (e) {}
+      // 1. Ambil data api_key pool yang bersangkutan dari Supabase
+      var { data: poolRec } = await supa
+        .from('runninghub_pool')
+        .select('api_key')
+        .eq('id', poolId)
+        .maybeSingle();
+
+      var koinTersisa = null;
+
+      // 2. Tarik sisa saldo koin real-time dari server RunningHub
+      if (poolRec && poolRec.api_key) {
+        try {
+          var resSaldo = await fetch('/api/saldo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: poolRec.api_key })
+          });
+
+          if (resSaldo.ok) {
+            var hasilSaldo = await resSaldo.json();
+            var raw = hasilSaldo.data || hasilSaldo;
+            var k = raw.totalCoins ?? raw.coins ?? raw.coin ?? raw.balance ?? raw.remainCoins;
+            if (k !== undefined && k !== null && !isNaN(Number(k))) {
+              koinTersisa = Number(k);
+            }
+          }
+        } catch (errSaldo) {}
+      }
+
+      // 3. Update status jadi idle SEKALIGUS update angka koin real ke Supabase
+      var payloadUpdate = { 
+        status: 'idle', 
+        last_used_at: new Date().toISOString() 
+      };
+      if (koinTersisa !== null) {
+        payloadUpdate.koin = koinTersisa;
+      }
+
+      await supa.from('runninghub_pool').update(payloadUpdate).eq('id', poolId);
+
+    } catch (e) {
+      try {
+        await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
+      } catch (errFallback) {}
+    }
   }
 
   try {
@@ -343,7 +387,7 @@ async function lepaskanKunciPoolOtomatis(poolId) {
   } catch (e) {}
 }
 
-// 3. PEMBONGKAR DATA RUNNINGHUB REKURSIF (HTTPS MURNI)
+// 4. PEMBONGKAR DATA RUNNINGHUB REKURSIF (HTTPS MURNI)
 function ambilLinkOutputResmi(jsonObj) {
   if (!jsonObj) return null;
   var hasilLink = null;
@@ -528,7 +572,7 @@ function unggahBahanLangsung(input, tipe) {
 }
 window.unggahBahanLangsung = unggahBahanLangsung;
 
-// 4. UPDATE VISUAL PERSENTASE 0-100% SECARA CERDAS DI KARTU APAPUN
+// 5. UPDATE VISUAL PERSENTASE 0-100% SECARA CERDAS DI KARTU APAPUN
 function perbaruiBarProgresUI(tugas) {
   if (!tugas) return;
   var taskIdStr = String(tugas.id || tugas.taskId || "").trim();
@@ -600,7 +644,7 @@ function perbaruiBarProgresUI(tugas) {
   }
 }
 
-// 5. PEMANTAUAN STATUS & PENARIKAN VIDEO (DENGAN TOLERANSI WAKTU 20 DETIK)
+// 6. PEMANTAUAN STATUS & PENARIKAN HASIL VIDEO
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai && tugas.videoUrl) return; 
 
@@ -723,9 +767,8 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       }
 
       // TOLERANSI SINKRONISASI SERVER RUNNINGHUB (20 DETIK PERTAMA)
-      // Mencegah pembatalan prematur saat ID tugas belum terindeks di database query
-      var isNotFound = (code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || statusTeks.includes("NOT FOUND"));
-      if (isNotFound && waktuBerjalan < 20000) {
+      var isNotFound = (code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || statusTeks.includes("NOT FOUND") || statusTeks === "");
+      if (isNotFound && waktuBerjalan < 20000 && !linkOutputAsli) {
         tugas.status = "⏳ Mengantre di Server...";
         if (tugas.progress < 15) tugas.progress += 2;
         perbaruiBarProgresUI(tugas);
@@ -738,9 +781,9 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         (code === 802 && waktuBerjalan >= 20000) || 
         code === 807 ||
         statusTeks === "FAILED" ||
-        statusTeks.includes("FAIL") ||
-        statusTeks.includes("ERR") ||
-        statusTeks.includes("CANCEL")
+        statusTeks === "FAILURE" ||
+        statusTeks.includes("CANCEL") ||
+        (statusTeks.includes("FAIL") && !statusTeks.includes("FAILED_REASON"))
       );
 
       if (isGagalAtauBatal && !linkOutputAsli) {
@@ -1101,7 +1144,7 @@ async function mulaiProsesGenerate() {
 }
 window.mulaiProsesGenerate = mulaiProsesGenerate;
 
-// 6. FUNGSI PELINDUNG ELEMEN VIDEO & PRELOAD METADATA
+// 7. FUNGSI PELINDUNG ELEMEN VIDEO & PRELOAD METADATA
 function pasangPelindungVideoDOM() {
   if (!document.querySelector('meta[name="referrer"]')) {
     var meta = document.createElement('meta');
@@ -1130,7 +1173,7 @@ function pasangPelindungVideoDOM() {
   });
 }
 
-// 7. SINKRONISASI SAAT TAB AKTIF
+// 8. SINKRONISASI SAAT TAB AKTIF
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') {
     if (window.riwayatGenerateList && window.riwayatGenerateList.length > 0) {
@@ -1188,7 +1231,7 @@ window.addEventListener('DOMContentLoaded', function() {
   pasangPelindungVideoDOM();
 });
 
-// 8. PEMULIHAN TOTAL SAAT WEB DIBUKA
+// 9. PEMULIHAN TOTAL SAAT WEB DIBUKA
 window.onload = function() {
   muatStorage();
   pasangPilihanEngineListener();

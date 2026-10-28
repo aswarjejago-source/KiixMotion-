@@ -33,7 +33,7 @@ async function uploadKeEngineServer(fileUrl, fileType, apiKey) {
     body: formData
   });
 
-  const rhJson = await rhRes.json();
+  const rhJson = await rhRes.json().catch(() => ({}));
   let serverFile = null;
   if (rhJson && (rhJson.code === 0 || rhJson.code === 200 || rhJson.data)) {
     if (typeof rhJson.data === 'string') serverFile = rhJson.data;
@@ -95,6 +95,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ success: false, message: 'Sesi login tidak valid. Silakan login ulang.' });
   }
 
+  const cleanUserId = String(userId).trim();
+
   // Validasi input
   if (provider === 'minimax') {
     if ((!images || images.length === 0) && !urlBahanFoto) {
@@ -115,7 +117,7 @@ export default async function handler(req, res) {
                                 process.env.SUPABASE_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
-    return res.status(500).json({ success: false, message: 'Koneksi database Supabase tidak terbaca.' });
+    return res.status(500).json({ success: false, message: 'Koneksi database Supabase tidak terbaca pada konfigurasi Vercel.' });
   }
 
   const supaHeaders = {
@@ -130,10 +132,10 @@ export default async function handler(req, res) {
   if (provider === 'kling') {
     let emailTerverifikasi = (userEmail || "").trim().toLowerCase();
 
-    if (!emailTerverifikasi && userId) {
+    if (!emailTerverifikasi && cleanUserId) {
       try {
-        const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=email`, { headers: supaHeaders });
-        const profData = await profRes.json();
+        const profRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${cleanUserId}&select=email`, { headers: supaHeaders });
+        const profData = await profRes.json().catch(() => []);
         if (Array.isArray(profData) && profData[0]?.email) {
           emailTerverifikasi = profData[0].email.trim().toLowerCase();
         }
@@ -170,7 +172,7 @@ export default async function handler(req, res) {
         body: JSON.stringify(piapiPayload)
       });
 
-      const piapiJson = await piapiRes.json();
+      const piapiJson = await piapiRes.json().catch(() => ({}));
       const idTugas = piapiJson?.task_id || piapiJson?.data?.task_id;
 
       if (idTugas) {
@@ -195,14 +197,22 @@ export default async function handler(req, res) {
     const potongRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/potong_kredit_member`, {
       method: 'POST',
       headers: supaHeaders,
-      body: JSON.stringify({ target_user_id: String(userId) })
+      body: JSON.stringify({ target_user_id: cleanUserId })
     });
 
-    const potongJson = await potongRes.json();
+    const potongJson = await potongRes.json().catch(() => ({}));
+    
+    // Validasi penanganan error RPC yang akurat
     if (!potongRes.ok || potongJson?.success !== true) {
+      const pesanErrorAsli = potongJson?.pesan || 
+                             potongJson?.message || 
+                             potongJson?.hint || 
+                             potongJson?.details || 
+                             (typeof potongJson === 'string' ? potongJson : null) || 
+                             'Gagal memvalidasi atau memotong kredit akun.';
       return res.status(400).json({
         success: false,
-        message: potongJson?.pesan || 'Sisa kredit kamu habis atau masa aktif telah berakhir.'
+        message: pesanErrorAsli
       });
     }
     didDeductCredit = true;
@@ -214,15 +224,15 @@ export default async function handler(req, res) {
       `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.${minKoinDibutuhkan}&order=koin.desc&limit=1`,
       { headers: supaHeaders }
     );
-    const poolData = await poolRes.json();
+    const poolData = await poolRes.json().catch(() => []);
 
-    if (!poolData || poolData.length === 0) {
+    if (!Array.isArray(poolData) || poolData.length === 0) {
       // Refund otomatis jika server sibuk / pool kosong
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
         method: 'POST',
         headers: supaHeaders,
-        body: JSON.stringify({ target_user_id: String(userId) })
-      });
+        body: JSON.stringify({ target_user_id: cleanUserId })
+      }).catch(function() {});
 
       return res.status(503).json({
         success: false,
@@ -326,7 +336,7 @@ export default async function handler(req, res) {
         })
       });
 
-      const mmData = await mmRes.json();
+      const mmData = await mmRes.json().catch(() => ({}));
       const taskId = mmData.taskId || mmData.data?.taskId;
 
       if ((mmRes.ok || mmData.status === "RUNNING" || mmData.code === 0) && taskId) {
@@ -381,7 +391,7 @@ export default async function handler(req, res) {
       })
     });
 
-    const engineData = await engineRes.json();
+    const engineData = await engineRes.json().catch(() => ({}));
     const taskId = engineData.data?.taskId || engineData.taskId;
 
     if (engineData && (engineData.code === 0 || engineData.data) && taskId) {
@@ -397,11 +407,11 @@ export default async function handler(req, res) {
     }
 
   } catch (error) {
-    if (didDeductCredit && userId) {
+    if (didDeductCredit && cleanUserId) {
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
         method: 'POST',
         headers: supaHeaders,
-        body: JSON.stringify({ target_user_id: String(userId) })
+        body: JSON.stringify({ target_user_id: cleanUserId })
       }).catch(function() {});
     }
 

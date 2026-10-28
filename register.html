@@ -505,7 +505,7 @@
                 if (modeAktif === 'register') {
                     const refCode = localStorage.getItem('km_pending_ref') || null;
 
-                    // 1. Daftarkan akun auth ke Supabase
+                    // 1. Daftarkan akun auth ke Supabase (referred_by disimpan di metadata akun)
                     const { data, error } = await supa.auth.signUp({ 
                         email: email, 
                         password: pass,
@@ -516,17 +516,16 @@
                     
                     if (error) throw error;
 
-                    // 2. Simpan referred_by ke tabel public.users secara aman (anti-crash)
+                    // 2. Simpan referred_by langsung ke tabel public.profiles
                     if (refCode) {
                         try {
-                            const { data: existingUser } = await supa.from('users').select('id').eq('email', email).maybeSingle();
-                            if (existingUser) {
-                                await supa.from('users').update({ referred_by: refCode }).eq('email', email);
+                            if (data?.user?.id) {
+                                await supa.from('profiles').update({ referred_by: refCode }).eq('id', data.user.id);
                             } else {
-                                await supa.from('users').insert({ email: email, referred_by: refCode });
+                                await supa.from('profiles').update({ referred_by: refCode }).ilike('email', email);
                             }
                         } catch (dbErr) {
-                            console.warn('Gagal sync referred_by ke tabel users:', dbErr.message);
+                            console.warn('Gagal sync referred_by ke tabel profiles:', dbErr.message);
                         }
                     }
 

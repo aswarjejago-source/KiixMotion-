@@ -1,5 +1,5 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Secure Engine
+// Backend Proxy Vercel - KiixMotion Single Credit Engine
 
 export const maxDuration = 60;
 
@@ -83,7 +83,6 @@ export default async function handler(req, res) {
     urlBahanFoto,
     urlBahanVideo,
     provider,
-    apiKeyPribadi,
     userId,
     userEmail,
     prompt,
@@ -91,6 +90,10 @@ export default async function handler(req, res) {
     duration,
     aspectRatio
   } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: 'Sesi login tidak valid. Silakan login ulang.' });
+  }
 
   // Validasi input
   if (provider === 'minimax') {
@@ -111,6 +114,10 @@ export default async function handler(req, res) {
                                 process.env.SUPABASE_SERVICE_ROLE || 
                                 process.env.SUPABASE_KEY;
 
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
+    return res.status(500).json({ success: false, message: 'Koneksi database Supabase tidak terbaca.' });
+  }
+
   const supaHeaders = {
     'Content-Type': 'application/json',
     'apikey': SUPABASE_SERVICE_ROLE,
@@ -118,16 +125,14 @@ export default async function handler(req, res) {
   };
 
   // =========================================================
-  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - EXCLUSIVE OWNER)
+  // JALUR OWNER: KLING 2.6 MOTION CONTROL
   // =========================================================
   if (provider === 'kling') {
     let emailTerverifikasi = (userEmail || "").trim().toLowerCase();
 
-    if (!emailTerverifikasi && userId && SUPABASE_URL && SUPABASE_SERVICE_ROLE) {
+    if (!emailTerverifikasi && userId) {
       try {
-        const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
-          headers: supaHeaders
-        });
+        const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, { headers: supaHeaders });
         const authUser = await authRes.json();
         emailTerverifikasi = (authUser?.email || "").trim().toLowerCase();
       } catch (e) {}
@@ -136,20 +141,12 @@ export default async function handler(req, res) {
     if (emailTerverifikasi !== EMAIL_OWNER.toLowerCase()) {
       return res.status(403).json({
         success: false,
-        message: `Akses ditolak: Fitur Kling 2.6 hanya boleh digunakan oleh Owner (${EMAIL_OWNER}).`
+        message: `Fitur Kling 2.6 hanya boleh digunakan oleh Owner (${EMAIL_OWNER}).`
       });
     }
 
     try {
       const PIAPI_KEY = process.env.PIAPI_KEY || "b6d3705e08d8e2330e60639119bd04bc304be592eebda976ec2551f82ea072da";
-
-      if (!urlBahanFoto?.startsWith('http') || !urlBahanVideo?.startsWith('http')) {
-        return res.status(400).json({
-          success: false,
-          message: `Link bahan tidak valid. Foto: ${urlBahanFoto} | Video: ${urlBahanVideo}`
-        });
-      }
-
       const piapiPayload = {
         model: "kling",
         task_type: "motion_control",
@@ -167,155 +164,86 @@ export default async function handler(req, res) {
 
       const piapiRes = await fetch('https://api.piapi.ai/api/v1/task', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': PIAPI_KEY
-        },
+        headers: { 'Content-Type': 'application/json', 'X-API-KEY': PIAPI_KEY },
         body: JSON.stringify(piapiPayload)
       });
 
-      const rawText = await piapiRes.text();
-      let piapiJson = null;
-      try {
-        piapiJson = JSON.parse(rawText);
-      } catch (e) {}
-
+      const piapiJson = await piapiRes.json();
       const idTugas = piapiJson?.task_id || piapiJson?.data?.task_id;
 
-      if ((piapiRes.ok || piapiJson?.code === 200 || piapiJson?.code === 0) && idTugas) {
-        return res.status(200).json({
-          success: true,
-          taskId: idTugas,
-          poolId: null,
-          didDeductCredit: false,
-          provider: 'kling'
-        });
+      if (idTugas) {
+        return res.status(200).json({ success: true, taskId: idTugas, poolId: null, didDeductCredit: false, provider: 'kling' });
       } else {
-        return res.status(400).json({
-          success: false,
-          message: `[HTTP ${piapiRes.status}] ${rawText} | FOTO: ${urlBahanFoto} | VIDEO: ${urlBahanVideo}`
-        });
+        throw new Error(piapiJson?.message || "PiAPI menolak tugas.");
       }
     } catch (errKling) {
-      return res.status(500).json({
-        success: false,
-        message: 'Koneksi ke PiAPI gagal: ' + errKling.message
-      });
+      return res.status(500).json({ success: false, message: 'Koneksi ke PiAPI gagal: ' + errKling.message });
     }
   }
 
   // =========================================================
-  // JALUR 2 & 3: RUNNINGHUB MOTION & MINIMAX H3 MASTER WORKFLOW
+  // JALUR SATU PINTU: KREDIT POOL KIIXMOTION
   // =========================================================
-  if (!SUPABASE_URL) {
-    return res.status(500).json({
-      success: false,
-      message: 'SUPABASE_URL tidak terbaca di environment Vercel.'
-    });
-  }
-
   let apiKeyDipakai = null;
   let poolIdDipakai = null;
   let didDeductCredit = false;
 
   try {
-    // A. Pengguna Pro dengan API key pribadi
-    if (provider === 'runninghub' || provider === 'pro' || provider === 'custom') {
-      if (!apiKeyPribadi) {
-        return res.status(400).json({ success: false, message: 'Kunci API pribadi belum dipilih atau kosong.' });
-      }
+    // 1. Potong 1 kredit dari Supabase RPC
+    const potongRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/potong_kredit_member`, {
+      method: 'POST',
+      headers: supaHeaders,
+      body: JSON.stringify({ target_user_id: String(userId) })
+    });
 
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'Sesi login tidak valid. Silakan login ulang.' });
-      }
-
-      const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}&select=*`, {
-        headers: supaHeaders
+    const potongJson = await potongRes.json();
+    if (!potongRes.ok || potongJson?.success !== true) {
+      return res.status(400).json({
+        success: false,
+        message: potongJson?.pesan || 'Sisa kredit kamu habis. Silakan beli kredit terlebih dahulu.'
       });
+    }
+    didDeductCredit = true;
 
-      const userData = await userRes.json();
-      const user = userData?.[0];
+    // 2. Ambil akun idle dari master pool RunningHub (MiniMax min 180, Wan Motion min 200)
+    const minKoinDibutuhkan = (provider === 'minimax') ? 180 : 200;
 
-      const isMemberPro = user && (
-        user.is_vip === true ||
-        user.is_pro === true ||
-        user.role === 'pro' ||
-        user.role === 'vip' ||
-        user.status === 'pro' ||
-        user.status === 'vip'
-      );
+    const poolRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.${minKoinDibutuhkan}&order=koin.desc&limit=1`,
+      { headers: supaHeaders }
+    );
+    const poolData = await poolRes.json();
 
-      if (!isMemberPro) {
-        return res.status(403).json({
-          success: false,
-          message: 'Kamu belum punya akses Pro!'
-        });
-      }
-
-      apiKeyDipakai = apiKeyPribadi;
-    } 
-    // B. Jalur Kredit Cloud (Kiix Motion & MiniMax H3)
-    else {
-      if (!userId) {
-        return res.status(401).json({ success: false, message: 'Sesi login tidak valid.' });
-      }
-
-      // 1. Potong 1 kredit dari Supabase
-      const potongRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/potong_kredit_member`, {
+    if (!poolData || poolData.length === 0) {
+      // Refund otomatis jika semua server sibuk/koin pool habis
+      await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
         method: 'POST',
         headers: supaHeaders,
         body: JSON.stringify({ target_user_id: String(userId) })
       });
 
-      const potongJson = await potongRes.json();
-      if (!potongRes.ok || potongJson?.success !== true) {
-        return res.status(400).json({
-          success: false,
-          message: potongJson?.pesan || 'Sisa kredit kamu habis atau tidak mencukupi.'
-        });
-      }
-      didDeductCredit = true;
-
-      // 2. Ambil akun idle (MiniMax hanya butuh 180 koin, Wan Motion butuh 200 koin)
-      const minKoinDibutuhkan = (provider === 'minimax') ? 180 : 200;
-
-      const poolRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.${minKoinDibutuhkan}&order=koin.desc&limit=1`,
-        { headers: supaHeaders }
-      );
-      const poolData = await poolRes.json();
-
-      if (!poolData || poolData.length === 0) {
-        await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
-          method: 'POST',
-          headers: supaHeaders,
-          body: JSON.stringify({ target_user_id: String(userId) })
-        });
-
-        return res.status(503).json({
-          success: false,
-          message: 'Semua server KiixMotion sedang sibuk atau saldo koin pool menipis. 1 kredit telah dikembalikan.'
-        });
-      }
-
-      apiKeyDipakai = poolData[0].api_key;
-      poolIdDipakai = poolData[0].id;
-
-      // Tandai akun pool menjadi busy
-      await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
-        method: 'PATCH',
-        headers: supaHeaders,
-        body: JSON.stringify({ status: 'busy', last_used_at: new Date().toISOString() })
+      return res.status(503).json({
+        success: false,
+        message: 'Server sedang antre penuh atau saldo pool menipis. 1 kredit telah dikembalikan otomatis.'
       });
     }
 
+    apiKeyDipakai = poolData[0].api_key;
+    poolIdDipakai = poolData[0].id;
+
+    // Tandai status busy
+    await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
+      method: 'PATCH',
+      headers: supaHeaders,
+      body: JSON.stringify({ status: 'busy', last_used_at: new Date().toISOString() })
+    });
+
     // =========================================================
-    // CABANG EKSEKUSI MINIMAX H3 (OPENAPI V2 AI-APP)
+    // EKSEKUSI MINIMAX H3 (OPENAPI V2 AI-APP)
     // =========================================================
     if (provider === 'minimax') {
       const MINIMAX_APP_ID = "2104825195000619009";
 
-      // Mapping gambar ke 9 slot
       const slotMap = {};
       if (Array.isArray(images)) {
         images.forEach((item, idx) => {
@@ -354,7 +282,7 @@ export default async function handler(req, res) {
             finalVal = uploaded || "None";
           } catch (e) {
             if (mapping.slot === 1) {
-              throw new Error("Gagal mengunggah Foto Karakter (Slot 1) ke server AI. Render dibatalkan, kredit aman.");
+              throw new Error("Gagal mengunggah Foto Karakter (Slot 1) ke server AI.");
             }
             finalVal = "None";
           }
@@ -374,7 +302,6 @@ export default async function handler(req, res) {
         return idxA - idxB;
       });
 
-      // Tambahkan parameter alur kerja MiniMax H3
       nodeInfoList.push(
         { nodeId: "65", fieldName: "index", fieldValue: "0", description: null },
         { nodeId: "27", fieldName: "value", fieldValue: String(duration || "15"), description: null },
@@ -384,20 +311,17 @@ export default async function handler(req, res) {
         { nodeId: "28", fieldName: "prompt", fieldValue: prompt || "", description: null }
       );
 
-      // Gunakan instanceType "default" agar hemat koin (cukup ~188 koin)
-      const minimaxPayload = {
-        nodeInfoList: nodeInfoList,
-        instanceType: "default",
-        usePersonalQueue: "false"
-      };
-
       const mmRes = await fetch(`https://www.runninghub.ai/openapi/v2/run/ai-app/${MINIMAX_APP_ID}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKeyDipakai}`
         },
-        body: JSON.stringify(minimaxPayload)
+        body: JSON.stringify({
+          nodeInfoList: nodeInfoList,
+          instanceType: "default",
+          usePersonalQueue: "false"
+        })
       });
 
       const mmData = await mmRes.json();
@@ -408,7 +332,7 @@ export default async function handler(req, res) {
           success: true,
           taskId: taskId,
           poolId: poolIdDipakai,
-          didDeductCredit: didDeductCredit,
+          didDeductCredit: true,
           provider: 'minimax'
         });
       } else {
@@ -417,7 +341,7 @@ export default async function handler(req, res) {
     }
 
     // =========================================================
-    // CABANG EKSEKUSI WAN MOTION CONTROL (WORKFLOW V1)
+    // EKSEKUSI WAN MOTION CONTROL (WORKFLOW V1)
     // =========================================================
     const RUNNINGHUB_WORKFLOW_ID = "2099509417535340546";
 
@@ -435,18 +359,8 @@ export default async function handler(req, res) {
         method: 'DELETE',
         headers: supaHeaders,
         body: JSON.stringify({ prefixes: fileHapus })
-      }).catch(function(e) { console.error("Gagal auto-delete Supabase:", e); });
+      }).catch(function(e) {});
     }
-
-    const enginePayload = {
-      workflowId: RUNNINGHUB_WORKFLOW_ID,
-      apiKey: apiKeyDipakai,
-      nodeInfoList: [
-        { nodeId: "30", fieldName: "image", fieldValue: rhFoto },
-        { nodeId: "33", fieldName: "video", fieldValue: rhVideo },
-        { nodeId: "308", fieldName: "upscale_method", fieldValue: "bicubic" }
-      ]
-    };
 
     const engineRes = await fetch('https://www.runninghub.ai/task/openapi/create', {
       method: 'POST',
@@ -454,19 +368,26 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKeyDipakai}`
       },
-      body: JSON.stringify(enginePayload)
+      body: JSON.stringify({
+        workflowId: RUNNINGHUB_WORKFLOW_ID,
+        apiKey: apiKeyDipakai,
+        nodeInfoList: [
+          { nodeId: "30", fieldName: "image", fieldValue: rhFoto },
+          { nodeId: "33", fieldName: "video", fieldValue: rhVideo },
+          { nodeId: "308", fieldName: "upscale_method", fieldValue: "bicubic" }
+        ]
+      })
     });
 
     const engineData = await engineRes.json();
+    const taskId = engineData.data?.taskId || engineData.taskId;
 
-    if (engineData && (engineData.code === 0 || engineData.data) && (engineData.data?.taskId || engineData.taskId)) {
-      const taskId = engineData.data?.taskId || engineData.taskId;
-
+    if (engineData && (engineData.code === 0 || engineData.data) && taskId) {
       return res.status(200).json({
         success: true,
         taskId: taskId,
         poolId: poolIdDipakai,
-        didDeductCredit: didDeductCredit,
+        didDeductCredit: true,
         provider: 'kiix'
       });
     } else {
@@ -490,10 +411,9 @@ export default async function handler(req, res) {
       }).catch(function() {});
     }
 
-    const detailEror = error.cause?.message || error.message || 'Gagal memproses render ke server.';
     return res.status(500).json({
       success: false,
-      message: detailEror
+      message: error.message || 'Gagal memproses render ke server.'
     });
   }
 }

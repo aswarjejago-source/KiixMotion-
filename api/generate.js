@@ -322,36 +322,26 @@ export default async function handler(req, res) {
         { nodeId: "28", fieldName: "prompt", fieldValue: prompt || "", description: null }
       );
 
-      // Timeout controller 55s untuk mencegah false-negative timeout Vercel
-      const controllerMm = new AbortController();
-      const timeoutMm = setTimeout(() => controllerMm.abort(), 55000);
-
-      let mmRes;
-      try {
-        mmRes = await fetch(`https://www.runninghub.ai/openapi/v2/run/ai-app/${MINIMAX_APP_ID}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKeyDipakai}`
-          },
-          body: JSON.stringify({
-            nodeInfoList: nodeInfoList,
-            instanceType: "plus",
-            usePersonalQueue: "false"
-          }),
-          signal: controllerMm.signal
-        });
-      } finally {
-        clearTimeout(timeoutMm);
-      }
+      const mmRes = await fetch(`https://www.runninghub.ai/openapi/v2/run/ai-app/${MINIMAX_APP_ID}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKeyDipakai}`
+        },
+        body: JSON.stringify({
+          nodeInfoList: nodeInfoList,
+          instanceType: "plus",
+          usePersonalQueue: "false"
+        })
+      });
 
       const mmData = await mmRes.json().catch(() => ({}));
-      const taskId = mmData.taskId || mmData.data?.taskId || mmData.data || (mmRes.ok ? "PENDING_RUNNINGHUB_TASK" : null);
+      const taskId = mmData.taskId || mmData.data?.taskId || mmData.data?.task_id || mmData.data;
 
-      if ((mmRes.ok || mmData.status === "RUNNING" || mmData.code === 0 || mmData.code === 200 || taskId)) {
+      if ((mmRes.ok || mmData.status === "RUNNING" || mmData.code === 0 || mmData.code === 200) && taskId) {
         return res.status(200).json({
           success: true,
-          taskId: (taskId && taskId !== "PENDING_RUNNINGHUB_TASK") ? taskId : "IN_PROGRESS",
+          taskId: typeof taskId === 'string' ? taskId : JSON.stringify(taskId),
           poolId: poolIdDipakai,
           didDeductCredit: true,
           provider: 'minimax'
@@ -383,40 +373,30 @@ export default async function handler(req, res) {
       }).catch(function(e) {});
     }
 
-    // Timeout controller 55s agar aman dari timeout Vercel
-    const controllerWan = new AbortController();
-    const timeoutWan = setTimeout(() => controllerWan.abort(), 55000);
-
-    let engineRes;
-    try {
-      engineRes = await fetch('https://www.runninghub.ai/task/openapi/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKeyDipakai}`
-        },
-        body: JSON.stringify({
-          workflowId: RUNNINGHUB_WORKFLOW_ID,
-          apiKey: apiKeyDipakai,
-          nodeInfoList: [
-            { nodeId: "30", fieldName: "image", fieldValue: rhFoto },
-            { nodeId: "33", fieldName: "video", fieldValue: rhVideo },
-            { nodeId: "308", fieldName: "upscale_method", fieldValue: "bicubic" }
-          ]
-        }),
-        signal: controllerWan.signal
-      });
-    } finally {
-      clearTimeout(timeoutWan);
-    }
+    const engineRes = await fetch('https://www.runninghub.ai/task/openapi/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKeyDipakai}`
+      },
+      body: JSON.stringify({
+        workflowId: RUNNINGHUB_WORKFLOW_ID,
+        apiKey: apiKeyDipakai,
+        nodeInfoList: [
+          { nodeId: "30", fieldName: "image", fieldValue: rhFoto },
+          { nodeId: "33", fieldName: "video", fieldValue: rhVideo },
+          { nodeId: "308", fieldName: "upscale_method", fieldValue: "bicubic" }
+        ]
+      })
+    });
 
     const engineData = await engineRes.json().catch(() => ({}));
-    const taskId = engineData.data?.taskId || engineData.taskId || engineData.data || (engineRes.ok ? "PENDING_RUNNINGHUB_TASK" : null);
+    const taskId = engineData.data?.taskId || engineData.taskId || engineData.data?.task_id || engineData.data;
 
-    if (engineData && (engineData.code === 0 || engineData.code === 200 || engineData.data || taskId)) {
+    if (engineData && (engineData.code === 0 || engineData.code === 200 || engineData.data) && taskId) {
       return res.status(200).json({
         success: true,
-        taskId: (taskId && taskId !== "PENDING_RUNNINGHUB_TASK") ? taskId : "IN_PROGRESS",
+        taskId: typeof taskId === 'string' ? taskId : JSON.stringify(taskId),
         poolId: poolIdDipakai,
         didDeductCredit: true,
         provider: 'kiix'

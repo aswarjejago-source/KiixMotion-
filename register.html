@@ -505,18 +505,19 @@
                 if (modeAktif === 'register') {
                     const refCode = localStorage.getItem('km_pending_ref') || null;
 
-                    // 1. Daftarkan akun auth ke Supabase (referred_by disimpan di metadata akun)
+                    // 1. Daftarkan akun auth ke Supabase (referred_by masuk ke metadata)
                     const { data, error } = await supa.auth.signUp({ 
                         email: email, 
                         password: pass,
                         options: {
+                            emailRedirectTo: window.location.origin + '/studio.html',
                             data: { referred_by: refCode }
                         }
                     });
                     
                     if (error) throw error;
 
-                    // 2. Simpan referred_by langsung ke tabel public.profiles
+                    // 2. Sinkronkan referred_by ke tabel public.profiles jika profil sudah tersedia
                     if (refCode) {
                         try {
                             if (data?.user?.id) {

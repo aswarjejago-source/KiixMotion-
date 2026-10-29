@@ -202,7 +202,6 @@ export default async function handler(req, res) {
 
     const potongJson = await potongRes.json().catch(() => ({}));
     
-    // Validasi penanganan error RPC yang akurat
     if (!potongRes.ok || potongJson?.success !== true) {
       const pesanErrorAsli = potongJson?.pesan || 
                              potongJson?.message || 
@@ -217,8 +216,8 @@ export default async function handler(req, res) {
     }
     didDeductCredit = true;
 
-    // 2. Ambil akun idle dari master pool RunningHub (MiniMax min 180, Wan Motion min 200)
-    const minKoinDibutuhkan = (provider === 'minimax') ? 180 : 200;
+    // 2. Ambil akun idle dari master pool RunningHub (ambang batas minimum diturunkan ke 180 untuk semua engine agar lebih fleksibel)
+    const minKoinDibutuhkan = 180;
 
     const poolRes = await fetch(
       `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.${minKoinDibutuhkan}&order=koin.desc&limit=1`,
@@ -227,7 +226,7 @@ export default async function handler(req, res) {
     const poolData = await poolRes.json().catch(() => []);
 
     if (!Array.isArray(poolData) || poolData.length === 0) {
-      // Refund otomatis jika server sibuk / pool kosong
+      // Refund otomatis jika pool kosong / koin kurang dari ambang batas
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
         method: 'POST',
         headers: supaHeaders,
@@ -236,7 +235,7 @@ export default async function handler(req, res) {
 
       return res.status(503).json({
         success: false,
-        message: 'Server sedang antre penuh atau saldo pool menipis. 1 kredit telah dikembalikan otomatis.'
+        message: 'TASK_QUEUE_MAXED: Kolam API Key sedang kosong atau koin habis. 1 kredit telah dikembalikan otomatis.'
       });
     }
 

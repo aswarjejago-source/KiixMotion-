@@ -112,8 +112,8 @@ export default async function handler(req, res) {
   }
 
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || 
-                                process.env.SUPABASE_SERVICE_ROLE || 
+  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY ||
+                                process.env.SUPABASE_SERVICE_ROLE ||
                                 process.env.SUPABASE_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
@@ -149,8 +149,19 @@ export default async function handler(req, res) {
       });
     }
 
+    // PIAPI_KEY WAJIB dari environment variable Vercel.
+    // JANGAN pernah menulis API key asli langsung di source code:
+    // siapa pun yang baca file ini (termasuk kalau repo bocor/publik)
+    // bisa memakai saldo PiAPI kamu.
+    const PIAPI_KEY = process.env.PIAPI_KEY;
+    if (!PIAPI_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: 'PIAPI_KEY belum diset di Environment Variables Vercel.'
+      });
+    }
+
     try {
-      const PIAPI_KEY = process.env.PIAPI_KEY || "b6d3705e08d8e2330e60639119bd04bc304be592eebda976ec2551f82ea072da";
       const piapiPayload = {
         model: "kling",
         task_type: "motion_control",
@@ -201,13 +212,13 @@ export default async function handler(req, res) {
     });
 
     const potongJson = await potongRes.json().catch(() => ({}));
-    
+
     if (!potongRes.ok || potongJson?.success !== true) {
-      const pesanErrorAsli = potongJson?.pesan || 
-                             potongJson?.message || 
-                             potongJson?.hint || 
-                             potongJson?.details || 
-                             (typeof potongJson === 'string' ? potongJson : null) || 
+      const pesanErrorAsli = potongJson?.pesan ||
+                             potongJson?.message ||
+                             potongJson?.hint ||
+                             potongJson?.details ||
+                             (typeof potongJson === 'string' ? potongJson : null) ||
                              'Gagal memvalidasi atau memotong kredit akun.';
       return res.status(400).json({
         success: false,

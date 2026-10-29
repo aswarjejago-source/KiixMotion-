@@ -216,17 +216,23 @@ export default async function handler(req, res) {
     }
     didDeductCredit = true;
 
-    // 2. Ambil akun idle dari master pool RunningHub (ambang batas minimum 180)
-    const minKoinDibutuhkan = 180;
-
-    const poolRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.${minKoinDibutuhkan}&order=koin.desc&limit=1`,
+    // 2. Ambil akun dari master pool (Syarat koin minimal dilepaskan total agar tidak mentok TASK_QUEUE_MAXED)
+    let poolRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&order=koin.desc&limit=1`,
       { headers: supaHeaders }
     );
-    const poolData = await poolRes.json().catch(() => []);
+    let poolData = await poolRes.json().catch(() => []);
+
+    // Fallback: Jika tidak ada yang idle, ambil akun apa saja yang tersedia di pool
+    if (!Array.isArray(poolData) || poolData.length === 0) {
+      const fallbackRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/runninghub_pool?order=koin.desc&limit=1`,
+        { headers: supaHeaders }
+      );
+      poolData = await fallbackRes.json().catch(() => []);
+    }
 
     if (!Array.isArray(poolData) || poolData.length === 0) {
-      // Refund otomatis jika pool kosong / koin kurang dari ambang batas
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
         method: 'POST',
         headers: supaHeaders,
@@ -235,7 +241,7 @@ export default async function handler(req, res) {
 
       return res.status(503).json({
         success: false,
-        message: 'TASK_QUEUE_MAXED: Kolam API Key sedang kosong atau koin habis. 1 kredit telah dikembalikan otomatis.'
+        message: 'TASK_QUEUE_MAXED: Database kolam API Key benar-benar kosong. 1 kredit telah dikembalikan.'
       });
     }
 

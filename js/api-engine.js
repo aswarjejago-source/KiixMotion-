@@ -563,7 +563,7 @@ function perbaruiBarProgresUI(tugas) {
   }
 }
 
-// 6. PEMANTAUAN STATUS & PENARIKAN HASIL VIDEO
+// 6. PEMANTAUAN STATUS & PENARIKAN HASIL VIDEO (DIPERBAIKI AGAR TIDAK GAMPANG GAGAL)
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai && tugas.videoUrl) return; 
 
@@ -645,7 +645,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         })
       });
 
-      // Tangani respon non-200 dari endpoint Vercel
+      // Tangani respon non-200 dari endpoint Vercel dengan toleransi tinggi
       if (!res.ok) {
         var errResJson = await res.json().catch(function() { return {}; });
         var errStr = JSON.stringify(errResJson).toUpperCase();
@@ -655,8 +655,9 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
           return;
         }
 
+        // Toleransi dinaikkan hingga 60 kali gagal beruntun (sekitar 5 menit) agar tidak gampang memvonis gagal
         tugas.gagalBerturut = (tugas.gagalBerturut || 0) + 1;
-        if (tugas.gagalBerturut >= 8 && waktuBerjalan >= 30000) {
+        if (tugas.gagalBerturut >= 60 && waktuBerjalan >= 300000) {
           await eksekusiTugasDibatalkanAtauGagal(tugas, currentPoolId, userId, didDeductCredit, false);
           return;
         }
@@ -720,11 +721,11 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
       }
 
-      // TOLERANSI SINKRONISASI AWAL (20 DETIK PERTAMA)
+      // TOLERANSI SINKRONISASI AWAL DIPERPANJANG MENJADI 10 MENIT (600.000 MS)
       var isNotFoundAwal = (code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || statusTeks.includes("NOT FOUND") || (statusTeks === "" && pesanTeks === ""));
-      if (isNotFoundAwal && waktuBerjalan < 20000 && !linkOutputAsli) {
+      if (isNotFoundAwal && waktuBerjalan < 600000 && !linkOutputAsli) {
         tugas.status = "⏳ Mengantre di Server...";
-        if (tugas.progress < 15) tugas.progress += 2;
+        if (tugas.progress < 15) tugas.progress += 1;
         perbaruiBarProgresUI(tugas);
         return;
       }
@@ -747,7 +748,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         statusTeks.includes("EXCEPTION") ||
         pesanTeks.includes("FAIL") ||
         pesanTeks.includes("ERROR") ||
-        ((code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || pesanTeks.includes("NOT FOUND")) && waktuBerjalan >= 20000) ||
+        ((code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || pesanTeks.includes("NOT FOUND")) && waktuBerjalan >= 600000) ||
         (code !== 0 && code !== 200 && code !== 804 && code !== 805 && code !== 806 && !isNaN(code))
       );
 
@@ -774,7 +775,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
 
         if (tugas.progress < 95) {
-          tugas.progress = Math.min(95, tugas.progress + 3);
+          tugas.progress = Math.min(95, tugas.progress + 2);
         }
         
         simpanStorage();
@@ -1130,8 +1131,6 @@ window.onload = function() {
         (typeof tugas.id === 'string' && tugas.id.includes('-'))
       );
 
-      // Hanya lanjutkan pantau tugas yang BELUM selesai
-      // Tidak lagi melepas kunci akun pool tugas lama agar status 'busy' render aktif tidak tertimpa!
       if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
         if (isKling) {
           if (typeof window.pantauStatusKling === 'function') {

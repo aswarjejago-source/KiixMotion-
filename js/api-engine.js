@@ -563,7 +563,9 @@ function perbaruiBarProgresUI(tugas) {
   }
 }
 
-// 6. PEMANTAUAN STATUS & PENARIKAN HASIL VIDEO (DIPERBAIKI AGAR TIDAK GAMPANG GAGAL)
+// 6. PEMANTAUAN STATUS & PENARIKAN HASIL VIDEO
+// DIPERBAIKI: deteksi gagal diperketat supaya tidak gampang mencap
+// gagal pada task yang sebenarnya masih berjalan di RunningHub.
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai && tugas.videoUrl) return; 
 
@@ -742,14 +744,21 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         pesanTeks.includes("ABORT")
       );
 
+      // DIPERKETAT: hanya match status/pesan UTUH ("FAILED"/"FAIL"/"ERROR"),
+      // bukan substring (menghindari "NO_ERROR", "ERROR_COUNT: 0", dll
+      // ikut ke-trigger). Baris blacklist kode lama (code !== 0,200,804,805,806)
+      // sudah DIHAPUS -- itu penyebab task yang masih berjalan tapi
+      // mengembalikan kode belum dikenal langsung dicap gagal. Dengan
+      // backend /api/outputs yang sudah dipatch, kode belum dikenal akan
+      // dikembalikan sebagai status RUNNING, jadi baris itu tidak perlu lagi.
       var isGagal = (
-        statusTeks.includes("FAIL") ||
-        statusTeks.includes("ERROR") ||
+        statusTeks === "FAILED" ||
+        statusTeks === "FAIL" ||
+        statusTeks === "ERROR" ||
+        pesanTeks.includes("FAILED") ||
+        pesanTeks.includes("ERROR:") ||
         statusTeks.includes("EXCEPTION") ||
-        pesanTeks.includes("FAIL") ||
-        pesanTeks.includes("ERROR") ||
-        ((code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || pesanTeks.includes("NOT FOUND")) && waktuBerjalan >= 600000) ||
-        (code !== 0 && code !== 200 && code !== 804 && code !== 805 && code !== 806 && !isNaN(code))
+        ((code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || pesanTeks.includes("NOT FOUND")) && waktuBerjalan >= 600000)
       );
 
       if ((isBatal || isGagal) && !linkOutputAsli) {
@@ -757,7 +766,9 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         return;
       }
 
-      // PRIORITAS 3: STATUS SEDANG MEMPROSES ATAU MENGANTRE RESMI
+      // PRIORITAS 3: STATUS SEDANG MEMPROSES ATAU MENGANTRE (DEFAULT AMAN)
+      // Apapun yang tidak match SUCCESS, BATAL, atau GAGAL eksplisit di atas
+      // dianggap masih berjalan -- bukan langsung gagal.
       var isSedangJalan = (
         code === 804 ||
         code === 805 ||

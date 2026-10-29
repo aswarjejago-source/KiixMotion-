@@ -112,8 +112,8 @@ export default async function handler(req, res) {
   }
 
   const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY ||
-                                process.env.SUPABASE_SERVICE_ROLE ||
+  const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || 
+                                process.env.SUPABASE_SERVICE_ROLE || 
                                 process.env.SUPABASE_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
@@ -149,10 +149,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // PIAPI_KEY WAJIB dari environment variable Vercel.
-    // JANGAN pernah menulis API key asli langsung di source code:
-    // siapa pun yang baca file ini (termasuk kalau repo bocor/publik)
-    // bisa memakai saldo PiAPI kamu.
     const PIAPI_KEY = process.env.PIAPI_KEY;
     if (!PIAPI_KEY) {
       return res.status(500).json({
@@ -212,13 +208,13 @@ export default async function handler(req, res) {
     });
 
     const potongJson = await potongRes.json().catch(() => ({}));
-
+    
     if (!potongRes.ok || potongJson?.success !== true) {
-      const pesanErrorAsli = potongJson?.pesan ||
-                             potongJson?.message ||
-                             potongJson?.hint ||
-                             potongJson?.details ||
-                             (typeof potongJson === 'string' ? potongJson : null) ||
+      const pesanErrorAsli = potongJson?.pesan || 
+                             potongJson?.message || 
+                             potongJson?.hint || 
+                             potongJson?.details || 
+                             (typeof potongJson === 'string' ? potongJson : null) || 
                              'Gagal memvalidasi atau memotong kredit akun.';
       return res.status(400).json({
         success: false,
@@ -227,17 +223,17 @@ export default async function handler(req, res) {
     }
     didDeductCredit = true;
 
-    // 2. Ambil akun dari master pool (Syarat koin minimal dilepaskan total agar tidak mentok TASK_QUEUE_MAXED)
+    // 2. Ambil akun idle secara bergilir (last_used_at terlama didahulukan) agar beban merata
     let poolRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&order=koin.desc&limit=1`,
+      `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.180&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
       { headers: supaHeaders }
     );
     let poolData = await poolRes.json().catch(() => []);
 
-    // Fallback: Jika tidak ada yang idle, ambil akun apa saja yang tersedia di pool
+    // Fallback: Jika tidak ada akun idle >= 180 koin, ambil akun idle apa pun
     if (!Array.isArray(poolData) || poolData.length === 0) {
       const fallbackRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/runninghub_pool?order=koin.desc&limit=1`,
+        `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
         { headers: supaHeaders }
       );
       poolData = await fallbackRes.json().catch(() => []);
@@ -252,14 +248,14 @@ export default async function handler(req, res) {
 
       return res.status(503).json({
         success: false,
-        message: 'TASK_QUEUE_MAXED: Database kolam API Key benar-benar kosong. 1 kredit telah dikembalikan.'
+        message: 'TASK_QUEUE_MAXED: Seluruh akun kolam sedang sibuk merender. 1 kredit telah dikembalikan otomatis.'
       });
     }
 
     apiKeyDipakai = poolData[0].api_key;
     poolIdDipakai = poolData[0].id;
 
-    // Tandai status busy
+    // Tandai status busy dan catat timestamp saat ini
     await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
       method: 'PATCH',
       headers: supaHeaders,
@@ -432,10 +428,14 @@ export default async function handler(req, res) {
     }
 
     if (poolIdDipakai) {
+      const pesanErr = (error.message || '').toUpperCase();
+      // Kunci akun ke status busy jika antrean RunningHub penuh agar sistem memakai akun lainnya
+      const statusBalik = (pesanErr.includes('TASK_QUEUE_MAXED') || pesanErr.includes('QUEUE')) ? 'busy' : 'idle';
+
       await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
         method: 'PATCH',
         headers: supaHeaders,
-        body: JSON.stringify({ status: 'idle' })
+        body: JSON.stringify({ status: statusBalik, last_used_at: new Date().toISOString() })
       }).catch(function() {});
     }
 

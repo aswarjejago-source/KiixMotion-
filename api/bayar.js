@@ -33,15 +33,15 @@ export default async function handler(req, res) {
 
     const totalBayar = reqData.amount || 35630;
 
-    // 2. Susun parameter checkout iPaymu 
+    // 2. Susun parameter checkout iPaymu (SUDAH PAKAI DOMAIN RESMI KIIXMOTION.MY.ID)
     const body = {
         product: ["Langganan VIP KiiXMotion 25 Hari (Termasuk Fee Admin)"],
         qty: ["1"],
         price: [String(totalBayar)], 
         description: ["Akses penuh fitur premium motion control AI selama 25 hari"],
-        returnUrl: "https://kiix-motion.vercel.app/studio.html",
-        cancelUrl: "https://kiix-motion.vercel.app/studio.html",
-        notifyUrl: "https://kiix-motion.vercel.app/api/webhook", // WAJIB ADA
+        returnUrl: "https://kiixmotion.my.id/studio.html",
+        cancelUrl: "https://kiixmotion.my.id/studio.html",
+        notifyUrl: "https://kiixmotion.my.id/api/webhook", // WAJIB ADA
         referenceId: userEmail // KUNCI UTAMA SUPAYA WEBHOOK BISA UPDATE SUPABASE
     };
 

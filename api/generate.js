@@ -1,5 +1,5 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Single Credit Engine
+// Backend Proxy Vercel - KiixMotion Single Credit Engine (Engine ~72 Koin)
 
 export const maxDuration = 60;
 
@@ -223,14 +223,14 @@ export default async function handler(req, res) {
     }
     didDeductCredit = true;
 
-    // 2. Ambil akun idle secara bergilir (last_used_at terlama didahulukan) agar beban merata
+    // 2. Ambil akun idle secara bergilir (koin minimal 75 untuk engine baru)
     let poolRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.180&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
+      `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.75&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
       { headers: supaHeaders }
     );
     let poolData = await poolRes.json().catch(() => []);
 
-    // Fallback: Jika tidak ada akun idle >= 180 koin, ambil akun idle apa pun
+    // Fallback: Jika tidak ada akun idle >= 75 koin, ambil akun idle apa pun
     if (!Array.isArray(poolData) || poolData.length === 0) {
       const fallbackRes = await fetch(
         `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
@@ -263,7 +263,7 @@ export default async function handler(req, res) {
     });
 
     // =========================================================
-    // EKSEKUSI MINIMAX H3 (OPENAPI V2 AI-APP) - INSTANCE PLUS (HIGH RAM)
+    // EKSEKUSI MINIMAX H3 (OPENAPI V2 AI-APP)
     // =========================================================
     if (provider === 'minimax') {
       const MINIMAX_APP_ID = "2104825195000619009";
@@ -365,9 +365,9 @@ export default async function handler(req, res) {
     }
 
     // =========================================================
-    // EKSEKUSI WAN MOTION CONTROL (WORKFLOW V1)
+    // EKSEKUSI TRANSFER GERAKAN 1080HD (OPENAPI V2 AI-APP ~72 KOIN)
     // =========================================================
-    const RUNNINGHUB_WORKFLOW_ID = "2099509417535340546";
+    const WAN_APP_ID = "2101240461868802049";
 
     const [rhFoto, rhVideo] = await Promise.all([
       siapkanBahan(urlBahanFoto, 'image', apiKeyDipakai),
@@ -386,27 +386,29 @@ export default async function handler(req, res) {
       }).catch(function(e) {});
     }
 
-    const engineRes = await fetch('https://www.runninghub.ai/task/openapi/create', {
+    const CAMERA_STABILIZER_PROMPT = "Camera locked on tripod, perfectly stable camera, no camera shake, no handheld movement, no jitter, no vibration, no zoom in, no zoom out, no dolly movement, no camera panning, no camera rotation, no camera tilt, fixed framing, static shot, consistent composition, cinematic realism, sharp focus at all times, subject always in focus, no focus breathing, no autofocus hunting, no motion blur, no lens blur, no depth of field blur, ultra clear details, crisp image quality, smooth natural motion, professional studio camera, stable video capture, high detail, high realism.\nNegative Prompt:\ncamera shake, handheld camera, jitter, vibration, zoom in, zoom out, camera movement, panning, tilting, rotating, dolly shot, motion blur, lens blur, focus blur, out of focus, autofocus, focus breathing, shaky footage, cinematic blur, depth of field blur, low quality, ghosting, distortion.";
+
+    const engineRes = await fetch(`https://www.runninghub.ai/openapi/v2/run/ai-app/${WAN_APP_ID}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKeyDipakai}`
       },
       body: JSON.stringify({
-        workflowId: RUNNINGHUB_WORKFLOW_ID,
-        apiKey: apiKeyDipakai,
         nodeInfoList: [
-          { nodeId: "30", fieldName: "image", fieldValue: rhFoto },
-          { nodeId: "33", fieldName: "video", fieldValue: rhVideo },
-          { nodeId: "308", fieldName: "upscale_method", fieldValue: "bicubic" }
-        ]
+          { nodeId: "30", fieldName: "image", fieldValue: rhFoto, description: null },
+          { nodeId: "33", fieldName: "video", fieldValue: rhVideo, description: null },
+          { nodeId: "275", fieldName: "text", fieldValue: CAMERA_STABILIZER_PROMPT, description: null }
+        ],
+        instanceType: "default",
+        usePersonalQueue: "false"
       })
     });
 
     const engineData = await engineRes.json().catch(() => ({}));
-    const taskId = engineData.data?.taskId || engineData.taskId || engineData.data?.task_id || engineData.data;
+    const taskId = engineData.taskId || engineData.data?.taskId || engineData.data?.task_id || engineData.data;
 
-    if (engineData && (engineData.code === 0 || engineData.code === 200 || engineData.data) && taskId) {
+    if ((engineRes.ok || engineData.status === "RUNNING" || engineData.code === 0 || engineData.code === 200) && taskId) {
       return res.status(200).json({
         success: true,
         taskId: typeof taskId === 'string' ? taskId : JSON.stringify(taskId),
@@ -415,7 +417,7 @@ export default async function handler(req, res) {
         provider: 'kiix'
       });
     } else {
-      throw new Error(engineData?.msg || 'Server AI menolak antrean video.');
+      throw new Error(engineData?.errorMessage || engineData?.msg || 'Server AI menolak antrean video.');
     }
 
   } catch (error) {
@@ -429,7 +431,6 @@ export default async function handler(req, res) {
 
     if (poolIdDipakai) {
       const pesanErr = (error.message || '').toUpperCase();
-      // Kunci akun ke status busy jika antrean RunningHub penuh agar sistem memakai akun lainnya
       const statusBalik = (pesanErr.includes('TASK_QUEUE_MAXED') || pesanErr.includes('QUEUE')) ? 'busy' : 'idle';
 
       await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {

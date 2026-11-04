@@ -301,7 +301,8 @@ async function lepaskanKunciPoolOtomatis(poolId) {
         }
       }
 
-      var statusAkhir = (koinTersisa !== null && koinTersisa < 180) ? 'habis' : 'idle';
+      // Ambang batas disesuaikan ke 75 sesuai kebutuhan engine baru (~72 koin)
+      var statusAkhir = (koinTersisa !== null && koinTersisa < 75) ? 'habis' : 'idle';
       var payloadUpdate = { 
         status: statusAkhir, 
         last_used_at: new Date().toISOString() 
@@ -564,8 +565,6 @@ function perbaruiBarProgresUI(tugas) {
 }
 
 // 6. PEMANTAUAN STATUS & PENARIKAN HASIL VIDEO
-// DIPERBAIKI: deteksi gagal diperketat supaya tidak gampang mencap
-// gagal pada task yang sebenarnya masih berjalan di RunningHub.
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.selesai && tugas.videoUrl) return; 
 
@@ -647,7 +646,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         })
       });
 
-      // Tangani respon non-200 dari endpoint Vercel dengan toleransi tinggi
       if (!res.ok) {
         var errResJson = await res.json().catch(function() { return {}; });
         var errStr = JSON.stringify(errResJson).toUpperCase();
@@ -657,7 +655,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
           return;
         }
 
-        // Toleransi dinaikkan hingga 60 kali gagal beruntun (sekitar 5 menit) agar tidak gampang memvonis gagal
         tugas.gagalBerturut = (tugas.gagalBerturut || 0) + 1;
         if (tugas.gagalBerturut >= 60 && waktuBerjalan >= 300000) {
           await eksekusiTugasDibatalkanAtauGagal(tugas, currentPoolId, userId, didDeductCredit, false);
@@ -676,7 +673,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       var code = Number(jsonObj.code);
       var rawObj = (jsonObj && typeof jsonObj.data === 'object' && jsonObj.data !== null) ? jsonObj.data : jsonObj;
 
-      // Ekstraksi komprehensif semua field status dan pesan dari RunningHub (V1/V2 AI-App)
       var statusTeks = [
         rawObj.status,
         rawObj.taskStatus,
@@ -701,7 +697,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         if (linkOutputAsli) {
           if (tugas.intervalObj) clearInterval(tugas.intervalObj);
           
-          // Langsung lepaskan status pool & update sisa saldo koin otomatis
           await lepaskanKunciPoolOtomatis(currentPoolId);
 
           var urlMurni = bungkusStreamProxy(linkOutputAsli);
@@ -723,7 +718,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         }
       }
 
-      // TOLERANSI SINKRONISASI AWAL DIPERPANJANG MENJADI 10 MENIT (600.000 MS)
       var isNotFoundAwal = (code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || statusTeks.includes("NOT FOUND") || (statusTeks === "" && pesanTeks === ""));
       if (isNotFoundAwal && waktuBerjalan < 600000 && !linkOutputAsli) {
         tugas.status = "⏳ Mengantre di Server...";
@@ -744,13 +738,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         pesanTeks.includes("ABORT")
       );
 
-      // DIPERKETAT: hanya match status/pesan UTUH ("FAILED"/"FAIL"/"ERROR"),
-      // bukan substring (menghindari "NO_ERROR", "ERROR_COUNT: 0", dll
-      // ikut ke-trigger). Baris blacklist kode lama (code !== 0,200,804,805,806)
-      // sudah DIHAPUS -- itu penyebab task yang masih berjalan tapi
-      // mengembalikan kode belum dikenal langsung dicap gagal. Dengan
-      // backend /api/outputs yang sudah dipatch, kode belum dikenal akan
-      // dikembalikan sebagai status RUNNING, jadi baris itu tidak perlu lagi.
       var isGagal = (
         statusTeks === "FAILED" ||
         statusTeks === "FAIL" ||
@@ -767,8 +754,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       }
 
       // PRIORITAS 3: STATUS SEDANG MEMPROSES ATAU MENGANTRE (DEFAULT AMAN)
-      // Apapun yang tidak match SUCCESS, BATAL, atau GAGAL eksplisit di atas
-      // dianggap masih berjalan -- bukan langsung gagal.
       var isSedangJalan = (
         code === 804 ||
         code === 805 ||
@@ -810,7 +795,6 @@ window.pantauStatusVideo = pantauStatusVideo;
 async function eksekusiTugasDibatalkanAtauGagal(tugas, poolId, userId, didDeductCredit, isBatal) {
   if (tugas.intervalObj) clearInterval(tugas.intervalObj);
   
-  // Langsung lepaskan kunci pool & sinkron saldo live
   await lepaskanKunciPoolOtomatis(poolId);
 
   var labelStatus = isBatal ? "❌ Dibatalkan di Server" : "❌ Gagal Diproses Studio";
@@ -863,7 +847,6 @@ function hapusRiwayatSatu(target) {
       var idTugas = String(t.id || t.taskId || "").trim();
       if (idTugas === targetId) {
         if (t.intervalObj) clearInterval(t.intervalObj);
-        // Lepaskan kunci akun kolam jika tugas yang dihapus masih menahannya
         if (t.pool_id) lepaskanKunciPoolOtomatis(t.pool_id);
         return false;
       }

@@ -650,7 +650,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         var errResJson = await res.json().catch(function() { return {}; });
         var errStr = JSON.stringify(errResJson).toUpperCase();
 
-        if (errStr.includes("CANCEL") || errStr.includes("TERMINAT") || errStr.includes("FAIL")) {
+        if (errStr.includes("CANCEL") || errStr.includes("BATAL") || errStr.includes("TERMINAT") || errStr.includes("FAIL") || errStr.includes("GAGAL")) {
           await eksekusiTugasDibatalkanAtauGagal(tugas, currentPoolId, userId, didDeductCredit, true);
           return;
         }
@@ -730,21 +730,24 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       var isBatal = (
         code === 807 ||
         statusTeks.includes("CANCEL") ||
+        statusTeks.includes("BATAL") ||
         statusTeks.includes("TERMINAT") ||
         statusTeks.includes("ABORT") ||
         statusTeks.includes("STOP") ||
         pesanTeks.includes("CANCEL") ||
+        pesanTeks.includes("BATAL") ||
         pesanTeks.includes("TERMINAT") ||
         pesanTeks.includes("ABORT")
       );
 
       var isGagal = (
-        statusTeks === "FAILED" ||
-        statusTeks === "FAIL" ||
-        statusTeks === "ERROR" ||
-        pesanTeks.includes("FAILED") ||
-        pesanTeks.includes("ERROR:") ||
+        code === 500 ||
+        statusTeks.includes("FAIL") ||
+        statusTeks.includes("ERROR") ||
         statusTeks.includes("EXCEPTION") ||
+        pesanTeks.includes("FAIL") ||
+        pesanTeks.includes("GAGAL") ||
+        pesanTeks.includes("ERROR") ||
         ((code === 801 || code === 802 || statusTeks.includes("NOT_FOUND") || pesanTeks.includes("NOT FOUND")) && waktuBerjalan >= 600000)
       );
 

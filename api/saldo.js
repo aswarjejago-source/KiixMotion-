@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   let userId = bodyData.userId || null;
   let apiKey = bodyData.apiKey || req.query?.apiKey || null;
 
-  // 1. Ekstrak Token & User ID dari teks Cookie jika ada
+  // 1. Ekstrak Token & User ID dari teks Cookie
   if (typeof rawInput === 'string' && (rawInput.includes('Rh-Accesstoken=') || rawInput.includes('userId='))) {
     cookieData = rawInput;
     const tokenMatch = rawInput.match(/Rh-Accesstoken=([^;\s]+)/i);
@@ -40,72 +40,65 @@ export default async function handler(req, res) {
     const token = accessToken || (cookieData ? cookieData.match(/Rh-Accesstoken=([^;\s]+)/i)?.[1] : null);
     const uId = userId || (cookieData ? cookieData.match(/userId=([^;\s]+)/i)?.[1] : "") || "";
 
-    // Bersihkan cookie dari karakter enter / newline agar Node.js fetch tidak crash
+    // Bersihkan enter / newline agar header HTTP valid di Node.js
     let cleanCookie = cookieData ? String(cookieData).replace(/[\r\n]+/g, ' ').trim() : "";
     if (!cleanCookie.includes('Rh-Accesstoken=')) {
       cleanCookie = `rh_locale=id; Rh-Accesstoken=${token}; userId=${uId}; Rh-billing-uid=${uId};`;
     }
 
-    // Header persis seperti browser (TANPA Authorization: Bearer agar tidak bentrok)
+    // Header HTTP standar tanpa pseudo-header "authority"
     const headersWeb = {
-      "authority": "www.runninghub.ai",
-      "accept": "*/*",
-      "accept-language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-      "content-type": "application/json",
-      "cookie": cleanCookie,
-      "origin": "https://www.runninghub.ai",
-      "referer": "https://www.runninghub.ai/",
-      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+      "Accept": "application/json, text/plain, */*",
+      "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Cookie": cleanCookie,
+      "Referer": "https://www.runninghub.ai/",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     };
 
-    // Daftar endpoint prioritas
-    const endpointList = [
-      "https://www.runninghub.ai/api/uc/auth/user-info",
-      "https://www.runninghub.ai/api/uc/user/get-user-info",
-      "https://www.runninghub.ai/uc/user/get-user-info"
-    ];
-
-    let lastError = null;
-
-    for (const url of endpointList) {
-      try {
-        const rhResp = await fetch(url, {
-          method: "GET",
-          headers: headersWeb
-        });
-
-        const rhJson = await rhResp.json().catch(() => null);
-
-        if (rhJson && (rhJson.code === 0 || rhJson.code === 200 || rhJson.data)) {
-          const raw = rhJson.data || rhJson;
-          
-          // Membaca properti totalCoin ("448")
-          const koin = raw.totalCoin ?? raw.remainCoins ?? raw.totalCoins ?? raw.coins ?? raw.coin ?? raw.balance;
-
-          if (koin !== undefined && koin !== null && !isNaN(Number(koin))) {
-            const koinAngka = Number(koin);
-            return res.status(200).json({
-              code: 0,
-              success: true,
-              coins: koinAngka,
-              userId: raw.id || raw.userId || uId,
-              data: raw
-            });
-          }
-        } else if (rhJson) {
-          lastError = rhJson;
-        }
-      } catch (err) {
-        lastError = err.message;
-      }
+    if (token) {
+      headersWeb["Rh-Accesstoken"] = token;
     }
 
-    return res.status(200).json({
-      success: false,
-      coins: 0,
-      message: "Gagal menarik data totalCoin dari server RunningHub.",
-      debug: lastError
-    });
+    try {
+      const rhResp = await fetch("https://www.runninghub.ai/api/uc/auth/user-info", {
+        method: "GET",
+        headers: headersWeb
+      });
+
+      const rhJson = await rhResp.json().catch(() => null);
+
+      if (rhJson && (rhJson.code === 0 || rhJson.code === 200 || rhJson.data)) {
+        const raw = rhJson.data || rhJson;
+        
+        // Membaca nilai koin ("448")
+        const koin = raw.totalCoin ?? raw.remainCoins ?? raw.totalCoins ?? raw.coins ?? raw.coin ?? raw.balance;
+
+        if (koin !== undefined && koin !== null && !isNaN(Number(koin))) {
+          const koinAngka = Number(koin);
+          return res.status(200).json({
+            code: 0,
+            success: true,
+            coins: koinAngka,
+            userId: raw.id || raw.userId || uId,
+            data: raw
+          });
+        }
+      }
+
+      return res.status(200).json({
+        success: false,
+        coins: 0,
+        message: "RunningHub merespons tetapi tidak ditemukan properti totalCoin.",
+        debug: rhJson
+      });
+
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        coins: 0,
+        message: "Fetch error dari Vercel ke RunningHub: " + err.message
+      });
+    }
   }
 
   // =========================================================

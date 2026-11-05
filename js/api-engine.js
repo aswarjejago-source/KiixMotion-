@@ -266,57 +266,21 @@ async function selaraskanRiwayatDenganAkun() {
   }
 }
 
-// 3. SINKRONISASI REALTIME STATUS IDLE & SISA KOIN AKUN POOL SUPABASE
+// 3. SINKRONISASI REALTIME STATUS IDLE AKUN POOL SUPABASE
 async function lepaskanKunciPoolOtomatis(poolId) {
   if (!poolId) return;
 
   if (typeof supa !== 'undefined') {
     try {
-      var { data: poolRec } = await supa
+      await supa
         .from('runninghub_pool')
-        .select('api_key')
-        .eq('id', poolId)
-        .maybeSingle();
-
-      var koinTersisa = null;
-
-      if (poolRec && poolRec.api_key) {
-        try {
-          var resSaldo = await fetch('/api/saldo', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: poolRec.api_key })
-          });
-
-          if (resSaldo.ok) {
-            var hasilSaldo = await resSaldo.json();
-            var raw = hasilSaldo.data || hasilSaldo;
-            var k = raw.totalCoins ?? raw.coins ?? raw.coin ?? raw.balance ?? raw.remainCoins;
-            if (k !== undefined && k !== null && !isNaN(Number(k))) {
-              koinTersisa = Number(k);
-            }
-          }
-        } catch (errSaldo) {
-          console.warn("Gagal cek saldo live:", errSaldo);
-        }
-      }
-
-      var statusAkhir = (koinTersisa !== null && koinTersisa < 75) ? 'habis' : 'idle';
-      var payloadUpdate = { 
-        status: statusAkhir, 
-        last_used_at: new Date().toISOString() 
-      };
-
-      if (koinTersisa !== null) {
-        payloadUpdate.koin = koinTersisa;
-      }
-
-      await supa.from('runninghub_pool').update(payloadUpdate).eq('id', poolId);
-
+        .update({ 
+          status: 'idle', 
+          last_used_at: new Date().toISOString() 
+        })
+        .eq('id', poolId);
     } catch (e) {
-      try {
-        await supa.from('runninghub_pool').update({ status: 'idle' }).eq('id', poolId);
-      } catch (errFallback) {}
+      console.warn("Gagal update status idle pool:", e);
     }
   }
 
@@ -625,16 +589,6 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       simpanStorage();
       if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
       return;
-    }
-
-    if (!currentApiKey && currentPoolId && typeof supa !== 'undefined') {
-      try {
-        var { data: poolRec } = await supa.from('runninghub_pool').select('api_key').eq('id', currentPoolId).maybeSingle();
-        if (poolRec && poolRec.api_key) {
-          currentApiKey = poolRec.api_key;
-          tugas.key = currentApiKey;
-        }
-      } catch (e) {}
     }
 
     try {

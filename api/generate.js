@@ -1,5 +1,5 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Single Credit Engine (Task V1 Create + Workflow 2099509417535340546)
+// Backend Proxy Vercel - KiixMotion Single Credit Engine (Smart Multi-Fallback Engine)
 
 export const maxDuration = 60;
 
@@ -230,7 +230,6 @@ export default async function handler(req, res) {
     );
     let poolData = await poolRes.json().catch(() => []);
 
-    // Fallback: Jika tidak ada akun idle >= 75 koin, ambil akun idle apa pun
     if (!Array.isArray(poolData) || poolData.length === 0) {
       const fallbackRes = await fetch(
         `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
@@ -365,10 +364,10 @@ export default async function handler(req, res) {
     }
 
     // =========================================================
-    // EKSEKUSI TRANSFER GERAKAN (JALUR TASK V1 CREATE)
-    // Menggunakan workflowId 2099509417535340546 tanpa restriksi Advanced API
+    // EKSEKUSI TRANSFER GERAKAN (SMART MULTI-FALLBACK ENGINE)
     // =========================================================
     const WAN_WORKFLOW_ID = "2099509417535340546";
+    const WAN_APP_ID = "2101240461868802049";
 
     const [rhFoto, rhVideo] = await Promise.all([
       siapkanBahan(urlBahanFoto, 'image', apiKeyDipakai),
@@ -389,35 +388,93 @@ export default async function handler(req, res) {
 
     const CAMERA_STABILIZER_PROMPT = "Camera locked on tripod, perfectly stable camera, no camera shake, no handheld movement, no jitter, no vibration, no zoom in, no zoom out, no dolly movement, no camera panning, no camera rotation, no camera tilt, fixed framing, static shot, consistent composition, cinematic realism, sharp focus at all times, subject always in focus, no focus breathing, no autofocus hunting, no motion blur, no lens blur, no depth of field blur, ultra clear details, crisp image quality, smooth natural motion, professional studio camera, stable video capture, high detail, high realism.\nNegative Prompt:\ncamera shake, handheld camera, jitter, vibration, zoom in, zoom out, camera movement, panning, tilting, rotating, dolly shot, motion blur, lens blur, focus blur, out of focus, autofocus, focus breathing, shaky footage, cinematic blur, depth of field blur, low quality, ghosting, distortion.";
 
-    const engineRes = await fetch('https://www.runninghub.ai/task/openapi/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
+    const nodeParams = [
+      { nodeId: "30", fieldName: "image", fieldValue: rhFoto },
+      { nodeId: "33", fieldName: "video", fieldValue: rhVideo },
+      { nodeId: "275", fieldName: "text", fieldValue: CAMERA_STABILIZER_PROMPT }
+    ];
+
+    // Daftar target request yang akan dicoba berurutan sampai tembus
+    const jalurTargetList = [
+      // Jalur 1: Task V1 Create Workflow (.ai)
+      {
+        url: 'https://www.runninghub.ai/task/openapi/create',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKeyDipakai}`
+        },
+        body: {
+          apiKey: apiKeyDipakai,
+          workflowId: WAN_WORKFLOW_ID,
+          addMetadata: true,
+          nodeInfoList: nodeParams
+        }
       },
-      body: JSON.stringify({
-        apiKey: apiKeyDipakai,
-        workflowId: WAN_WORKFLOW_ID,
-        nodeInfoList: [
-          { nodeId: "30", fieldName: "image", fieldValue: rhFoto },
-          { nodeId: "33", fieldName: "video", fieldValue: rhVideo },
-          { nodeId: "275", fieldName: "text", fieldValue: CAMERA_STABILIZER_PROMPT }
-        ]
-      })
-    });
+      // Jalur 2: Task V1 Create Workflow (.cn - bypass server billing internasional)
+      {
+        url: 'https://www.runninghub.cn/task/openapi/create',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKeyDipakai}`
+        },
+        body: {
+          apiKey: apiKeyDipakai,
+          workflowId: WAN_WORKFLOW_ID,
+          addMetadata: true,
+          nodeInfoList: nodeParams
+        }
+      },
+      // Jalur 3: Task V1 AI-App run (menggunakan webappId)
+      {
+        url: 'https://www.runninghub.ai/task/openapi/ai-app/run',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKeyDipakai}`
+        },
+        body: {
+          apiKey: apiKeyDipakai,
+          webappId: WAN_APP_ID,
+          nodeInfoList: nodeParams
+        }
+      }
+    ];
 
-    const engineData = await engineRes.json().catch(() => ({}));
-    const taskId = engineData.data?.taskId || engineData.taskId || engineData.data?.task_id || engineData.data;
+    let taskIdDitemukan = null;
+    let pesanErrorTerakhir = "";
 
-    if (engineData && (engineData.code === 0 || engineData.code === 200 || engineData.data) && taskId) {
+    for (let i = 0; i < jalurTargetList.length; i++) {
+      const target = jalurTargetList[i];
+      try {
+        const resp = await fetch(target.url, {
+          method: 'POST',
+          headers: target.headers,
+          body: JSON.stringify(target.body)
+        });
+
+        const resData = await resp.json().catch(() => ({}));
+        const tId = resData?.data?.taskId || resData?.taskId || resData?.data?.task_id || (typeof resData?.data === 'string' ? resData.data : null);
+
+        if ((resp.ok || resData?.code === 0 || resData?.code === 200 || resData?.status === "RUNNING") && tId) {
+          taskIdDitemukan = tId;
+          break; // Berhasil tembus!
+        } else {
+          pesanErrorTerakhir = resData?.msg || resData?.errorMessage || resData?.message || "";
+        }
+      } catch (errJalur) {
+        pesanErrorTerakhir = errJalur.message;
+      }
+    }
+
+    if (taskIdDitemukan) {
       return res.status(200).json({
         success: true,
-        taskId: typeof taskId === 'string' ? taskId : JSON.stringify(taskId),
+        taskId: typeof taskIdDitemukan === 'string' ? taskIdDitemukan : JSON.stringify(taskIdDitemukan),
         poolId: poolIdDipakai,
         didDeductCredit: true,
         provider: 'kiix'
       });
     } else {
-      throw new Error(engineData?.msg || engineData?.errorMessage || 'Server AI ComfyUI menolak antrean video.');
+      throw new Error(pesanErrorTerakhir || 'Server AI ComfyUI menolak antrean video.');
     }
 
   } catch (error) {

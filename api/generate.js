@@ -1,5 +1,5 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Single Credit Engine (Workflow 2099509417535340546)
+// Backend Proxy Vercel - KiixMotion Single Credit Engine (Task V1 Create + Workflow 2099509417535340546)
 
 export const maxDuration = 60;
 
@@ -365,8 +365,8 @@ export default async function handler(req, res) {
     }
 
     // =========================================================
-    // EKSEKUSI TRANSFER GERAKAN (WORKFLOW 2099509417535340546)
-    // Sesuai dokumentasi resmi OpenAPI v2 Alur Kerja
+    // EKSEKUSI TRANSFER GERAKAN (JALUR TASK V1 CREATE)
+    // Menggunakan workflowId 2099509417535340546 tanpa restriksi Advanced API
     // =========================================================
     const WAN_WORKFLOW_ID = "2099509417535340546";
 
@@ -389,28 +389,26 @@ export default async function handler(req, res) {
 
     const CAMERA_STABILIZER_PROMPT = "Camera locked on tripod, perfectly stable camera, no camera shake, no handheld movement, no jitter, no vibration, no zoom in, no zoom out, no dolly movement, no camera panning, no camera rotation, no camera tilt, fixed framing, static shot, consistent composition, cinematic realism, sharp focus at all times, subject always in focus, no focus breathing, no autofocus hunting, no motion blur, no lens blur, no depth of field blur, ultra clear details, crisp image quality, smooth natural motion, professional studio camera, stable video capture, high detail, high realism.\nNegative Prompt:\ncamera shake, handheld camera, jitter, vibration, zoom in, zoom out, camera movement, panning, tilting, rotating, dolly shot, motion blur, lens blur, focus blur, out of focus, autofocus, focus breathing, shaky footage, cinematic blur, depth of field blur, low quality, ghosting, distortion.";
 
-    const engineRes = await fetch(`https://www.runninghub.ai/openapi/v2/run/workflow/${WAN_WORKFLOW_ID}`, {
+    const engineRes = await fetch('https://www.runninghub.ai/task/openapi/create', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKeyDipakai}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        addMetadata: true,
+        apiKey: apiKeyDipakai,
+        workflowId: WAN_WORKFLOW_ID,
         nodeInfoList: [
-          { nodeId: "30", fieldName: "image", fieldValue: rhFoto, description: null },
-          { nodeId: "33", fieldName: "video", fieldValue: rhVideo, description: null },
-          { nodeId: "275", fieldName: "text", fieldValue: CAMERA_STABILIZER_PROMPT, description: null }
-        ],
-        instanceType: "default",
-        usePersonalQueue: "false"
+          { nodeId: "30", fieldName: "image", fieldValue: rhFoto },
+          { nodeId: "33", fieldName: "video", fieldValue: rhVideo },
+          { nodeId: "275", fieldName: "text", fieldValue: CAMERA_STABILIZER_PROMPT }
+        ]
       })
     });
 
     const engineData = await engineRes.json().catch(() => ({}));
-    const taskId = engineData.taskId || engineData.data?.taskId || engineData.data?.task_id || engineData.data;
+    const taskId = engineData.data?.taskId || engineData.taskId || engineData.data?.task_id || engineData.data;
 
-    if ((engineRes.ok || engineData.status === "RUNNING" || engineData.code === 0 || engineData.code === 200) && taskId) {
+    if (engineData && (engineData.code === 0 || engineData.code === 200 || engineData.data) && taskId) {
       return res.status(200).json({
         success: true,
         taskId: typeof taskId === 'string' ? taskId : JSON.stringify(taskId),
@@ -419,7 +417,7 @@ export default async function handler(req, res) {
         provider: 'kiix'
       });
     } else {
-      throw new Error(engineData?.errorMessage || engineData?.msg || 'Server AI menolak antrean video.');
+      throw new Error(engineData?.msg || engineData?.errorMessage || 'Server AI ComfyUI menolak antrean video.');
     }
 
   } catch (error) {

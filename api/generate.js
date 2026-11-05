@@ -1,5 +1,5 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Single Credit Engine (Jalur Task OpenAPI AI-App)
+// Backend Proxy Vercel - KiixMotion Single Credit Engine (Jalur ComfyUI Task Create - Bebas Koin Gratis)
 
 export const maxDuration = 60;
 
@@ -365,9 +365,10 @@ export default async function handler(req, res) {
     }
 
     // =========================================================
-    // EKSEKUSI TRANSFER GERAKAN 1080HD (JALUR TASK AI-APP STANDAR)
+    // EKSEKUSI TRANSFER GERAKAN 1080HD (CARA 2: COMFYUI TASK CREATE)
+    // Jalur ini memotong koin RH gratisan tanpa memblokir Consumer API
     // =========================================================
-    const WAN_APP_ID = "2101240461868802049";
+    const WAN_WORKFLOW_ID = process.env.WAN_WORKFLOW_ID || "2101240461868802049";
 
     const [rhFoto, rhVideo] = await Promise.all([
       siapkanBahan(urlBahanFoto, 'image', apiKeyDipakai),
@@ -388,16 +389,15 @@ export default async function handler(req, res) {
 
     const CAMERA_STABILIZER_PROMPT = "Camera locked on tripod, perfectly stable camera, no camera shake, no handheld movement, no jitter, no vibration, no zoom in, no zoom out, no dolly movement, no camera panning, no camera rotation, no camera tilt, fixed framing, static shot, consistent composition, cinematic realism, sharp focus at all times, subject always in focus, no focus breathing, no autofocus hunting, no motion blur, no lens blur, no depth of field blur, ultra clear details, crisp image quality, smooth natural motion, professional studio camera, stable video capture, high detail, high realism.\nNegative Prompt:\ncamera shake, handheld camera, jitter, vibration, zoom in, zoom out, camera movement, panning, tilting, rotating, dolly shot, motion blur, lens blur, focus blur, out of focus, autofocus, focus breathing, shaky footage, cinematic blur, depth of field blur, low quality, ghosting, distortion.";
 
-    // Jalur Task Standar (/task/openapi/ai-app/run)
-    const engineRes = await fetch('https://www.runninghub.ai/task/openapi/ai-app/run', {
+    // MENGGUNAKAN ENDPOINT COMFYUI TASK CREATE MURNI
+    const engineRes = await fetch('https://www.runninghub.ai/task/openapi/create', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKeyDipakai}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         apiKey: apiKeyDipakai,
-        webappId: WAN_APP_ID,
+        workflowId: WAN_WORKFLOW_ID,
         nodeInfoList: [
           { nodeId: "30", fieldName: "image", fieldValue: rhFoto },
           { nodeId: "33", fieldName: "video", fieldValue: rhVideo },
@@ -409,7 +409,7 @@ export default async function handler(req, res) {
     const engineData = await engineRes.json().catch(() => ({}));
     const taskId = engineData.data?.taskId || engineData.taskId || engineData.data?.task_id || engineData.data;
 
-    if (engineData && (engineData.code === 0 || engineData.code === 200 || engineData.data || engineData.status === "RUNNING") && taskId) {
+    if (engineData && (engineData.code === 0 || engineData.code === 200 || engineData.data) && taskId) {
       return res.status(200).json({
         success: true,
         taskId: typeof taskId === 'string' ? taskId : JSON.stringify(taskId),
@@ -418,7 +418,7 @@ export default async function handler(req, res) {
         provider: 'kiix'
       });
     } else {
-      throw new Error(engineData?.msg || engineData?.errorMessage || 'Server AI menolak antrean video.');
+      throw new Error(engineData?.msg || engineData?.errorMessage || 'Server AI ComfyUI menolak antrean video.');
     }
 
   } catch (error) {

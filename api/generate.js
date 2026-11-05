@@ -1,77 +1,27 @@
 // File: api/generate.js
-// Backend Proxy Vercel - KiixMotion Single Credit Engine (Smart Multi-Fallback Engine)
+// Backend Proxy Vercel - KiixMotion Single Credit Engine (Web Session Account Pooling)
 
 export const maxDuration = 60;
 
 const EMAIL_OWNER = "anggraingki@gmail.com";
 
-function ambilPathDariUrl(publicUrl) {
+// Helper refresh access token jika sesi web kedaluwarsa (401)
+async function refreshRhAccessToken(refreshToken, oldCookie) {
   try {
-    if (!publicUrl || typeof publicUrl !== 'string') return null;
-    const parts = publicUrl.split('/bahan-render/');
-    return parts[1] ? decodeURIComponent(parts[1]) : null;
+    const res = await fetch("https://www.runninghub.ai/api/uc/auth/refresh", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "client": "WEB",
+        "cookie": oldCookie || `Rh-Refreshtoken=${refreshToken}`
+      },
+      body: JSON.stringify({ refreshToken })
+    });
+    const data = await res.json().catch(() => ({}));
+    return data?.data?.accessToken || data?.data?.token || data?.accessToken || null;
   } catch (e) {
     return null;
   }
-}
-
-async function uploadKeEngineServer(fileUrl, fileType, apiKey) {
-  const fileRes = await fetch(fileUrl);
-  if (!fileRes.ok) throw new Error("Gagal mengambil file bahan dari storage.");
-  const arrayBuffer = await fileRes.arrayBuffer();
-  const blob = new Blob([arrayBuffer]);
-
-  const formData = new FormData();
-  const ext = fileType === 'video' ? 'mp4' : 'jpg';
-  formData.append('file', blob, `bahan_${Date.now()}.${ext}`);
-  formData.append('apiKey', apiKey);
-  formData.append('fileType', fileType);
-
-  const rhRes = await fetch('https://www.runninghub.ai/task/openapi/upload', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}` },
-    body: formData
-  });
-
-  const rhJson = await rhRes.json().catch(() => ({}));
-  let serverFile = null;
-  if (rhJson && (rhJson.code === 0 || rhJson.code === 200 || rhJson.data)) {
-    if (typeof rhJson.data === 'string') serverFile = rhJson.data;
-    else if (rhJson.data && typeof rhJson.data === 'object') {
-      serverFile = rhJson.data.fileName || rhJson.data.fileUrl || rhJson.data.url || rhJson.data.path;
-    }
-  }
-  if (!serverFile) throw new Error(rhJson?.msg || "Engine AI menolak bahan video/foto.");
-  return serverFile;
-}
-
-async function siapkanBahan(bahan, fileType, apiKey) {
-  if (!bahan || typeof bahan !== 'string') return bahan;
-
-  if (
-    bahan.startsWith('api/') ||
-    bahan.startsWith('openapi/') ||
-    bahan.includes('runninghub') ||
-    !bahan.startsWith('http')
-  ) {
-    return bahan;
-  }
-
-  return await uploadKeEngineServer(bahan, fileType, apiKey);
-}
-
-function normalisasiRatioMinimax(ratio) {
-  if (!ratio) return "3:4 (Portrait Standard)";
-  const r = String(ratio).toLowerCase();
-  if (r.includes("1:1")) return "1:1 (Square)";
-  if (r.includes("2:3")) return "2:3 (Portrait Photo)";
-  if (r.includes("3:2")) return "3:2 (Photo)";
-  if (r.includes("3:4")) return "3:4 (Portrait Standard)";
-  if (r.includes("4:3")) return "4:3 (Standard)";
-  if (r.includes("9:16")) return "9:16 (Portrait Widescreen)";
-  if (r.includes("16:9")) return "16:9 (Widescreen)";
-  if (r.includes("21:9")) return "21:9 (Ultrawide)";
-  return "3:4 (Portrait Standard)";
 }
 
 export default async function handler(req, res) {
@@ -127,7 +77,7 @@ export default async function handler(req, res) {
   };
 
   // =========================================================
-  // JALUR OWNER: KLING 2.6 MOTION CONTROL
+  // JALUR OWNER: KLING 2.6 MOTION CONTROL (TIDAK DIUBAH)
   // =========================================================
   if (provider === 'kling') {
     let emailTerverifikasi = (userEmail || "").trim().toLowerCase();
@@ -193,14 +143,13 @@ export default async function handler(req, res) {
   }
 
   // =========================================================
-  // JALUR SATU PINTU: KREDIT POOL KIIXMOTION
+  // JALUR POOL AKUN KIIXMOTION (WEB SESSION POOLING)
   // =========================================================
-  let apiKeyDipakai = null;
   let poolIdDipakai = null;
   let didDeductCredit = false;
 
   try {
-    // 1. Potong 1 kredit dari Supabase RPC
+    // 1. Potong 1 kredit member KiixMotion
     const potongRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/potong_kredit_member`, {
       method: 'POST',
       headers: supaHeaders,
@@ -216,20 +165,18 @@ export default async function handler(req, res) {
                              potongJson?.details || 
                              (typeof potongJson === 'string' ? potongJson : null) || 
                              'Gagal memvalidasi atau memotong kredit akun.';
-      return res.status(400).json({
-        success: false,
-        message: pesanErrorAsli
-      });
+      return res.status(400).json({ success: false, message: pesanErrorAsli });
     }
     didDeductCredit = true;
 
-    // 2. Ambil akun idle secara bergilir
+    // 2. Ambil akun idle yang memiliki minimal 100 koin RunningHub
     let poolRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.75&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
+      `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.100&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
       { headers: supaHeaders }
     );
     let poolData = await poolRes.json().catch(() => []);
 
+    // Fallback jika tidak ada yang >= 100 koin, coba ambil akun idle apa saja
     if (!Array.isArray(poolData) || poolData.length === 0) {
       const fallbackRes = await fetch(
         `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
@@ -243,18 +190,25 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: supaHeaders,
         body: JSON.stringify({ target_user_id: cleanUserId })
-      }).catch(function() {});
+      }).catch(() => {});
 
       return res.status(503).json({
         success: false,
-        message: 'TASK_QUEUE_MAXED: Seluruh akun kolam sedang sibuk merender. 1 kredit telah dikembalikan otomatis.'
+        message: 'TASK_QUEUE_MAXED: Seluruh akun kolam sedang sibuk merender atau kehabisan koin. 1 kredit telah dikembalikan otomatis.'
       });
     }
 
-    apiKeyDipakai = poolData[0].api_key;
-    poolIdDipakai = poolData[0].id;
+    const akunTerpilih = poolData[0];
+    poolIdDipakai = akunTerpilih.id;
 
-    // Tandai status busy dan catat timestamp saat ini
+    // Ekstraksi kredensial sesi web akun terpilih
+    const rhUserId = akunTerpilih.user_id || akunTerpilih.rh_user_id || akunTerpilih.userid;
+    let accessToken = akunTerpilih.access_token || akunTerpilih.rh_access_token || akunTerpilih.token || akunTerpilih.api_key;
+    const refreshToken = akunTerpilih.refresh_token || akunTerpilih.rh_refresh_token || null;
+    let cookieData = akunTerpilih.cookie_data || akunTerpilih.cookie || 
+      `rh_locale=id; userLanguage=true; Rh-Accesstoken=${accessToken}; Rh-Refreshtoken=${refreshToken || ''}; userId=${rhUserId}; Rh-Identify=df0dec23b434a3a7de18ce75aef334b5;`;
+
+    // Tandai status akun menjadi busy
     await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
       method: 'PATCH',
       headers: supaHeaders,
@@ -262,239 +216,121 @@ export default async function handler(req, res) {
     });
 
     // =========================================================
-    // EKSEKUSI MINIMAX H3 (OPENAPI V2 AI-APP)
+    // EKSEKUSI TRANSFER GERAKAN (INTERNAL WEBAPP-RUN)
     // =========================================================
-    if (provider === 'minimax') {
-      const MINIMAX_APP_ID = "2104825195000619009";
+    const WAN_APP_ID = "2101240461868802049";
+    const CAMERA_STABILIZER_PROMPT = "Camera locked on tripod, perfectly stable camera, no camera shake, no handheld movement, no jitter, no vibration, no zoom in, no zoom out, no dolly movement, no camera panning, no camera rotation, no camera tilt, fixed framing, static shot, consistent composition, cinematic realism, sharp focus at all times, subject always in focus, no focus breathing, no autofocus hunting, no motion blur, no lens blur, no depth of field blur, ultra clear details, crisp image quality, smooth natural motion, professional studio camera, stable video capture, high detail, high realism.\nNegative Prompt:\ncamera shake, handheld camera, jitter, vibration, zoom in, zoom out, camera movement, panning, tilting, rotating, dolly shot, motion blur, lens blur, focus blur, out of focus, autofocus, focus breathing, shaky footage, cinematic blur, depth of field blur, low quality, ghosting, distortion.";
 
-      const slotMap = {};
-      if (Array.isArray(images)) {
-        images.forEach((item, idx) => {
-          if (typeof item === 'object' && item !== null) {
-            const s = Number(item.slot) || (idx + 1);
-            slotMap[s] = item.url || item.fileUrl || item.imageUrl;
-          } else if (typeof item === 'string') {
-            slotMap[idx + 1] = item;
-          }
-        });
-      } else if (urlBahanFoto) {
-        slotMap[1] = urlBahanFoto;
-      }
-
-      const nodeSlotMap = [
-        { slot: 1, nodeId: "6" },
-        { slot: 2, nodeId: "35" },
-        { slot: 3, nodeId: "36" },
-        { slot: 4, nodeId: "37" },
-        { slot: 5, nodeId: "38" },
-        { slot: 6, nodeId: "39" },
-        { slot: 7, nodeId: "40" },
-        { slot: 8, nodeId: "41" },
-        { slot: 9, nodeId: "42" }
-      ];
-
-      const nodeInfoList = [];
-
-      await Promise.all(nodeSlotMap.map(async (mapping) => {
-        const rawUrl = slotMap[mapping.slot];
-        let finalVal = "None";
-
-        if (rawUrl) {
-          try {
-            const uploaded = await siapkanBahan(rawUrl, 'image', apiKeyDipakai);
-            finalVal = uploaded || "None";
-          } catch (e) {
-            if (mapping.slot === 1) {
-              throw new Error("Gagal mengunggah Foto Karakter (Slot 1) ke server AI.");
-            }
-            finalVal = "None";
-          }
-        }
-
-        nodeInfoList.push({
-          nodeId: mapping.nodeId,
+    // Susun parameter input ComfyUI asli
+    const payloadWebapp = {
+      webappId: WAN_APP_ID,
+      inputs: [
+        {
+          nodeId: "30",
           fieldName: "image",
-          fieldValue: finalVal,
-          description: null
-        });
-      }));
-
-      nodeInfoList.sort((a, b) => {
-        const idxA = nodeSlotMap.findIndex(n => n.nodeId === a.nodeId);
-        const idxB = nodeSlotMap.findIndex(n => n.nodeId === b.nodeId);
-        return idxA - idxB;
-      });
-
-      nodeInfoList.push(
-        { nodeId: "65", fieldName: "index", fieldValue: "0", description: null },
-        { nodeId: "27", fieldName: "value", fieldValue: String(duration || "15"), description: null },
-        { nodeId: "29", fieldName: "aspect_ratio", fieldValue: normalisasiRatioMinimax(aspectRatio), description: null },
-        { nodeId: "29", fieldName: "megapixels", fieldValue: "0.6000000000000001", description: null },
-        { nodeId: "61", fieldName: "value", fieldValue: "1.3000000000000003", description: null },
-        { nodeId: "28", fieldName: "prompt", fieldValue: prompt || "", description: null }
-      );
-
-      const mmRes = await fetch(`https://www.runninghub.ai/openapi/v2/run/ai-app/${MINIMAX_APP_ID}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKeyDipakai}`
+          fieldValue: urlBahanFoto.trim()
         },
+        {
+          nodeId: "33",
+          fieldName: "video",
+          fieldValue: urlBahanVideo.trim()
+        },
+        {
+          nodeId: "275",
+          fieldName: "text",
+          fieldValue: prompt || CAMERA_STABILIZER_PROMPT
+        }
+      ]
+    };
+
+    const kirimRequestKeRunningHub = async (tokenAktif, cookieAktif) => {
+      return await fetch("https://www.runninghub.ai/api/workflow/webapp-run", {
+        method: "POST",
+        headers: {
+          "authority": "www.runninghub.ai",
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "client": "WEB",
+          "authorization": `Bearer ${tokenAktif}`,
+          "cookie": cookieAktif,
+          "origin": "https://www.runninghub.ai",
+          "referer": `https://www.runninghub.ai/id/ai-detail/${WAN_APP_ID}`,
+          "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+          "userid": String(rhUserId),
+          "x-rh-lang": "id"
+        },
+        body: JSON.stringify(payloadWebapp)
+      });
+    };
+
+    let rhRes = await kirimRequestKeRunningHub(accessToken, cookieData);
+    let rhJson = await rhRes.json().catch(() => ({}));
+
+    // Auto-refresh jika token kedaluwarsa (401 atau kode autentikasi gagal)
+    if ((rhRes.status === 401 || rhJson?.code === 401 || rhJson?.msg?.toLowerCase().includes("token")) && refreshToken) {
+      const tokenBaru = await refreshRhAccessToken(refreshToken, cookieData);
+      if (tokenBaru) {
+        accessToken = tokenBaru;
+        cookieData = cookieData.replace(/Rh-Accesstoken=[^;]+/, `Rh-Accesstoken=${tokenBaru}`);
+        
+        // Simpan token baru ke database Supabase
+        await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
+          method: 'PATCH',
+          headers: supaHeaders,
+          body: JSON.stringify({
+            access_token: tokenBaru,
+            cookie_data: cookieData
+          })
+        });
+
+        // Tembak ulang render dengan token baru
+        rhRes = await kirimRequestKeRunningHub(accessToken, cookieData);
+        rhJson = await rhRes.json().catch(() => ({}));
+      }
+    }
+
+    const taskId = rhJson?.data?.taskId || rhJson?.taskId || rhJson?.data?.task_id || (typeof rhJson?.data === 'string' ? rhJson.data : null);
+
+    if ((rhRes.ok || rhJson?.code === 0 || rhJson?.code === 200) && taskId) {
+      // Potong 100 koin di database untuk akun ini
+      const sisaKoin = Math.max(0, (akunTerpilih.koin || 700) - 100);
+      await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
+        method: 'PATCH',
+        headers: supaHeaders,
         body: JSON.stringify({
-          nodeInfoList: nodeInfoList,
-          instanceType: "plus",
-          usePersonalQueue: "false"
+          koin: sisaKoin,
+          last_used_at: new Date().toISOString()
         })
       });
 
-      const mmData = await mmRes.json().catch(() => ({}));
-      const taskId = mmData.taskId || mmData.data?.taskId || mmData.data?.task_id || mmData.data;
-
-      if ((mmRes.ok || mmData.status === "RUNNING" || mmData.code === 0 || mmData.code === 200) && taskId) {
-        return res.status(200).json({
-          success: true,
-          taskId: typeof taskId === 'string' ? taskId : JSON.stringify(taskId),
-          poolId: poolIdDipakai,
-          didDeductCredit: true,
-          provider: 'minimax'
-        });
-      } else {
-        throw new Error(mmData.errorMessage || mmData.msg || 'MiniMax H3 engine menolak antrean render.');
-      }
-    }
-
-    // =========================================================
-    // EKSEKUSI TRANSFER GERAKAN (SMART MULTI-FALLBACK ENGINE)
-    // =========================================================
-    const WAN_WORKFLOW_ID = "2099509417535340546";
-    const WAN_APP_ID = "2101240461868802049";
-
-    const [rhFoto, rhVideo] = await Promise.all([
-      siapkanBahan(urlBahanFoto, 'image', apiKeyDipakai),
-      siapkanBahan(urlBahanVideo, 'video', apiKeyDipakai)
-    ]);
-
-    const pathFoto = ambilPathDariUrl(urlBahanFoto);
-    const pathVideo = ambilPathDariUrl(urlBahanVideo);
-    const fileHapus = [pathFoto, pathVideo].filter(Boolean);
-
-    if (fileHapus.length > 0) {
-      fetch(`${SUPABASE_URL}/storage/v1/object/bahan-render`, {
-        method: 'DELETE',
-        headers: supaHeaders,
-        body: JSON.stringify({ prefixes: fileHapus })
-      }).catch(function(e) {});
-    }
-
-    const CAMERA_STABILIZER_PROMPT = "Camera locked on tripod, perfectly stable camera, no camera shake, no handheld movement, no jitter, no vibration, no zoom in, no zoom out, no dolly movement, no camera panning, no camera rotation, no camera tilt, fixed framing, static shot, consistent composition, cinematic realism, sharp focus at all times, subject always in focus, no focus breathing, no autofocus hunting, no motion blur, no lens blur, no depth of field blur, ultra clear details, crisp image quality, smooth natural motion, professional studio camera, stable video capture, high detail, high realism.\nNegative Prompt:\ncamera shake, handheld camera, jitter, vibration, zoom in, zoom out, camera movement, panning, tilting, rotating, dolly shot, motion blur, lens blur, focus blur, out of focus, autofocus, focus breathing, shaky footage, cinematic blur, depth of field blur, low quality, ghosting, distortion.";
-
-    const nodeParams = [
-      { nodeId: "30", fieldName: "image", fieldValue: rhFoto },
-      { nodeId: "33", fieldName: "video", fieldValue: rhVideo },
-      { nodeId: "275", fieldName: "text", fieldValue: CAMERA_STABILIZER_PROMPT }
-    ];
-
-    // Daftar target request yang akan dicoba berurutan sampai tembus
-    const jalurTargetList = [
-      // Jalur 1: Task V1 Create Workflow (.ai)
-      {
-        url: 'https://www.runninghub.ai/task/openapi/create',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKeyDipakai}`
-        },
-        body: {
-          apiKey: apiKeyDipakai,
-          workflowId: WAN_WORKFLOW_ID,
-          addMetadata: true,
-          nodeInfoList: nodeParams
-        }
-      },
-      // Jalur 2: Task V1 Create Workflow (.cn - bypass server billing internasional)
-      {
-        url: 'https://www.runninghub.cn/task/openapi/create',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKeyDipakai}`
-        },
-        body: {
-          apiKey: apiKeyDipakai,
-          workflowId: WAN_WORKFLOW_ID,
-          addMetadata: true,
-          nodeInfoList: nodeParams
-        }
-      },
-      // Jalur 3: Task V1 AI-App run (menggunakan webappId)
-      {
-        url: 'https://www.runninghub.ai/task/openapi/ai-app/run',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKeyDipakai}`
-        },
-        body: {
-          apiKey: apiKeyDipakai,
-          webappId: WAN_APP_ID,
-          nodeInfoList: nodeParams
-        }
-      }
-    ];
-
-    let taskIdDitemukan = null;
-    let pesanErrorTerakhir = "";
-
-    for (let i = 0; i < jalurTargetList.length; i++) {
-      const target = jalurTargetList[i];
-      try {
-        const resp = await fetch(target.url, {
-          method: 'POST',
-          headers: target.headers,
-          body: JSON.stringify(target.body)
-        });
-
-        const resData = await resp.json().catch(() => ({}));
-        const tId = resData?.data?.taskId || resData?.taskId || resData?.data?.task_id || (typeof resData?.data === 'string' ? resData.data : null);
-
-        if ((resp.ok || resData?.code === 0 || resData?.code === 200 || resData?.status === "RUNNING") && tId) {
-          taskIdDitemukan = tId;
-          break; // Berhasil tembus!
-        } else {
-          pesanErrorTerakhir = resData?.msg || resData?.errorMessage || resData?.message || "";
-        }
-      } catch (errJalur) {
-        pesanErrorTerakhir = errJalur.message;
-      }
-    }
-
-    if (taskIdDitemukan) {
       return res.status(200).json({
         success: true,
-        taskId: typeof taskIdDitemukan === 'string' ? taskIdDitemukan : JSON.stringify(taskIdDitemukan),
+        taskId: typeof taskId === 'string' ? taskId : JSON.stringify(taskId),
         poolId: poolIdDipakai,
         didDeductCredit: true,
         provider: 'kiix'
       });
     } else {
-      throw new Error(pesanErrorTerakhir || 'Server AI ComfyUI menolak antrean video.');
+      throw new Error(rhJson?.msg || rhJson?.errorMessage || rhJson?.message || 'Server AI RunningHub menolak task antrean.');
     }
 
   } catch (error) {
+    // Refund kredit pengguna jika gagal
     if (didDeductCredit && cleanUserId) {
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
         method: 'POST',
         headers: supaHeaders,
         body: JSON.stringify({ target_user_id: cleanUserId })
-      }).catch(function() {});
+      }).catch(() => {});
     }
 
+    // Kembalikan status akun kolam menjadi idle jika gagal
     if (poolIdDipakai) {
-      const pesanErr = (error.message || '').toUpperCase();
-      const statusBalik = (pesanErr.includes('TASK_QUEUE_MAXED') || pesanErr.includes('QUEUE')) ? 'busy' : 'idle';
-
       await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
         method: 'PATCH',
         headers: supaHeaders,
-        body: JSON.stringify({ status: statusBalik, last_used_at: new Date().toISOString() })
-      }).catch(function() {});
+        body: JSON.stringify({ status: 'idle', last_used_at: new Date().toISOString() })
+      }).catch(() => {});
     }
 
     return res.status(500).json({

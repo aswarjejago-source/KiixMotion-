@@ -1,12 +1,33 @@
-// File: api/outputs.js - Dual Engine Clean Separated Handler (Kling, Task V1 & OpenAPI V2)
+// File: api/outputs.js
+// Backend Proxy Vercel - Task Status & Result Fetcher (Web Session Account Pooling)
+
 export const maxDuration = 30;
+
+// Helper refresh access token jika sesi web kedaluwarsa saat polling
+async function refreshRhAccessToken(refreshToken, oldCookie) {
+  try {
+    const res = await fetch("https://www.runninghub.ai/api/uc/auth/refresh", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "client": "WEB",
+        "cookie": oldCookie || `Rh-Refreshtoken=${refreshToken}`
+      },
+      body: JSON.stringify({ refreshToken })
+    });
+    const data = await res.json().catch(() => ({}));
+    return data?.data?.accessToken || data?.data?.token || data?.accessToken || null;
+  } catch (e) {
+    return null;
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  const { taskId, apiKey, poolId, provider } = req.body;
+  const { taskId, poolId, provider } = req.body;
 
   if (!taskId) {
     return res.status(400).json({ success: false, message: 'Task ID wajib disertakan.' });
@@ -15,7 +36,7 @@ export default async function handler(req, res) {
   const cleanTaskId = String(taskId).trim();
 
   // =========================================================
-  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI)
+  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - TETAP AMAN)
   // =========================================================
   if (provider === 'kling' || cleanTaskId.includes('-')) {
     try {
@@ -34,153 +55,195 @@ export default async function handler(req, res) {
   }
 
   // =========================================================
-  // AMBIL API KEY RUNNINGHUB
+  // JALUR 2: RUNNINGHUB WEB SESSION TASK QUERY
   // =========================================================
-  let effectiveApiKey = apiKey;
   const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
                   process.env.SUPABASE_SERVICE_ROLE ||
-                  process.env.SUPABASE_KEY ||
-                  process.env.SUPABASE_ANON_KEY ||
-                  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+                  process.env.SUPABASE_KEY;
 
-  if (!effectiveApiKey && supaUrl && supaKey) {
-    try {
-      const queryUrl = poolId
-        ? `${supaUrl}/rest/v1/runninghub_pool?id=eq.${poolId}&select=api_key`
-        : `${supaUrl}/rest/v1/runninghub_pool?select=api_key&limit=1`;
-
-      const dbRes = await fetch(queryUrl, {
-        headers: {
-          'apikey': supaKey,
-          'Authorization': `Bearer ${supaKey}`
-        }
-      });
-      const dbData = await dbRes.json().catch(() => []);
-      if (Array.isArray(dbData) && dbData[0]?.api_key) {
-        effectiveApiKey = dbData[0].api_key;
-      }
-    } catch (e) {}
+  if (!supaUrl || !supaKey) {
+    return res.status(500).json({ success: false, message: 'Koneksi database Supabase tidak ditemukan.' });
   }
 
-  if (!effectiveApiKey) {
-    effectiveApiKey = process.env.RUNNINGHUB_API_KEY;
-  }
+  const supaHeaders = {
+    'Content-Type': 'application/json',
+    'apikey': supaKey,
+    'Authorization': `Bearer ${supaKey}`
+  };
 
-  if (!effectiveApiKey) {
-    return res.status(400).json({
-      success: false,
-      message: 'API Key RunningHub tidak ditemukan di server.'
-    });
-  }
+  let akunPool = null;
 
-  // =========================================================
-  // JALUR 2: RUNNINGHUB STATUS QUERY (V1 Task Outputs & V2 OpenAPI Query)
-  // =========================================================
   try {
-    let resultJson = null;
+    // 1. Ambil data kredensial akun yang sedang mengerjakan task ini
+    const queryUrl = poolId
+      ? `${supaUrl}/rest/v1/runninghub_pool?id=eq.${poolId}&limit=1`
+      : `${supaUrl}/rest/v1/runninghub_pool?status=eq.busy&limit=1`;
 
-    if (provider === 'minimax') {
-      // MiniMax menggunakan OpenAPI V2
-      const v2Res = await fetch('https://www.runninghub.ai/openapi/v2/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${effectiveApiKey}`
-        },
-        body: JSON.stringify({ taskId: cleanTaskId })
-      });
-      resultJson = await v2Res.json().catch(() => ({}));
-    } else {
-      // Wan Motion dibuat via /task/openapi/create (Task V1)
-      const v1Res = await fetch('https://www.runninghub.ai/task/openapi/outputs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${effectiveApiKey}`
-        },
-        body: JSON.stringify({
-          apiKey: effectiveApiKey,
-          taskId: cleanTaskId
-        })
-      });
-      resultJson = await v1Res.json().catch(() => ({}));
+    const dbRes = await fetch(queryUrl, { headers: supaHeaders });
+    const dbData = await dbRes.json().catch(() => []);
 
-      // Fallback ke OpenAPI V2 jika V1 tidak mendeteksi tugas (misal code 801 / 802)
-      const isV1Gagal = !resultJson || resultJson.code === 801 || resultJson.code === 802 || (!resultJson.data && resultJson.code !== 0 && resultJson.code !== 804 && resultJson.code !== 805 && resultJson.code !== 806);
-      if (isV1Gagal) {
-        try {
-          const v2Res = await fetch('https://www.runninghub.ai/openapi/v2/query', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${effectiveApiKey}`
-            },
-            body: JSON.stringify({ taskId: cleanTaskId })
-          });
-          const v2Json = await v2Res.json().catch(() => ({}));
-          if (v2Json && (v2Json.status || v2Json.results || v2Json.data)) {
-            resultJson = v2Json;
-          }
-        } catch (errFallback) {}
+    if (Array.isArray(dbData) && dbData.length > 0) {
+      akunPool = dbData[0];
+    }
+
+    if (!akunPool) {
+      return res.status(404).json({
+        success: false,
+        message: 'Akun pengerja tugas tidak ditemukan di runninghub_pool.'
+      });
+    }
+
+    const rhUserId = akunPool.user_id || akunPool.rh_user_id || akunPool.userid;
+    let accessToken = akunPool.access_token || akunPool.rh_access_token || akunPool.token;
+    const refreshToken = akunPool.refresh_token || akunPool.rh_refresh_token;
+    let cookieData = akunPool.cookie_data || akunPool.cookie || 
+      `rh_locale=id; userLanguage=true; Rh-Accesstoken=${accessToken}; Rh-Refreshtoken=${refreshToken || ''}; userId=${rhUserId}; Rh-Identify=df0dec23b434a3a7de18ce75aef334b5;`;
+
+    // 2. Fungsi tembak endpoint internal /task/list
+    const fetchTaskList = async (tokenAktif, cookieAktif) => {
+      return await fetch("https://www.runninghub.ai/task/list", {
+        method: "POST",
+        headers: {
+          "authority": "www.runninghub.ai",
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "client": "WEB",
+          "authorization": `Bearer ${tokenAktif}`,
+          "cookie": cookieAktif,
+          "origin": "https://www.runninghub.ai",
+          "referer": "https://www.runninghub.ai/id/ai-detail/2101240461868802049",
+          "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+          "userid": String(rhUserId),
+          "x-rh-lang": "id"
+        },
+        body: JSON.stringify({ page: 1, pageSize: 10 })
+      });
+    };
+
+    let rhRes = await fetchTaskList(accessToken, cookieData);
+    let rhJson = await rhRes.json().catch(() => ({}));
+
+    // Auto-refresh token jika sesi kedaluwarsa saat pengecekan
+    if ((rhRes.status === 401 || rhJson?.code === 401) && refreshToken) {
+      const tokenBaru = await refreshRhAccessToken(refreshToken, cookieData);
+      if (tokenBaru) {
+        accessToken = tokenBaru;
+        cookieData = cookieData.replace(/Rh-Accesstoken=[^;]+/, `Rh-Accesstoken=${tokenBaru}`);
+
+        await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
+          method: 'PATCH',
+          headers: supaHeaders,
+          body: JSON.stringify({ access_token: tokenBaru, cookie_data: cookieData })
+        });
+
+        rhRes = await fetchTaskList(accessToken, cookieData);
+        rhJson = await rhRes.json().catch(() => ({}));
       }
     }
 
-    const rawData = (resultJson && typeof resultJson.data === 'object' && resultJson.data !== null) ? resultJson.data : (resultJson || {});
-    const rawCode = Number(resultJson?.code);
-    const rawStatus = String(rawData?.status || rawData?.taskStatus || resultJson?.status || "").toUpperCase();
-    const rawErrorCode = String(resultJson?.errorCode || rawData?.errorCode || "").trim();
-    const rawMsg = String(resultJson?.msg || resultJson?.message || resultJson?.errorMessage || rawData?.msg || rawData?.errorMessage || "").toUpperCase();
+    // 3. Ekstraksi daftar task dari respon RunningHub
+    const listTask = rhJson?.data?.list || rhJson?.data?.records || rhJson?.data || [];
+    let currentTask = null;
 
-    // 1. Deteksi Pembatalan Manual di Server RunningHub
-    if (
-      rawCode === 807 ||
-      rawStatus.includes("CANCEL") ||
-      rawStatus.includes("TERMINAT") ||
-      rawStatus.includes("ABORT") ||
-      rawStatus.includes("STOP") ||
-      rawMsg.includes("CANCEL") ||
-      rawMsg.includes("TERMINAT") ||
-      rawMsg.includes("ABORT")
-    ) {
+    if (Array.isArray(listTask) && listTask.length > 0) {
+      // Cocokkan taskId, jika tidak ketemu ambil task teratas (paling baru)
+      currentTask = listTask.find(t => 
+        String(t.taskId || t.id || t.taskUuid) === cleanTaskId
+      ) || listTask[0];
+    }
+
+    if (!currentTask) {
+      return res.status(200).json({
+        code: 804,
+        status: "QUEUED",
+        message: "Tugas sedang mengantre di server RunningHub",
+        data: { status: "QUEUED", taskId: cleanTaskId }
+      });
+    }
+
+    // Normalisasi status pengerjaan
+    const taskStatusRaw = String(currentTask.status || currentTask.taskStatus || "").toUpperCase();
+    const isSuccess = taskStatusRaw.includes("SUCCESS") || taskStatusRaw === "2" || taskStatusRaw === "FINISH";
+    const isFailed = taskStatusRaw.includes("FAIL") || taskStatusRaw.includes("ERR") || taskStatusRaw === "3";
+    const isCancelled = taskStatusRaw.includes("CANCEL") || taskStatusRaw.includes("STOP");
+
+    // Ambil URL file video hasil render
+    const videoUrl = currentTask.outputFiles?.[0]?.url ||
+                     currentTask.outputs?.[0]?.fileUrl ||
+                     currentTask.resultUrl ||
+                     currentTask.results?.[0]?.url ||
+                     currentTask.fileUrl ||
+                     currentTask.url ||
+                     null;
+
+    // 4. KEMBALIKAN STATUS AKUN KE IDLE JIKA RENDER TELAH SELESAI
+    if (isSuccess || isFailed || isCancelled) {
+      await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
+        method: 'PATCH',
+        headers: supaHeaders,
+        body: JSON.stringify({
+          status: 'idle',
+          last_used_at: new Date().toISOString()
+        })
+      }).catch(() => {});
+    }
+
+    // A. Tugas Berhasil (SUCCESS)
+    if (isSuccess && videoUrl) {
+      return res.status(200).json({
+        code: 0,
+        status: "SUCCESS",
+        msg: "success",
+        data: {
+          status: "SUCCESS",
+          taskId: cleanTaskId,
+          url: videoUrl,
+          fileUrl: videoUrl,
+          videoUrl: videoUrl,
+          resultUrl: videoUrl,
+          outputFiles: [{ url: videoUrl }],
+          results: [{ url: videoUrl }]
+        }
+      });
+    }
+
+    // B. Tugas Gagal (FAILED)
+    if (isFailed) {
+      return res.status(200).json({
+        code: 500,
+        status: "FAILED",
+        msg: currentTask.errorMessage || currentTask.failedReason || "Render gagal di server ComfyUI",
+        data: { status: "FAILED", taskId: cleanTaskId }
+      });
+    }
+
+    // C. Tugas Dibatalkan (CANCELLED)
+    if (isCancelled) {
       return res.status(200).json({
         code: 807,
         status: "CANCELLED",
-        msg: resultJson?.msg || resultJson?.errorMessage || "Tugas dibatalkan di server RunningHub",
+        msg: "Tugas dibatalkan",
         data: { status: "CANCELLED", taskId: cleanTaskId }
       });
     }
 
-    // 2. Deteksi Kegagalan Alur / Node Error
-    const isSuccess = rawCode === 0 || rawStatus.includes("SUCCESS") || (Array.isArray(rawData) && rawData.length > 0) || (Array.isArray(resultJson?.results) && resultJson.results.length > 0);
-    const isRunning = rawCode === 804 || rawCode === 805 || rawCode === 806 || rawStatus.includes("RUNNING") || rawStatus.includes("QUEUED") || rawStatus.includes("PROCESSING");
-
-    if (!isSuccess && !isRunning) {
-      if (
-        rawCode === 500 ||
-        rawStatus.includes("FAIL") ||
-        rawStatus.includes("ERROR") ||
-        (rawErrorCode !== "" && rawErrorCode !== "0" && rawErrorCode !== "null") ||
-        rawMsg.includes("FAIL") ||
-        rawMsg.includes("ERROR")
-      ) {
-        return res.status(200).json({
-          code: rawCode || 500,
-          status: "FAILED",
-          errorCode: rawErrorCode,
-          msg: resultJson?.errorMessage || resultJson?.msg || rawData?.errorMessage || "Tugas gagal diproses engine",
-          data: { status: "FAILED", taskId: cleanTaskId, errorCode: rawErrorCode }
-        });
+    // D. Masih Dalam Proses (RUNNING / QUEUED)
+    return res.status(200).json({
+      code: 805,
+      status: "RUNNING",
+      msg: "Video sedang diproses",
+      data: {
+        status: "RUNNING",
+        taskId: cleanTaskId,
+        progress: currentTask.progress || 0
       }
-    }
+    });
 
-    // 3. Teruskan respons normal
-    return res.status(200).json(resultJson);
-
-  } catch (errV2) {
+  } catch (err) {
     return res.status(500).json({
       success: false,
-      message: 'Gagal menghubungi server query RunningHub: ' + errV2.message
+      message: 'Gagal memeriksa status render: ' + err.message
     });
   }
 }

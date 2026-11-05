@@ -1,4 +1,4 @@
-// File: api/outputs.js - Dual Engine Clean Separated Handler (Kling & RunningHub V2)
+// File: api/outputs.js - Dual Engine Clean Separated Handler (Kling, Task V1 & OpenAPI V2)
 export const maxDuration = 30;
 
 export default async function handler(req, res) {
@@ -75,27 +75,62 @@ export default async function handler(req, res) {
   }
 
   // =========================================================
-  // JALUR 2: RUNNINGHUB OPENAPI V2 QUERY
+  // JALUR 2: RUNNINGHUB STATUS QUERY (V1 Task Outputs & V2 OpenAPI Query)
   // =========================================================
   try {
-    const v2Res = await fetch('https://www.runninghub.ai/openapi/v2/query', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${effectiveApiKey}`
-      },
-      body: JSON.stringify({
-        taskId: cleanTaskId
-      })
-    });
+    let resultJson = null;
 
-    const v2Json = await v2Res.json().catch(() => ({}));
-    const v2Data = (v2Json && typeof v2Json.data === 'object' && v2Json.data !== null) ? v2Json.data : (v2Json || {});
+    if (provider === 'minimax') {
+      // MiniMax menggunakan OpenAPI V2
+      const v2Res = await fetch('https://www.runninghub.ai/openapi/v2/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${effectiveApiKey}`
+        },
+        body: JSON.stringify({ taskId: cleanTaskId })
+      });
+      resultJson = await v2Res.json().catch(() => ({}));
+    } else {
+      // Wan Motion dibuat via /task/openapi/create (Task V1)
+      const v1Res = await fetch('https://www.runninghub.ai/task/openapi/outputs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${effectiveApiKey}`
+        },
+        body: JSON.stringify({
+          apiKey: effectiveApiKey,
+          taskId: cleanTaskId
+        })
+      });
+      resultJson = await v1Res.json().catch(() => ({}));
 
-    const rawCode = Number(v2Json?.code);
-    const rawStatus = String(v2Data?.status || v2Data?.taskStatus || v2Json?.status || "").toUpperCase();
-    const rawErrorCode = String(v2Json?.errorCode || v2Data?.errorCode || "").trim();
-    const rawMsg = String(v2Json?.msg || v2Json?.message || v2Json?.errorMessage || v2Data?.msg || v2Data?.errorMessage || "").toUpperCase();
+      // Fallback ke OpenAPI V2 jika V1 tidak mendeteksi tugas (misal code 801 / 802)
+      const isV1Gagal = !resultJson || resultJson.code === 801 || resultJson.code === 802 || (!resultJson.data && resultJson.code !== 0 && resultJson.code !== 804 && resultJson.code !== 805 && resultJson.code !== 806);
+      if (isV1Gagal) {
+        try {
+          const v2Res = await fetch('https://www.runninghub.ai/openapi/v2/query', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${effectiveApiKey}`
+            },
+            body: JSON.stringify({ taskId: cleanTaskId })
+          });
+          const v2Json = await v2Res.json().catch(() => ({}));
+          if (v2Json && (v2Json.status || v2Json.results || v2Json.data)) {
+            resultJson = v2Json;
+          }
+        } catch (errFallback) {}
+      }
+    }
+
+    const rawData = (resultJson && typeof resultJson.data === 'object' && resultJson.data !== null) ? resultJson.data : (resultJson || {});
+    const rawCode = Number(resultJson?.code);
+    const rawStatus = String(rawData?.status || rawData?.taskStatus || resultJson?.status || "").toUpperCase();
+    const rawErrorCode = String(resultJson?.errorCode || rawData?.errorCode || "").trim();
+    const rawMsg = String(resultJson?.msg || resultJson?.message || resultJson?.errorMessage || rawData?.msg || rawData?.errorMessage || "").toUpperCase();
 
     // 1. Deteksi Pembatalan Manual di Server RunningHub
     if (
@@ -111,30 +146,36 @@ export default async function handler(req, res) {
       return res.status(200).json({
         code: 807,
         status: "CANCELLED",
-        msg: v2Json?.msg || v2Json?.errorMessage || "Tugas dibatalkan di server RunningHub",
+        msg: resultJson?.msg || resultJson?.errorMessage || "Tugas dibatalkan di server RunningHub",
         data: { status: "CANCELLED", taskId: cleanTaskId }
       });
     }
 
     // 2. Deteksi Kegagalan Alur / Node Error
-    if (
-      rawStatus.includes("FAIL") ||
-      rawStatus.includes("ERROR") ||
-      (rawErrorCode !== "" && rawErrorCode !== "0" && rawErrorCode !== "null") ||
-      rawMsg.includes("FAIL") ||
-      rawMsg.includes("ERROR")
-    ) {
-      return res.status(200).json({
-        code: rawCode || 500,
-        status: "FAILED",
-        errorCode: rawErrorCode,
-        msg: v2Json?.errorMessage || v2Json?.msg || v2Data?.errorMessage || "Tugas gagal diproses engine",
-        data: { status: "FAILED", taskId: cleanTaskId, errorCode: rawErrorCode }
-      });
+    const isSuccess = rawCode === 0 || rawStatus.includes("SUCCESS") || (Array.isArray(rawData) && rawData.length > 0) || (Array.isArray(resultJson?.results) && resultJson.results.length > 0);
+    const isRunning = rawCode === 804 || rawCode === 805 || rawCode === 806 || rawStatus.includes("RUNNING") || rawStatus.includes("QUEUED") || rawStatus.includes("PROCESSING");
+
+    if (!isSuccess && !isRunning) {
+      if (
+        rawCode === 500 ||
+        rawStatus.includes("FAIL") ||
+        rawStatus.includes("ERROR") ||
+        (rawErrorCode !== "" && rawErrorCode !== "0" && rawErrorCode !== "null") ||
+        rawMsg.includes("FAIL") ||
+        rawMsg.includes("ERROR")
+      ) {
+        return res.status(200).json({
+          code: rawCode || 500,
+          status: "FAILED",
+          errorCode: rawErrorCode,
+          msg: resultJson?.errorMessage || resultJson?.msg || rawData?.errorMessage || "Tugas gagal diproses engine",
+          data: { status: "FAILED", taskId: cleanTaskId, errorCode: rawErrorCode }
+        });
+      }
     }
 
-    // 3. Teruskan respons normal (QUEUED / RUNNING / SUCCESS beserta array results)
-    return res.status(200).json(v2Json);
+    // 3. Teruskan respons normal
+    return res.status(200).json(resultJson);
 
   } catch (errV2) {
     return res.status(500).json({

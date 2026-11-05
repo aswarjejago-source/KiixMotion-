@@ -301,7 +301,6 @@ async function lepaskanKunciPoolOtomatis(poolId) {
         }
       }
 
-      // Ambang batas disesuaikan ke 75 sesuai kebutuhan engine baru (~72 koin)
       var statusAkhir = (koinTersisa !== null && koinTersisa < 75) ? 'habis' : 'idle';
       var payloadUpdate = { 
         status: statusAkhir, 
@@ -321,61 +320,65 @@ async function lepaskanKunciPoolOtomatis(poolId) {
     }
   }
 
-  // Refresh otomatis tampilan tabel admin pool jika sedang dibuka
   try {
     if (typeof refreshDataKolamAdmin === 'function') refreshDataKolamAdmin();
     else if (typeof muatDataKolamAdmin === 'function') muatDataKolamAdmin();
   } catch (e) {}
 }
 
-// 4. PEMBONGKAR DATA RUNNINGHUB REKURSIF (HTTPS MURNI)
+// 4. PEMBONGKAR DATA RUNNINGHUB REKURSIF (PRIORITAS VIDEO MP4 MURNI)
 function ambilLinkOutputResmi(jsonObj) {
   if (!jsonObj) return null;
-  var hasilLink = null;
+  var linkVideoUtama = null;
+  var linkFallback = null;
 
   function validasiDanAmbil(str) {
-    if (!str || typeof str !== 'string' || hasilLink) return;
+    if (!str || typeof str !== 'string') return;
     var clean = str.trim().replace(/\\/g, '');
     if (clean.includes('workers.dev') || clean.includes('kiix-uploader')) return;
 
     if (clean.startsWith('http://') || clean.startsWith('https://')) {
       var lower = clean.toLowerCase();
       var isFormatVideo = lower.includes('.mp4') || lower.includes('.mov') || lower.includes('.webm') || lower.includes('.m4v');
-      var isDomainVideo = clean.includes('rh-images') || clean.includes('xiaoyaoyou') || clean.includes('myqcloud') || clean.includes('runninghub') || clean.includes('minimax');
+      var isDomainRunningHub = clean.includes('rh-images') || clean.includes('xiaoyaoyou') || clean.includes('myqcloud') || clean.includes('runninghub') || clean.includes('minimax');
 
-      if (isFormatVideo || isDomainVideo) {
-        hasilLink = clean.replace(/^http:\/\//i, 'https://');
+      var httpsUrl = clean.replace(/^http:\/\//i, 'https://');
+
+      if (isFormatVideo) {
+        linkVideoUtama = httpsUrl;
+      } else if (isDomainRunningHub && !linkFallback) {
+        linkFallback = httpsUrl;
       }
     }
   }
 
   function telusuriObjek(obj) {
-    if (!obj || hasilLink) return;
+    if (!obj || linkVideoUtama) return;
     if (typeof obj === 'string') {
       validasiDanAmbil(obj);
     } else if (Array.isArray(obj)) {
       for (var i = 0; i < obj.length; i++) {
         telusuriObjek(obj[i]);
-        if (hasilLink) break;
+        if (linkVideoUtama) break;
       }
     } else if (typeof obj === 'object') {
       var kunciPrioritas = ['fileUrl', 'file_url', 'downloadUrl', 'url', 'videoUrl', 'video_url', 'path', 'src', 'outputUrl'];
       for (var k = 0; k < kunciPrioritas.length; k++) {
         if (obj[kunciPrioritas[k]]) {
           validasiDanAmbil(obj[kunciPrioritas[k]]);
-          if (hasilLink) return;
+          if (linkVideoUtama) return;
         }
       }
       var keys = Object.keys(obj);
       for (var j = 0; j < keys.length; j++) {
         telusuriObjek(obj[keys[j]]);
-        if (hasilLink) break;
+        if (linkVideoUtama) break;
       }
     }
   }
 
   telusuriObjek(jsonObj);
-  return hasilLink;
+  return linkVideoUtama || linkFallback;
 }
 
 function resetFormBahanInput() {
@@ -686,8 +689,11 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
       var pesanTeks = [
         jsonObj.msg,
         jsonObj.message,
+        jsonObj.errorMessage,
+        jsonObj.errorCode,
         rawObj.msg,
         rawObj.errorMessage,
+        rawObj.errorCode,
         rawObj.reason
       ].filter(Boolean).join(" ").toUpperCase().trim();
 

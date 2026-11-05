@@ -723,8 +723,22 @@ window.simpanBulkKeysKeSupabase = async function() {
         return tampilkanNotif('Tempel minimal satu Cookie sesi akun!', 'error');
     }
 
-    var barisList = area.value.split('\n').map(k => k.trim()).filter(Boolean);
-    if (barisList.length === 0) {
+    var rawText = area.value.trim();
+
+    // Deteksi akun: jika user paste 1 cookie panjang yang terpotong baris baru, gabungkan.
+    // Jika ada beberapa akun (masing-masing punya Rh-Accesstoken atau rh_live_), pisahkan per akun.
+    var daftarAkunMentah = [];
+    var countToken = (rawText.match(/Rh-Accesstoken=/gi) || []).length;
+    var countApiKey = (rawText.match(/rh_live_/gi) || []).length;
+
+    if (countToken <= 1 && countApiKey <= 1) {
+        var cleanSingle = rawText.replace(/[\r\n]+/g, ' ').trim();
+        if (cleanSingle) daftarAkunMentah.push(cleanSingle);
+    } else {
+        daftarAkunMentah = rawText.split('\n').map(k => k.trim()).filter(Boolean);
+    }
+
+    if (daftarAkunMentah.length === 0) {
         return tampilkanNotif('Teks Cookie tidak boleh kosong!', 'error');
     }
 
@@ -734,8 +748,9 @@ window.simpanBulkKeysKeSupabase = async function() {
     }
 
     var dataInsert = [];
+    var pesanErrorList = [];
 
-    for (var baris of barisList) {
+    for (var baris of daftarAkunMentah) {
         var tokenMatch = baris.match(/Rh-Accesstoken=([^;\s]+)/i);
         var refreshMatch = baris.match(/Rh-Refreshtoken=([^;\s]+)/i);
         var userIdMatch = baris.match(/userId=([^;\s]+)/i);
@@ -747,7 +762,9 @@ window.simpanBulkKeysKeSupabase = async function() {
         if (!accessToken && !baris.startsWith('rh_live_')) continue;
 
         // Tarik saldo riil dari backend /api/saldo
-        var koinAsli = 0;
+        var koinAsli = null;
+        var errResponse = null;
+
         try {
             var resSaldo = await fetch('/api/saldo', {
                 method: 'POST',
@@ -760,12 +777,30 @@ window.simpanBulkKeysKeSupabase = async function() {
                 })
             });
             var dataSaldo = await resSaldo.json();
-            if (dataSaldo && (dataSaldo.success || dataSaldo.code === 0) && dataSaldo.coins !== undefined) {
-                koinAsli = Number(dataSaldo.coins);
-                if (!userId && dataSaldo.userId) userId = String(dataSaldo.userId);
+
+            if (dataSaldo) {
+                var c = dataSaldo.coins ?? dataSaldo.data?.totalCoin ?? dataSaldo.data?.remainCoins ?? dataSaldo.data?.totalCoins ?? dataSaldo.data?.coins;
+                
+                if ((dataSaldo.success === true || dataSaldo.code === 0 || dataSaldo.code === 200) && c !== undefined && c !== null && !isNaN(Number(c))) {
+                    koinAsli = Number(c);
+                    if (!userId && (dataSaldo.userId || dataSaldo.data?.id || dataSaldo.data?.userId)) {
+                        userId = String(dataSaldo.userId || dataSaldo.data?.id || dataSaldo.data?.userId);
+                    }
+                } else {
+                    errResponse = dataSaldo.message || dataSaldo.msg || dataSaldo.debug || 'Koin tidak ditemukan / sesi ditolak RunningHub';
+                }
+            } else {
+                errResponse = 'Respon dari server kosong';
             }
         } catch (errSaldo) {
             console.error("Gagal menarik saldo live:", errSaldo);
+            errResponse = errSaldo.message;
+        }
+
+        // JIKA PENARIKAN SALDO GAGAL: JANGAN SIMPAN 0 DIAM-DIAM!
+        if (koinAsli === null) {
+            pesanErrorList.push(errResponse || 'Gagal verifikasi koin');
+            continue;
         }
 
         var finalUserId = userId || ('2088' + Math.floor(100000000000000 + Math.random() * 900000000000000));
@@ -783,12 +818,14 @@ window.simpanBulkKeysKeSupabase = async function() {
         });
     }
 
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam';
+    }
+
     if (dataInsert.length === 0) {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam';
-        }
-        return tampilkanNotif('Format Cookie tidak valid! Tidak ditemukan Rh-Accesstoken.', 'error');
+        var infoGagal = pesanErrorList.length > 0 ? pesanErrorList.join(', ') : 'Format Cookie tidak valid atau token ditolak RunningHub!';
+        return tampilkanNotif('Gagal simpan akun: ' + infoGagal, 'error');
     }
 
     try {
@@ -802,15 +839,11 @@ window.simpanBulkKeysKeSupabase = async function() {
         }
 
         area.value = '';
-        tampilkanNotif(`✓ Sukses! ${dataInsert.length} akun tersimpan dengan saldo asli.`, 'sukses');
+        var ringkasanKoin = dataInsert.map(d => d.koin + ' koin').join(', ');
+        tampilkanNotif(`✓ Sukses! ${dataInsert.length} akun tersimpan dengan saldo asli (${ringkasanKoin}).`, 'sukses');
         muatDataKolamAdmin();
     } catch (err) {
         tampilkanNotif('Gagal menyimpan ke database: ' + err.message, 'error');
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam';
-        }
     }
 };
 
@@ -870,14 +903,17 @@ window.refreshDataKolamAdmin = async function(isManual = false) {
                         })
                     });
                     const dataSaldo = await resSaldo.json();
-                    if (dataSaldo && (dataSaldo.success || dataSaldo.code === 0) && dataSaldo.coins !== undefined) {
-                        const koinLive = Number(dataSaldo.coins);
-                        const statusBaru = koinLive >= 100 ? 'idle' : 'habis';
-                        await supa.from('runninghub_pool').update({
-                            koin: koinLive,
-                            status: statusBaru,
-                            last_used_at: new Date().toISOString()
-                        }).eq('id', akun.id);
+                    if (dataSaldo && (dataSaldo.success === true || dataSaldo.code === 0 || dataSaldo.code === 200)) {
+                        var k = dataSaldo.coins ?? dataSaldo.data?.totalCoin ?? dataSaldo.data?.remainCoins ?? dataSaldo.data?.totalCoins ?? dataSaldo.data?.coins;
+                        if (k !== undefined && k !== null && !isNaN(Number(k))) {
+                            const koinLive = Number(k);
+                            const statusBaru = koinLive >= 100 ? 'idle' : 'habis';
+                            await supa.from('runninghub_pool').update({
+                                koin: koinLive,
+                                status: statusBaru,
+                                last_used_at: new Date().toISOString()
+                            }).eq('id', akun.id);
+                        }
                     }
                 } catch (e) {
                     console.error('Gagal sync saldo akun:', e);
@@ -944,10 +980,13 @@ window.jalankanCheckerKeys = async function() {
             });
             var hasilSaldo = await resSaldo.json();
             
-            if (hasilSaldo && (hasilSaldo.success || hasilSaldo.code === 0) && hasilSaldo.coins !== undefined) {
-                koinAsli = Number(hasilSaldo.coins);
-                statusCek = 'sukses';
-                totalKoinDitemukan += koinAsli;
+            if (hasilSaldo && (hasilSaldo.success === true || hasilSaldo.code === 0 || hasilSaldo.code === 200)) {
+                var c = hasilSaldo.coins ?? hasilSaldo.data?.totalCoin ?? hasilSaldo.data?.remainCoins ?? hasilSaldo.data?.totalCoins ?? hasilSaldo.data?.coins;
+                if (c !== undefined && c !== null && !isNaN(Number(c))) {
+                    koinAsli = Number(c);
+                    statusCek = 'sukses';
+                    totalKoinDitemukan += koinAsli;
+                }
             }
         } catch (e) {
             console.error('Gagal cek saldo akun checker', e);

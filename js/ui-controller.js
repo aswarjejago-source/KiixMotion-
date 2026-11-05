@@ -81,7 +81,6 @@ window.bukaGrupTelegram = function() {
     window.open(linkTelegramResmi, '_blank');
 };
 
-// Pengarah aman jika ada fungsi lama yang memanggil popup key
 window.bukaModalFormKey = function() {
     gantiLayarNav('beli-kredit');
     tampilkanNotif('Sistem API mandiri sudah ditutup. Gunakan kredit render cloud.', 'info');
@@ -678,7 +677,6 @@ window.muatDataKolamAdmin = async function() {
             badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">🟢 IDLE</span>';
         }
 
-        // Tampilkan User ID RunningHub yang asli
         var rawId = String(a.user_id || a.rh_user_id || a.id || '-');
         var idMasked = rawId.length > 10 ? (rawId.slice(0, 6) + '••••' + rawId.slice(-4)) : rawId;
 
@@ -714,6 +712,9 @@ function updateStatistikPool(tot, idl, bsy, hbs) {
     if (sHbs) sHbs.innerText = hbs;
 }
 
+// -------------------------------------------------------------
+// PENYIMPANAN AKUN MASSAL (MENARIK KOIN AKTUAL LANGSUNG)
+// -------------------------------------------------------------
 window.simpanBulkKeysKeSupabase = async function() {
     var area = document.getElementById('in-bulk-keys');
     var btn = document.getElementById('btn-submit-bulk-pool');
@@ -729,10 +730,11 @@ window.simpanBulkKeysKeSupabase = async function() {
 
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Menyimpan Akun ke Database...';
+        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Menarik Saldo Live & Menyimpan...';
     }
 
     var dataInsert = [];
+
     for (var baris of barisList) {
         var tokenMatch = baris.match(/Rh-Accesstoken=([^;\s]+)/i);
         var refreshMatch = baris.match(/Rh-Refreshtoken=([^;\s]+)/i);
@@ -740,18 +742,43 @@ window.simpanBulkKeysKeSupabase = async function() {
 
         var accessToken = tokenMatch ? tokenMatch[1] : (baris.startsWith('ey') ? baris : null);
         var refreshToken = refreshMatch ? refreshMatch[1] : null;
-        var userId = userIdMatch ? userIdMatch[1] : ('2088' + Math.floor(100000000000000 + Math.random() * 900000000000000));
+        var userId = userIdMatch ? userIdMatch[1] : null;
 
         if (!accessToken && !baris.startsWith('rh_live_')) continue;
 
+        // Tarik saldo riil dari backend /api/saldo
+        var koinAsli = 0;
+        try {
+            var resSaldo = await fetch('/api/saldo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    accessToken: accessToken,
+                    cookieData: baris,
+                    userId: userId,
+                    apiKey: (!accessToken && baris.startsWith('rh_live_')) ? baris : null
+                })
+            });
+            var dataSaldo = await resSaldo.json();
+            if (dataSaldo && (dataSaldo.success || dataSaldo.code === 0) && dataSaldo.coins !== undefined) {
+                koinAsli = Number(dataSaldo.coins);
+                if (!userId && dataSaldo.userId) userId = String(dataSaldo.userId);
+            }
+        } catch (errSaldo) {
+            console.error("Gagal menarik saldo live:", errSaldo);
+        }
+
+        var finalUserId = userId || ('2088' + Math.floor(100000000000000 + Math.random() * 900000000000000));
+        var statusOtomatis = koinAsli >= 100 ? 'idle' : 'habis';
+
         dataInsert.push({
-            user_id: String(userId),
+            user_id: String(finalUserId),
             access_token: accessToken || baris,
             refresh_token: refreshToken || null,
             cookie_data: baris,
             api_key: accessToken || baris,
-            koin: 700, // Default koin awal akun baru
-            status: 'idle',
+            koin: koinAsli,
+            status: statusOtomatis,
             last_used_at: new Date().toISOString()
         });
     }
@@ -775,7 +802,7 @@ window.simpanBulkKeysKeSupabase = async function() {
         }
 
         area.value = '';
-        tampilkanNotif(`✓ Sukses! ${dataInsert.length} akun sesi web berhasil disimpan.`, 'sukses');
+        tampilkanNotif(`✓ Sukses! ${dataInsert.length} akun tersimpan dengan saldo asli.`, 'sukses');
         muatDataKolamAdmin();
     } catch (err) {
         tampilkanNotif('Gagal menyimpan ke database: ' + err.message, 'error');
@@ -818,25 +845,56 @@ window.kosongkanSeluruhKolam = async function() {
 };
 
 // -------------------------------------------------------------
-// SINKRONISASI STATUS KOLAM (TANPA MERESET KOIN SESI)
+// SINKRONISASI SALDO LIVE SELURUH AKUN KOLAM
 // -------------------------------------------------------------
 window.refreshDataKolamAdmin = async function(isManual = false) {
     if (isManual && typeof tampilkanNotif === 'function') {
-        tampilkanNotif('Menyinkronkan status akun kolam...', 'info');
+        tampilkanNotif('Menyinkronkan saldo live seluruh akun kolam...', 'info');
     }
     
     if (typeof supa === 'undefined') return;
 
-    // Cukup muat ulang data database tanpa memanggil /api/saldo
+    try {
+        const { data: listAkun } = await supa.from('runninghub_pool').select('*');
+        if (listAkun && listAkun.length > 0) {
+            for (let akun of listAkun) {
+                try {
+                    const resSaldo = await fetch('/api/saldo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            accessToken: akun.access_token,
+                            cookieData: akun.cookie_data,
+                            userId: akun.user_id,
+                            apiKey: akun.api_key
+                        })
+                    });
+                    const dataSaldo = await resSaldo.json();
+                    if (dataSaldo && (dataSaldo.success || dataSaldo.code === 0) && dataSaldo.coins !== undefined) {
+                        const koinLive = Number(dataSaldo.coins);
+                        const statusBaru = koinLive >= 100 ? 'idle' : 'habis';
+                        await supa.from('runninghub_pool').update({
+                            koin: koinLive,
+                            status: statusBaru,
+                            last_used_at: new Date().toISOString()
+                        }).eq('id', akun.id);
+                    }
+                } catch (e) {
+                    console.error('Gagal sync saldo akun:', e);
+                }
+            }
+        }
+    } catch (err) {}
+
     await muatDataKolamAdmin();
 
     if (isManual && typeof tampilkanNotif === 'function') {
-        tampilkanNotif('✓ Status akun kolam berhasil diperbarui!', 'sukses');
+        tampilkanNotif('✓ Sinkronisasi saldo akun kolam selesai!', 'sukses');
     }
 };
 
 // -------------------------------------------------------------
-// CHECKER API KEY (LOKAL - TANPA SIMPAN DB)
+// CHECKER AKUN (MENDUKUNG COOKIE & API KEY LOKAL)
 // -------------------------------------------------------------
 
 window.jalankanCheckerKeys = async function() {
@@ -845,12 +903,12 @@ window.jalankanCheckerKeys = async function() {
     var wadah = document.getElementById('wadah-hasil-checker');
     
     if (!area || !area.value.trim()) {
-        return tampilkanNotif('Tempel minimal satu API Key untuk dicek!', 'error');
+        return tampilkanNotif('Tempel minimal satu Kunci / Cookie untuk dicek!', 'error');
     }
     
     var baris = area.value.split('\n').map(k => k.trim()).filter(k => k.length > 10);
     if (baris.length === 0) {
-        return tampilkanNotif('Format API Key tidak valid!', 'error');
+        return tampilkanNotif('Format input tidak valid!', 'error');
     }
 
     if (btn) {
@@ -868,37 +926,41 @@ window.jalankanCheckerKeys = async function() {
     for (var k of baris) {
         var koinAsli = 0;
         var statusCek = 'gagal';
-        
+        var tokenMatch = k.match(/Rh-Accesstoken=([^;\s]+)/i);
+        var userIdMatch = k.match(/userId=([^;\s]+)/i);
+        var accessToken = tokenMatch ? tokenMatch[1] : (k.startsWith('ey') ? k : null);
+        var userId = userIdMatch ? userIdMatch[1] : null;
+
         try {
             var resSaldo = await fetch('/api/saldo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ apiKey: k })
+                body: JSON.stringify({
+                    accessToken: accessToken,
+                    cookieData: k,
+                    userId: userId,
+                    apiKey: (!accessToken && k.startsWith('rh_live_')) ? k : null
+                })
             });
             var hasilSaldo = await resSaldo.json();
             
-            if (resSaldo.ok && hasilSaldo) {
-                var rawData = hasilSaldo.data || hasilSaldo;
-                var c = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
-                
-                if (c !== undefined && c !== null) {
-                    koinAsli = Number(c);
-                    statusCek = 'sukses';
-                    totalKoinDitemukan += koinAsli;
-                }
+            if (hasilSaldo && (hasilSaldo.success || hasilSaldo.code === 0) && hasilSaldo.coins !== undefined) {
+                koinAsli = Number(hasilSaldo.coins);
+                statusCek = 'sukses';
+                totalKoinDitemukan += koinAsli;
             }
         } catch (e) {
             console.error('Gagal cek saldo akun checker', e);
         }
         
-        checkerResults.push({ key: k, koin: koinAsli, status: statusCek });
+        var displayKey = userId ? ('UID: ' + userId) : (accessToken ? (accessToken.slice(0, 10) + '••••' + accessToken.slice(-6)) : (k.slice(0, 8) + '••••' + k.slice(-6)));
+        checkerResults.push({ key: k, display: displayKey, koin: koinAsli, status: statusCek });
     }
 
     if (wadah) wadah.innerHTML = '';
     
     checkerResults.forEach(function(item) {
-        var keyMasked = item.key.substring(0, 8) + '••••••••' + item.key.slice(-6);
-        var colorKoin = item.koin >= 478 ? 'text-emerald-600' : (item.koin >= 180 ? 'text-amber-500' : 'text-rose-500');
+        var colorKoin = item.koin >= 400 ? 'text-emerald-600' : (item.koin >= 100 ? 'text-amber-500' : 'text-rose-500');
         var iconStatus = item.status === 'sukses' ? '<i class="ph-fill ph-check-circle text-emerald-500 text-base"></i>' : '<i class="ph-fill ph-x-circle text-rose-500 text-base"></i>';
         
         var el = document.createElement('div');
@@ -906,11 +968,11 @@ window.jalankanCheckerKeys = async function() {
         el.innerHTML = `
             <div class="flex items-center gap-3">
                 ${iconStatus}
-                <span class="font-mono text-xs font-bold text-slate-700">${keyMasked}</span>
+                <span class="font-mono text-xs font-bold text-slate-700">${item.display}</span>
             </div>
             <div class="flex items-center gap-4">
                 <span class="text-sm font-black ${colorKoin} tabular-nums">${item.koin} <span class="text-[9px] font-bold text-slate-400 uppercase">coin</span></span>
-                <button onclick="navigator.clipboard.writeText('${item.key}'); tampilkanNotif('API Key berhasil disalin!', 'sukses');" class="text-blue-400 hover:text-blue-600 cursor-pointer">
+                <button onclick="navigator.clipboard.writeText('${item.key}'); tampilkanNotif('Berhasil disalin!', 'sukses');" class="text-blue-400 hover:text-blue-600 cursor-pointer">
                     <i class="ph-bold ph-copy text-sm"></i>
                 </button>
             </div>

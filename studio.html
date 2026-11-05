@@ -377,7 +377,7 @@
               <span class="text-slate-400 text-xl font-light group-hover:scale-110 transition z-10" id="plus-mm-5">+</span>
               <span class="text-[10px] font-bold text-slate-400 mt-0.5 z-10" id="lbl-mm-5">5</span>
               <input type="file" accept="image/*" class="hidden" onchange="previewMinimax(this, 5)" />
-              <div id="prev-mm-2" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
+              <div id="prev-mm-5" class="absolute inset-0 bg-cover bg-center hidden z-0"></div>
               <button type="button" onclick="hapusPreviewMinimax(event, 5)" id="del-mm-5" class="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white rounded-full hidden items-center justify-center text-[10px] z-20 hover:bg-rose-600 shadow-sm">✕</button>
             </label>
             <label class="border-2 border-dashed border-kmBorder rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-kmViolet bg-slate-50/70 hover:bg-violet-50/20 transition aspect-square relative group overflow-hidden shadow-sm">
@@ -425,8 +425,8 @@
             <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">Pilihan Frame / FPS</label>
             <select id="sel-minimax-frame" class="w-full bg-slate-50 border border-kmBorder rounded-2xl px-4 py-3 text-xs sm:text-sm text-kmTextPrimary font-semibold focus:outline-none focus:border-kmViolet focus:bg-white cursor-pointer transition">
               <option value="24fps" selected>24 FPS (Cinematic Standard)</option>
-              <option value="25fps">25 FPS (Smooth Motion)</option>
-              <option value="30fps">30 FPS (High Motion)</option>
+              <option value="25fps">Smooth Motion (25 FPS)</option>
+              <option value="30fps">High Motion (30 FPS)</option>
               <option value="first_frame">First Frame Anchor (Foto 1 Kunci)</option>
             </select>
           </div>
@@ -646,11 +646,11 @@
             <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
             <span class="text-xs font-bold uppercase tracking-widest text-amber-400">Master Control Room</span>
           </div>
-          <h2 class="text-xl sm:text-2xl font-black tracking-tight">Monitor Kolam API RunningHub</h2>
-          <p class="text-xs sm:text-sm text-slate-300 mt-1">Kelola dan pantau seluruh kunci API render secara terpusat.</p>
+          <h2 class="text-xl sm:text-2xl font-black tracking-tight">Monitor Kolam Sesi RunningHub</h2>
+          <p class="text-xs sm:text-sm text-slate-300 mt-1">Kelola dan pantau seluruh token sesi web & kuota koin akun secara terpusat.</p>
         </div>
         <button onclick="refreshDataKolamAdmin()" class="px-5 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-bold transition flex items-center gap-2 cursor-pointer border border-white/20">
-          <i class="ph ph-arrows-clockwise text-base"></i> Sync Saldo Semua
+          <i class="ph ph-arrows-clockwise text-base"></i> Sync Status Kolam
         </button>
       </div>
 
@@ -673,50 +673,15 @@
         </div>
       </div>
 
-      <!-- API KEY CHECKER (LOKAL) -->
-      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-6 rounded-3xl modern-shadow space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
-              <i class="ph-bold ph-magnifying-glass text-blue-600 text-lg"></i> Checker API Key (Tanpa Simpan DB)
-            </h3>
-            <p class="text-[11px] font-semibold text-slate-500 mt-1">Cek saldo koin dari anak-anak sebelum dimasukin ke kolam utama.</p>
-          </div>
-          <button onclick="bersihkanChecker()" class="px-4 py-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shadow-sm">
-            <i class="ph-bold ph-trash text-sm"></i> Bersihkan Semua
-          </button>
-        </div>
-
-        <textarea id="in-checker-keys" placeholder="Tempel API Key yang mau dicek di sini...&#10;rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx&#10;rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy" class="w-full bg-white border border-blue-200 rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-blue-400 h-28 resize-none leading-relaxed shadow-inner"></textarea>
-        
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-3 rounded-2xl border border-blue-100">
-            <div class="flex items-center gap-4 w-full sm:w-auto px-2">
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Akun</p>
-                    <p id="checker-stat-akun" class="text-lg font-black text-slate-800 tabular-nums leading-none">0</p>
-                </div>
-                <div class="w-px h-8 bg-blue-100"></div>
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Koin</p>
-                    <p id="checker-stat-koin" class="text-lg font-black text-kmViolet tabular-nums leading-none">0</p>
-                </div>
-            </div>
-            <button id="btn-submit-checker" onclick="jalankanCheckerKeys()" class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2">
-              <i class="ph-bold ph-play text-sm"></i> Cek Saldo Sekarang
-            </button>
-        </div>
-
-        <div id="wadah-hasil-checker" class="space-y-2 mt-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar"></div>
-      </div>
-
+      <!-- PARSER & SIMPAN SESI COOKIE MASSAL (OPSI 2) -->
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
         <div class="flex items-center justify-between">
           <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
-            <i class="ph-bold ph-plus-circle text-amber-500 text-lg"></i> Tambah Kunci API Massal (Bulk Insert)
+            <i class="ph-bold ph-plus-circle text-amber-500 text-lg"></i> Tambah Akun Sesi Massal (Cookie / Token)
           </h3>
-          <span class="text-[11px] font-semibold text-slate-400">1 baris = 1 API Key</span>
+          <span class="text-[11px] font-semibold text-slate-400">1 baris = 1 Cookie Akun RunningHub</span>
         </div>
-        <textarea id="in-bulk-keys" placeholder="Tempel banyak API Key di sini sekaligus...&#10;rh_live_xxxxxxxxxxxxxxxxxxxxxxxxxx&#10;rh_live_yyyyyyyyyyyyyyyyyyyyyyyyyy&#10;rh_live_zzzzzzzzzzzzzzzzzzzzzzzzzz" class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-amber-400 focus:bg-white h-28 resize-none leading-relaxed"></textarea>
+        <textarea id="in-bulk-keys" placeholder="Tempel teks Cookie sesi akun RunningHub di sini (1 akun per baris)...&#10;rh_locale=id; Rh-Accesstoken=eyJhbGci...; Rh-Refreshtoken=...; userId=2088197555130155009;&#10;rh_locale=id; Rh-Accesstoken=eyJhbGci...; Rh-Refreshtoken=...; userId=2088197555130155010;" class="w-full bg-slate-50 border border-kmBorder rounded-2xl p-4 text-xs font-mono text-slate-800 focus:outline-none focus:border-amber-400 focus:bg-white h-28 resize-none leading-relaxed custom-scrollbar"></textarea>
         <div class="flex justify-end">
           <button id="btn-submit-bulk-pool" onclick="simpanBulkKeysKeSupabase()" class="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition cursor-pointer flex items-center gap-2">
             <i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam
@@ -724,10 +689,11 @@
         </div>
       </div>
 
+      <!-- LIVE MONITOR AKUN KOLAM -->
       <div class="bg-white p-6 rounded-3xl border border-kmBorder modern-shadow space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 class="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2 tracking-tight">
-            <i class="ph-bold ph-list-dashes text-kmViolet text-lg"></i> Live Monitor Kunci Kolam
+            <i class="ph-bold ph-list-dashes text-kmViolet text-lg"></i> Live Monitor Akun Kolam
           </h3>
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <button onclick="sapuBersihAkunHabis()" class="flex-1 sm:flex-none px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm">
@@ -744,7 +710,7 @@
             <thead>
               <tr class="border-b border-kmBorder text-slate-400 uppercase tracking-wider text-[10px]">
                 <th class="py-3 px-3">Status</th>
-                <th class="py-3 px-3">API Key (Masked)</th>
+                <th class="py-3 px-3">User ID (Akun)</th>
                 <th class="py-3 px-3">Sisa Koin</th>
                 <th class="py-3 px-3">Terakhir Dipakai</th>
                 <th class="py-3 px-3 text-right">Aksi</th>
@@ -791,6 +757,10 @@
           nativeGantiLayar(layar);
         } else if (typeof window.switchView === 'function') {
           window.switchView(layar);
+        }
+
+        if (layar === 'admin-pool' && typeof refreshDataKolamAdmin === 'function') {
+          refreshDataKolamAdmin();
         }
       };
 
@@ -865,7 +835,7 @@
           if (card) {
             if (p === prov) {
               if (p === 'kling') {
-                card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-indigo-600 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-indigo-50 transition";
+                card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-indigo600 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-indigo-50 transition";
               } else if (p === 'minimax') {
                 card.className = "bg-white border-2 border-kmViolet ring-4 ring-violet-50 p-5 rounded-3xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
               } else {
@@ -1034,11 +1004,9 @@
                       if (btnAdminNav) btnAdminNav.style.display = 'flex';
                   }
 
-                  // 1. Ambil dari cache browser jika tersedia agar instan
                   let storageKey = 'km_referral_code_' + emailUser;
                   let kodeReferral = localStorage.getItem(storageKey);
 
-                  // 2. Ambil langsung dari tabel profiles
                   const { data: profileRow } = await supa
                       .from('profiles')
                       .select('referral_code')
@@ -1129,6 +1097,192 @@
           await supa.auth.signOut(); 
           window.location.href = 'register.html'; 
       }
+
+      // =========================================================
+      // PENGELOLA KOLAM RUNNINGHUB (SESI COOKIE/TOKEN POOLING)
+      // =========================================================
+      async function simpanBulkKeysKeSupabase() {
+        var inEl = document.getElementById('in-bulk-keys');
+        var btn = document.getElementById('btn-submit-bulk-pool');
+        var rawText = (inEl ? inEl.value : '').trim();
+
+        if (!rawText) {
+          alert('Silakan tempel teks Cookie akun terlebih dahulu.');
+          return;
+        }
+
+        if (btn) { btn.disabled = true; btn.innerText = '⏳ Menyimpan ke DB...'; }
+
+        var barisList = rawText.split('\n').map(function(b) { return b.trim(); }).filter(Boolean);
+        var dataInsert = [];
+
+        for (var i = 0; i < barisList.length; i++) {
+          var baris = barisList[i];
+          
+          var tokenMatch = baris.match(/Rh-Accesstoken=([^;\s]+)/i);
+          var refreshMatch = baris.match(/Rh-Refreshtoken=([^;\s]+)/i);
+          var userIdMatch = baris.match(/userId=([^;\s]+)/i);
+
+          var accessToken = tokenMatch ? tokenMatch[1] : (baris.startsWith('ey') ? baris : null);
+          var refreshToken = refreshMatch ? refreshMatch[1] : null;
+          var userId = userIdMatch ? userIdMatch[1] : ('2088' + Math.floor(100000000000000 + Math.random() * 900000000000000));
+
+          if (!accessToken && !baris.startsWith('rh_live_')) continue;
+
+          dataInsert.push({
+            user_id: String(userId),
+            access_token: accessToken || baris,
+            refresh_token: refreshToken || null,
+            cookie_data: baris,
+            api_key: accessToken || baris,
+            koin: 700,
+            status: 'idle',
+            last_used_at: new Date().toISOString()
+          });
+        }
+
+        if (dataInsert.length === 0) {
+          alert('Gagal: Tidak ditemukan Rh-Accesstoken atau sesi web yang valid.');
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam'; }
+          return;
+        }
+
+        try {
+          var res = await supa
+            .from('runninghub_pool')
+            .upsert(dataInsert, { onConflict: 'user_id' });
+
+          if (res.error) {
+            var resInsert = await supa.from('runninghub_pool').insert(dataInsert);
+            if (resInsert.error) throw resInsert.error;
+          }
+
+          alert('Berhasil menyimpan ' + dataInsert.length + ' akun ke database kolam!');
+          if (inEl) inEl.value = '';
+          await refreshDataKolamAdmin();
+        } catch (err) {
+          alert('Gagal menyimpan ke Supabase: ' + (err.message || err));
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam'; }
+        }
+      }
+      window.simpanBulkKeysKeSupabase = simpanBulkKeysKeSupabase;
+
+      async function refreshDataKolamAdmin() {
+        var tbody = document.getElementById('wadah-baris-pool-admin');
+        if (!tbody || typeof supa === 'undefined') return;
+
+        tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-400 font-mono">Memuat data akun kolam...</td></tr>';
+
+        try {
+          var { data: listAkun, error } = await supa
+            .from('runninghub_pool')
+            .select('*')
+            .order('last_used_at', { ascending: false });
+
+          if (error) throw error;
+
+          if (!listAkun || listAkun.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-400 font-mono">Belum ada akun di database kolam.</td></tr>';
+            updateStatKolam(0, 0, 0, 0);
+            return;
+          }
+
+          var total = listAkun.length;
+          var idle = 0;
+          var busy = 0;
+          var habis = 0;
+
+          tbody.innerHTML = listAkun.map(function(akun) {
+            var st = (akun.status || 'idle').toLowerCase();
+            var koin = Number(akun.koin ?? akun.coins_balance ?? 0);
+
+            if (st === 'busy') busy++;
+            else if (koin < 100 || st === 'habis') habis++;
+            else idle++;
+
+            var badge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">● IDLE</span>';
+            if (st === 'busy') {
+              badge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 animate-pulse">⚡ RENDERING</span>';
+            } else if (koin < 100 || st === 'habis') {
+              badge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">✕ HABIS</span>';
+            }
+
+            var uId = String(akun.user_id || akun.rh_user_id || akun.id || '-');
+            var maskedId = uId.length > 10 ? (uId.slice(0, 6) + '••••' + uId.slice(-4)) : uId;
+
+            var tglStr = '-';
+            if (akun.last_used_at) {
+              try {
+                tglStr = new Date(akun.last_used_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              } catch(e) {}
+            }
+
+            return '<tr class="hover:bg-slate-50 transition">' +
+              '<td class="py-3 px-3">' + badge + '</td>' +
+              '<td class="py-3 px-3 font-mono font-bold text-slate-800">' + maskedId + '</td>' +
+              '<td class="py-3 px-3 font-bold ' + (koin >= 100 ? 'text-indigo-600' : 'text-slate-400') + '">' + koin + ' koin</td>' +
+              '<td class="py-3 px-3 text-slate-500">' + tglStr + '</td>' +
+              '<td class="py-3 px-3 text-right">' +
+                '<button onclick="hapusAkunKolamSatu(\'' + akun.id + '\')" class="text-slate-300 hover:text-rose-500 transition text-sm p-1 cursor-pointer" title="Hapus Akun">' +
+                  '<i class="ph-bold ph-trash"></i>' +
+                '</button>' +
+              '</td>' +
+            '</tr>';
+          }).join('');
+
+          updateStatKolam(total, idle, busy, habis);
+
+        } catch (err) {
+          tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-rose-500 font-mono">Gagal memuat: ' + (err.message || err) + '</td></tr>';
+        }
+      }
+      window.refreshDataKolamAdmin = refreshDataKolamAdmin;
+      window.muatDataKolamAdmin = refreshDataKolamAdmin;
+
+      function updateStatKolam(total, idle, busy, habis) {
+        var elT = document.getElementById('stat-pool-total');
+        var elI = document.getElementById('stat-pool-idle');
+        var elB = document.getElementById('stat-pool-busy');
+        var elH = document.getElementById('stat-pool-habis');
+        if (elT) elT.innerText = total;
+        if (elI) elI.innerText = idle;
+        if (elB) elB.innerText = busy;
+        if (elH) elH.innerText = habis;
+      }
+
+      async function hapusAkunKolamSatu(id) {
+        if (!confirm('Hapus akun ini dari database kolam?')) return;
+        try {
+          await supa.from('runninghub_pool').delete().eq('id', id);
+          await refreshDataKolamAdmin();
+        } catch (e) {
+          alert('Gagal menghapus: ' + e.message);
+        }
+      }
+      window.hapusAkunKolamSatu = hapusAkunKolamSatu;
+
+      async function sapuBersihAkunHabis() {
+        if (!confirm('Hapus semua akun yang koinnya habis (< 100 koin) dari database?')) return;
+        try {
+          await supa.from('runninghub_pool').delete().or('koin.lt.100,status.eq.habis');
+          await refreshDataKolamAdmin();
+        } catch (e) {
+          alert('Gagal membersihkan: ' + e.message);
+        }
+      }
+      window.sapuBersihAkunHabis = sapuBersihAkunHabis;
+
+      async function kosongkanSeluruhKolam() {
+        if (!confirm('⚠️ PERINGATAN: Yakin ingin MENGHAPUS SEMUA akun dari database kolam?')) return;
+        try {
+          await supa.from('runninghub_pool').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+          await refreshDataKolamAdmin();
+        } catch (e) {
+          alert('Gagal mengosongkan: ' + e.message);
+        }
+      }
+      window.kosongkanSeluruhKolam = kosongkanSeluruhKolam;
 
       ambilDataLoginAsli();
   </script>

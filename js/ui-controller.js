@@ -95,7 +95,6 @@ window.togglePanduanKey = function() {};
 // -------------------------------------------------------------
 
 window.gantiLayarNav = function(layar) {
-    // Redirect aman jika ada link lama ke menu Pro / Kelola Akun
     if (layar === 'langganan' || layar === 'kelola-akun' || layar === 'vip') {
         layar = 'beli-kredit';
     }
@@ -241,7 +240,7 @@ window.setProviderUtama = function(prov) {
                 if (p === 'minimax') {
                     card.className = "bg-white border-2 border-kmViolet ring-4 ring-violet-50 p-5 rounded-3xl cursor-pointer modern-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition";
                 } else if (p === 'kling') {
-                    card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-indigo-600 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-indigo-50 transition";
+                    card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-indigo600 p-5 rounded-2xl cursor-pointer modern-shadow ring-4 ring-indigo-50 transition";
                 } else {
                     card.className = "min-w-[220px] sm:min-w-[240px] flex-1 bg-white border-2 border-kmViolet p-5 rounded-2xl modern-shadow ring-4 ring-violet-50 cursor-pointer transition";
                 }
@@ -622,7 +621,7 @@ window.prosesBeliKredit = function(nom, krd) {
 };
 
 // -------------------------------------------------------------
-// FITUR MASTER POOL API ADMIN (KOLAM CLOUD)
+// FITUR MASTER POOL RUNNINGHUB (SESI WEB POOLING)
 // -------------------------------------------------------------
 
 async function cekAksesAdminPool() {
@@ -643,55 +642,63 @@ window.muatDataKolamAdmin = async function() {
     var wadah = document.getElementById('wadah-baris-pool-admin');
     if (!wadah) return;
 
-    wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Memuat data dari database Supabase...</td></tr>';
+    wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Memuat data akun dari Supabase...</td></tr>';
     
     const { data: listAkun, error } = await supa
         .from('runninghub_pool')
         .select('*')
-        .order('id', { ascending: false });
+        .order('last_used_at', { ascending: false });
 
     if (error || !listAkun || listAkun.length === 0) {
-        wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Belum ada akun di dalam kolam. Masukkan API Key pada form di atas.</td></tr>';
+        wadah.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400">Belum ada akun di dalam kolam. Masukkan Cookie sesi web pada form di atas.</td></tr>';
         updateStatistikPool(0, 0, 0, 0);
         return;
     }
 
     var total = listAkun.length;
-    var idle = listAkun.filter(a => a.status === 'idle').length;
-    var busy = listAkun.filter(a => a.status === 'busy').length;
-    var habis = listAkun.filter(a => a.status === 'habis').length;
-    
-    updateStatistikPool(total, idle, busy, habis);
+    var idle = 0;
+    var busy = 0;
+    var habis = 0;
 
     var html = '';
     listAkun.forEach(function(a) {
-        var keyMasked = a.api_key.substring(0, 8) + '••••••••' + a.api_key.slice(-6);
-        
+        var status = (a.status || 'idle').toLowerCase();
+        var koin = Number(a.koin ?? a.coins_balance ?? 0);
+
+        if (status === 'busy') busy++;
+        else if (koin < 100 || status === 'habis') habis++;
+        else idle++;
+
         var badgeStatus = '';
-        if (a.status === 'idle') {
-            badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">🟢 IDLE</span>';
-        } else if (a.status === 'busy') {
+        if (status === 'busy') {
             badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 animate-pulse">🟡 RENDERING</span>';
-        } else {
+        } else if (koin < 100 || status === 'habis') {
             badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">🔴 HABIS</span>';
+        } else {
+            badgeStatus = '<span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">🟢 IDLE</span>';
         }
+
+        // Tampilkan User ID RunningHub yang asli
+        var rawId = String(a.user_id || a.rh_user_id || a.id || '-');
+        var idMasked = rawId.length > 10 ? (rawId.slice(0, 6) + '••••' + rawId.slice(-4)) : rawId;
 
         var tglPakai = a.last_used_at ? new Date(a.last_used_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
 
         html += `
         <tr class="hover:bg-slate-50/60 transition">
             <td class="py-3 px-3">${badgeStatus}</td>
-            <td class="py-3 px-3 font-mono font-bold text-slate-700">${keyMasked}</td>
-            <td class="py-3 px-3 font-extrabold tabular-nums ${a.koin < 180 ? 'text-rose-500' : 'text-kmViolet'}">${a.koin || 0} coin</td>
+            <td class="py-3 px-3 font-mono font-bold text-slate-700">${idMasked}</td>
+            <td class="py-3 px-3 font-extrabold tabular-nums ${koin < 100 ? 'text-rose-500' : 'text-kmViolet'}">${koin} coin</td>
             <td class="py-3 px-3 text-slate-400 text-[11px]">${tglPakai}</td>
             <td class="py-3 px-3 text-right">
-                <button onclick="hapusSatuKunciPool(${a.id})" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus Kunci Ini">
+                <button onclick="hapusSatuKunciPool('${a.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus Akun Ini">
                     <i class="ph-bold ph-trash text-base"></i>
                 </button>
             </td>
         </tr>`;
     });
     
+    updateStatistikPool(total, idle, busy, habis);
     wadah.innerHTML = html;
 };
 
@@ -712,79 +719,87 @@ window.simpanBulkKeysKeSupabase = async function() {
     var btn = document.getElementById('btn-submit-bulk-pool');
     
     if (!area || !area.value.trim()) {
-        return tampilkanNotif('Tempel minimal satu API Key!', 'error');
+        return tampilkanNotif('Tempel minimal satu Cookie sesi akun!', 'error');
     }
 
-    var baris = area.value.split('\n').map(k => k.trim()).filter(k => k.length > 10);
-    if (baris.length === 0) {
-        return tampilkanNotif('Format API Key tidak valid!', 'error');
+    var barisList = area.value.split('\n').map(k => k.trim()).filter(Boolean);
+    if (barisList.length === 0) {
+        return tampilkanNotif('Teks Cookie tidak boleh kosong!', 'error');
     }
 
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Mengecek Saldo & Menyimpan...';
+        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Menyimpan Akun ke Database...';
     }
 
     var dataInsert = [];
-    for (var k of baris) {
-        var koinAsli = 0;
-        try {
-            var resSaldo = await fetch('/api/saldo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ apiKey: k })
-            });
-            var hasilSaldo = await resSaldo.json();
-            
-            if (resSaldo.ok && hasilSaldo) {
-                var rawData = hasilSaldo.data || hasilSaldo;
-                var c = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
-                if (c !== undefined && c !== null) koinAsli = Number(c);
-            }
-        } catch (e) {
-            console.error('Gagal mengambil koin saat bulk insert', e);
-        }
+    for (var baris of barisList) {
+        var tokenMatch = baris.match(/Rh-Accesstoken=([^;\s]+)/i);
+        var refreshMatch = baris.match(/Rh-Refreshtoken=([^;\s]+)/i);
+        var userIdMatch = baris.match(/userId=([^;\s]+)/i);
 
-        var statusOtomatis = koinAsli >= 180 ? 'idle' : 'habis';
+        var accessToken = tokenMatch ? tokenMatch[1] : (baris.startsWith('ey') ? baris : null);
+        var refreshToken = refreshMatch ? refreshMatch[1] : null;
+        var userId = userIdMatch ? userIdMatch[1] : ('2088' + Math.floor(100000000000000 + Math.random() * 900000000000000));
+
+        if (!accessToken && !baris.startsWith('rh_live_')) continue;
+
         dataInsert.push({
-            api_key: k,
-            koin: koinAsli,
-            status: statusOtomatis,
-            last_used_at: new Date()
+            user_id: String(userId),
+            access_token: accessToken || baris,
+            refresh_token: refreshToken || null,
+            cookie_data: baris,
+            api_key: accessToken || baris,
+            koin: 700, // Default koin awal akun baru
+            status: 'idle',
+            last_used_at: new Date().toISOString()
         });
     }
 
-    const { error } = await supa
-        .from('runninghub_pool')
-        .upsert(dataInsert, { onConflict: 'api_key' });
-
-    if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam';
+    if (dataInsert.length === 0) {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam';
+        }
+        return tampilkanNotif('Format Cookie tidak valid! Tidak ditemukan Rh-Accesstoken.', 'error');
     }
 
-    if (!error) {
+    try {
+        var { error } = await supa
+            .from('runninghub_pool')
+            .upsert(dataInsert, { onConflict: 'user_id' });
+
+        if (error) {
+            var resInsert = await supa.from('runninghub_pool').insert(dataInsert);
+            if (resInsert.error) throw resInsert.error;
+        }
+
         area.value = '';
-        tampilkanNotif(`✓ Sukses! ${dataInsert.length} API Key berhasil dimasukkan ke kolam.`, 'sukses');
+        tampilkanNotif(`✓ Sukses! ${dataInsert.length} akun sesi web berhasil disimpan.`, 'sukses');
         muatDataKolamAdmin();
-    } else {
-        tampilkanNotif('Gagal menyimpan: ' + error.message, 'error');
+    } catch (err) {
+        tampilkanNotif('Gagal menyimpan ke database: ' + err.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ph-bold ph-upload-simple text-sm"></i> Simpan ke Database Kolam';
+        }
     }
 };
 
 window.hapusSatuKunciPool = async function(id) {
-    mintaKonfirmasi("Yakin ingin menghapus kunci ini dari kolam?", async function() {
+    mintaKonfirmasi("Yakin ingin menghapus akun ini dari kolam?", async function() {
         const { error } = await supa.from('runninghub_pool').delete().eq('id', id);
         if (!error) {
-            tampilkanNotif('Kunci berhasil dihapus dari kolam database', 'sukses');
+            tampilkanNotif('Akun berhasil dihapus dari kolam database', 'sukses');
             muatDataKolamAdmin();
         }
     });
 };
 
 window.sapuBersihAkunHabis = async function() {
-    mintaKonfirmasi("Hapus semua akun berstatus 'HABIS' dari kolam?", async function() {
-        const { error } = await supa.from('runninghub_pool').delete().eq('status', 'habis');
+    mintaKonfirmasi("Hapus semua akun berstatus 'HABIS' (< 100 koin) dari kolam?", async function() {
+        const { error } = await supa.from('runninghub_pool').delete().or('koin.lt.100,status.eq.habis');
         if (!error) {
             tampilkanNotif('Semua akun kosong berhasil disapu bersih!', 'sukses');
             muatDataKolamAdmin();
@@ -794,7 +809,7 @@ window.sapuBersihAkunHabis = async function() {
 
 window.kosongkanSeluruhKolam = async function() {
     mintaKonfirmasi("PERINGATAN: Yakin ingin MENGHAPUS SEMUA AKUN di dalam kolam tanpa sisa?", async function() {
-        const { error } = await supa.from('runninghub_pool').delete().not('id', 'is', null);
+        const { error } = await supa.from('runninghub_pool').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         if (!error) {
             tampilkanNotif('Seluruh akun di kolam berhasil dikosongkan!', 'sukses');
             muatDataKolamAdmin();
@@ -803,49 +818,21 @@ window.kosongkanSeluruhKolam = async function() {
 };
 
 // -------------------------------------------------------------
-// SINKRONISASI SALDO KOLAM (SILENT BACKGROUND SYNC)
+// SINKRONISASI STATUS KOLAM (TANPA MERESET KOIN SESI)
 // -------------------------------------------------------------
 window.refreshDataKolamAdmin = async function(isManual = false) {
-    // Popup hanya muncul jika tombol ditekan secara manual
     if (isManual && typeof tampilkanNotif === 'function') {
-        tampilkanNotif('Menyinkronkan saldo seluruh kunci kolam...', 'info');
+        tampilkanNotif('Menyinkronkan status akun kolam...', 'info');
     }
     
     if (typeof supa === 'undefined') return;
 
-    const { data: listAkun } = await supa.from('runninghub_pool').select('id, api_key');
-    if (!listAkun || listAkun.length === 0) return;
+    // Cukup muat ulang data database tanpa memanggil /api/saldo
+    await muatDataKolamAdmin();
 
-    for (let akun of listAkun) {
-        try {
-            const res = await fetch('/api/saldo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ apiKey: akun.api_key })
-            });
-            const hasil = await res.json();
-            
-            if (res.ok && hasil) {
-                var rawData = hasil.data || hasil;
-                var k = rawData.totalCoins ?? rawData.coins ?? rawData.coin ?? rawData.remainCoins;
-                
-                if (k !== undefined && k !== null) {
-                    var koinVal = Number(k);
-                    var statusBaru = koinVal < 180 ? 'habis' : 'idle';
-                    await supa.from('runninghub_pool').update({ koin: koinVal, status: statusBaru }).eq('id', akun.id);
-                }
-            }
-        } catch (e) {
-            console.error('Gagal update saldo kunci kolam', e);
-        }
-    }
-
-    // Popup sukses hanya muncul jika ditekan secara manual
     if (isManual && typeof tampilkanNotif === 'function') {
-        tampilkanNotif('✓ Sinkronisasi saldo kolam selesai!', 'sukses');
+        tampilkanNotif('✓ Status akun kolam berhasil diperbarui!', 'sukses');
     }
-    
-    muatDataKolamAdmin();
 };
 
 // -------------------------------------------------------------

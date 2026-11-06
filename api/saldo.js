@@ -1,30 +1,33 @@
 // File: api/saldo.js
-// Backend Proxy Vercel - Live Coin Extractor RunningHub
+// Backend Proxy Vercel - Live Coin Checker RunningHub
 
 export const maxDuration = 15;
 
-// Fungsi pelacak koin otomatis ke seluruh lapisan JSON
-function ekstrakKoinMendalam(obj) {
+function cariKoinOtomatis(obj) {
   if (!obj || typeof obj !== 'object') return null;
 
-  const targetKeys = ['totalCoin', 'remainCoins', 'totalCoins', 'coins', 'coin', 'balance'];
-  for (const k of targetKeys) {
+  // Daftar nama variabel koin resmi RunningHub
+  const keys = [
+    'remainCoins', 
+    'account_balance_coins', 
+    'totalCoin', 
+    'remain_coins', 
+    'coins', 
+    'totalCoins', 
+    'coin', 
+    'balance'
+  ];
+
+  for (const k of keys) {
     if (obj[k] !== undefined && obj[k] !== null && obj[k] !== "" && !isNaN(Number(obj[k]))) {
-      const val = Number(obj[k]);
-      if (val > 0) return val;
-    }
-  }
-
-  for (const key of Object.keys(obj)) {
-    if (typeof obj[key] === 'object' && obj[key] !== null) {
-      const hasilAnak = ekstrakKoinMendalam(obj[key]);
-      if (hasilAnak !== null && hasilAnak > 0) return hasilAnak;
-    }
-  }
-
-  for (const k of targetKeys) {
-    if (obj[k] !== undefined && obj[k] !== null && !isNaN(Number(obj[k]))) {
       return Number(obj[k]);
+    }
+  }
+
+  for (const prop of Object.keys(obj)) {
+    if (typeof obj[prop] === 'object' && obj[prop] !== null) {
+      const ketemu = cariKoinOtomatis(obj[prop]);
+      if (ketemu !== null) return ketemu;
     }
   }
 
@@ -74,59 +77,70 @@ export default async function handler(req, res) {
       "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
       "Content-Type": "application/json",
       "Cookie": cleanCookie,
-      "Origin": "https://www.runninghub.ai",
-      "Referer": "https://www.runninghub.ai/",
+      "Authorization": "Bearer " + token,
+      "Rh-Accesstoken": token,
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     };
 
-    // Jalur endpoint RunningHub
-    const targetEndpoints = [
-      { url: "https://www.runninghub.ai/api/uc/auth/user-info", method: "GET" },
-      { url: "https://www.runninghub.ai/api/uc/user/getUserInfo", method: "POST", body: "{}" },
-      { url: "https://www.runninghub.ai/api/uc/user/getUserInfo", method: "GET" },
-      { url: "https://www.runninghub.ai/uc/user/getUserInfo", method: "POST", body: "{}" },
-      { url: "https://www.runninghub.ai/uc/user/getUserInfo", method: "GET" },
-      { url: "https://www.runninghub.ai/api/wallet/user-wallet/get-balance", method: "POST", body: "{}" },
-      { url: "https://www.runninghub.ai/api/uc/user/info", method: "GET" }
-    ];
-
-    let debugLog = [];
-
-    for (const ep of targetEndpoints) {
-      try {
-        const fetchOpt = { method: ep.method, headers: headersWeb };
-        if (ep.body) fetchOpt.body = ep.body;
-
-        const rhResp = await fetch(ep.url, fetchOpt);
-        const rhJson = await rhResp.json().catch(() => null);
-
-        if (rhJson) {
-          const koin = ekstrakKoinMendalam(rhJson);
-          if (koin !== null && !isNaN(koin)) {
-            return res.status(200).json({
-              code: 0,
-              success: true,
-              coins: koin,
-              userId: rhJson.data?.id || rhJson.data?.userId || uId,
-              data: rhJson.data || rhJson
-            });
-          }
-          debugLog.push({ url: ep.url, res: rhJson });
+    // 1. Coba endpoint resmi accountStatus
+    try {
+      const respStatus = await fetch("https://www.runninghub.ai/uc/openapi/accountStatus", {
+        method: "POST",
+        headers: headersWeb,
+        body: JSON.stringify({ apiKey: token })
+      });
+      const jsonStatus = await respStatus.json().catch(() => null);
+      if (jsonStatus) {
+        const koinDitemukan = cariKoinOtomatis(jsonStatus);
+        if (koinDitemukan !== null) {
+          return res.status(200).json({
+            code: 0,
+            success: true,
+            coins: koinDitemukan,
+            userId: uId,
+            data: jsonStatus
+          });
         }
-      } catch (errLoop) {
-        debugLog.push({ url: ep.url, error: errLoop.message });
       }
-    }
+    } catch (e1) {}
+
+    // 2. Coba endpoint user-info
+    try {
+      const respInfo = await fetch("https://www.runninghub.ai/api/uc/auth/user-info", {
+        method: "GET",
+        headers: headersWeb
+      });
+      const jsonInfo = await respInfo.json().catch(() => null);
+      if (jsonInfo) {
+        const koinDitemukan = cariKoinOtomatis(jsonInfo);
+        if (koinDitemukan !== null) {
+          return res.status(200).json({
+            code: 0,
+            success: true,
+            coins: koinDitemukan,
+            userId: jsonInfo.data?.id || uId,
+            data: jsonInfo
+          });
+        }
+
+        // Jika respons sukses tapi koin belum terbaca, kembalikan isi data lengkapnya
+        return res.status(200).json({
+          success: false,
+          coins: 0,
+          message: "Data diterima tapi nama properti koin belum cocok.",
+          debug: jsonInfo
+        });
+      }
+    } catch (e2) {}
 
     return res.status(200).json({
       success: false,
       coins: 0,
-      message: "Koin tidak ditemukan pada seluruh endpoint RunningHub.",
-      debug: debugLog
+      message: "Gagal terhubung ke endpoint RunningHub."
     });
   }
 
-  // Jalur API Key pengembang
+  // Jalur API Key Developer (rh_live_...)
   if (apiKey || process.env.RUNNINGHUB_API_KEY) {
     const cleanApiKey = String(apiKey || process.env.RUNNINGHUB_API_KEY).trim();
     try {
@@ -138,13 +152,12 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({ apiKey: cleanApiKey })
       });
-
       const data = await response.json().catch(() => ({}));
       const koin = data?.data?.remainCoins ?? data?.data?.totalCoins ?? data?.data?.coins ?? 0;
 
-      return res.status(response.ok ? 200 : response.status).json({
-        code: data.code ?? 0,
-        success: data.code === 0 || data.code === 200,
+      return res.status(200).json({
+        code: 0,
+        success: true,
         coins: Number(koin),
         data: data.data || data
       });

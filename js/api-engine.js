@@ -415,7 +415,6 @@ function tampilkanModalCeklisSukses(taskId) {
 // - VIDEO: Kompresi HD 1080p (8.5 Mbps) hanya jika file > 45MB
 // ==========================================
 function kompresVideoJikaPerlu(file, onProgress, callback) {
-  // Jika ukuran video <= 45MB, langsung lolos tanpa disentuh
   if (!file || !file.type.startsWith('video/') || file.size <= 45 * 1024 * 1024) {
     return callback(file);
   }
@@ -588,11 +587,9 @@ function unggahBahanLangsung(input, tipe) {
     xhr.send(formData);
   }
 
-  // Foto langsung dikirim utuh tanpa kompresi
   if (tipe === 'foto') {
     jalankanProsesKirim(fileAsli);
   } else {
-    // Video hanya dikompres jika ukurannya melebihi 45MB
     kompresVideoJikaPerlu(fileAsli, function(statusTeks) {
       if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">' + statusTeks + '</span>';
     }, jalankanProsesKirim);
@@ -651,7 +648,7 @@ function perbaruiBarProgresUI(tugas) {
 
 // 6. PEMANTAUAN STATUS & PENARIKAN HASIL VIDEO
 function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
-  if (tugas.selesai && tugas.videoUrl) return; 
+  if (tugas.selesai) return; 
 
   var isKlingTask = (
     tugas.prov === 'kling' || 
@@ -675,7 +672,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
   if (tugas.intervalObj) clearInterval(tugas.intervalObj);
 
   async function jalankanCek() {
-    if (tugas.selesai && tugas.videoUrl) {
+    if (tugas.selesai) {
       if (tugas.intervalObj) clearInterval(tugas.intervalObj);
       return;
     }
@@ -769,7 +766,7 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
         rawObj.reason
       ].filter(Boolean).join(" ").toUpperCase().trim();
 
-      // PRIORITAS 1: PENARIKAN HASIL RESMI
+      // PRIORITAS 1: PENARIKAN HASIL RESMI (MENYIAPKAN VIDEO KAMU)
       var linkOutputAsli = ambilLinkOutputResmi(jsonObj);
       if (statusTeks.includes("SUCCESS") || linkOutputAsli) {
         if (linkOutputAsli) {
@@ -778,20 +775,26 @@ function pantauStatusVideo(tugas, apiKey, poolId, userId, didDeductCredit) {
           await lepaskanKunciPoolOtomatis(currentPoolId);
 
           var urlMurni = bungkusStreamProxy(linkOutputAsli);
-          tugas.status = "Selesai"; 
-          tugas.selesai = true;
-          tugas.progress = 100; 
-          tugas.rawVideoUrl = urlMurni;
-          tugas.videoUrl = urlMurni;
-
+          tugas.status = "✨ Menyiapkan video kamu...";
+          tugas.progress = 100;
           perbaruiBarProgresUI(tugas);
-          simpanStorage();
 
-          if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-          if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-          if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video berhasil selesai!', 'sukses');
+          // Beri jeda 1.5 detik sebelum kartu resmi hijau 'Selesai'
+          setTimeout(function() {
+            tugas.status = "Selesai"; 
+            tugas.selesai = true;
+            tugas.rawVideoUrl = urlMurni;
+            tugas.videoUrl = urlMurni;
 
-          setTimeout(pasangPelindungVideoDOM, 500);
+            perbaruiBarProgresUI(tugas);
+            simpanStorage();
+
+            if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
+            if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
+            if (typeof tampilkanNotif === 'function') tampilkanNotif('✓ Video berhasil selesai!', 'sukses');
+
+            setTimeout(pasangPelindungVideoDOM, 300);
+          }, 1500);
           return;
         }
       }
@@ -1115,7 +1118,7 @@ window.mulaiProsesGenerateMinimax = function() {
   mulaiProsesGenerate();
 };
 
-// 7. FUNGSI PELINDUNG ELEMEN VIDEO & PRELOAD METADATA
+// 7. FUNGSI PELINDUNG ELEMEN VIDEO & PRELOAD METADATA (AUTO-CROP WATERMARK PRESISI 9:16)
 function pasangPelindungVideoDOM() {
   if (!document.querySelector('meta[name="referrer"]')) {
     var meta = document.createElement('meta');
@@ -1124,12 +1127,40 @@ function pasangPelindungVideoDOM() {
     document.head.appendChild(meta);
   }
 
+  // Setelan presisi: Rasio 9:16 murni, tanpa zoom/potong kiri-kanan, hanya dorong watermark atas keluar bingkai
+  if (!document.getElementById('km-style-nocrop')) {
+    var styleEl = document.createElement('style');
+    styleEl.id = 'km-style-nocrop';
+    styleEl.innerHTML = `
+      .video-wrapper-clean {
+        position: relative !important;
+        overflow: hidden !important;
+        border-radius: 16px !important;
+        aspect-ratio: 9 / 16 !important;
+        width: 100% !important;
+        background: #000 !important;
+      }
+      .video-clean-crop {
+        width: 100% !important;
+        height: 104% !important;
+        object-fit: cover !important;
+        transform: translateY(-3.8%) !important;
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
   var semuaVideo = document.querySelectorAll('video');
   semuaVideo.forEach(function(v) {
     v.setAttribute('referrerpolicy', 'no-referrer');
     v.setAttribute('playsinline', '');
     v.setAttribute('webkit-playsinline', '');
     v.setAttribute('preload', 'metadata');
+
+    v.classList.add('video-clean-crop');
+    if (v.parentElement) {
+      v.parentElement.classList.add('video-wrapper-clean');
+    }
 
     if (v.src) {
       if (v.src.includes('/api/stream?url=')) {
@@ -1154,7 +1185,7 @@ document.addEventListener('visibilitychange', function() {
           tugas.rawVideoUrl = tugas.videoUrl;
         }
 
-        if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
+        if (!tugas.selesai && tugas.id) {
           var isKling = (
             tugas.prov === 'kling' || 
             tugas.provider === 'kling' || 
@@ -1163,11 +1194,9 @@ document.addEventListener('visibilitychange', function() {
 
           if (isKling) {
             if (typeof window.pantauStatusKling === 'function') {
-              tugas.selesai = false;
               window.pantauStatusKling(tugas);
             }
           } else {
-            tugas.selesai = false;
             pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
           }
         }
@@ -1206,14 +1235,12 @@ window.onload = function() {
         (typeof tugas.id === 'string' && tugas.id.includes('-'))
       );
 
-      if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
+      if (!tugas.selesai && tugas.id) {
         if (isKling) {
           if (typeof window.pantauStatusKling === 'function') {
-            tugas.selesai = false;
             window.pantauStatusKling(tugas);
           }
         } else {
-          tugas.selesai = false;
           pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
         }
       }

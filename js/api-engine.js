@@ -409,76 +409,128 @@ function tampilkanModalCeklisSukses(taskId) {
   }
 }
 
+// Helper kompresi gambar lokal (khusus kamera HP) sebelum diunggah
+function kompresGambarJikaPerlu(file, callback) {
+  if (!file || !file.type.startsWith('image/') || file.size < 1.5 * 1024 * 1024) {
+    return callback(file);
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var maxDim = 1920;
+      var w = img.width;
+      var h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(function(blob) {
+        if (!blob) return callback(file);
+        var fileBaru = new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+        callback(fileBaru);
+      }, "image/jpeg", 0.85);
+    };
+    img.onerror = function() { callback(file); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function() { callback(file); };
+  reader.readAsDataURL(file);
+}
+
 function unggahBahanLangsung(input, tipe) {
   if (!input.files || !input.files[0]) return;
-  var file = input.files[0];
+  var fileAsli = input.files[0];
   var txtEl = document.getElementById(tipe === 'foto' ? 'txt-file-foto' : 'txt-file-video');
   var stEl = document.getElementById(tipe === 'foto' ? 'st-file-foto' : 'st-file-video');
 
-  if (txtEl) txtEl.innerText = file.name;
-  if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah (0%)...</span>';
+  if (txtEl) txtEl.innerText = fileAsli.name;
+  if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Menyiapkan file...</span>';
 
-  var formData = new FormData();
-  formData.append('file', file);
+  kompresGambarJikaPerlu(fileAsli, function(fileSiapKirim) {
+    if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah (0%)...</span>';
 
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev', true);
+    var formData = new FormData();
+    formData.append('file', fileSiapKirim);
 
-  xhr.upload.onprogress = function(e) {
-    if (e.lengthComputable) {
-      var persen = Math.round((e.loaded / e.total) * 100);
-      if (stEl) {
-        stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah (' + persen + '%)...</span>';
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'https://mute-wind-17c9kiix-uploader.ingkiofficial.workers.dev', true);
+
+    xhr.upload.onprogress = function(e) {
+      if (e.lengthComputable) {
+        var persen = Math.round((e.loaded / e.total) * 100);
+        if (stEl) {
+          stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah (' + persen + '%)...</span>';
+        }
       }
-    }
-  };
+    };
 
-  xhr.onload = function() {
-    var rawText = xhr.responseText || "";
+    xhr.onload = function() {
+      var rawText = xhr.responseText || "";
 
-    if (xhr.status >= 200 && xhr.status < 300) {
-      try {
-        var resJson = JSON.parse(rawText);
-        var fileUrl = null;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          var resJson = JSON.parse(rawText);
+          var fileUrl = null;
 
-        if (resJson && resJson.data) {
-          if (typeof resJson.data === 'string') {
-            fileUrl = resJson.data;
-          } else if (typeof resJson.data === 'object') {
-            fileUrl = resJson.data.fileUrl || resJson.data.fileName || resJson.data.url || resJson.data.path;
+          if (resJson && resJson.data) {
+            if (typeof resJson.data === 'string') {
+              fileUrl = resJson.data;
+            } else if (typeof resJson.data === 'object') {
+              fileUrl = resJson.data.fileUrl || resJson.data.fileName || resJson.data.url || resJson.data.path;
+            }
           }
+
+          if (!fileUrl && resJson) {
+            fileUrl = resJson.fileUrl || resJson.url || resJson.path;
+          }
+
+          if (!fileUrl) throw new Error("Link file tidak ditemukan dari server.");
+
+          if (tipe === 'foto') {
+            urlBahanFoto = fileUrl;
+            window.urlBahanFoto = fileUrl;
+          } else {
+            urlBahanVideo = fileUrl;
+            window.urlBahanVideo = fileUrl;
+          }
+
+          var ukuranMb = (fileSiapKirim.size / (1024 * 1024)).toFixed(1);
+          if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
+          if (typeof tampilkanNotif === 'function') tampilkanNotif('File berhasil diunggah!', 'sukses');
+
+        } catch (err) {
+          if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
+          tampilkanNotifPusat('Gagal respons: ' + (err.message || 'Format tidak valid'));
         }
-
-        if (!fileUrl) throw new Error("Link file tidak ditemukan dari server.");
-
-        if (tipe === 'foto') {
-          urlBahanFoto = fileUrl;
-          window.urlBahanFoto = fileUrl;
-        } else {
-          urlBahanVideo = fileUrl;
-          window.urlBahanVideo = fileUrl;
-        }
-
-        var ukuranMb = (file.size / (1024 * 1024)).toFixed(1);
-        if (stEl) stEl.innerHTML = '<span class="text-emerald-600 font-bold">✓ Terunggah (' + ukuranMb + ' MB)</span>';
-        if (typeof tampilkanNotif === 'function') tampilkanNotif('File berhasil diunggah!', 'sukses');
-
-      } catch (err) {
+      } else {
         if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-        tampilkanNotifPusat('Gagal respons: ' + (err.message || 'Format tidak valid'));
+        var pesanErr = 'Gagal upload HTTP ' + xhr.status;
+        try {
+          var resErr = JSON.parse(rawText);
+          if (resErr && (resErr.message || resErr.error)) pesanErr += ': ' + (resErr.message || resErr.error);
+        } catch(e) {}
+        tampilkanNotifPusat(pesanErr);
       }
-    } else {
+    };
+
+    xhr.onerror = function() {
       if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-      tampilkanNotifPusat('Gagal mengunggah ke storage.');
-    }
-  };
+      tampilkanNotifPusat('Koneksi upload ke Cloudflare terputus (CORS/Jaringan).');
+    };
 
-  xhr.onerror = function() {
-    if (stEl) stEl.innerHTML = '<span class="text-rose-600 font-bold">❌ Gagal Unggah</span>';
-    tampilkanNotifPusat('Koneksi upload terputus.');
-  };
-
-  xhr.send(formData);
+    xhr.send(formData);
+  });
 }
 window.unggahBahanLangsung = unggahBahanLangsung;
 

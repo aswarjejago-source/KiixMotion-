@@ -200,7 +200,7 @@ export default async function handler(req, res) {
     const akunTerpilih = poolData[0];
     poolIdDipakai = akunTerpilih.id;
 
-    // Ekstraksi kredensial akun
+    // Ekstraksi kredensial akun sesi web
     const rhUserId = String(akunTerpilih.user_id || akunTerpilih.rh_user_id || akunTerpilih.userid || "2088197555130155009");
     let accessToken = akunTerpilih.access_token || akunTerpilih.rh_access_token || akunTerpilih.token || akunTerpilih.api_key;
     const refreshToken = akunTerpilih.refresh_token || akunTerpilih.rh_refresh_token || null;
@@ -219,53 +219,57 @@ export default async function handler(req, res) {
     });
 
     // =========================================================
-    // EKSEKUSI TASK KE RUNNINGHUB OPENAPI
+    // EKSEKUSI TASK KE RUNNINGHUB (AI-APP ENDPOINT V2)
     // =========================================================
-    const WAN_WORKFLOW_ID = "2101240461868802049";
+    const AI_APP_ID = "2101240461868802049";
     const CAMERA_STABILIZER_PROMPT = "Camera locked on tripod, perfectly stable camera, no camera shake, no handheld movement, no jitter, no vibration, no zoom in, no zoom out, no dolly movement, no camera panning, no camera rotation, no camera tilt, fixed framing, static shot, consistent composition, cinematic realism, sharp focus at all times, subject always in focus, no focus breathing, no autofocus hunting, no motion blur, no lens blur, no depth of field blur, ultra clear details, crisp image quality, smooth natural motion, professional studio camera, stable video capture, high detail, high realism.\nNegative Prompt:\ncamera shake, handheld camera, jitter, vibration, zoom in, zoom out, camera movement, panning, tilting, rotating, dolly shot, motion blur, lens blur, focus blur, out of focus, autofocus, focus breathing, shaky footage, cinematic blur, depth of field blur, low quality, ghosting, distortion.";
 
-    // Format resmi node ComfyUI RunningHub OpenAPI
+    // Format body resmi RunningHub OpenAPI v2 AI-App
     const payloadCreateTask = {
-      workflowId: WAN_WORKFLOW_ID,
-      apiKey: apiKeyAkun,
       nodeInfoList: [
         {
           nodeId: "30",
           fieldName: "image",
-          fieldValue: urlBahanFoto.trim()
+          fieldValue: urlBahanFoto.trim(),
+          description: null
         },
         {
           nodeId: "33",
           fieldName: "video",
-          fieldValue: urlBahanVideo.trim()
+          fieldValue: urlBahanVideo.trim(),
+          description: null
         },
         {
           nodeId: "275",
           fieldName: "text",
-          fieldValue: prompt || CAMERA_STABILIZER_PROMPT
+          fieldValue: prompt || CAMERA_STABILIZER_PROMPT,
+          description: null
         }
-      ]
+      ],
+      instanceType: "default",
+      usePersonalQueue: "false"
     };
 
     const kirimRequestKeRunningHub = async (tokenAktif, cookieAktif, keyAktif) => {
+      // Header sesi web lengkap + otorisasi token
       const headersFull = {
         "Accept": "application/json, text/plain, */*",
         "Content-Type": "application/json",
         "Client": "WEB",
-        "Authorization": `Bearer ${tokenAktif}`,
+        "Authorization": `Bearer ${tokenAktif || keyAktif}`,
         "Rh-Accesstoken": tokenAktif,
-        "apikey": keyAktif,
+        "apikey": keyAktif || tokenAktif,
         "Cookie": cookieAktif,
         "Origin": "https://www.runninghub.ai",
-        "Referer": `https://www.runninghub.ai/id/ai-detail/${WAN_WORKFLOW_ID}`,
+        "Referer": `https://www.runninghub.ai/id/ai-detail/${AI_APP_ID}`,
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         "userId": rhUserId,
         "x-rh-lang": "id"
       };
 
       const targetUrls = [
-        "https://www.runninghub.ai/task/openapi/create",
-        "https://www.runninghub.ai/api/task/openapi/create"
+        `https://www.runninghub.ai/openapi/v2/run/ai-app/${AI_APP_ID}`,
+        `https://www.runninghub.ai/api/openapi/v2/run/ai-app/${AI_APP_ID}`
       ];
 
       let lastRes = null;
@@ -300,7 +304,7 @@ export default async function handler(req, res) {
     }
 
     // Auto-refresh jika token kedaluwarsa (401)
-    if ((rhRes?.status === 401 || rhJson?.code === 401 || String(rhJson?.msg).toLowerCase().includes("token")) && refreshToken) {
+    if ((rhRes?.status === 401 || rhJson?.code === 401 || String(rhJson?.msg || rhJson?.errorMessage).toLowerCase().includes("token")) && refreshToken) {
       const tokenBaru = await refreshRhAccessToken(refreshToken, cookieData);
       if (tokenBaru) {
         accessToken = tokenBaru;
@@ -315,16 +319,17 @@ export default async function handler(req, res) {
           })
         });
 
-        const retry = await kirimRequestKeRunningHub(accessToken, cookieData, tokenBaru);
+        const retry = await kirimRequestKeRunningHub(tokenBaru, cookieData, tokenBaru);
         rhRes = retry.res;
         rawResponseText = retry.text;
         try { rhJson = JSON.parse(rawResponseText); } catch (e) { rhJson = { raw: rawResponseText }; }
       }
     }
 
-    const taskId = rhJson?.data?.taskId || rhJson?.taskId || rhJson?.data?.task_id || (typeof rhJson?.data === 'string' ? rhJson.data : null);
+    // Baca taskId baik dari root response maupun dari object data
+    const taskId = rhJson?.taskId || rhJson?.data?.taskId || rhJson?.data?.task_id || (typeof rhJson?.data === 'string' ? rhJson.data : null);
 
-    if ((rhRes?.ok || rhJson?.code === 0 || rhJson?.code === 200) && taskId) {
+    if ((rhRes?.ok || rhJson?.code === 0 || rhJson?.code === 200 || rhJson?.status === 'RUNNING') && taskId) {
       const koinSekarang = Number(akunTerpilih.koin) || 100;
       const sisaKoin = Math.max(0, koinSekarang - 100);
 
@@ -339,14 +344,14 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         success: true,
-        taskId: typeof taskId === 'string' ? taskId : JSON.stringify(taskId),
+        taskId: String(taskId),
         poolId: poolIdDipakai,
         didDeductCredit: true,
         provider: 'kiix'
       });
     } else {
-      const detailError = rhJson?.msg || 
-                          rhJson?.errorMessage || 
+      const detailError = rhJson?.errorMessage || 
+                          rhJson?.msg || 
                           rhJson?.message || 
                           (rhJson?.raw ? `RunningHub [HTTP ${rhRes?.status || 500}]: ${rhJson.raw.slice(0, 180)}` : null) || 
                           'Server RunningHub menolak parameter task.';

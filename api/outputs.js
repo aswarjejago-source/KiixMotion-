@@ -1,11 +1,10 @@
 // File: api/outputs.js
-// Backend Proxy Vercel - Task Status & Result Fetcher (Sabar & Anti-Gagal Diawal)
+// Backend Proxy Vercel - Task Status & Result Fetcher (Sabar & Presisi Batal)
 
 export const maxDuration = 30;
 
 const WAN_APP_ID = "2101240461868802049";
 
-// Helper ekstraksi link video dari respons RunningHub
 function ekstrakVideoUrl(task) {
   if (!task) return null;
   return task.outputFiles?.[0]?.url ||
@@ -19,7 +18,6 @@ function ekstrakVideoUrl(task) {
          null;
 }
 
-// Helper refresh access token jika sesi web kedaluwarsa saat polling
 async function refreshRhAccessToken(refreshToken, oldCookie) {
   const refreshUrls = [
     "https://www.runninghub.ai/uc/auth/refresh",
@@ -59,14 +57,12 @@ export default async function handler(req, res) {
 
   const cleanTaskId = String(taskId).trim();
 
-  // =========================================================
-  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI)
-  // =========================================================
+  // Jalur Kling 2.6
   if (provider === 'kling' || cleanTaskId.includes('-')) {
     try {
       const PIAPI_KEY = process.env.PIAPI_KEY;
       if (!PIAPI_KEY) {
-        return res.status(500).json({ success: false, message: 'PIAPI_KEY belum diset di environment Vercel.' });
+        return res.status(500).json({ success: false, message: 'PIAPI_KEY belum diset.' });
       }
       const piRes = await fetch(`https://api.piapi.ai/api/v1/task/${cleanTaskId}`, {
         headers: { 'X-API-KEY': PIAPI_KEY }
@@ -78,16 +74,14 @@ export default async function handler(req, res) {
     }
   }
 
-  // =========================================================
-  // JALUR 2: RUNNINGHUB WEB SESSION TASK QUERY
-  // =========================================================
+  // Jalur RunningHub
   const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
                   process.env.SUPABASE_SERVICE_ROLE ||
                   process.env.SUPABASE_KEY;
 
   if (!supaUrl || !supaKey) {
-    return res.status(500).json({ success: false, message: 'Koneksi database Supabase tidak ditemukan.' });
+    return res.status(500).json({ success: false, message: 'Koneksi Supabase tidak ditemukan.' });
   }
 
   const supaHeaders = {
@@ -142,7 +136,7 @@ export default async function handler(req, res) {
       "x-rh-lang": "id"
     };
 
-    // 1. Ambil daftar antrean aktif RunningHub (Maksimal 50 record antrean terbaru)
+    // 1. Cek daftar antrean aktif
     const payloadTaskList = {
       size: 50,
       current: 1,
@@ -157,7 +151,7 @@ export default async function handler(req, res) {
     });
     let rhJson = await rhRes.json().catch(() => ({}));
 
-    // Auto-refresh token jika sesi kedaluwarsa saat polling
+    // Auto-refresh token jika sesi kedaluwarsa
     if ((rhRes.status === 401 || rhJson?.code === 401 || String(rhJson?.msg).toLowerCase().includes("token")) && refreshToken) {
       const tokenBaru = await refreshRhAccessToken(refreshToken, cookieData);
       if (tokenBaru) {
@@ -186,7 +180,7 @@ export default async function handler(req, res) {
     let currentTask = records.find(t => String(t.taskId || t.id || t.taskUuid) === cleanTaskId);
     let videoUrl = ekstrakVideoUrl(currentTask);
 
-    // 2. Jika belum menemukan link video di daftar aktif, periksa riwayat output galeri
+    // 2. Jika tidak ada di antrean aktif, periksa riwayat output galeri
     if (!videoUrl) {
       try {
         const histRes = await fetch("https://www.runninghub.ai/api/output/v2/history", {
@@ -210,15 +204,10 @@ export default async function handler(req, res) {
       } catch (e) {}
     }
 
-    // Normalisasi teks status
+    // A. Hasil Sukses (Video Jadi)
     const taskStatusRaw = String(currentTask?.status || currentTask?.taskStatus || "").toUpperCase();
-    const taskMsgRaw = String(currentTask?.errorMessage || currentTask?.failedReason || rhJson?.msg || "").toUpperCase();
-
     const isSuccess = Boolean(videoUrl) || taskStatusRaw.includes("SUCCESS") || taskStatusRaw === "2" || taskStatusRaw === "FINISH";
-    const isExplicitCancel = taskStatusRaw.includes("CANCEL") || taskStatusRaw.includes("BATAL") || taskStatusRaw.includes("STOP") || taskMsgRaw.includes("CANCEL");
-    const isExplicitFail = taskStatusRaw.includes("FAIL") || taskStatusRaw.includes("ERR") || taskStatusRaw === "3";
 
-    // 3. Penanganan Hasil Selesai (Video Terbit)
     if (isSuccess && videoUrl) {
       const sisaKoinAkun = Number(akunPool.koin) || 0;
       await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
@@ -245,7 +234,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4. Penanganan Pembatalan Eksplisit dari Server RunningHub
+    // B. Pembatalan Eksplisit dari Server RunningHub
+    const taskMsgRaw = String(currentTask?.errorMessage || currentTask?.failedReason || rhJson?.msg || "").toUpperCase();
+    const isExplicitCancel = taskStatusRaw.includes("CANCEL") || taskStatusRaw.includes("BATAL") || taskStatusRaw.includes("STOP") || taskMsgRaw.includes("CANCEL");
+
     if (isExplicitCancel) {
       await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
         method: 'PATCH',
@@ -261,24 +253,17 @@ export default async function handler(req, res) {
       });
     }
 
-    // 5. Penanganan Kegagalan Eksplisit dari Server RunningHub
-    if (isExplicitFail) {
-      await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
-        method: 'PATCH',
-        headers: supaHeaders,
-        body: JSON.stringify({ status: 'idle', last_used_at: new Date().toISOString() })
-      }).catch(() => {});
-
+    // C. Jika Tugas Tidak Ditemukan Sama Sekali di RunningHub (Hilang dari antrean dan riwayat)
+    if (!currentTask && !videoUrl) {
       return res.status(200).json({
-        code: 500,
-        status: "FAILED",
-        msg: currentTask?.errorMessage || "Render gagal di server",
-        data: { status: "FAILED", taskId: cleanTaskId }
+        code: 801,
+        status: "NOT_FOUND",
+        msg: "Tugas sedang diantrekan atau tidak ditemukan",
+        data: { status: "NOT_FOUND", taskId: cleanTaskId }
       });
     }
 
-    // 6. Default Stabil: Tugas Tetap Dianggap Berjalan (RUNNING)
-    // Tidak akan memutus koneksi atau memvonis gagal prematur
+    // D. Masih Dalam Proses Normal di RunningHub
     return res.status(200).json({
       code: 805,
       status: "RUNNING",
@@ -291,7 +276,6 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    // Jika terjadi fluktuasi jaringan, tetap pertahankan status RUNNING agar pemantauan tidak gugur
     return res.status(200).json({
       code: 805,
       status: "RUNNING",

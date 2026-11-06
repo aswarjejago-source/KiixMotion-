@@ -5,6 +5,16 @@ export const maxDuration = 60;
 
 const EMAIL_OWNER = "anggraingki@gmail.com";
 
+// Helper generate random hex 32 karakter untuk clientId
+function buatRandomClientId() {
+  const chars = "0123456789abcdef";
+  let str = "";
+  for (let i = 0; i < 32; i++) {
+    str += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return str;
+}
+
 // Helper refresh access token jika sesi web kedaluwarsa (401)
 async function refreshRhAccessToken(refreshToken, oldCookie) {
   const refreshUrls = [
@@ -204,7 +214,6 @@ export default async function handler(req, res) {
     const rhUserId = String(akunTerpilih.user_id || akunTerpilih.rh_user_id || akunTerpilih.userid || "2088197555130155009");
     let accessToken = akunTerpilih.access_token || akunTerpilih.rh_access_token || akunTerpilih.token || akunTerpilih.api_key;
     const refreshToken = akunTerpilih.refresh_token || akunTerpilih.rh_refresh_token || null;
-    const apiKeyAkun = akunTerpilih.api_key || accessToken;
 
     let cookieData = akunTerpilih.cookie_data ? String(akunTerpilih.cookie_data).replace(/[\r\n]+/g, ' ').trim() : "";
     if (!cookieData.includes('Rh-Accesstoken=')) {
@@ -219,46 +228,48 @@ export default async function handler(req, res) {
     });
 
     // =========================================================
-    // EKSEKUSI TASK KE RUNNINGHUB (AI-APP ENDPOINT V2)
+    // EKSEKUSI TASK KE RUNNINGHUB (DEVTOLS WEBAPP/CREATE)
     // =========================================================
     const AI_APP_ID = "2101240461868802049";
     const CAMERA_STABILIZER_PROMPT = "Camera locked on tripod, perfectly stable camera, no camera shake, no handheld movement, no jitter, no vibration, no zoom in, no zoom out, no dolly movement, no camera panning, no camera rotation, no camera tilt, fixed framing, static shot, consistent composition, cinematic realism, sharp focus at all times, subject always in focus, no focus breathing, no autofocus hunting, no motion blur, no lens blur, no depth of field blur, ultra clear details, crisp image quality, smooth natural motion, professional studio camera, stable video capture, high detail, high realism.\nNegative Prompt:\ncamera shake, handheld camera, jitter, vibration, zoom in, zoom out, camera movement, panning, tilting, rotating, dolly shot, motion blur, lens blur, focus blur, out of focus, autofocus, focus breathing, shaky footage, cinematic blur, depth of field blur, low quality, ghosting, distortion.";
 
-    // Format body resmi RunningHub OpenAPI v2 AI-App
+    // Format body persis rekaman konsol DevTools
     const payloadCreateTask = {
-      nodeInfoList: [
+      webappId: AI_APP_ID,
+      inputs: [
         {
           nodeId: "30",
+          nodeName: "LoadImage",
           fieldName: "image",
           fieldValue: urlBahanFoto.trim(),
-          description: null
+          description: "gambar"
         },
         {
           nodeId: "33",
+          nodeName: "VHS_LoadVideo",
           fieldName: "video",
           fieldValue: urlBahanVideo.trim(),
-          description: null
+          description: "video"
         },
         {
           nodeId: "275",
+          nodeName: "CLIPTextEncode",
           fieldName: "text",
           fieldValue: prompt || CAMERA_STABILIZER_PROMPT,
-          description: null
+          description: "teks"
         }
       ],
-      instanceType: "default",
-      usePersonalQueue: "false"
+      clientId: buatRandomClientId(),
+      usePersonalQueue: false
     };
 
-    const kirimRequestKeRunningHub = async (tokenAktif, cookieAktif, keyAktif) => {
-      // Header sesi web lengkap + otorisasi token
+    const kirimRequestKeRunningHub = async (tokenAktif, cookieAktif) => {
       const headersFull = {
         "Accept": "application/json, text/plain, */*",
         "Content-Type": "application/json",
         "Client": "WEB",
-        "Authorization": `Bearer ${tokenAktif || keyAktif}`,
+        "Authorization": `Bearer ${tokenAktif}`,
         "Rh-Accesstoken": tokenAktif,
-        "apikey": keyAktif || tokenAktif,
         "Cookie": cookieAktif,
         "Origin": "https://www.runninghub.ai",
         "Referer": `https://www.runninghub.ai/id/ai-detail/${AI_APP_ID}`,
@@ -268,8 +279,8 @@ export default async function handler(req, res) {
       };
 
       const targetUrls = [
-        `https://www.runninghub.ai/openapi/v2/run/ai-app/${AI_APP_ID}`,
-        `https://www.runninghub.ai/api/openapi/v2/run/ai-app/${AI_APP_ID}`
+        "https://www.runninghub.ai/task/webapp/create",
+        "https://www.runninghub.ai/api/task/webapp/create"
       ];
 
       let lastRes = null;
@@ -294,7 +305,7 @@ export default async function handler(req, res) {
       return { res: lastRes, text: lastText };
     };
 
-    let { res: rhRes, text: rawResponseText } = await kirimRequestKeRunningHub(accessToken, cookieData, apiKeyAkun);
+    let { res: rhRes, text: rawResponseText } = await kirimRequestKeRunningHub(accessToken, cookieData);
     
     let rhJson = {};
     try {
@@ -319,15 +330,18 @@ export default async function handler(req, res) {
           })
         });
 
-        const retry = await kirimRequestKeRunningHub(tokenBaru, cookieData, tokenBaru);
+        const retry = await kirimRequestKeRunningHub(tokenBaru, cookieData);
         rhRes = retry.res;
         rawResponseText = retry.text;
         try { rhJson = JSON.parse(rawResponseText); } catch (e) { rhJson = { raw: rawResponseText }; }
       }
     }
 
-    // Baca taskId baik dari root response maupun dari object data
-    const taskId = rhJson?.taskId || rhJson?.data?.taskId || rhJson?.data?.task_id || (typeof rhJson?.data === 'string' ? rhJson.data : null);
+    // Ekstraksi taskId dari struktur data kembalian RunningHub
+    const taskId = rhJson?.data?.taskId || 
+                   rhJson?.taskId || 
+                   rhJson?.data?.task_id || 
+                   (typeof rhJson?.data === 'string' ? rhJson.data : null);
 
     if ((rhRes?.ok || rhJson?.code === 0 || rhJson?.code === 200 || rhJson?.status === 'RUNNING') && taskId) {
       const koinSekarang = Number(akunTerpilih.koin) || 100;

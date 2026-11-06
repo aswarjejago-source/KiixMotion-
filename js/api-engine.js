@@ -409,43 +409,97 @@ function tampilkanModalCeklisSukses(taskId) {
   }
 }
 
-// Helper kompresi gambar lokal (khusus kamera HP) sebelum diunggah
-function kompresGambarJikaPerlu(file, callback) {
-  if (!file || !file.type.startsWith('image/') || file.size < 1.5 * 1024 * 1024) {
+// ==========================================
+// PENGOLAH & PENGUNGGAH BAHAN
+// - FOTO: Dikirim utuh tanpa kompresi
+// - VIDEO: Otomatis dikompres jika ukuran > 45MB
+// ==========================================
+function kompresVideoJikaPerlu(file, onProgress, callback) {
+  if (!file || !file.type.startsWith('video/') || file.size <= 45 * 1024 * 1024) {
     return callback(file);
   }
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var img = new Image();
-    img.onload = function() {
-      var maxDim = 1920;
-      var w = img.width;
-      var h = img.height;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) {
-          h = Math.round((h * maxDim) / w);
-          w = maxDim;
+
+  if (onProgress) onProgress("⏳ Mengompres video besar...");
+
+  try {
+    var video = document.createElement("video");
+    video.src = URL.createObjectURL(file);
+    video.muted = true;
+    video.playsInline = true;
+
+    video.onloadedmetadata = function() {
+      var width = video.videoWidth || 1280;
+      var height = video.videoHeight || 720;
+      var maxDim = 1280; // Standar HD 720p
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
         } else {
-          w = Math.round((w * maxDim) / h);
-          h = maxDim;
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
         }
       }
-      var canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob(function(blob) {
-        if (!blob) return callback(file);
-        var fileBaru = new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+
+      var canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      var ctx = canvas.getContext("2d");
+
+      var stream = canvas.captureStream(30);
+      var mimeType = 'video/mp4';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : 'video/webm';
+      }
+
+      var recorder = new MediaRecorder(stream, {
+        mimeType: mimeType,
+        videoBitsPerSecond: 2200000 // Menjaga file video tetap ringan (~8-12 MB)
+      });
+
+      var chunks = [];
+      recorder.ondataavailable = function(e) {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = function() {
+        URL.revokeObjectURL(video.src);
+        var blob = new Blob(chunks, { type: mimeType });
+        var extBaru = mimeType.includes("mp4") ? ".mp4" : ".webm";
+        var fileBaru = new File([blob], file.name.replace(/\.[^.]+$/, "") + extBaru, { type: mimeType });
         callback(fileBaru);
-      }, "image/jpeg", 0.85);
+      };
+
+      video.onplay = function() {
+        function renderLoop() {
+          if (!video.paused && !video.ended) {
+            ctx.drawImage(video, 0, 0, width, height);
+            requestAnimationFrame(renderLoop);
+          }
+        }
+        renderLoop();
+      };
+
+      recorder.start();
+      video.play().catch(function() {
+        URL.revokeObjectURL(video.src);
+        callback(file);
+      });
+
+      video.onended = function() {
+        recorder.stop();
+      };
     };
-    img.onerror = function() { callback(file); };
-    img.src = e.target.result;
-  };
-  reader.onerror = function() { callback(file); };
-  reader.readAsDataURL(file);
+
+    video.onerror = function() {
+      URL.revokeObjectURL(video.src);
+      callback(file);
+    };
+
+  } catch (err) {
+    callback(file);
+  }
 }
 
 function unggahBahanLangsung(input, tipe) {
@@ -457,7 +511,7 @@ function unggahBahanLangsung(input, tipe) {
   if (txtEl) txtEl.innerText = fileAsli.name;
   if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Menyiapkan file...</span>';
 
-  kompresGambarJikaPerlu(fileAsli, function(fileSiapKirim) {
+  function jalankanProsesKirim(fileSiapKirim) {
     if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">⏳ Mengunggah (0%)...</span>';
 
     var formData = new FormData();
@@ -530,7 +584,17 @@ function unggahBahanLangsung(input, tipe) {
     };
 
     xhr.send(formData);
-  });
+  }
+
+  // Foto langsung dikirim utuh tanpa kompresi
+  if (tipe === 'foto') {
+    jalankanProsesKirim(fileAsli);
+  } else {
+    // Video dicek: dikompres hanya jika ukuran melebihi 45MB
+    kompresVideoJikaPerlu(fileAsli, function(statusTeks) {
+      if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">' + statusTeks + '</span>';
+    }, jalankanProsesKirim);
+  }
 }
 window.unggahBahanLangsung = unggahBahanLangsung;
 

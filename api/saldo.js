@@ -1,45 +1,7 @@
 // File: api/saldo.js
-// Backend Proxy Vercel - 100% Real Dynamic Coin Checker (Tanpa Angka Palsu/Cadangan)
+// Backend Proxy Vercel - 100% Real RunningHub Web Session & API Key Checker
 
 export const maxDuration = 15;
-
-function cariKoinMendalam(obj) {
-  if (!obj || typeof obj !== 'object') return null;
-
-  // Daftar nama field koin RunningHub
-  const targetKeys = [
-    'remainCoins', 
-    'account_balance_coins', 
-    'totalCoin', 
-    'remain_coins', 
-    'totalCoins', 
-    'coins', 
-    'coin', 
-    'balance'
-  ];
-
-  for (const k of targetKeys) {
-    if (obj[k] !== undefined && obj[k] !== null && obj[k] !== "" && !isNaN(Number(obj[k]))) {
-      const v = Number(obj[k]);
-      if (v > 0) return v;
-    }
-  }
-
-  for (const key of Object.keys(obj)) {
-    if (typeof obj[key] === 'object' && obj[key] !== null) {
-      const hasil = cariKoinMendalam(obj[key]);
-      if (hasil !== null && hasil > 0) return hasil;
-    }
-  }
-
-  for (const k of targetKeys) {
-    if (obj[k] !== undefined && obj[k] !== null && !isNaN(Number(obj[k]))) {
-      return Number(obj[k]);
-    }
-  }
-
-  return null;
-}
 
 function parseJwtPayload(tokenStr) {
   try {
@@ -82,7 +44,7 @@ export default async function handler(req, res) {
     accessToken = rawInput;
   }
 
-  // JALUR 1: AKUN SESI WEB / COOKIE TOKEN
+  // JALUR 1: SESI WEB RUNNINGHUB (COOKIE / JWT TOKEN)
   if (accessToken || cookieData) {
     const token = accessToken || (cookieData ? cookieData.match(/Rh-Accesstoken=([^;\s]+)/i)?.[1] : null);
     const jwtData = parseJwtPayload(token);
@@ -93,72 +55,57 @@ export default async function handler(req, res) {
       cleanCookie = `rh_locale=id; Rh-Accesstoken=${token}; userId=${uId}; Rh-billing-uid=${uId};`;
     }
 
+    // Header resmi sesuai hasil inspeksi DevTools RunningHub
     const headersWeb = {
       "Accept": "application/json, text/plain, */*",
+      "Client": "WEB",
       "Content-Type": "application/json",
       "Cookie": cleanCookie,
       "Authorization": "Bearer " + token,
-      "Rh-Accesstoken": token,
       "Origin": "https://www.runninghub.ai",
       "Referer": "https://www.runninghub.ai/",
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     };
 
-    // Daftar endpoint resmi RunningHub
-    const endpoints = [
-      { url: "https://www.runninghub.ai/uc/openapi/accountStatus", method: "POST", body: JSON.stringify({ apiKey: token }) },
-      { url: "https://www.runninghub.ai/uc/user/getUserInfo", method: "POST", body: "{}" },
-      { url: "https://www.runninghub.ai/uc/user/getUserInfo", method: "GET" },
-      { url: "https://www.runninghub.ai/uc/auth/user-info", method: "GET" },
-      { url: "https://www.runninghub.ai/uc/wallet/get-balance", method: "POST", body: "{}" },
-      { url: "https://www.runninghub.ai/uc/wallet/get-balance", method: "GET" }
-    ];
+    try {
+      const resp = await fetch("https://www.runninghub.ai/uc/getUserInfo", {
+        method: "POST",
+        headers: headersWeb,
+        body: JSON.stringify({})
+      });
 
-    let liveCoins = null;
-    let dataRes = null;
-    let logs = [];
+      const json = await resp.json().catch(() => null);
 
-    for (const ep of endpoints) {
-      try {
-        const opt = { method: ep.method, headers: headersWeb };
-        if (ep.body) opt.body = ep.body;
-        const resp = await fetch(ep.url, opt);
-        const json = await resp.json().catch(() => null);
+      if (json && json.code === 0 && json.data) {
+        // Ekstraksi langsung nilai koin riil dari field totalCoin
+        const rawCoin = json.data.totalCoin ?? json.data.remainCoins ?? json.data.coins;
 
-        logs.push({ url: ep.url, status: resp.status, body: json });
-
-        if (json && (json.code === 0 || json.code === 200 || json.status === 'success')) {
-          const k = cariKoinMendalam(json);
-          if (k !== null && !isNaN(k)) {
-            liveCoins = k;
-            dataRes = json;
-            break;
-          }
+        if (rawCoin !== undefined && rawCoin !== null && !isNaN(Number(rawCoin))) {
+          const koinReal = Number(rawCoin);
+          return res.status(200).json({
+            code: 0,
+            success: true,
+            coins: koinReal,
+            userId: json.data.id || uId,
+            data: json.data
+          });
         }
-      } catch (e) {
-        logs.push({ url: ep.url, error: e.message });
       }
-    }
 
-    // PENGECEKAN KETAT: Jika tidak ada angka koin asli yang berhasil ditarik, GAGALKAN.
-    // Tidak ada angka 448 buatan atau rekayasa sama sekali.
-    if (liveCoins === null || isNaN(liveCoins)) {
+      // Jika server RunningHub menolak atau format berubah, kirim pesan asli dari server
       return res.status(200).json({
         success: false,
         coins: 0,
-        message: "Gagal menarik saldo asli RunningHub. Tidak ada koin yang terdeteksi dari respons server.",
-        debug: logs
+        message: json?.msg || "Gagal membaca properti koin dari respons RunningHub.",
+        debug: json
+      });
+    } catch (errFetch) {
+      return res.status(500).json({
+        success: false,
+        coins: 0,
+        message: "Koneksi Vercel ke RunningHub terputus: " + errFetch.message
       });
     }
-
-    // Hanya merespons sukses jika koin riil berhasil diekstrak dari server RunningHub
-    return res.status(200).json({
-      code: 0,
-      success: true,
-      coins: liveCoins,
-      userId: dataRes?.data?.id || dataRes?.data?.userId || uId,
-      data: dataRes
-    });
   }
 
   // JALUR 2: API KEY DEVELOPER (rh_live_...)
@@ -188,7 +135,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         success: false,
         coins: 0,
-        message: "API Key valid tapi koin tidak ditemukan.",
+        message: "API Key valid tetapi koin tidak ditemukan.",
         debug: data
       });
     } catch (errKey) {

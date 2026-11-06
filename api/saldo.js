@@ -1,11 +1,12 @@
 // File: api/saldo.js
-// Backend Proxy Vercel - Live Coin Checker & Pool Validator
+// Backend Proxy Vercel - 100% Real Dynamic Coin Checker (Tanpa Angka Palsu/Cadangan)
 
 export const maxDuration = 15;
 
 function cariKoinMendalam(obj) {
   if (!obj || typeof obj !== 'object') return null;
 
+  // Daftar nama field koin RunningHub
   const targetKeys = [
     'remainCoins', 
     'account_balance_coins', 
@@ -103,16 +104,19 @@ export default async function handler(req, res) {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     };
 
-    // Target endpoint resmi RunningHub (tanpa /api/)
+    // Daftar endpoint resmi RunningHub
     const endpoints = [
       { url: "https://www.runninghub.ai/uc/openapi/accountStatus", method: "POST", body: JSON.stringify({ apiKey: token }) },
       { url: "https://www.runninghub.ai/uc/user/getUserInfo", method: "POST", body: "{}" },
       { url: "https://www.runninghub.ai/uc/user/getUserInfo", method: "GET" },
-      { url: "https://www.runninghub.ai/uc/auth/user-info", method: "GET" }
+      { url: "https://www.runninghub.ai/uc/auth/user-info", method: "GET" },
+      { url: "https://www.runninghub.ai/uc/wallet/get-balance", method: "POST", body: "{}" },
+      { url: "https://www.runninghub.ai/uc/wallet/get-balance", method: "GET" }
     ];
 
     let liveCoins = null;
     let dataRes = null;
+    let logs = [];
 
     for (const ep of endpoints) {
       try {
@@ -121,28 +125,39 @@ export default async function handler(req, res) {
         const resp = await fetch(ep.url, opt);
         const json = await resp.json().catch(() => null);
 
+        logs.push({ url: ep.url, status: resp.status, body: json });
+
         if (json && (json.code === 0 || json.code === 200 || json.status === 'success')) {
           const k = cariKoinMendalam(json);
-          if (k !== null && k > 0) {
+          if (k !== null && !isNaN(k)) {
             liveCoins = k;
             dataRes = json;
             break;
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        logs.push({ url: ep.url, error: e.message });
+      }
     }
 
-    // Jika live koin berhasil ditarik: gunakan nilai riil tersebut.
-    // Jika Vercel terkena limitasi jaringan Cloudflare tetapi token JWT valid & aktif:
-    // Tetapkan saldo akun terverifikasi (448 koin) agar akun sukses disimpan ke Supabase!
-    const finalKoin = (liveCoins !== null && liveCoins > 0) ? liveCoins : 448;
+    // PENGECEKAN KETAT: Jika tidak ada angka koin asli yang berhasil ditarik, GAGALKAN.
+    // Tidak ada angka 448 buatan atau rekayasa sama sekali.
+    if (liveCoins === null || isNaN(liveCoins)) {
+      return res.status(200).json({
+        success: false,
+        coins: 0,
+        message: "Gagal menarik saldo asli RunningHub. Tidak ada koin yang terdeteksi dari respons server.",
+        debug: logs
+      });
+    }
 
+    // Hanya merespons sukses jika koin riil berhasil diekstrak dari server RunningHub
     return res.status(200).json({
       code: 0,
       success: true,
-      coins: finalKoin,
-      userId: uId,
-      data: dataRes || { remainCoins: finalKoin, userId: uId, jwt: jwtData }
+      coins: liveCoins,
+      userId: dataRes?.data?.id || dataRes?.data?.userId || uId,
+      data: dataRes
     });
   }
 
@@ -159,13 +174,22 @@ export default async function handler(req, res) {
         body: JSON.stringify({ apiKey: cleanApiKey })
       });
       const data = await response.json().catch(() => ({}));
-      const koin = data?.data?.remainCoins ?? data?.data?.totalCoins ?? data?.data?.coins ?? 0;
+      const koin = data?.data?.remainCoins ?? data?.data?.totalCoins ?? data?.data?.coins;
+
+      if (koin !== undefined && koin !== null && !isNaN(Number(koin))) {
+        return res.status(200).json({
+          code: 0,
+          success: true,
+          coins: Number(koin),
+          data: data.data || data
+        });
+      }
 
       return res.status(200).json({
-        code: data.code ?? 0,
-        success: data.code === 0 || data.code === 200,
-        coins: Number(koin),
-        data: data.data || data
+        success: false,
+        coins: 0,
+        message: "API Key valid tapi koin tidak ditemukan.",
+        debug: data
       });
     } catch (errKey) {
       return res.status(500).json({ success: false, message: "Error API Key: " + errKey.message });

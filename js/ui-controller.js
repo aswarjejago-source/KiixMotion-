@@ -726,7 +726,7 @@ window.simpanBulkKeysKeSupabase = async function() {
     var rawText = area.value.trim();
 
     // Deteksi akun: jika user paste 1 cookie panjang yang terpotong baris baru, gabungkan.
-    // Jika ada beberapa akun (masing-masing punya Rh-Accesstoken atau rh_live_), pisahkan per akun.
+    // Jika ada beberapa akun, pisahkan per akun berdasarkan delimiter Rh-Accesstoken atau rh_live_
     var daftarAkunMentah = [];
     var countToken = (rawText.match(/Rh-Accesstoken=/gi) || []).length;
     var countApiKey = (rawText.match(/rh_live_/gi) || []).length;
@@ -751,15 +751,33 @@ window.simpanBulkKeysKeSupabase = async function() {
     var pesanErrorList = [];
 
     for (var baris of daftarAkunMentah) {
-        var tokenMatch = baris.match(/Rh-Accesstoken=([^;\s]+)/i);
-        var refreshMatch = baris.match(/Rh-Refreshtoken=([^;\s]+)/i);
-        var userIdMatch = baris.match(/userId=([^;\s]+)/i);
+        // Pembersihan karakter enter dan spasi berlebih
+        var barisClean = baris.replace(/[\r\n]+/g, ' ').trim();
 
-        var accessToken = tokenMatch ? tokenMatch[1] : (baris.startsWith('ey') ? baris : null);
+        var tokenMatch = barisClean.match(/Rh-Accesstoken=([^;\s]+)/i);
+        var refreshMatch = barisClean.match(/Rh-Refreshtoken=([^;\s]+)/i);
+        var userIdMatch = barisClean.match(/userId=([^;\s]+)/i);
+
+        var accessToken = tokenMatch ? tokenMatch[1] : (barisClean.startsWith('ey') ? barisClean : null);
         var refreshToken = refreshMatch ? refreshMatch[1] : null;
         var userId = userIdMatch ? userIdMatch[1] : null;
 
-        if (!accessToken && !baris.startsWith('rh_live_')) continue;
+        // Fallback cerdas: ekstrak User ID langsung dari payload JWT jika userId tidak ada di teks
+        if (!userId && accessToken && accessToken.includes('.')) {
+            try {
+                var base64Url = accessToken.split('.')[1];
+                var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                var parsedJwt = JSON.parse(jsonPayload);
+                if (parsedJwt && parsedJwt.sub) {
+                    userId = String(parsedJwt.sub);
+                }
+            } catch (eJwt) {}
+        }
+
+        if (!accessToken && !barisClean.startsWith('rh_live_')) continue;
 
         // Tarik saldo riil dari backend /api/saldo
         var koinAsli = null;
@@ -771,15 +789,21 @@ window.simpanBulkKeysKeSupabase = async function() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     accessToken: accessToken,
-                    cookieData: baris,
+                    cookieData: barisClean,
                     userId: userId,
-                    apiKey: (!accessToken && baris.startsWith('rh_live_')) ? baris : null
+                    apiKey: (!accessToken && barisClean.startsWith('rh_live_')) ? barisClean : null
                 })
             });
             var dataSaldo = await resSaldo.json();
 
             if (dataSaldo) {
-                var c = dataSaldo.coins ?? dataSaldo.data?.totalCoin ?? dataSaldo.data?.remainCoins ?? dataSaldo.data?.totalCoins ?? dataSaldo.data?.coins;
+                var c = dataSaldo.coins ?? 
+                        dataSaldo.data?.remainCoins ?? 
+                        dataSaldo.data?.account_balance_coins ?? 
+                        dataSaldo.data?.totalCoin ?? 
+                        dataSaldo.data?.totalCoins ?? 
+                        dataSaldo.data?.coins ?? 
+                        dataSaldo.data?.balance;
                 
                 if ((dataSaldo.success === true || dataSaldo.code === 0 || dataSaldo.code === 200) && c !== undefined && c !== null && !isNaN(Number(c))) {
                     koinAsli = Number(c);
@@ -797,7 +821,7 @@ window.simpanBulkKeysKeSupabase = async function() {
             errResponse = errSaldo.message;
         }
 
-        // JIKA PENARIKAN SALDO GAGAL: JANGAN SIMPAN 0 DIAM-DIAM!
+        // PROTEKSI: JIKA PENARIKAN SALDO GAGAL, JANGAN SIMPAN 0 SECARA DIAM-DIAM
         if (koinAsli === null) {
             pesanErrorList.push(errResponse || 'Gagal verifikasi koin');
             continue;
@@ -808,10 +832,10 @@ window.simpanBulkKeysKeSupabase = async function() {
 
         dataInsert.push({
             user_id: String(finalUserId),
-            access_token: accessToken || baris,
+            access_token: accessToken || barisClean,
             refresh_token: refreshToken || null,
-            cookie_data: baris,
-            api_key: accessToken || baris,
+            cookie_data: barisClean,
+            api_key: accessToken || barisClean,
             koin: koinAsli,
             status: statusOtomatis,
             last_used_at: new Date().toISOString()
@@ -904,7 +928,14 @@ window.refreshDataKolamAdmin = async function(isManual = false) {
                     });
                     const dataSaldo = await resSaldo.json();
                     if (dataSaldo && (dataSaldo.success === true || dataSaldo.code === 0 || dataSaldo.code === 200)) {
-                        var k = dataSaldo.coins ?? dataSaldo.data?.totalCoin ?? dataSaldo.data?.remainCoins ?? dataSaldo.data?.totalCoins ?? dataSaldo.data?.coins;
+                        var k = dataSaldo.coins ?? 
+                                dataSaldo.data?.remainCoins ?? 
+                                dataSaldo.data?.account_balance_coins ?? 
+                                dataSaldo.data?.totalCoin ?? 
+                                dataSaldo.data?.totalCoins ?? 
+                                dataSaldo.data?.coins;
+
+                        // Proteksi: Hanya update jika koin valid dikembalikan server (tidak menimpa dengan 0 akibat error jaringan)
                         if (k !== undefined && k !== null && !isNaN(Number(k))) {
                             const koinLive = Number(k);
                             const statusBaru = koinLive >= 100 ? 'idle' : 'habis';
@@ -967,6 +998,18 @@ window.jalankanCheckerKeys = async function() {
         var accessToken = tokenMatch ? tokenMatch[1] : (k.startsWith('ey') ? k : null);
         var userId = userIdMatch ? userIdMatch[1] : null;
 
+        if (!userId && accessToken && accessToken.includes('.')) {
+            try {
+                var base64Url = accessToken.split('.')[1];
+                var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                var parsedJwt = JSON.parse(jsonPayload);
+                if (parsedJwt && parsedJwt.sub) userId = String(parsedJwt.sub);
+            } catch (eJwt) {}
+        }
+
         try {
             var resSaldo = await fetch('/api/saldo', {
                 method: 'POST',
@@ -981,7 +1024,13 @@ window.jalankanCheckerKeys = async function() {
             var hasilSaldo = await resSaldo.json();
             
             if (hasilSaldo && (hasilSaldo.success === true || hasilSaldo.code === 0 || hasilSaldo.code === 200)) {
-                var c = hasilSaldo.coins ?? hasilSaldo.data?.totalCoin ?? hasilSaldo.data?.remainCoins ?? hasilSaldo.data?.totalCoins ?? hasilSaldo.data?.coins;
+                var c = hasilSaldo.coins ?? 
+                        hasilSaldo.data?.remainCoins ?? 
+                        hasilSaldo.data?.account_balance_coins ?? 
+                        hasilSaldo.data?.totalCoin ?? 
+                        hasilSaldo.data?.totalCoins ?? 
+                        hasilSaldo.data?.coins;
+
                 if (c !== undefined && c !== null && !isNaN(Number(c))) {
                     koinAsli = Number(c);
                     statusCek = 'sukses';

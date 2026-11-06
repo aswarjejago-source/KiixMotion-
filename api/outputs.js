@@ -115,7 +115,7 @@ export default async function handler(req, res) {
         code: 805,
         status: "RUNNING",
         msg: "Video sedang diproses",
-        data: { status: "RUNNING", taskId: cleanTaskId, progress: 10 }
+        data: { status: "RUNNING", taskId: cleanTaskId, progress: 15 }
       });
     }
 
@@ -142,9 +142,9 @@ export default async function handler(req, res) {
       "x-rh-lang": "id"
     };
 
-    // 1. Ambil daftar antrean aktif RunningHub
+    // 1. Ambil daftar antrean aktif RunningHub (Maksimal 50 record antrean terbaru)
     const payloadTaskList = {
-      size: 20,
+      size: 50,
       current: 1,
       webappId: WAN_APP_ID,
       taskType: ["WORKFLOW", "WEBAPP"]
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
     });
     let rhJson = await rhRes.json().catch(() => ({}));
 
-    // Auto-refresh token jika sesi kedaluwarsa
+    // Auto-refresh token jika sesi kedaluwarsa saat polling
     if ((rhRes.status === 401 || rhJson?.code === 401 || String(rhJson?.msg).toLowerCase().includes("token")) && refreshToken) {
       const tokenBaru = await refreshRhAccessToken(refreshToken, cookieData);
       if (tokenBaru) {
@@ -186,7 +186,7 @@ export default async function handler(req, res) {
     let currentTask = records.find(t => String(t.taskId || t.id || t.taskUuid) === cleanTaskId);
     let videoUrl = ekstrakVideoUrl(currentTask);
 
-    // 2. Jika belum ada video di antrean aktif, cek riwayat output
+    // 2. Jika belum menemukan link video di daftar aktif, periksa riwayat output galeri
     if (!videoUrl) {
       try {
         const histRes = await fetch("https://www.runninghub.ai/api/output/v2/history", {
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
     const isExplicitCancel = taskStatusRaw.includes("CANCEL") || taskStatusRaw.includes("BATAL") || taskStatusRaw.includes("STOP") || taskMsgRaw.includes("CANCEL");
     const isExplicitFail = taskStatusRaw.includes("FAIL") || taskStatusRaw.includes("ERR") || taskStatusRaw === "3";
 
-    // 3. Tangani hasil akhir jika tugas selesai / batal resmi
+    // 3. Penanganan Hasil Selesai (Video Terbit)
     if (isSuccess && videoUrl) {
       const sisaKoinAkun = Number(akunPool.koin) || 0;
       await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
@@ -245,6 +245,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // 4. Penanganan Pembatalan Eksplisit dari Server RunningHub
     if (isExplicitCancel) {
       await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
         method: 'PATCH',
@@ -260,6 +261,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // 5. Penanganan Kegagalan Eksplisit dari Server RunningHub
     if (isExplicitFail) {
       await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
         method: 'PATCH',
@@ -275,7 +277,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4. Default: Tetap anggap sedang berjalan (RUNNING) agar tidak mudah gagal diawal
+    // 6. Default Stabil: Tugas Tetap Dianggap Berjalan (RUNNING)
+    // Tidak akan memutus koneksi atau memvonis gagal prematur
     return res.status(200).json({
       code: 805,
       status: "RUNNING",
@@ -288,12 +291,12 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    // Jika ada gangguan jaringan saat polling, tetap beri status RUNNING agar pemantauan tidak putus
+    // Jika terjadi fluktuasi jaringan, tetap pertahankan status RUNNING agar pemantauan tidak gugur
     return res.status(200).json({
       code: 805,
       status: "RUNNING",
       msg: "Sedang menyinkronkan status",
-      data: { status: "RUNNING", taskId: cleanTaskId, progress: 10 }
+      data: { status: "RUNNING", taskId: cleanTaskId, progress: 15 }
     });
   }
 }

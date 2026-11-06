@@ -1,23 +1,80 @@
 // File: api/outputs.js
-// Backend Proxy Vercel - Task Status & Result Fetcher (Sabar & Presisi Batal)
+// Backend Proxy Vercel - Task Status & Deep Video Result Extractor
 
 export const maxDuration = 30;
 
 const WAN_APP_ID = "2101240461868802049";
 
-function ekstrakVideoUrl(task) {
-  if (!task) return null;
-  return task.outputFiles?.[0]?.url ||
-         task.outputs?.[0]?.fileUrl ||
-         task.outputs?.[0]?.url ||
-         task.resultUrl ||
-         task.results?.[0]?.url ||
-         task.fileUrl ||
-         task.videoUrl ||
-         task.url ||
-         null;
+// Mesin pelacak link video rekursif (Mencari MP4 di node ComfyUI / Output / History)
+function cariVideoUrlMurni(obj) {
+  if (!obj) return null;
+  let linkVideoUtama = null;
+  let linkFallback = null;
+
+  function periksaDanAmbil(str) {
+    if (!str || typeof str !== 'string') return;
+    const clean = str.trim().replace(/\\/g, '');
+    if (clean.includes('workers.dev') || clean.includes('kiix-uploader')) return;
+
+    if (clean.startsWith('http://') || clean.startsWith('https://')) {
+      const lower = clean.toLowerCase();
+      const isFormatVideo = lower.includes('.mp4') || lower.includes('.mov') || lower.includes('.webm') || lower.includes('.m4v');
+      const isDomainRunningHub = clean.includes('rh-images') || clean.includes('xiaoyaoyou') || clean.includes('myqcloud') || clean.includes('runninghub');
+
+      const httpsUrl = clean.replace(/^http:\/\//i, 'https://');
+
+      if (isFormatVideo) {
+        linkVideoUtama = httpsUrl;
+      } else if (isDomainRunningHub && !linkFallback && !lower.includes('.jpg') && !lower.includes('.png')) {
+        linkFallback = httpsUrl;
+      }
+    }
+  }
+
+  function telusuri(item) {
+    if (!item || linkVideoUtama) return;
+    if (typeof item === 'string') {
+      periksaDanAmbil(item);
+    } else if (Array.isArray(item)) {
+      for (let i = 0; i < item.length; i++) {
+        telusuri(item[i]);
+        if (linkVideoUtama) break;
+      }
+    } else if (typeof item === 'object') {
+      const kunciPrioritas = ['videoUrl', 'video_url', 'fileUrl', 'file_url', 'downloadUrl', 'url', 'resultUrl', 'previewUrl', 'ossUrl', 'path'];
+      for (const k of kunciPrioritas) {
+        if (item[k]) {
+          telusuri(item[k]);
+          if (linkVideoUtama) return;
+        }
+      }
+      const keys = Object.keys(item);
+      for (let j = 0; j < keys.length; j++) {
+        telusuri(item[keys[j]]);
+        if (linkVideoUtama) break;
+      }
+    }
+  }
+
+  telusuri(obj);
+  return linkVideoUtama || linkFallback;
 }
 
+// Helper pencocokan task ID secara fleksibel
+function cocokkanTask(item, targetId) {
+  if (!item || !targetId) return false;
+  const sTarget = String(targetId).trim();
+  if (String(item.taskId || '').trim() === sTarget) return true;
+  if (String(item.task_id || '').trim() === sTarget) return true;
+  if (String(item.id || '').trim() === sTarget) return true;
+  if (String(item.taskUuid || '').trim() === sTarget) return true;
+  try {
+    if (JSON.stringify(item).includes(sTarget)) return true;
+  } catch (e) {}
+  return false;
+}
+
+// Helper refresh access token jika sesi web kedaluwarsa saat polling
 async function refreshRhAccessToken(refreshToken, oldCookie) {
   const refreshUrls = [
     "https://www.runninghub.ai/uc/auth/refresh",
@@ -57,7 +114,9 @@ export default async function handler(req, res) {
 
   const cleanTaskId = String(taskId).trim();
 
-  // Jalur Kling 2.6
+  // =========================================================
+  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI)
+  // =========================================================
   if (provider === 'kling' || cleanTaskId.includes('-')) {
     try {
       const PIAPI_KEY = process.env.PIAPI_KEY;
@@ -74,14 +133,16 @@ export default async function handler(req, res) {
     }
   }
 
-  // Jalur RunningHub
+  // =========================================================
+  // JALUR 2: RUNNINGHUB WEB SESSION TASK QUERY
+  // =========================================================
   const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY ||
                   process.env.SUPABASE_SERVICE_ROLE ||
                   process.env.SUPABASE_KEY;
 
   if (!supaUrl || !supaKey) {
-    return res.status(500).json({ success: false, message: 'Koneksi Supabase tidak ditemukan.' });
+    return res.status(500).json({ success: false, message: 'Koneksi database Supabase tidak ditemukan.' });
   }
 
   const supaHeaders = {
@@ -136,51 +197,30 @@ export default async function handler(req, res) {
       "x-rh-lang": "id"
     };
 
-    // 1. Cek daftar antrean aktif
-    const payloadTaskList = {
-      size: 50,
-      current: 1,
-      webappId: WAN_APP_ID,
-      taskType: ["WORKFLOW", "WEBAPP"]
-    };
+    // 1. Cek antrean tugas di RunningHub via /task/list
+    let currentTask = null;
+    let videoUrl = null;
 
-    let rhRes = await fetch("https://www.runninghub.ai/task/list", {
-      method: "POST",
-      headers: headersWeb,
-      body: JSON.stringify(payloadTaskList)
-    });
-    let rhJson = await rhRes.json().catch(() => ({}));
-
-    // Auto-refresh token jika sesi kedaluwarsa
-    if ((rhRes.status === 401 || rhJson?.code === 401 || String(rhJson?.msg).toLowerCase().includes("token")) && refreshToken) {
-      const tokenBaru = await refreshRhAccessToken(refreshToken, cookieData);
-      if (tokenBaru) {
-        accessToken = tokenBaru;
-        cookieData = cookieData.replace(/Rh-Accesstoken=[^;]+/, `Rh-Accesstoken=${tokenBaru}`);
-        headersWeb["Authorization"] = `Bearer ${tokenBaru}`;
-        headersWeb["Rh-Accesstoken"] = tokenBaru;
-        headersWeb["Cookie"] = cookieData;
-
-        await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
-          method: 'PATCH',
-          headers: supaHeaders,
-          body: JSON.stringify({ access_token: tokenBaru, cookie_data: cookieData })
-        });
-
-        rhRes = await fetch("https://www.runninghub.ai/task/list", {
-          method: "POST",
-          headers: headersWeb,
-          body: JSON.stringify(payloadTaskList)
-        });
-        rhJson = await rhRes.json().catch(() => ({}));
+    try {
+      const resList = await fetch("https://www.runninghub.ai/task/list", {
+        method: "POST",
+        headers: headersWeb,
+        body: JSON.stringify({
+          size: 50,
+          current: 1,
+          webappId: WAN_APP_ID,
+          taskType: ["WORKFLOW", "WEBAPP"]
+        })
+      });
+      const jsonList = await resList.json().catch(() => ({}));
+      const records = jsonList?.data?.records || jsonList?.data?.list || [];
+      currentTask = records.find(t => cocokkanTask(t, cleanTaskId));
+      if (currentTask) {
+        videoUrl = cariVideoUrlMurni(currentTask);
       }
-    }
+    } catch (e) {}
 
-    const records = rhJson?.data?.records || rhJson?.data?.list || [];
-    let currentTask = records.find(t => String(t.taskId || t.id || t.taskUuid) === cleanTaskId);
-    let videoUrl = ekstrakVideoUrl(currentTask);
-
-    // 2. Jika tidak ada di antrean aktif, periksa riwayat output galeri
+    // 2. Jika link video belum ditemukan dari /task/list, periksa galeri /api/output/v2/history
     if (!videoUrl) {
       try {
         const histRes = await fetch("https://www.runninghub.ai/api/output/v2/history", {
@@ -196,19 +236,33 @@ export default async function handler(req, res) {
         });
         const histJson = await histRes.json().catch(() => ({}));
         const histRecords = histJson?.data?.records || histJson?.data?.list || [];
-        const taskHistory = histRecords.find(t => String(t.taskId || t.id || t.taskUuid) === cleanTaskId);
+        
+        // Cari tugas berdasarkan ID di riwayat
+        const taskHistory = histRecords.find(t => cocokkanTask(t, cleanTaskId));
         if (taskHistory) {
           currentTask = currentTask || taskHistory;
-          videoUrl = ekstrakVideoUrl(taskHistory);
+          videoUrl = cariVideoUrlMurni(taskHistory);
+        } else if (histRecords.length > 0) {
+          // Fallback: Jika ID tersembunyi di dalam meta, uji record output paling atas
+          const candidateUrl = cariVideoUrlMurni(histRecords[0]);
+          if (candidateUrl && cocokkanTask(histRecords[0], cleanTaskId)) {
+            videoUrl = candidateUrl;
+            currentTask = currentTask || histRecords[0];
+          }
         }
       } catch (e) {}
     }
 
-    // A. Hasil Sukses (Video Jadi)
+    // Normalisasi status pengerjaan
     const taskStatusRaw = String(currentTask?.status || currentTask?.taskStatus || "").toUpperCase();
-    const isSuccess = Boolean(videoUrl) || taskStatusRaw.includes("SUCCESS") || taskStatusRaw === "2" || taskStatusRaw === "FINISH";
+    const taskMsgRaw = String(currentTask?.errorMessage || currentTask?.failedReason || "").toUpperCase();
 
-    if (isSuccess && videoUrl) {
+    const isSuccess = Boolean(videoUrl) || taskStatusRaw.includes("SUCCESS") || taskStatusRaw === "2" || taskStatusRaw === "FINISH";
+    const isExplicitCancel = taskStatusRaw.includes("CANCEL") || taskStatusRaw.includes("BATAL") || taskStatusRaw.includes("STOP") || taskMsgRaw.includes("CANCEL");
+    const isExplicitFail = taskStatusRaw.includes("FAIL") || taskStatusRaw.includes("ERR") || taskStatusRaw === "3";
+
+    // 3. JIKA SUKSES / VIDEO SUDAH KELUAR
+    if (videoUrl || (isSuccess && videoUrl)) {
       const sisaKoinAkun = Number(akunPool.koin) || 0;
       await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
         method: 'PATCH',
@@ -229,15 +283,13 @@ export default async function handler(req, res) {
           url: videoUrl,
           fileUrl: videoUrl,
           videoUrl: videoUrl,
+          downloadUrl: videoUrl,
           outputFiles: [{ url: videoUrl }]
         }
       });
     }
 
-    // B. Pembatalan Eksplisit dari Server RunningHub
-    const taskMsgRaw = String(currentTask?.errorMessage || currentTask?.failedReason || rhJson?.msg || "").toUpperCase();
-    const isExplicitCancel = taskStatusRaw.includes("CANCEL") || taskStatusRaw.includes("BATAL") || taskStatusRaw.includes("STOP") || taskMsgRaw.includes("CANCEL");
-
+    // 4. JIKA DIBATALKAN EKSPLISIT
     if (isExplicitCancel) {
       await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
         method: 'PATCH',
@@ -253,17 +305,23 @@ export default async function handler(req, res) {
       });
     }
 
-    // C. Jika Tugas Tidak Ditemukan Sama Sekali di RunningHub (Hilang dari antrean dan riwayat)
-    if (!currentTask && !videoUrl) {
+    // 5. JIKA GAGAL EKSPLISIT
+    if (isExplicitFail) {
+      await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
+        method: 'PATCH',
+        headers: supaHeaders,
+        body: JSON.stringify({ status: 'idle', last_used_at: new Date().toISOString() })
+      }).catch(() => {});
+
       return res.status(200).json({
-        code: 801,
-        status: "NOT_FOUND",
-        msg: "Tugas sedang diantrekan atau tidak ditemukan",
-        data: { status: "NOT_FOUND", taskId: cleanTaskId }
+        code: 500,
+        status: "FAILED",
+        msg: currentTask?.errorMessage || "Render gagal di server",
+        data: { status: "FAILED", taskId: cleanTaskId }
       });
     }
 
-    // D. Masih Dalam Proses Normal di RunningHub
+    // 6. DEFAULT: MASIH PROSES
     return res.status(200).json({
       code: 805,
       status: "RUNNING",
@@ -271,7 +329,7 @@ export default async function handler(req, res) {
       data: {
         status: "RUNNING",
         taskId: cleanTaskId,
-        progress: currentTask?.progress || 15
+        progress: currentTask?.progress || 25
       }
     });
 
@@ -279,7 +337,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       code: 805,
       status: "RUNNING",
-      msg: "Sedang menyinkronkan status",
+      msg: "Sedang menyinkronkan data",
       data: { status: "RUNNING", taskId: cleanTaskId, progress: 15 }
     });
   }

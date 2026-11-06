@@ -7,21 +7,29 @@ const EMAIL_OWNER = "anggraingki@gmail.com";
 
 // Helper refresh access token jika sesi web kedaluwarsa (401)
 async function refreshRhAccessToken(refreshToken, oldCookie) {
-  try {
-    const res = await fetch("https://www.runninghub.ai/api/uc/auth/refresh", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "client": "WEB",
-        "cookie": oldCookie || `Rh-Refreshtoken=${refreshToken}`
-      },
-      body: JSON.stringify({ refreshToken })
-    });
-    const data = await res.json().catch(() => ({}));
-    return data?.data?.accessToken || data?.data?.token || data?.accessToken || null;
-  } catch (e) {
-    return null;
+  const refreshUrls = [
+    "https://www.runninghub.ai/uc/auth/refresh",
+    "https://www.runninghub.ai/uc/auth/refreshToken",
+    "https://www.runninghub.ai/api/uc/auth/refresh"
+  ];
+
+  for (const url of refreshUrls) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Client": "WEB",
+          "Cookie": oldCookie || `Rh-Refreshtoken=${refreshToken}`
+        },
+        body: JSON.stringify({ refreshToken })
+      });
+      const data = await res.json().catch(() => ({}));
+      const newToken = data?.data?.accessToken || data?.data?.token || data?.accessToken || null;
+      if (newToken) return newToken;
+    } catch (e) {}
   }
+  return null;
 }
 
 export default async function handler(req, res) {
@@ -170,20 +178,11 @@ export default async function handler(req, res) {
     didDeductCredit = true;
 
     // 2. Ambil akun idle yang memiliki minimal 100 koin RunningHub
-    let poolRes = await fetch(
+    const poolRes = await fetch(
       `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&koin=gte.100&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
       { headers: supaHeaders }
     );
-    let poolData = await poolRes.json().catch(() => []);
-
-    // Fallback jika tidak ada yang >= 100 koin, coba ambil akun idle apa saja
-    if (!Array.isArray(poolData) || poolData.length === 0) {
-      const fallbackRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/runninghub_pool?status=eq.idle&order=last_used_at.asc.nullsfirst,koin.desc&limit=1`,
-        { headers: supaHeaders }
-      );
-      poolData = await fallbackRes.json().catch(() => []);
-    }
+    const poolData = await poolRes.json().catch(() => []);
 
     if (!Array.isArray(poolData) || poolData.length === 0) {
       await fetch(`${SUPABASE_URL}/rest/v1/rpc/refund_kredit_member`, {
@@ -194,7 +193,7 @@ export default async function handler(req, res) {
 
       return res.status(503).json({
         success: false,
-        message: 'TASK_QUEUE_MAXED: Seluruh akun kolam sedang sibuk merender atau kehabisan koin. 1 kredit telah dikembalikan otomatis.'
+        message: 'TASK_QUEUE_MAXED: Seluruh akun kolam sedang sibuk merender atau kehabisan koin (< 100). 1 kredit telah dikembalikan otomatis.'
       });
     }
 
@@ -202,13 +201,16 @@ export default async function handler(req, res) {
     poolIdDipakai = akunTerpilih.id;
 
     // Ekstraksi kredensial sesi web akun terpilih
-    const rhUserId = akunTerpilih.user_id || akunTerpilih.rh_user_id || akunTerpilih.userid;
+    const rhUserId = String(akunTerpilih.user_id || akunTerpilih.rh_user_id || akunTerpilih.userid || "2088197555130155009");
     let accessToken = akunTerpilih.access_token || akunTerpilih.rh_access_token || akunTerpilih.token || akunTerpilih.api_key;
     const refreshToken = akunTerpilih.refresh_token || akunTerpilih.rh_refresh_token || null;
-    let cookieData = akunTerpilih.cookie_data || akunTerpilih.cookie || 
-      `rh_locale=id; userLanguage=true; Rh-Accesstoken=${accessToken}; Rh-Refreshtoken=${refreshToken || ''}; userId=${rhUserId}; Rh-Identify=df0dec23b434a3a7de18ce75aef334b5;`;
+    
+    let cookieData = akunTerpilih.cookie_data ? String(akunTerpilih.cookie_data).replace(/[\r\n]+/g, ' ').trim() : "";
+    if (!cookieData.includes('Rh-Accesstoken=')) {
+      cookieData = `rh_locale=id; userLanguage=true; Rh-Accesstoken=${accessToken}; Rh-Refreshtoken=${refreshToken || ''}; userId=${rhUserId}; Rh-billing-uid=${rhUserId};`;
+    }
 
-    // Tandai status akun menjadi busy
+    // Tandai status akun menjadi busy agar tidak dipakai bersamaan
     await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
       method: 'PATCH',
       headers: supaHeaders,
@@ -221,7 +223,6 @@ export default async function handler(req, res) {
     const WAN_APP_ID = "2101240461868802049";
     const CAMERA_STABILIZER_PROMPT = "Camera locked on tripod, perfectly stable camera, no camera shake, no handheld movement, no jitter, no vibration, no zoom in, no zoom out, no dolly movement, no camera panning, no camera rotation, no camera tilt, fixed framing, static shot, consistent composition, cinematic realism, sharp focus at all times, subject always in focus, no focus breathing, no autofocus hunting, no motion blur, no lens blur, no depth of field blur, ultra clear details, crisp image quality, smooth natural motion, professional studio camera, stable video capture, high detail, high realism.\nNegative Prompt:\ncamera shake, handheld camera, jitter, vibration, zoom in, zoom out, camera movement, panning, tilting, rotating, dolly shot, motion blur, lens blur, focus blur, out of focus, autofocus, focus breathing, shaky footage, cinematic blur, depth of field blur, low quality, ghosting, distortion.";
 
-    // Susun parameter input ComfyUI asli
     const payloadWebapp = {
       webappId: WAN_APP_ID,
       inputs: [
@@ -244,23 +245,43 @@ export default async function handler(req, res) {
     };
 
     const kirimRequestKeRunningHub = async (tokenAktif, cookieAktif) => {
-      return await fetch("https://www.runninghub.ai/api/workflow/webapp-run", {
-        method: "POST",
-        headers: {
-          "authority": "www.runninghub.ai",
-          "accept": "application/json, text/plain, */*",
-          "content-type": "application/json",
-          "client": "WEB",
-          "authorization": `Bearer ${tokenAktif}`,
-          "cookie": cookieAktif,
-          "origin": "https://www.runninghub.ai",
-          "referer": `https://www.runninghub.ai/id/ai-detail/${WAN_APP_ID}`,
-          "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
-          "userid": String(rhUserId),
-          "x-rh-lang": "id"
-        },
-        body: JSON.stringify(payloadWebapp)
-      });
+      const headersFull = {
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/json",
+        "Client": "WEB",
+        "Authorization": `Bearer ${tokenAktif}`,
+        "Rh-Accesstoken": tokenAktif,
+        "Cookie": cookieAktif,
+        "Origin": "https://www.runninghub.ai",
+        "Referer": `https://www.runninghub.ai/id/ai-detail/${WAN_APP_ID}`,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "userId": rhUserId,
+        "x-rh-lang": "id"
+      };
+
+      // Coba jalur tanpa /api/ terlebih dahulu, fallback ke /api/ jika 404
+      const targetUrls = [
+        "https://www.runninghub.ai/workflow/webapp-run",
+        "https://www.runninghub.ai/api/workflow/webapp-run"
+      ];
+
+      let lastRes = null;
+      for (const targetUrl of targetUrls) {
+        try {
+          const resRun = await fetch(targetUrl, {
+            method: "POST",
+            headers: headersFull,
+            body: JSON.stringify(payloadWebapp)
+          });
+          if (resRun.status !== 404) {
+            return resRun;
+          }
+          lastRes = resRun;
+        } catch (e) {
+          lastRes = { ok: false, status: 500, json: async () => ({ message: e.message }) };
+        }
+      }
+      return lastRes;
     };
 
     let rhRes = await kirimRequestKeRunningHub(accessToken, cookieData);
@@ -292,8 +313,10 @@ export default async function handler(req, res) {
     const taskId = rhJson?.data?.taskId || rhJson?.taskId || rhJson?.data?.task_id || (typeof rhJson?.data === 'string' ? rhJson.data : null);
 
     if ((rhRes.ok || rhJson?.code === 0 || rhJson?.code === 200) && taskId) {
-      // Potong 100 koin di database untuk akun ini
-      const sisaKoin = Math.max(0, (akunTerpilih.koin || 700) - 100);
+      // Potong koin secara dinamis di database (tanpa hardcode 700)
+      const koinSekarang = Number(akunTerpilih.koin) || 100;
+      const sisaKoin = Math.max(0, koinSekarang - 100);
+
       await fetch(`${SUPABASE_URL}/rest/v1/runninghub_pool?id=eq.${poolIdDipakai}`, {
         method: 'PATCH',
         headers: supaHeaders,

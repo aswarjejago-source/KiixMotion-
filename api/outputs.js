@@ -1,7 +1,9 @@
 // File: api/outputs.js
-// Backend Proxy Vercel - Task Status & Result Fetcher (Web Session Account Pooling)
+// Backend Proxy Vercel - Task Status & Result Fetcher (Web Session DevTools Intercepted)
 
 export const maxDuration = 30;
+
+const WAN_APP_ID = "2101240461868802049";
 
 // Helper refresh access token jika sesi web kedaluwarsa saat polling
 async function refreshRhAccessToken(refreshToken, oldCookie) {
@@ -44,7 +46,7 @@ export default async function handler(req, res) {
   const cleanTaskId = String(taskId).trim();
 
   // =========================================================
-  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI - TETAP AMAN)
+  // JALUR 1: KLING 2.6 MOTION CONTROL (PiAPI)
   // =========================================================
   if (provider === 'kling' || cleanTaskId.includes('-')) {
     try {
@@ -83,7 +85,6 @@ export default async function handler(req, res) {
   let akunPool = null;
 
   try {
-    // 1. Ambil data kredensial akun yang sedang mengerjakan task ini
     const queryUrl = poolId
       ? `${supaUrl}/rest/v1/runninghub_pool?id=eq.${poolId}&limit=1`
       : `${supaUrl}/rest/v1/runninghub_pool?status=eq.busy&limit=1`;
@@ -102,62 +103,53 @@ export default async function handler(req, res) {
       });
     }
 
-    const rhUserId = String(akunPool.user_id || akunPool.rh_user_id || akunPool.userid || "2088197555130155009");
+    const rhUserId = String(akunPool.user_id || akunPool.rh_user_id || akunTerpilihUserId(akunPool));
     let accessToken = akunPool.access_token || akunPool.rh_access_token || akunPool.token;
     const refreshToken = akunPool.refresh_token || akunPool.rh_refresh_token;
-    
+
     let cookieData = akunPool.cookie_data ? String(akunPool.cookie_data).replace(/[\r\n]+/g, ' ').trim() : "";
     if (!cookieData.includes('Rh-Accesstoken=')) {
       cookieData = `rh_locale=id; userLanguage=true; Rh-Accesstoken=${accessToken}; Rh-Refreshtoken=${refreshToken || ''}; userId=${rhUserId}; Rh-billing-uid=${rhUserId};`;
     }
 
-    // 2. Fungsi tembak endpoint internal /task/list dengan proteksi fallback
-    const fetchTaskList = async (tokenAktif, cookieAktif) => {
-      const headersFull = {
-        "Accept": "application/json, text/plain, */*",
-        "Content-Type": "application/json",
-        "Client": "WEB",
-        "Authorization": `Bearer ${tokenAktif}`,
-        "Rh-Accesstoken": tokenAktif,
-        "Cookie": cookieAktif,
-        "Origin": "https://www.runninghub.ai",
-        "Referer": "https://www.runninghub.ai/id/ai-detail/2101240461868802049",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "userId": rhUserId,
-        "x-rh-lang": "id"
-      };
-
-      const targetUrls = [
-        "https://www.runninghub.ai/task/list",
-        "https://www.runninghub.ai/api/task/list"
-      ];
-
-      let lastResp = null;
-      for (const url of targetUrls) {
-        try {
-          const resp = await fetch(url, {
-            method: "POST",
-            headers: headersFull,
-            body: JSON.stringify({ page: 1, pageSize: 10, taskId: cleanTaskId })
-          });
-          if (resp.status !== 404) return resp;
-          lastResp = resp;
-        } catch (e) {
-          lastResp = { ok: false, status: 500, json: async () => ({ message: e.message }) };
-        }
-      }
-      return lastResp;
+    const headersWeb = {
+      "Accept": "application/json, text/plain, */*",
+      "Content-Type": "application/json",
+      "Client": "WEB",
+      "Authorization": `Bearer ${accessToken}`,
+      "Rh-Accesstoken": accessToken,
+      "Cookie": cookieData,
+      "Origin": "https://www.runninghub.ai",
+      "Referer": `https://www.runninghub.ai/id/ai-detail/${WAN_APP_ID}`,
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      "userId": rhUserId,
+      "x-rh-lang": "id"
     };
 
-    let rhRes = await fetchTaskList(accessToken, cookieData);
+    // 1. Cek daftar tugas aktif dan riwayat via /task/list sesuai rekaman DevTools
+    const payloadTaskList = {
+      size: 20,
+      current: 1,
+      webappId: WAN_APP_ID,
+      taskType: ["WORKFLOW", "WEBAPP"]
+    };
+
+    let rhRes = await fetch("https://www.runninghub.ai/task/list", {
+      method: "POST",
+      headers: headersWeb,
+      body: JSON.stringify(payloadTaskList)
+    });
     let rhJson = await rhRes.json().catch(() => ({}));
 
-    // Auto-refresh token jika sesi kedaluwarsa saat pengecekan
-    if ((rhRes.status === 401 || rhJson?.code === 401 || rhJson?.msg?.toLowerCase().includes("token")) && refreshToken) {
+    // Auto-refresh token jika sesi kedaluwarsa
+    if ((rhRes.status === 401 || rhJson?.code === 401 || String(rhJson?.msg).toLowerCase().includes("token")) && refreshToken) {
       const tokenBaru = await refreshRhAccessToken(refreshToken, cookieData);
       if (tokenBaru) {
         accessToken = tokenBaru;
         cookieData = cookieData.replace(/Rh-Accesstoken=[^;]+/, `Rh-Accesstoken=${tokenBaru}`);
+        headersWeb["Authorization"] = `Bearer ${tokenBaru}`;
+        headersWeb["Rh-Accesstoken"] = tokenBaru;
+        headersWeb["Cookie"] = cookieData;
 
         await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
           method: 'PATCH',
@@ -165,47 +157,60 @@ export default async function handler(req, res) {
           body: JSON.stringify({ access_token: tokenBaru, cookie_data: cookieData })
         });
 
-        rhRes = await fetchTaskList(accessToken, cookieData);
+        rhRes = await fetch("https://www.runninghub.ai/task/list", {
+          method: "POST",
+          headers: headersWeb,
+          body: JSON.stringify(payloadTaskList)
+        });
         rhJson = await rhRes.json().catch(() => ({}));
       }
     }
 
-    // 3. Ekstraksi daftar task dari respon RunningHub
-    const listTask = rhJson?.data?.list || rhJson?.data?.records || rhJson?.data || [];
-    let currentTask = null;
+    const records = rhJson?.data?.records || rhJson?.data?.list || [];
+    let currentTask = records.find(t => String(t.taskId || t.id || t.taskUuid) === cleanTaskId);
 
-    if (Array.isArray(listTask) && listTask.length > 0) {
-      currentTask = listTask.find(t => 
-        String(t.taskId || t.id || t.taskUuid) === cleanTaskId
-      ) || listTask[0];
+    // 2. Jika tidak ada di /task/list, cek /api/output/v2/history (apakah sudah selesai dan masuk galeri)
+    let videoUrl = null;
+    if (!currentTask || !ekstrakVideoUrl(currentTask)) {
+      try {
+        const histRes = await fetch("https://www.runninghub.ai/api/output/v2/history", {
+          method: "POST",
+          headers: headersWeb,
+          body: JSON.stringify({
+            size: 20,
+            current: 1,
+            webappId: WAN_APP_ID,
+            taskType: ["WORKFLOW", "WEBAPP"],
+            fromId: ""
+          })
+        });
+        const histJson = await histRes.json().catch(() => ({}));
+        const histRecords = histJson?.data?.records || histJson?.data?.list || [];
+        const taskHistory = histRecords.find(t => String(t.taskId || t.id || t.taskUuid) === cleanTaskId);
+        if (taskHistory) {
+          currentTask = taskHistory;
+          videoUrl = ekstrakVideoUrl(taskHistory);
+        }
+      } catch (e) {}
+    } else {
+      videoUrl = ekstrakVideoUrl(currentTask);
     }
 
-    if (!currentTask) {
-      return res.status(200).json({
-        code: 804,
-        status: "QUEUED",
-        message: "Tugas sedang mengantre di server RunningHub",
-        data: { status: "QUEUED", taskId: cleanTaskId }
-      });
-    }
+    // 3. Deteksi Jika Tugas Dibatalkan atau Dihapus dari Server
+    // Jika records sudah berisi tugas-tugas lain, tetapi cleanTaskId hilang sama sekali dan tidak ada di riwayat
+    const isHilangDariAntrean = (!currentTask && records.length > 0);
+    const taskStatusRaw = String(currentTask?.status || currentTask?.taskStatus || "").toUpperCase();
+    const isCancelled = isHilangDariAntrean || 
+                        taskStatusRaw.includes("CANCEL") || 
+                        taskStatusRaw.includes("BATAL") || 
+                        taskStatusRaw.includes("STOP") || 
+                        taskStatusRaw.includes("TERMINAT") || 
+                        taskStatusRaw.includes("ABORT");
 
-    // Normalisasi status pengerjaan
-    const taskStatusRaw = String(currentTask.status || currentTask.taskStatus || "").toUpperCase();
-    const isSuccess = taskStatusRaw.includes("SUCCESS") || taskStatusRaw === "2" || taskStatusRaw === "FINISH" || taskStatusRaw === "COMPLETED";
+    const isSuccess = taskStatusRaw.includes("SUCCESS") || taskStatusRaw === "2" || taskStatusRaw === "FINISH" || Boolean(videoUrl);
     const isFailed = taskStatusRaw.includes("FAIL") || taskStatusRaw.includes("ERR") || taskStatusRaw === "3";
-    const isCancelled = taskStatusRaw.includes("CANCEL") || taskStatusRaw.includes("STOP");
 
-    // Ambil URL file video hasil render
-    const videoUrl = currentTask.outputFiles?.[0]?.url ||
-                     currentTask.outputs?.[0]?.fileUrl ||
-                     currentTask.outputs?.[0]?.url ||
-                     currentTask.resultUrl ||
-                     currentTask.results?.[0]?.url ||
-                     currentTask.fileUrl ||
-                     currentTask.url ||
-                     null;
-
-    // 4. PEMULIHAN STATUS AKUN SECARA CERDAS BERDASARKAN SISA KOIN
+    // 4. Sinkronisasi Pembebasan Akun Kolam ke Supabase
     if (isSuccess || isFailed || isCancelled) {
       const sisaKoinAkun = Number(akunPool.koin) || 0;
       const statusBaru = sisaKoinAkun >= 100 ? 'idle' : 'habis';
@@ -220,7 +225,7 @@ export default async function handler(req, res) {
       }).catch(() => {});
     }
 
-    // A. Tugas Berhasil (SUCCESS)
+    // KASUS A: Tugas Berhasil Selesai
     if (isSuccess && videoUrl) {
       return res.status(200).json({
         code: 0,
@@ -232,42 +237,41 @@ export default async function handler(req, res) {
           url: videoUrl,
           fileUrl: videoUrl,
           videoUrl: videoUrl,
-          resultUrl: videoUrl,
-          outputFiles: [{ url: videoUrl }],
-          results: [{ url: videoUrl }]
+          outputFiles: [{ url: videoUrl }]
         }
       });
     }
 
-    // B. Tugas Gagal (FAILED)
-    if (isFailed) {
-      return res.status(200).json({
-        code: 500,
-        status: "FAILED",
-        msg: currentTask.errorMessage || currentTask.failedReason || "Render gagal di server ComfyUI",
-        data: { status: "FAILED", taskId: cleanTaskId }
-      });
-    }
-
-    // C. Tugas Dibatalkan (CANCELLED)
+    // KASUS B: Tugas Dibatalkan (Langsung Picu Refund & Setop Loading)
     if (isCancelled) {
       return res.status(200).json({
         code: 807,
         status: "CANCELLED",
-        msg: "Tugas dibatalkan",
+        msg: "Tugas telah dibatalkan di server RunningHub",
         data: { status: "CANCELLED", taskId: cleanTaskId }
       });
     }
 
-    // D. Masih Dalam Proses (RUNNING / QUEUED)
+    // KASUS C: Tugas Gagal
+    if (isFailed) {
+      return res.status(200).json({
+        code: 500,
+        status: "FAILED",
+        msg: currentTask?.errorMessage || currentTask?.failedReason || "Render gagal di server studio",
+        data: { status: "FAILED", taskId: cleanTaskId }
+      });
+    }
+
+    // KASUS D: Tugas Masih Mengantre atau Sedang Berjalan
+    const statusTeks = taskStatusRaw.includes("QUEUED") ? "QUEUED" : "RUNNING";
     return res.status(200).json({
-      code: 805,
-      status: "RUNNING",
-      msg: "Video sedang diproses",
+      code: statusTeks === "QUEUED" ? 804 : 805,
+      status: statusTeks,
+      msg: statusTeks === "QUEUED" ? "Mengantre di antrean server" : "Video sedang diproses",
       data: {
-        status: "RUNNING",
+        status: statusTeks,
         taskId: cleanTaskId,
-        progress: currentTask.progress || 0
+        progress: currentTask?.progress || 0
       }
     });
 
@@ -277,4 +281,21 @@ export default async function handler(req, res) {
       message: 'Gagal memeriksa status render: ' + err.message
     });
   }
+}
+
+function akunTerpilihUserId(akun) {
+  return akun.user_id || akun.rh_user_id || akun.userid || "2088197555130155009";
+}
+
+function ekstrakVideoUrl(task) {
+  if (!task) return null;
+  return task.outputFiles?.[0]?.url ||
+         task.outputs?.[0]?.fileUrl ||
+         task.outputs?.[0]?.url ||
+         task.resultUrl ||
+         task.results?.[0]?.url ||
+         task.fileUrl ||
+         task.videoUrl ||
+         task.url ||
+         null;
 }

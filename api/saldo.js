@@ -55,7 +55,6 @@ export default async function handler(req, res) {
       cleanCookie = `rh_locale=id; Rh-Accesstoken=${token}; userId=${uId}; Rh-billing-uid=${uId};`;
     }
 
-    // Header resmi sesuai hasil inspeksi DevTools RunningHub
     const headersWeb = {
       "Accept": "application/json, text/plain, */*",
       "Client": "WEB",
@@ -68,16 +67,19 @@ export default async function handler(req, res) {
     };
 
     try {
+      // Mengirimkan parameter userId yang diwajibkan server RunningHub (Content-Length: 32)
+      const payloadBody = JSON.stringify({ userId: String(uId) });
+
       const resp = await fetch("https://www.runninghub.ai/uc/getUserInfo", {
         method: "POST",
         headers: headersWeb,
-        body: JSON.stringify({})
+        body: payloadBody
       });
 
       const json = await resp.json().catch(() => null);
 
       if (json && json.code === 0 && json.data) {
-        // Ekstraksi langsung nilai koin riil dari field totalCoin
+        // Ekstraksi nilai saldo koin riil dari properti totalCoin
         const rawCoin = json.data.totalCoin ?? json.data.remainCoins ?? json.data.coins;
 
         if (rawCoin !== undefined && rawCoin !== null && !isNaN(Number(rawCoin))) {
@@ -92,7 +94,6 @@ export default async function handler(req, res) {
         }
       }
 
-      // Jika server RunningHub menolak atau format berubah, kirim pesan asli dari server
       return res.status(200).json({
         success: false,
         coins: 0,

@@ -411,26 +411,29 @@ function tampilkanModalCeklisSukses(taskId) {
 
 // ==========================================
 // PENGOLAH & PENGUNGGAH BAHAN
-// - FOTO: Dikirim utuh tanpa kompresi
-// - VIDEO: Otomatis dikompres jika ukuran > 45MB
+// - FOTO: Dikirim utuh murni tanpa kompresi
+// - VIDEO: Kompresi HD 1080p (8.5 Mbps) hanya jika file > 45MB
 // ==========================================
 function kompresVideoJikaPerlu(file, onProgress, callback) {
+  // Jika ukuran video <= 45MB, langsung lolos tanpa disentuh
   if (!file || !file.type.startsWith('video/') || file.size <= 45 * 1024 * 1024) {
     return callback(file);
   }
 
-  if (onProgress) onProgress("⏳ Mengompres video besar...");
+  if (onProgress) onProgress("⏳ Menyesuaikan ukuran video...");
 
   try {
     var video = document.createElement("video");
     video.src = URL.createObjectURL(file);
     video.muted = true;
     video.playsInline = true;
+    video.setAttribute('webkit-playsinline', 'true');
 
     video.onloadedmetadata = function() {
-      var width = video.videoWidth || 1280;
-      var height = video.videoHeight || 720;
-      var maxDim = 1280; // Standar HD 720p
+      // Pertahankan batas resolusi hingga Full HD (1080p)
+      var width = video.videoWidth || 1920;
+      var height = video.videoHeight || 1080;
+      var maxDim = 1920;
 
       if (width > maxDim || height > maxDim) {
         if (width > height) {
@@ -453,9 +456,10 @@ function kompresVideoJikaPerlu(file, onProgress, callback) {
         mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : 'video/webm';
       }
 
+      // Bitrate tinggi 8.5 Mbps: Visual tetap tajam & ukuran 30 detik terkendali di ~30-35 MB (< 50MB)
       var recorder = new MediaRecorder(stream, {
         mimeType: mimeType,
-        videoBitsPerSecond: 2200000 // Menjaga file video tetap ringan (~8-12 MB)
+        videoBitsPerSecond: 8500000
       });
 
       var chunks = [];
@@ -590,7 +594,7 @@ function unggahBahanLangsung(input, tipe) {
   if (tipe === 'foto') {
     jalankanProsesKirim(fileAsli);
   } else {
-    // Video dicek: dikompres hanya jika ukuran melebihi 45MB
+    // Video hanya dikompres jika ukurannya melebihi 45MB
     kompresVideoJikaPerlu(fileAsli, function(statusTeks) {
       if (stEl) stEl.innerHTML = '<span class="text-amber-600 font-bold animate-pulse">' + statusTeks + '</span>';
     }, jalankanProsesKirim);
@@ -1201,27 +1205,4 @@ window.onload = function() {
       var isKling = (
         tugas.prov === 'kling' || 
         tugas.provider === 'kling' || 
-        (typeof tugas.id === 'string' && tugas.id.includes('-'))
-      );
-
-      if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
-        if (isKling) {
-          if (typeof window.pantauStatusKling === 'function') {
-            tugas.selesai = false;
-            window.pantauStatusKling(tugas);
-          }
-        } else {
-          tugas.selesai = false;
-          pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
-        }
-      }
-    });
-
-    simpanStorage();
-  }
-
-  if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
-  if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
-
-  setTimeout(pasangPelindungVideoDOM, 800);
-};
+        (

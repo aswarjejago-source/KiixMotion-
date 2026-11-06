@@ -1,7 +1,35 @@
 // File: api/saldo.js
-// Backend Proxy Vercel - Live Coin Checker RunningHub
+// Backend Proxy Vercel - Live Coin Extractor RunningHub
 
 export const maxDuration = 15;
+
+// Fungsi pelacak koin otomatis ke seluruh lapisan JSON
+function ekstrakKoinMendalam(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+
+  const targetKeys = ['totalCoin', 'remainCoins', 'totalCoins', 'coins', 'coin', 'balance'];
+  for (const k of targetKeys) {
+    if (obj[k] !== undefined && obj[k] !== null && obj[k] !== "" && !isNaN(Number(obj[k]))) {
+      const val = Number(obj[k]);
+      if (val > 0) return val;
+    }
+  }
+
+  for (const key of Object.keys(obj)) {
+    if (typeof obj[key] === 'object' && obj[key] !== null) {
+      const hasilAnak = ekstrakKoinMendalam(obj[key]);
+      if (hasilAnak !== null && hasilAnak > 0) return hasilAnak;
+    }
+  }
+
+  for (const k of targetKeys) {
+    if (obj[k] !== undefined && obj[k] !== null && !isNaN(Number(obj[k]))) {
+      return Number(obj[k]);
+    }
+  }
+
+  return null;
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -22,7 +50,6 @@ export default async function handler(req, res) {
   let userId = bodyData.userId || null;
   let apiKey = bodyData.apiKey || req.query?.apiKey || null;
 
-  // 1. Ekstrak Token & User ID dari teks Cookie
   if (typeof rawInput === 'string' && (rawInput.includes('Rh-Accesstoken=') || rawInput.includes('userId='))) {
     cookieData = rawInput;
     const tokenMatch = rawInput.match(/Rh-Accesstoken=([^;\s]+)/i);
@@ -33,77 +60,73 @@ export default async function handler(req, res) {
     accessToken = rawInput;
   }
 
-  // =========================================================
-  // JALUR 1: SESI WEB RUNNINGHUB (COOKIE / Rh-Accesstoken)
-  // =========================================================
   if (accessToken || cookieData) {
     const token = accessToken || (cookieData ? cookieData.match(/Rh-Accesstoken=([^;\s]+)/i)?.[1] : null);
-    const uId = userId || (cookieData ? cookieData.match(/userId=([^;\s]+)/i)?.[1] : "") || "";
+    const uId = userId || (cookieData ? cookieData.match(/userId=([^;\s]+)/i)?.[1] : "") || "2088197555130155009";
 
-    // Bersihkan enter / newline agar header HTTP valid di Node.js
     let cleanCookie = cookieData ? String(cookieData).replace(/[\r\n]+/g, ' ').trim() : "";
     if (!cleanCookie.includes('Rh-Accesstoken=')) {
       cleanCookie = `rh_locale=id; Rh-Accesstoken=${token}; userId=${uId}; Rh-billing-uid=${uId};`;
     }
 
-    // Header HTTP standar tanpa pseudo-header "authority"
     const headersWeb = {
       "Accept": "application/json, text/plain, */*",
       "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+      "Content-Type": "application/json",
       "Cookie": cleanCookie,
+      "Origin": "https://www.runninghub.ai",
       "Referer": "https://www.runninghub.ai/",
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
     };
 
-    if (token) {
-      headersWeb["Rh-Accesstoken"] = token;
-    }
+    // Jalur endpoint RunningHub
+    const targetEndpoints = [
+      { url: "https://www.runninghub.ai/api/uc/auth/user-info", method: "GET" },
+      { url: "https://www.runninghub.ai/api/uc/user/getUserInfo", method: "POST", body: "{}" },
+      { url: "https://www.runninghub.ai/api/uc/user/getUserInfo", method: "GET" },
+      { url: "https://www.runninghub.ai/uc/user/getUserInfo", method: "POST", body: "{}" },
+      { url: "https://www.runninghub.ai/uc/user/getUserInfo", method: "GET" },
+      { url: "https://www.runninghub.ai/api/wallet/user-wallet/get-balance", method: "POST", body: "{}" },
+      { url: "https://www.runninghub.ai/api/uc/user/info", method: "GET" }
+    ];
 
-    try {
-      const rhResp = await fetch("https://www.runninghub.ai/api/uc/auth/user-info", {
-        method: "GET",
-        headers: headersWeb
-      });
+    let debugLog = [];
 
-      const rhJson = await rhResp.json().catch(() => null);
+    for (const ep of targetEndpoints) {
+      try {
+        const fetchOpt = { method: ep.method, headers: headersWeb };
+        if (ep.body) fetchOpt.body = ep.body;
 
-      if (rhJson && (rhJson.code === 0 || rhJson.code === 200 || rhJson.data)) {
-        const raw = rhJson.data || rhJson;
-        
-        // Membaca nilai koin ("448")
-        const koin = raw.totalCoin ?? raw.remainCoins ?? raw.totalCoins ?? raw.coins ?? raw.coin ?? raw.balance;
+        const rhResp = await fetch(ep.url, fetchOpt);
+        const rhJson = await rhResp.json().catch(() => null);
 
-        if (koin !== undefined && koin !== null && !isNaN(Number(koin))) {
-          const koinAngka = Number(koin);
-          return res.status(200).json({
-            code: 0,
-            success: true,
-            coins: koinAngka,
-            userId: raw.id || raw.userId || uId,
-            data: raw
-          });
+        if (rhJson) {
+          const koin = ekstrakKoinMendalam(rhJson);
+          if (koin !== null && !isNaN(koin)) {
+            return res.status(200).json({
+              code: 0,
+              success: true,
+              coins: koin,
+              userId: rhJson.data?.id || rhJson.data?.userId || uId,
+              data: rhJson.data || rhJson
+            });
+          }
+          debugLog.push({ url: ep.url, res: rhJson });
         }
+      } catch (errLoop) {
+        debugLog.push({ url: ep.url, error: errLoop.message });
       }
-
-      return res.status(200).json({
-        success: false,
-        coins: 0,
-        message: "RunningHub merespons tetapi tidak ditemukan properti totalCoin.",
-        debug: rhJson
-      });
-
-    } catch (err) {
-      return res.status(500).json({
-        success: false,
-        coins: 0,
-        message: "Fetch error dari Vercel ke RunningHub: " + err.message
-      });
     }
+
+    return res.status(200).json({
+      success: false,
+      coins: 0,
+      message: "Koin tidak ditemukan pada seluruh endpoint RunningHub.",
+      debug: debugLog
+    });
   }
 
-  // =========================================================
-  // JALUR 2: API KEY RESMI LAMA (rh_live_...)
-  // =========================================================
+  // Jalur API Key pengembang
   if (apiKey || process.env.RUNNINGHUB_API_KEY) {
     const cleanApiKey = String(apiKey || process.env.RUNNINGHUB_API_KEY).trim();
     try {
@@ -126,9 +149,9 @@ export default async function handler(req, res) {
         data: data.data || data
       });
     } catch (errKey) {
-      return res.status(500).json({ success: false, message: "Gagal memproses API Key: " + errKey.message });
+      return res.status(500).json({ success: false, message: "Error API Key: " + errKey.message });
     }
   }
 
-  return res.status(400).json({ success: false, message: "Cookie atau Access Token wajib disertakan." });
+  return res.status(400).json({ success: false, message: "Kredensial kosong!" });
 }

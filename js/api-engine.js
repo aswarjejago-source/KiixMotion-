@@ -430,7 +430,6 @@ function kompresVideoJikaPerlu(file, onProgress, callback) {
     video.setAttribute('webkit-playsinline', 'true');
 
     video.onloadedmetadata = function() {
-      // Pertahankan batas resolusi hingga Full HD (1080p)
       var width = video.videoWidth || 1920;
       var height = video.videoHeight || 1080;
       var maxDim = 1920;
@@ -456,7 +455,6 @@ function kompresVideoJikaPerlu(file, onProgress, callback) {
         mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : 'video/webm';
       }
 
-      // Bitrate tinggi 8.5 Mbps: Visual tetap tajam & ukuran 30 detik terkendali di ~30-35 MB (< 50MB)
       var recorder = new MediaRecorder(stream, {
         mimeType: mimeType,
         videoBitsPerSecond: 8500000
@@ -1205,4 +1203,27 @@ window.onload = function() {
       var isKling = (
         tugas.prov === 'kling' || 
         tugas.provider === 'kling' || 
-        (
+        (typeof tugas.id === 'string' && tugas.id.includes('-'))
+      );
+
+      if ((!tugas.videoUrl || !tugas.selesai) && tugas.id) {
+        if (isKling) {
+          if (typeof window.pantauStatusKling === 'function') {
+            tugas.selesai = false;
+            window.pantauStatusKling(tugas);
+          }
+        } else {
+          tugas.selesai = false;
+          pantauStatusVideo(tugas, tugas.key, tugas.pool_id, tugas.user_id, tugas.did_deduct);
+        }
+      }
+    });
+
+    simpanStorage();
+  }
+
+  if (typeof aturTampilanHalamanUtama === 'function') aturTampilanHalamanUtama();
+  if (typeof renderVideoAsliKeGrid === 'function') renderVideoAsliKeGrid();
+
+  setTimeout(pasangPelindungVideoDOM, 800);
+};

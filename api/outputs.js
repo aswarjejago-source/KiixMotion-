@@ -5,21 +5,29 @@ export const maxDuration = 30;
 
 // Helper refresh access token jika sesi web kedaluwarsa saat polling
 async function refreshRhAccessToken(refreshToken, oldCookie) {
-  try {
-    const res = await fetch("https://www.runninghub.ai/api/uc/auth/refresh", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "client": "WEB",
-        "cookie": oldCookie || `Rh-Refreshtoken=${refreshToken}`
-      },
-      body: JSON.stringify({ refreshToken })
-    });
-    const data = await res.json().catch(() => ({}));
-    return data?.data?.accessToken || data?.data?.token || data?.accessToken || null;
-  } catch (e) {
-    return null;
+  const refreshUrls = [
+    "https://www.runninghub.ai/uc/auth/refresh",
+    "https://www.runninghub.ai/uc/auth/refreshToken",
+    "https://www.runninghub.ai/api/uc/auth/refresh"
+  ];
+
+  for (const url of refreshUrls) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Client": "WEB",
+          "Cookie": oldCookie || `Rh-Refreshtoken=${refreshToken}`
+        },
+        body: JSON.stringify({ refreshToken })
+      });
+      const data = await res.json().catch(() => ({}));
+      const newToken = data?.data?.accessToken || data?.data?.token || data?.accessToken || null;
+      if (newToken) return newToken;
+    } catch (e) {}
   }
+  return null;
 }
 
 export default async function handler(req, res) {
@@ -94,38 +102,58 @@ export default async function handler(req, res) {
       });
     }
 
-    const rhUserId = akunPool.user_id || akunPool.rh_user_id || akunPool.userid;
+    const rhUserId = String(akunPool.user_id || akunPool.rh_user_id || akunPool.userid || "2088197555130155009");
     let accessToken = akunPool.access_token || akunPool.rh_access_token || akunPool.token;
     const refreshToken = akunPool.refresh_token || akunPool.rh_refresh_token;
-    let cookieData = akunPool.cookie_data || akunPool.cookie || 
-      `rh_locale=id; userLanguage=true; Rh-Accesstoken=${accessToken}; Rh-Refreshtoken=${refreshToken || ''}; userId=${rhUserId}; Rh-Identify=df0dec23b434a3a7de18ce75aef334b5;`;
+    
+    let cookieData = akunPool.cookie_data ? String(akunPool.cookie_data).replace(/[\r\n]+/g, ' ').trim() : "";
+    if (!cookieData.includes('Rh-Accesstoken=')) {
+      cookieData = `rh_locale=id; userLanguage=true; Rh-Accesstoken=${accessToken}; Rh-Refreshtoken=${refreshToken || ''}; userId=${rhUserId}; Rh-billing-uid=${rhUserId};`;
+    }
 
-    // 2. Fungsi tembak endpoint internal /task/list
+    // 2. Fungsi tembak endpoint internal /task/list dengan proteksi fallback
     const fetchTaskList = async (tokenAktif, cookieAktif) => {
-      return await fetch("https://www.runninghub.ai/task/list", {
-        method: "POST",
-        headers: {
-          "authority": "www.runninghub.ai",
-          "accept": "application/json, text/plain, */*",
-          "content-type": "application/json",
-          "client": "WEB",
-          "authorization": `Bearer ${tokenAktif}`,
-          "cookie": cookieAktif,
-          "origin": "https://www.runninghub.ai",
-          "referer": "https://www.runninghub.ai/id/ai-detail/2101240461868802049",
-          "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
-          "userid": String(rhUserId),
-          "x-rh-lang": "id"
-        },
-        body: JSON.stringify({ page: 1, pageSize: 10 })
-      });
+      const headersFull = {
+        "Accept": "application/json, text/plain, */*",
+        "Content-Type": "application/json",
+        "Client": "WEB",
+        "Authorization": `Bearer ${tokenAktif}`,
+        "Rh-Accesstoken": tokenAktif,
+        "Cookie": cookieAktif,
+        "Origin": "https://www.runninghub.ai",
+        "Referer": "https://www.runninghub.ai/id/ai-detail/2101240461868802049",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "userId": rhUserId,
+        "x-rh-lang": "id"
+      };
+
+      const targetUrls = [
+        "https://www.runninghub.ai/task/list",
+        "https://www.runninghub.ai/api/task/list"
+      ];
+
+      let lastResp = null;
+      for (const url of targetUrls) {
+        try {
+          const resp = await fetch(url, {
+            method: "POST",
+            headers: headersFull,
+            body: JSON.stringify({ page: 1, pageSize: 10, taskId: cleanTaskId })
+          });
+          if (resp.status !== 404) return resp;
+          lastResp = resp;
+        } catch (e) {
+          lastResp = { ok: false, status: 500, json: async () => ({ message: e.message }) };
+        }
+      }
+      return lastResp;
     };
 
     let rhRes = await fetchTaskList(accessToken, cookieData);
     let rhJson = await rhRes.json().catch(() => ({}));
 
     // Auto-refresh token jika sesi kedaluwarsa saat pengecekan
-    if ((rhRes.status === 401 || rhJson?.code === 401) && refreshToken) {
+    if ((rhRes.status === 401 || rhJson?.code === 401 || rhJson?.msg?.toLowerCase().includes("token")) && refreshToken) {
       const tokenBaru = await refreshRhAccessToken(refreshToken, cookieData);
       if (tokenBaru) {
         accessToken = tokenBaru;
@@ -147,7 +175,6 @@ export default async function handler(req, res) {
     let currentTask = null;
 
     if (Array.isArray(listTask) && listTask.length > 0) {
-      // Cocokkan taskId, jika tidak ketemu ambil task teratas (paling baru)
       currentTask = listTask.find(t => 
         String(t.taskId || t.id || t.taskUuid) === cleanTaskId
       ) || listTask[0];
@@ -164,26 +191,30 @@ export default async function handler(req, res) {
 
     // Normalisasi status pengerjaan
     const taskStatusRaw = String(currentTask.status || currentTask.taskStatus || "").toUpperCase();
-    const isSuccess = taskStatusRaw.includes("SUCCESS") || taskStatusRaw === "2" || taskStatusRaw === "FINISH";
+    const isSuccess = taskStatusRaw.includes("SUCCESS") || taskStatusRaw === "2" || taskStatusRaw === "FINISH" || taskStatusRaw === "COMPLETED";
     const isFailed = taskStatusRaw.includes("FAIL") || taskStatusRaw.includes("ERR") || taskStatusRaw === "3";
     const isCancelled = taskStatusRaw.includes("CANCEL") || taskStatusRaw.includes("STOP");
 
     // Ambil URL file video hasil render
     const videoUrl = currentTask.outputFiles?.[0]?.url ||
                      currentTask.outputs?.[0]?.fileUrl ||
+                     currentTask.outputs?.[0]?.url ||
                      currentTask.resultUrl ||
                      currentTask.results?.[0]?.url ||
                      currentTask.fileUrl ||
                      currentTask.url ||
                      null;
 
-    // 4. KEMBALIKAN STATUS AKUN KE IDLE JIKA RENDER TELAH SELESAI
+    // 4. PEMULIHAN STATUS AKUN SECARA CERDAS BERDASARKAN SISA KOIN
     if (isSuccess || isFailed || isCancelled) {
+      const sisaKoinAkun = Number(akunPool.koin) || 0;
+      const statusBaru = sisaKoinAkun >= 100 ? 'idle' : 'habis';
+
       await fetch(`${supaUrl}/rest/v1/runninghub_pool?id=eq.${akunPool.id}`, {
         method: 'PATCH',
         headers: supaHeaders,
         body: JSON.stringify({
-          status: 'idle',
+          status: statusBaru,
           last_used_at: new Date().toISOString()
         })
       }).catch(() => {});

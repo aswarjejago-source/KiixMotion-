@@ -27,18 +27,33 @@
     }
   }
 
-  // 2. INJEKTOR BINER MP4 (MEMALSUKAN HEADER FFPROBE KE 5 DETIK TANPA POTONG/PERCEPAT)
+  // 2. INJEKTOR BINER MP4 (MEMALSUKAN FFPROBE SATPAM SERVER KE 5.0 DETIK MURNI)
   async function palsukanDurasiMP4(file, targetDetik = 5.0) {
     var buffer = await file.arrayBuffer();
     var bytes = new Uint8Array(buffer);
     var view = new DataView(buffer);
 
-    function cariTag(tagStr) {
+    // Cari letak atom moov utama (wadah seluruh metadata MP4)
+    var moovStart = -1;
+    var moovSize = 0;
+    for (var i = 0; i < bytes.length - 8; i++) {
+      if (bytes[i] === 0x6D && bytes[i + 1] === 0x6F && bytes[i + 2] === 0x6F && bytes[i + 3] === 0x76) { // "moov"
+        moovStart = i;
+        moovSize = view.getUint32(i - 4);
+        break;
+      }
+    }
+
+    // Jika moov ditemukan, batasi pencarian hanya di dalam moov agar tidak salah tembak data mdat
+    var batasAwal = moovStart !== -1 ? moovStart : 0;
+    var batasAkhir = moovStart !== -1 ? Math.min(bytes.length - 8, moovStart + moovSize) : bytes.length - 8;
+
+    function cariTagDiMoov(tagStr) {
       var t = [tagStr.charCodeAt(0), tagStr.charCodeAt(1), tagStr.charCodeAt(2), tagStr.charCodeAt(3)];
       var hasil = [];
-      for (var i = 0; i < bytes.length - 8; i++) {
-        if (bytes[i] === t[0] && bytes[i + 1] === t[1] && bytes[i + 2] === t[2] && bytes[i + 3] === t[3]) {
-          hasil.push(i);
+      for (var k = batasAwal; k < batasAkhir; k++) {
+        if (bytes[k] === t[0] && bytes[k + 1] === t[1] && bytes[k + 2] === t[2] && bytes[k + 3] === t[3]) {
+          hasil.push(k);
         }
       }
       return hasil;
@@ -47,45 +62,58 @@
     var movieTimescale = 1000;
 
     // A. Manipulasi mvhd (Movie Header)
-    var mvhdOffsets = cariTag("mvhd");
+    var mvhdOffsets = cariTagDiMoov("mvhd");
     if (mvhdOffsets.length > 0) {
-      var offset = mvhdOffsets[0];
-      var version = bytes[offset + 4];
-      if (version === 0) {
-        movieTimescale = view.getUint32(offset + 16);
+      var offsetMvhd = mvhdOffsets[mvhdOffsets.length - 1];
+      var verMvhd = bytes[offsetMvhd + 4];
+      if (verMvhd === 0) {
+        movieTimescale = view.getUint32(offsetMvhd + 16) || 1000;
         var durasiBaru = Math.round(movieTimescale * targetDetik);
-        view.setUint32(offset + 20, durasiBaru);
-      } else if (version === 1) {
-        movieTimescale = view.getUint32(offset + 24);
+        view.setUint32(offsetMvhd + 20, durasiBaru);
+      } else if (verMvhd === 1) {
+        movieTimescale = view.getUint32(offsetMvhd + 24) || 1000;
         var durasiBaruBig = BigInt(Math.round(movieTimescale * targetDetik));
-        view.setBigUint64(offset + 28, durasiBaruBig);
+        view.setBigUint64(offsetMvhd + 28, durasiBaruBig);
       }
     }
 
-    // B. Manipulasi mdhd (Media Header tiap track)
-    var mdhdOffsets = cariTag("mdhd");
-    mdhdOffsets.forEach(function (offset) {
-      var version = bytes[offset + 4];
-      if (version === 0) {
-        var trackTimescale = view.getUint32(offset + 16);
-        var durasiTrack = Math.round(trackTimescale * targetDetik);
-        view.setUint32(offset + 20, durasiTrack);
-      } else if (version === 1) {
-        var trackTimescaleBig = view.getUint32(offset + 24);
-        var durasiTrackBig = BigInt(Math.round(trackTimescaleBig * targetDetik));
-        view.setBigUint64(offset + 28, durasiTrackBig);
+    // B. Manipulasi tkhd (Track Header)
+    var tkhdOffsets = cariTagDiMoov("tkhd");
+    tkhdOffsets.forEach(function (offTkhd) {
+      var verTkhd = bytes[offTkhd + 4];
+      var durTkhd = Math.round(movieTimescale * targetDetik);
+      if (verTkhd === 0) {
+        view.setUint32(offTkhd + 24, durTkhd);
+      } else if (verTkhd === 1) {
+        view.setBigUint64(offTkhd + 32, BigInt(durTkhd));
       }
     });
 
-    // C. Manipulasi tkhd (Track Header tiap track)
-    var tkhdOffsets = cariTag("tkhd");
-    tkhdOffsets.forEach(function (offset) {
-      var version = bytes[offset + 4];
-      var durasiTkhd = Math.round(movieTimescale * targetDetik);
-      if (version === 0) {
-        view.setUint32(offset + 24, durasiTkhd);
-      } else if (version === 1) {
-        view.setBigUint64(offset + 32, BigInt(durasiTkhd));
+    // C. Manipulasi mdhd (Media Header tiap stream track)
+    var mdhdOffsets = cariTagDiMoov("mdhd");
+    mdhdOffsets.forEach(function (offMdhd) {
+      var verMdhd = bytes[offMdhd + 4];
+      if (verMdhd === 0) {
+        var trkTimescale = view.getUint32(offMdhd + 16) || movieTimescale;
+        var durMdhd = Math.round(trkTimescale * targetDetik);
+        view.setUint32(offMdhd + 20, durMdhd);
+      } else if (verMdhd === 1) {
+        var trkTimescale1 = view.getUint32(offMdhd + 24) || movieTimescale;
+        var durMdhdBig = BigInt(Math.round(trkTimescale1 * targetDetik));
+        view.setBigUint64(offMdhd + 28, durMdhdBig);
+      }
+    });
+
+    // D. Netralkan elst (Edit List) agar ffprobe tidak membaca durasi 30 detik
+    var elstOffsets = cariTagDiMoov("elst");
+    elstOffsets.forEach(function (offElst) {
+      var verElst = bytes[offElst + 4];
+      var durElst = Math.round(movieTimescale * targetDetik);
+      // Entry pertama segmen elst berada pada offset + 12
+      if (verElst === 0) {
+        view.setUint32(offElst + 12, durElst);
+      } else if (verElst === 1) {
+        view.setBigUint64(offElst + 12, BigInt(durElst));
       }
     });
 

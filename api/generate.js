@@ -3,7 +3,10 @@
 
 export const maxDuration = 60;
 
-const EMAIL_OWNER = "anggraingki@gmail.com";
+const DAFTAR_EMAIL_OWNER = [
+  "anggraingki@gmail.com",
+  "ingkiapple0@gmail.com"
+];
 
 // Helper generate random hex 32 karakter untuk clientId
 function buatRandomClientId() {
@@ -95,7 +98,7 @@ export default async function handler(req, res) {
   };
 
   // =========================================================
-  // JALUR OWNER: KLING 2.6 MOTION CONTROL (TIDAK DIUBAH)
+  // JALUR OWNER: KLING 2.6 MOTION CONTROL VIA PIAPI
   // =========================================================
   if (provider === 'kling') {
     let emailTerverifikasi = (userEmail || "").trim().toLowerCase();
@@ -110,20 +113,16 @@ export default async function handler(req, res) {
       } catch (e) {}
     }
 
-    if (emailTerverifikasi !== EMAIL_OWNER.toLowerCase()) {
+    const isOwner = DAFTAR_EMAIL_OWNER.some(e => e.toLowerCase() === emailTerverifikasi);
+    if (!isOwner) {
       return res.status(403).json({
         success: false,
-        message: `Fitur Kling 2.6 hanya boleh digunakan oleh Owner (${EMAIL_OWNER}).`
+        message: `Fitur Kling 2.6 hanya boleh digunakan oleh Owner (${emailTerverifikasi || 'User'}).`
       });
     }
 
-    const PIAPI_KEY = process.env.PIAPI_KEY;
-    if (!PIAPI_KEY) {
-      return res.status(500).json({
-        success: false,
-        message: 'PIAPI_KEY belum diset di Environment Variables Vercel.'
-      });
-    }
+    // KUNCI PIAPI DITANAM LANGSUNG (TANPA VERCEL ENV)
+    const PIAPI_KEY = "b6d3705e08d8e2330e60639119bd04bc304be592eebda976ec2551f82ea072da";
 
     try {
       const piapiPayload = {
@@ -143,7 +142,10 @@ export default async function handler(req, res) {
 
       const piapiRes = await fetch('https://api.piapi.ai/api/v1/task', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-API-KEY': PIAPI_KEY },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'x-api-key': PIAPI_KEY 
+        },
         body: JSON.stringify(piapiPayload)
       });
 
@@ -151,12 +153,25 @@ export default async function handler(req, res) {
       const idTugas = piapiJson?.task_id || piapiJson?.data?.task_id;
 
       if (idTugas) {
-        return res.status(200).json({ success: true, taskId: idTugas, poolId: null, didDeductCredit: false, provider: 'kling' });
+        return res.status(200).json({ 
+          success: true, 
+          taskId: idTugas, 
+          poolId: null, 
+          didDeductCredit: false, 
+          provider: 'kling' 
+        });
       } else {
-        throw new Error(piapiJson?.message || "PiAPI menolak tugas.");
+        const pesanErrorPiapi = piapiJson?.message || 
+                                piapiJson?.error?.message || 
+                                (piapiJson?.detail ? JSON.stringify(piapiJson.detail) : null) || 
+                                "PiAPI menolak tugas.";
+        throw new Error(pesanErrorPiapi);
       }
     } catch (errKling) {
-      return res.status(500).json({ success: false, message: 'Koneksi ke PiAPI gagal: ' + errKling.message });
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Koneksi ke PiAPI gagal: ' + errKling.message 
+      });
     }
   }
 

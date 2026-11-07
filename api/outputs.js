@@ -65,12 +65,20 @@ export default async function handler(req, res) {
 
   const cleanTaskId = String(taskId).trim();
 
-  // Jalur Kling 2.6
+  // =========================================================
+  // JALUR KLING MOTION CONTROL (PIAPI POLLING)
+  // =========================================================
   if (provider === 'kling' || cleanTaskId.includes('-')) {
     try {
-      const PIAPI_KEY = process.env.PIAPI_KEY;
-      if (!PIAPI_KEY) return res.status(500).json({ success: false, message: 'PIAPI_KEY belum diset.' });
-      const piRes = await fetch(`https://api.piapi.ai/api/v1/task/${cleanTaskId}`, { headers: { 'X-API-KEY': PIAPI_KEY } });
+      // KUNCI PIAPI DITANAM LANGSUNG (TANPA VERCEL ENV)
+      const PIAPI_KEY = "b6d3705e08d8e2330e60639119bd04bc304be592eebda976ec2551f82ea072da";
+
+      const piRes = await fetch(`https://api.piapi.ai/api/v1/task/${cleanTaskId}`, { 
+        headers: { 
+          'x-api-key': PIAPI_KEY,
+          'Content-Type': 'application/json'
+        } 
+      });
       const piJson = await piRes.json().catch(() => ({}));
       return res.status(200).json({ success: true, data: piJson.data || piJson });
     } catch (e) {
@@ -78,7 +86,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // Jalur RunningHub
+  // =========================================================
+  // JALUR RUNNINGHUB (WEB SESSION POOLING)
+  // =========================================================
   const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_KEY;
 

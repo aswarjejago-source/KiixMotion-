@@ -27,26 +27,23 @@
     }
   }
 
-  // 2. INJEKTOR BINER MP4 (MEMALSUKAN FFPROBE SATPAM SERVER KE 5.0 DETIK MURNI)
+  // 2. INJEKTOR BINER MP4 (TRIK TIMESCALE STREAM: KUNCI FFPROBE KE 5.0 DETIK TANPA POTONG FRAME)
   async function palsukanDurasiMP4(file, targetDetik = 5.0) {
     var buffer = await file.arrayBuffer();
     var bytes = new Uint8Array(buffer);
     var view = new DataView(buffer);
 
-    // Cari letak atom moov utama (wadah seluruh metadata MP4)
+    // Cari atom moov utama
     var moovStart = -1;
-    var moovSize = 0;
     for (var i = 0; i < bytes.length - 8; i++) {
       if (bytes[i] === 0x6D && bytes[i + 1] === 0x6F && bytes[i + 2] === 0x6F && bytes[i + 3] === 0x76) { // "moov"
         moovStart = i;
-        moovSize = view.getUint32(i - 4);
         break;
       }
     }
 
-    // Jika moov ditemukan, batasi pencarian hanya di dalam moov agar tidak salah tembak data mdat
     var batasAwal = moovStart !== -1 ? moovStart : 0;
-    var batasAkhir = moovStart !== -1 ? Math.min(bytes.length - 8, moovStart + moovSize) : bytes.length - 8;
+    var batasAkhir = bytes.length - 8;
 
     function cariTagDiMoov(tagStr) {
       var t = [tagStr.charCodeAt(0), tagStr.charCodeAt(1), tagStr.charCodeAt(2), tagStr.charCodeAt(3)];
@@ -60,21 +57,32 @@
     }
 
     var movieTimescale = 1000;
+    var durasiAsliDetik = 30.0;
 
-    // A. Manipulasi mvhd (Movie Header)
+    // A. Baca dan modifikasi mvhd (Movie Header)
     var mvhdOffsets = cariTagDiMoov("mvhd");
     if (mvhdOffsets.length > 0) {
       var offsetMvhd = mvhdOffsets[mvhdOffsets.length - 1];
       var verMvhd = bytes[offsetMvhd + 4];
       if (verMvhd === 0) {
         movieTimescale = view.getUint32(offsetMvhd + 16) || 1000;
+        var durasiAsli = view.getUint32(offsetMvhd + 20);
+        durasiAsliDetik = durasiAsli / movieTimescale;
         var durasiBaru = Math.round(movieTimescale * targetDetik);
         view.setUint32(offsetMvhd + 20, durasiBaru);
       } else if (verMvhd === 1) {
         movieTimescale = view.getUint32(offsetMvhd + 24) || 1000;
+        var durasiAsliBig = view.getBigUint64(offsetMvhd + 28);
+        durasiAsliDetik = Number(durasiAsliBig) / movieTimescale;
         var durasiBaruBig = BigInt(Math.round(movieTimescale * targetDetik));
         view.setBigUint64(offsetMvhd + 28, durasiBaruBig);
       }
+    }
+
+    // Hitung faktor pengali untuk timescale stream
+    var faktorPengali = 1.0;
+    if (durasiAsliDetik > targetDetik) {
+      faktorPengali = durasiAsliDetik / targetDetik;
     }
 
     // B. Manipulasi tkhd (Track Header)
@@ -89,27 +97,30 @@
       }
     });
 
-    // C. Manipulasi mdhd (Media Header tiap stream track)
+    // C. Manipulasi mdhd (KUNCI UTAMA: Kalikan timescale stream agar pembagian stts menghasilkan tepat 5.0 detik)
     var mdhdOffsets = cariTagDiMoov("mdhd");
     mdhdOffsets.forEach(function (offMdhd) {
       var verMdhd = bytes[offMdhd + 4];
       if (verMdhd === 0) {
         var trkTimescale = view.getUint32(offMdhd + 16) || movieTimescale;
-        var durMdhd = Math.round(trkTimescale * targetDetik);
+        var newTrkTimescale = Math.round(trkTimescale * faktorPengali);
+        view.setUint32(offMdhd + 16, newTrkTimescale);
+        var durMdhd = Math.round(newTrkTimescale * targetDetik);
         view.setUint32(offMdhd + 20, durMdhd);
       } else if (verMdhd === 1) {
         var trkTimescale1 = view.getUint32(offMdhd + 24) || movieTimescale;
-        var durMdhdBig = BigInt(Math.round(trkTimescale1 * targetDetik));
+        var newTrkTimescale1 = Math.round(trkTimescale1 * faktorPengali);
+        view.setUint32(offMdhd + 24, newTrkTimescale1);
+        var durMdhdBig = BigInt(Math.round(newTrkTimescale1 * targetDetik));
         view.setBigUint64(offMdhd + 28, durMdhdBig);
       }
     });
 
-    // D. Netralkan elst (Edit List) agar ffprobe tidak membaca durasi 30 detik
+    // D. Manipulasi elst (Edit List) jika ada
     var elstOffsets = cariTagDiMoov("elst");
     elstOffsets.forEach(function (offElst) {
       var verElst = bytes[offElst + 4];
       var durElst = Math.round(movieTimescale * targetDetik);
-      // Entry pertama segmen elst berada pada offset + 12
       if (verElst === 0) {
         view.setUint32(offElst + 12, durElst);
       } else if (verElst === 1) {
@@ -215,7 +226,6 @@
     if (tipe === "video") {
       var sizeMbAwal = file.size / (1024 * 1024);
 
-      // Kompres hanya jika mendekati limit Supabase 50MB
       if (sizeMbAwal > 45) {
         if (stEl) stEl.innerHTML = '<span class="text-amber-500 font-bold animate-pulse">⚡ Mengoptimalkan video... 0%</span>';
         fileFinal = await perkecilVideoHP(file, function (persen) {
@@ -223,8 +233,7 @@
         });
       }
 
-      // Suntik biner MP4 agar terbaca 5.0 detik oleh ffprobe PiAPI
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-500 font-bold animate-pulse">⚡ Menyamarkan metadata video...</span>';
+      if (stEl) stEl.innerHTML = '<span class="text-indigo-500 font-bold animate-pulse">⚡ Menyamarkan metadata stream video...</span>';
       try {
         fileFinal = await palsukanDurasiMP4(fileFinal, 5.0);
       } catch (errPatch) {

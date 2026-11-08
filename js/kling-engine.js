@@ -27,7 +27,7 @@
     }
   }
 
-  // 2. INJEKTOR BINER MP4 (TRIK TIMESCALE STREAM: KUNCI FFPROBE KE 5.0 DETIK TANPA POTONG FRAME)
+  // 2. INJEKTOR BINER MP4: KUNCI DURASI TAGIHAN KE 5 DETIK, FRAME RATE TETAP NORMAL (1X)
   async function palsukanDurasiMP4(file, targetDetik = 5.0) {
     var buffer = await file.arrayBuffer();
     var bytes = new Uint8Array(buffer);
@@ -57,35 +57,22 @@
     }
 
     var movieTimescale = 1000;
-    var durasiAsliDetik = 30.0;
 
-    // A. Baca dan modifikasi mvhd (Movie Header)
+    // A. Ubah Durasi Header File (mvhd) ke 5.0 Detik
     var mvhdOffsets = cariTagDiMoov("mvhd");
     if (mvhdOffsets.length > 0) {
       var offsetMvhd = mvhdOffsets[mvhdOffsets.length - 1];
       var verMvhd = bytes[offsetMvhd + 4];
       if (verMvhd === 0) {
         movieTimescale = view.getUint32(offsetMvhd + 16) || 1000;
-        var durasiAsli = view.getUint32(offsetMvhd + 20);
-        durasiAsliDetik = durasiAsli / movieTimescale;
-        var durasiBaru = Math.round(movieTimescale * targetDetik);
-        view.setUint32(offsetMvhd + 20, durasiBaru);
+        view.setUint32(offsetMvhd + 20, Math.round(movieTimescale * targetDetik));
       } else if (verMvhd === 1) {
         movieTimescale = view.getUint32(offsetMvhd + 24) || 1000;
-        var durasiAsliBig = view.getBigUint64(offsetMvhd + 28);
-        durasiAsliDetik = Number(durasiAsliBig) / movieTimescale;
-        var durasiBaruBig = BigInt(Math.round(movieTimescale * targetDetik));
-        view.setBigUint64(offsetMvhd + 28, durasiBaruBig);
+        view.setBigUint64(offsetMvhd + 28, BigInt(Math.round(movieTimescale * targetDetik)));
       }
     }
 
-    // Hitung faktor pengali untuk timescale stream
-    var faktorPengali = 1.0;
-    if (durasiAsliDetik > targetDetik) {
-      faktorPengali = durasiAsliDetik / targetDetik;
-    }
-
-    // B. Manipulasi tkhd (Track Header)
+    // B. Ubah Durasi Track Header (tkhd) ke 5.0 Detik
     var tkhdOffsets = cariTagDiMoov("tkhd");
     tkhdOffsets.forEach(function (offTkhd) {
       var verTkhd = bytes[offTkhd + 4];
@@ -97,21 +84,17 @@
       }
     });
 
-    // C. Manipulasi mdhd (KUNCI UTAMA: Kalikan timescale stream agar pembagian stts menghasilkan tepat 5.0 detik)
+    // C. Ubah Durasi Media Track (mdhd) — PERTAHANKAN TIMESCALE ASLI (NORMAL 1X, TANPA PENGALI)
     var mdhdOffsets = cariTagDiMoov("mdhd");
     mdhdOffsets.forEach(function (offMdhd) {
       var verMdhd = bytes[offMdhd + 4];
       if (verMdhd === 0) {
         var trkTimescale = view.getUint32(offMdhd + 16) || movieTimescale;
-        var newTrkTimescale = Math.round(trkTimescale * faktorPengali);
-        view.setUint32(offMdhd + 16, newTrkTimescale);
-        var durMdhd = Math.round(newTrkTimescale * targetDetik);
+        var durMdhd = Math.round(trkTimescale * targetDetik);
         view.setUint32(offMdhd + 20, durMdhd);
       } else if (verMdhd === 1) {
         var trkTimescale1 = view.getUint32(offMdhd + 24) || movieTimescale;
-        var newTrkTimescale1 = Math.round(trkTimescale1 * faktorPengali);
-        view.setUint32(offMdhd + 24, newTrkTimescale1);
-        var durMdhdBig = BigInt(Math.round(newTrkTimescale1 * targetDetik));
+        var durMdhdBig = BigInt(Math.round(trkTimescale1 * targetDetik));
         view.setBigUint64(offMdhd + 28, durMdhdBig);
       }
     });
@@ -338,7 +321,7 @@
           provider: "kling",
           userId: realUserId,
           userEmail: realEmail,
-          duration: 5,
+          keep_original_sound: true,
           prompt: promptTeks || "High quality cinematic motion capture, smooth movement, realistic studio lighting",
         }),
       });

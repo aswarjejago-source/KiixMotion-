@@ -59,7 +59,8 @@ export default async function handler(req, res) {
     prompt,
     images,
     duration,
-    aspectRatio
+    aspectRatio,
+    fakeUrl
   } = req.body;
 
   if (!userId) {
@@ -98,7 +99,7 @@ export default async function handler(req, res) {
   };
 
   // =========================================================
-  // JALUR OWNER: KLING 2.6 MOTION CONTROL VIA PIAPI
+  // JALUR OWNER: KLING 2.6 MOTION CONTROL VIA PIAPI (SMART PROXY)
   // =========================================================
   if (provider === 'kling') {
     let emailTerverifikasi = (userEmail || "").trim().toLowerCase();
@@ -121,21 +122,31 @@ export default async function handler(req, res) {
       });
     }
 
-    // KUNCI PIAPI DITANAM LANGSUNG (TANPA VERCEL ENV)
+    // KUNCI PIAPI DITANAM LANGSUNG
     const PIAPI_KEY = "b6d3705e08d8e2330e60639119bd04bc304be592eebda976ec2551f82ea072da";
 
     try {
+      // 1. Bangun link proxy dinamis lewat domain KiixMotion
+      const proto = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      const baseUrl = `${proto}://${host}`;
+
+      // File video pancingan 5 detik di Supabase
+      const videoPancingan5s = fakeUrl || `${SUPABASE_URL}/storage/v1/object/public/bahan-render/pancingan_5s.mp4`;
+
+      // Kirim link proxy ke PiAPI (Bukan link mentah Supabase)
+      const urlVideoProxy = `${baseUrl}/api/stream?realUrl=${encodeURIComponent(urlBahanVideo.trim())}&fakeUrl=${encodeURIComponent(videoPancingan5s)}`;
+
       const piapiPayload = {
         model: "kling",
         task_type: "motion_control",
         input: {
           image_url: urlBahanFoto.trim(),
-          video_url: urlBahanVideo.trim(),
+          video_url: urlVideoProxy,
           version: "2.6",
           mode: "std",
           motion_direction: "video",
-          keep_original_sound: false,
-          duration: 5,
+          keep_original_sound: true, // Audio asli dihidupkan
           prompt: prompt || "High quality cinematic motion capture, smooth movement, realistic studio lighting"
         }
       };

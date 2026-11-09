@@ -69,7 +69,7 @@ export default async function handler(req, res) {
 
   const cleanUserId = String(userId).trim();
 
-  // Validasi input
+  // Validasi input umum
   if (provider === 'minimax') {
     if ((!images || images.length === 0) && !urlBahanFoto) {
       return res.status(400).json({ success: false, message: 'Minimal unggah 1 foto karakter untuk MiniMax H3.' });
@@ -77,7 +77,8 @@ export default async function handler(req, res) {
     if (!prompt) {
       return res.status(400).json({ success: false, message: 'Prompt / skrip aksi MiniMax H3 wajib diisi.' });
     }
-  } else if (provider !== 'kling') {
+  } else {
+    // Berlaku untuk Kling dan provider lainnya
     if (!urlBahanFoto || !urlBahanVideo) {
       return res.status(400).json({ success: false, message: 'Bahan foto dan video wajib diisi.' });
     }
@@ -126,27 +127,30 @@ export default async function handler(req, res) {
     const PIAPI_KEY = "b6d3705e08d8e2330e60639119bd04bc304be592eebda976ec2551f82ea072da";
 
     try {
-      // 1. Bangun link proxy dinamis lewat domain KiixMotion
-      const proto = req.headers['x-forwarded-proto'] || 'https';
-      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      // 1. Bangun link proxy dinamis (Aman dari bug multi-proxy header)
+      const rawProto = req.headers['x-forwarded-proto'] || 'https';
+      const proto = String(rawProto).split(',')[0].trim();
+      const rawHost = req.headers['x-forwarded-host'] || req.headers.host || '';
+      const host = String(rawHost).split(',')[0].trim();
       const baseUrl = `${proto}://${host}`;
 
-      // File video pancingan 5 detik di Supabase
-      const videoPancingan5s = fakeUrl || `${SUPABASE_URL}/storage/v1/object/public/bahan-render/pancingan_5s.mp4`;
+      // Bersihkan trailing slash Supabase URL
+      const supaBaseBersih = String(SUPABASE_URL).replace(/\/+$/, '');
+      const videoPancingan5s = fakeUrl || `${supaBaseBersih}/storage/v1/object/public/bahan-render/pancingan_5s.mp4`;
 
       // Kirim link proxy ke PiAPI (Bukan link mentah Supabase)
-      const urlVideoProxy = `${baseUrl}/api/stream?realUrl=${encodeURIComponent(urlBahanVideo.trim())}&fakeUrl=${encodeURIComponent(videoPancingan5s)}`;
+      const urlVideoProxy = `${baseUrl}/api/stream?realUrl=${encodeURIComponent(String(urlBahanVideo).trim())}&fakeUrl=${encodeURIComponent(videoPancingan5s)}`;
 
       const piapiPayload = {
         model: "kling",
         task_type: "motion_control",
         input: {
-          image_url: urlBahanFoto.trim(),
+          image_url: String(urlBahanFoto).trim(),
           video_url: urlVideoProxy,
           version: "2.6",
           mode: "std",
           motion_direction: "video",
-          keep_original_sound: true, // Audio asli dihidupkan
+          keep_original_sound: true, // Audio asli dipertahankan
           prompt: prompt || "High quality cinematic motion capture, smooth movement, realistic studio lighting"
         }
       };

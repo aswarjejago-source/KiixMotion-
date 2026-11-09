@@ -27,16 +27,15 @@
     }
   }
 
-  // 2. INJEKTOR BINER MP4: KUNCI DURASI TAGIHAN KE 5 DETIK, FRAME RATE TETAP NORMAL (1X)
+  // 2. INJEKTOR BINER MP4 (STANDBY / OPSIONAL)
   async function palsukanDurasiMP4(file, targetDetik = 5.0) {
     var buffer = await file.arrayBuffer();
     var bytes = new Uint8Array(buffer);
     var view = new DataView(buffer);
 
-    // Cari atom moov utama
     var moovStart = -1;
     for (var i = 0; i < bytes.length - 8; i++) {
-      if (bytes[i] === 0x6D && bytes[i + 1] === 0x6F && bytes[i + 2] === 0x6F && bytes[i + 3] === 0x76) { // "moov"
+      if (bytes[i] === 0x6D && bytes[i + 1] === 0x6F && bytes[i + 2] === 0x6F && bytes[i + 3] === 0x76) {
         moovStart = i;
         break;
       }
@@ -58,7 +57,6 @@
 
     var movieTimescale = 1000;
 
-    // A. Ubah Durasi Header File (mvhd) ke 5.0 Detik
     var mvhdOffsets = cariTagDiMoov("mvhd");
     if (mvhdOffsets.length > 0) {
       var offsetMvhd = mvhdOffsets[mvhdOffsets.length - 1];
@@ -72,7 +70,6 @@
       }
     }
 
-    // B. Ubah Durasi Track Header (tkhd) ke 5.0 Detik
     var tkhdOffsets = cariTagDiMoov("tkhd");
     tkhdOffsets.forEach(function (offTkhd) {
       var verTkhd = bytes[offTkhd + 4];
@@ -84,22 +81,18 @@
       }
     });
 
-    // C. Ubah Durasi Media Track (mdhd) — PERTAHANKAN TIMESCALE ASLI (NORMAL 1X, TANPA PENGALI)
     var mdhdOffsets = cariTagDiMoov("mdhd");
     mdhdOffsets.forEach(function (offMdhd) {
       var verMdhd = bytes[offMdhd + 4];
       if (verMdhd === 0) {
         var trkTimescale = view.getUint32(offMdhd + 16) || movieTimescale;
-        var durMdhd = Math.round(trkTimescale * targetDetik);
-        view.setUint32(offMdhd + 20, durMdhd);
+        view.setUint32(offMdhd + 20, Math.round(trkTimescale * targetDetik));
       } else if (verMdhd === 1) {
         var trkTimescale1 = view.getUint32(offMdhd + 24) || movieTimescale;
-        var durMdhdBig = BigInt(Math.round(trkTimescale1 * targetDetik));
-        view.setBigUint64(offMdhd + 28, durMdhdBig);
+        view.setBigUint64(offMdhd + 28, BigInt(Math.round(trkTimescale1 * targetDetik)));
       }
     });
 
-    // D. Manipulasi elst (Edit List) jika ada
     var elstOffsets = cariTagDiMoov("elst");
     elstOffsets.forEach(function (offElst) {
       var verElst = bytes[offElst + 4];
@@ -198,7 +191,7 @@
     });
   }
 
-  // 4. SISTEM UNGGAH MURNI SUPABASE DENGAN PENYAMARAN HEADER
+  // 4. SISTEM UNGGAH MURNI SUPABASE (VIDEO TETAP ASLI 1.0X UNTUK DISERVIS PROXY BACKEND)
   async function unggahBahanKling(file, tipe) {
     var stEl = document.getElementById(tipe === "foto" ? "st-file-foto" : "st-file-video");
     var txtEl = document.getElementById(tipe === "foto" ? "txt-file-foto" : "txt-file-video");
@@ -216,12 +209,8 @@
         });
       }
 
-      if (stEl) stEl.innerHTML = '<span class="text-indigo-500 font-bold animate-pulse">⚡ Menyamarkan metadata stream video...</span>';
-      try {
-        fileFinal = await palsukanDurasiMP4(fileFinal, 5.0);
-      } catch (errPatch) {
-        console.warn("Gagal menyuntik biner:", errPatch);
-      }
+      // Modifikasi biner di frontend dinonaktifkan: video diunggah asli 1.0x murni
+      // Penanganan durasi diserahkan sepenuhnya ke api/stream.js di server
     }
 
     var ext = fileFinal.name.split(".").pop() || (tipe === "foto" ? "jpg" : "mp4");
